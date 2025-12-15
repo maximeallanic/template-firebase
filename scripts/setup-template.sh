@@ -104,16 +104,16 @@ replace_in_file() {
     local file=$1
     if [ -f "$file" ]; then
         # Use | as delimiter to avoid issues with URLs containing /
-        sed -i "s|{{APP_NAME}}|$APP_NAME|g" "$file"
-        sed -i "s|{{APP_NAME_SLUG}}|$APP_NAME_SLUG|g" "$file"
+        sed -i "s|Spicy vs Sweet|$APP_NAME|g" "$file"
+        sed -i "s|spicy-vs-sweet|$APP_NAME_SLUG|g" "$file"
         sed -i "s|{{APP_NAME_LOWER}}|$APP_NAME_LOWER|g" "$file"
-        sed -i "s|{{DOMAIN}}|$DOMAIN|g" "$file"
-        sed -i "s|{{PROJECT_ID}}|$PROJECT_ID|g" "$file"
+        sed -i "s|spicy-vs-sweet.com|$DOMAIN|g" "$file"
+        sed -i "s|spicy-vs-sweety|$PROJECT_ID|g" "$file"
         sed -i "s|{{COMPANY_NAME}}|$COMPANY_NAME|g" "$file"
         sed -i "s|{{COMPANY_ADDRESS}}|$COMPANY_ADDRESS|g" "$file"
         sed -i "s|{{SUPPORT_EMAIL}}|$SUPPORT_EMAIL|g" "$file"
         sed -i "s|{{TWITTER_HANDLE}}|$TWITTER_HANDLE|g" "$file"
-        sed -i "s|{{COOKIE_PREFIX}}|$COOKIE_PREFIX|g" "$file"
+        sed -i "s|spicyvssweet|$COOKIE_PREFIX|g" "$file"
         sed -i "s|{{LANGUAGE_STORAGE_KEY}}|$LANGUAGE_STORAGE_KEY|g" "$file"
         echo "  Updated: $file"
     fi

@@ -5,7 +5,7 @@
     "signIn": "Se connecter",
     "signOut": "Se déconnecter",
     "manageSubscription": "Gérer l'abonnement",
-    "appName": "{{APP_NAME}}"
+    "appName": "Spicy vs Sweet"
   },
   "hero": {
     "freeTrial": "🎉 Essayez votre premier email GRATUITEMENT - Sans inscription !",
@@ -162,7 +162,7 @@
   },
   "success": {
     "freeTrialUsed": "🎉 Essai gratuit utilisé ! Inscrivez-vous pour obtenir 5 analyses gratuites par mois.",
-    "welcomePro": "🎉 Bienvenue dans {{APP_NAME}} Pro ! Votre abonnement est maintenant actif.",
+    "welcomePro": "🎉 Bienvenue dans Spicy vs Sweet Pro ! Votre abonnement est maintenant actif.",
     "signUpComplete": "✅ Inscription terminée",
     "analysisComplete": "✅ Analyse terminée"
   },

@@ -43,15 +43,15 @@ This script will:
 
 | Placeholder | Description | Example |
 |-------------|-------------|---------|
-| `{{APP_NAME}}` | Display name | "MyApp" |
-| `{{APP_NAME_SLUG}}` | URL-safe slug | "my-app" |
-| `{{DOMAIN}}` | Your domain | "myapp.com" |
-| `{{PROJECT_ID}}` | Firebase project ID | "myapp-12345" |
+| `Spicy vs Sweet` | Display name | "MyApp" |
+| `spicy-vs-sweet` | URL-safe slug | "my-app" |
+| `spicy-vs-sweet.com` | Your domain | "myapp.com" |
+| `spicy-vs-sweety` | Firebase project ID | "myapp-12345" |
 | `{{COMPANY_NAME}}` | Legal company name | "MyApp Inc." |
 | `{{COMPANY_ADDRESS}}` | Company address | "123 Main St" |
 | `{{SUPPORT_EMAIL}}` | Support email | "support@myapp.com" |
 | `{{TWITTER_HANDLE}}` | Twitter/X handle | "@myapp" |
-| `{{COOKIE_PREFIX}}` | Cookie prefix | "myapp" |
+| `spicyvssweet` | Cookie prefix | "myapp" |
 
 ## Development Requirements
 
@@ -287,16 +287,16 @@ Multi-layer protection:
 
 **DNS Records (add to domain registrar):**
 ```
-MX      {{DOMAIN}}  →  mxa.mailgun.org (priority 10)
-MX      {{DOMAIN}}  →  mxb.mailgun.org (priority 10)
-TXT     {{DOMAIN}}  →  v=spf1 include:mailgun.org ~all
+MX      spicy-vs-sweet.com  →  mxa.mailgun.org (priority 10)
+MX      spicy-vs-sweet.com  →  mxb.mailgun.org (priority 10)
+TXT     spicy-vs-sweet.com  →  v=spf1 include:mailgun.org ~all
 TXT     k1._domainkey...  →  [DKIM key from Mailgun]
 ```
 
 **Mailgun Route:**
 ```
-Match Recipient: *@{{DOMAIN}}
-Forward to: https://us-central1-{{PROJECT_ID}}.cloudfunctions.net/receiveEmailWebhook
+Match Recipient: *@spicy-vs-sweet.com
+Forward to: https://us-central1-spicy-vs-sweety.cloudfunctions.net/receiveEmailWebhook
 ```
 
 ## Internationalization (i18n)
@@ -341,10 +341,10 @@ Update in `functions/src/index.ts`:
 1. Create secret: `firebase functions:secrets:set SECRET_NAME`
 2. Grant permissions to service accounts:
    ```bash
-   gcloud projects add-iam-policy-binding {{PROJECT_ID}} \
+   gcloud projects add-iam-policy-binding spicy-vs-sweety \
      --member="serviceAccount:SA_EMAIL" \
      --role="roles/secretmanager.viewer"
-   gcloud projects add-iam-policy-binding {{PROJECT_ID}} \
+   gcloud projects add-iam-policy-binding spicy-vs-sweety \
      --member="serviceAccount:SA_EMAIL" \
      --role="roles/secretmanager.secretAccessor"
    ```
@@ -366,7 +366,7 @@ Only loads in production: `if (import.meta.env.PROD && import.meta.env.VITE_FIRE
 ### Stripe Integration
 - Test mode in development (keys in `.env.local`)
 - Production: `firebase functions:config:set stripe.secret_key="sk_live_..."`
-- Webhook URL: `https://us-central1-{{PROJECT_ID}}.cloudfunctions.net/stripeWebhook`
+- Webhook URL: `https://us-central1-spicy-vs-sweety.cloudfunctions.net/stripeWebhook`
 
 ## Deployment Checklist
 

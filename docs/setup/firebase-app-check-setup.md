@@ -14,15 +14,15 @@ Firebase App Check protects your backend resources (Cloud Functions, Firestore, 
 
 ### 1. Create reCAPTCHA Enterprise Key
 
-1. Go to [Google Cloud Console > Security > reCAPTCHA Enterprise](https://console.cloud.google.com/security/recaptcha?project={{PROJECT_ID}})
+1. Go to [Google Cloud Console > Security > reCAPTCHA Enterprise](https://console.cloud.google.com/security/recaptcha?project=spicy-vs-sweety)
 
 2. Click **"Create Key"**
 
 3. Configure the key:
-   - **Display name**: `{{APP_NAME}} Web`
+   - **Display name**: `Spicy vs Sweet Web`
    - **Platform type**: Website
    - **Domains**:
-     - `{{DOMAIN}}` (production)
+     - `spicy-vs-sweet.com` (production)
      - `localhost` (for local testing)
    - **reCAPTCHA type**:
      - **Score-based (recommended)**: Invisible, uses risk analysis (0.0 = likely bot, 1.0 = likely human)
@@ -38,7 +38,7 @@ Firebase App Check protects your backend resources (Cloud Functions, Firestore, 
 
 ### 2. Enable App Check in Firebase Console
 
-1. Go to [Firebase Console > App Check](https://console.firebase.google.com/project/{{PROJECT_ID}}/appcheck)
+1. Go to [Firebase Console > App Check](https://console.firebase.google.com/project/spicy-vs-sweety/appcheck)
 
 2. Click **"Get started"** (or go to "Apps" tab)
 
@@ -141,7 +141,7 @@ If your tests or CI/CD pipeline fails due to App Check:
 
 ### Firebase Console Metrics
 
-Go to [Firebase Console > App Check > Metrics](https://console.firebase.google.com/project/{{PROJECT_ID}}/appcheck/insights)
+Go to [Firebase Console > App Check > Metrics](https://console.firebase.google.com/project/spicy-vs-sweety/appcheck/insights)
 
 **Key metrics to watch:**
 - ✅ **Valid token attempts**: Legitimate users
@@ -151,7 +151,7 @@ Go to [Firebase Console > App Check > Metrics](https://console.firebase.google.c
 
 ### Google Cloud Console (reCAPTCHA Enterprise)
 
-Go to [Cloud Console > Security > reCAPTCHA Enterprise](https://console.cloud.google.com/security/recaptcha?project={{PROJECT_ID}})
+Go to [Cloud Console > Security > reCAPTCHA Enterprise](https://console.cloud.google.com/security/recaptcha?project=spicy-vs-sweety)
 
 **Additional insights:**
 - Score distribution (for score-based keys)

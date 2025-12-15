@@ -51,7 +51,7 @@ src/i18n/
 ### 1. Language Detection
 
 The system detects the user's preferred language in this order:
-1. **localStorage** (`{{COOKIE_PREFIX}}_language` key) - Persisted user choice
+1. **localStorage** (`spicyvssweet_language` key) - Persisted user choice
 2. **Browser navigator.language** - Browser/OS setting
 3. **Default fallback** - English (en)
 

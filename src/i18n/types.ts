@@ -21,4 +21,4 @@ export const SUPPORTED_LANGUAGES: LanguageOption[] = [
 ];
 
 export const DEFAULT_LANGUAGE: SupportedLanguage = 'en';
-export const LANGUAGE_STORAGE_KEY = '{{COOKIE_PREFIX}}_language';
+export const LANGUAGE_STORAGE_KEY = 'spicyvssweet_language';

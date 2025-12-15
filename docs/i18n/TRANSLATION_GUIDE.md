@@ -80,7 +80,7 @@ Your translation (`/public/locales/es/translation.json`):
 3. **Don't use machine translation alone**: Always review AI-generated text
 4. **Don't add new keys**: Follow English structure exactly
 5. **Don't mix languages**: One file = one language
-6. **Don't translate brand names**: "{{APP_NAME}}", "Gemini AI" stay as-is
+6. **Don't translate brand names**: "Spicy vs Sweet", "Gemini AI" stay as-is
 7. **Don't translate technical terms unnecessarily**: "email", "AI" can stay
 
 ### 5. Special Cases
@@ -138,8 +138,8 @@ French example:
 
 ```bash
 # Clone the repository
-git clone https://github.com/yourusername/{{APP_NAME_SLUG}}.git
-cd {{APP_NAME_SLUG}}
+git clone https://github.com/yourusername/spicy-vs-sweet.git
+cd spicy-vs-sweet
 
 # Install dependencies
 npm install

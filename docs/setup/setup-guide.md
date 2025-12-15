@@ -70,7 +70,7 @@ cd /path/to/your-project
 firebase login
 
 # Set your project
-firebase use {{PROJECT_ID}}
+firebase use spicy-vs-sweety
 ```
 
 ### 3.2 Get Firebase Config
@@ -92,9 +92,9 @@ Paste your Firebase config:
 
 ```env
 VITE_FIREBASE_API_KEY=AIzaSy...
-VITE_FIREBASE_AUTH_DOMAIN={{PROJECT_ID}}.firebaseapp.com
-VITE_FIREBASE_PROJECT_ID={{PROJECT_ID}}
-VITE_FIREBASE_STORAGE_BUCKET={{PROJECT_ID}}.appspot.com
+VITE_FIREBASE_AUTH_DOMAIN=spicy-vs-sweety.firebaseapp.com
+VITE_FIREBASE_PROJECT_ID=spicy-vs-sweety
+VITE_FIREBASE_STORAGE_BUCKET=spicy-vs-sweety.appspot.com
 VITE_FIREBASE_MESSAGING_SENDER_ID=123456789
 VITE_FIREBASE_APP_ID=1:123456789:web:abc123
 VITE_RECAPTCHA_ENTERPRISE_SITE_KEY=your_recaptcha_key
@@ -138,14 +138,14 @@ The API will automatically use your Firebase project's service account. No addit
 ```bash
 firebase functions:config:set \
   stripe.secret_key="sk_test_YOUR_SECRET_KEY" \
-  --project {{PROJECT_ID}}
+  --project spicy-vs-sweety
 ```
 
 ### 5.4 Create Stripe Webhook
 
 1. Stripe Dashboard → Developers → Webhooks
 2. Click "Add endpoint"
-3. Endpoint URL: `https://us-central1-{{PROJECT_ID}}.cloudfunctions.net/stripeWebhook`
+3. Endpoint URL: `https://us-central1-spicy-vs-sweety.cloudfunctions.net/stripeWebhook`
 4. Description: "Subscription Events"
 5. Events to send:
    - `checkout.session.completed`
@@ -159,7 +159,7 @@ firebase functions:config:set \
 ```bash
 firebase functions:config:set \
   stripe.webhook_secret="whsec_YOUR_WEBHOOK_SECRET" \
-  --project {{PROJECT_ID}}
+  --project spicy-vs-sweety
 ```
 
 ---
@@ -230,7 +230,7 @@ Verify build success (should create `dist/` folder).
 Or manually:
 
 ```bash
-firebase deploy --project {{PROJECT_ID}}
+firebase deploy --project spicy-vs-sweety
 ```
 
 This deploys:
@@ -241,7 +241,7 @@ This deploys:
 
 ### 8.3 Verify Deployment
 
-Visit: `https://{{PROJECT_ID}}.web.app` (or your custom domain)
+Visit: `https://spicy-vs-sweety.web.app` (or your custom domain)
 
 ---
 
@@ -251,7 +251,7 @@ Visit: `https://{{PROJECT_ID}}.web.app` (or your custom domain)
 
 1. Firebase Console → Hosting
 2. Click "Add custom domain"
-3. Enter: `{{DOMAIN}}`
+3. Enter: `spicy-vs-sweet.com`
 4. Follow verification steps:
    - Add TXT record to DNS
    - Wait for verification
@@ -318,13 +318,13 @@ More test cards: https://stripe.com/docs/testing
 
 ```bash
 # View all logs
-firebase functions:log --project {{PROJECT_ID}}
+firebase functions:log --project spicy-vs-sweety
 
 # View specific function
-firebase functions:log --only analyzeEmail --project {{PROJECT_ID}}
+firebase functions:log --only analyzeEmail --project spicy-vs-sweety
 
 # Real-time logs
-firebase functions:log --follow --project {{PROJECT_ID}}
+firebase functions:log --follow --project spicy-vs-sweety
 ```
 
 ### Stripe Dashboard
@@ -347,14 +347,14 @@ firebase functions:log --follow --project {{PROJECT_ID}}
 firebase functions:config:set \
   stripe.secret_key="sk_live_YOUR_LIVE_KEY" \
   stripe.webhook_secret="whsec_YOUR_LIVE_WEBHOOK_SECRET" \
-  --project {{PROJECT_ID}}
+  --project spicy-vs-sweety
 ```
 
 4. Create new webhook with live mode endpoint
 5. Deploy:
 
 ```bash
-firebase deploy --only functions --project {{PROJECT_ID}}
+firebase deploy --only functions --project spicy-vs-sweety
 ```
 
 ---

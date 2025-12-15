@@ -1,12 +1,12 @@
 {
   "service": {
-    "name": "{{APP_NAME}}",
+    "name": "Spicy vs Sweet",
     "tagline": "AI-Powered Cold Email Analysis",
-    "description": "{{APP_NAME}} is a web-based SaaS platform that helps sales professionals, marketers, and business developers improve their cold email outreach campaigns. Using Google's advanced Gemini AI, {{APP_NAME}} analyzes emails in real-time and provides detailed feedback across 7 critical dimensions.",
+    "description": "Spicy vs Sweet is a web-based SaaS platform that helps sales professionals, marketers, and business developers improve their cold email outreach campaigns. Using Google's advanced Gemini AI, Spicy vs Sweet analyzes emails in real-time and provides detailed feedback across 7 critical dimensions.",
     "category": "SaaS",
     "industry": ["Sales Technology", "Marketing Automation", "AI Tools", "Email Marketing"],
     "target_audience": ["Sales Development Representatives (SDRs)", "Business Development Managers", "Marketing Professionals", "Entrepreneurs", "Recruiters", "Freelancers"],
-    "url": "https://{{DOMAIN}}"
+    "url": "https://spicy-vs-sweet.com"
   },
   "features": {
     "core_capabilities": [
@@ -96,6 +96,6 @@
     "currency": "USD"
   },
   "contact": {
-    "website": "https://{{DOMAIN}}"
+    "website": "https://spicy-vs-sweet.com"
   }
 }

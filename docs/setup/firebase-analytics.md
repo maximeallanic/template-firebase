@@ -56,7 +56,7 @@ if (analytics) {
 ### Viewing Analytics Data
 
 1. Go to [Firebase Console](https://console.firebase.google.com/)
-2. Select your project: **{{PROJECT_ID}}**
+2. Select your project: **spicy-vs-sweety**
 3. Click **Analytics** → **Dashboard**
 4. View real-time data in **Realtime** tab
 5. Standard reports appear after 24-48 hours
@@ -117,7 +117,7 @@ In production, Vertex AI uses the service account automatically - no API key con
 ### Monitoring AI Usage
 
 1. Go to [Firebase Console](https://console.firebase.google.com/)
-2. Select your project: **{{PROJECT_ID}}**
+2. Select your project: **spicy-vs-sweety**
 3. Click **Functions** → **Logs**
 4. Filter by function: `analyzeEmail`
 5. View AI request/response data and errors
@@ -217,7 +217,7 @@ Many ad blockers block Firebase Analytics (30-40% of users). This is expected an
 - [Firebase Analytics Documentation](https://firebase.google.com/docs/analytics)
 - [Firebase AI SDK Documentation](https://firebase.google.com/docs/ai)
 - [Gemini API Documentation](https://ai.google.dev/docs)
-- [Firebase Console](https://console.firebase.google.com/project/{{PROJECT_ID}})
+- [Firebase Console](https://console.firebase.google.com/project/spicy-vs-sweety)
 
 ## Support
 

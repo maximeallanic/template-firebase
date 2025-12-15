@@ -21,13 +21,13 @@ const TermsOfService = () => {
           <section>
             <h2 className="text-2xl font-semibold text-gray-900 mb-3">1. Introduction</h2>
             <p className="text-gray-700">
-              Welcome to {"{{APP_NAME}}"}. These Terms of Service ("Terms") govern your use of our service. By accessing or using {"{{APP_NAME}}"}, you agree to be bound by these Terms.
+              Welcome to {"Spicy vs Sweet"}. These Terms of Service ("Terms") govern your use of our service. By accessing or using {"Spicy vs Sweet"}, you agree to be bound by these Terms.
             </p>
           </section>
 
           <section>
             <h2 className="text-2xl font-semibold text-gray-900 mb-3">2. Service Provider</h2>
-            <p className="text-gray-700 mb-2">{"{{APP_NAME}}"} is operated by:</p>
+            <p className="text-gray-700 mb-2">{"Spicy vs Sweet"} is operated by:</p>
             <div className="bg-gray-50 p-4 rounded-lg">
               <p className="text-gray-700"><strong>Company:</strong> {"{{COMPANY_NAME}}"}</p>
               <p className="text-gray-700"><strong>Address:</strong> {"{{COMPANY_ADDRESS}}"}</p>
@@ -38,7 +38,7 @@ const TermsOfService = () => {
           <section>
             <h2 className="text-2xl font-semibold text-gray-900 mb-3">3. Service Description</h2>
             <p className="text-gray-700 mb-2">
-              {"{{APP_NAME}}"} provides AI-powered analysis services. The service evaluates content and provides actionable feedback.
+              {"Spicy vs Sweet"} provides AI-powered analysis services. The service evaluates content and provides actionable feedback.
             </p>
             <p className="text-gray-700">
               We offer multiple service tiers:
@@ -109,7 +109,7 @@ const TermsOfService = () => {
           <section>
             <h2 className="text-2xl font-semibold text-gray-900 mb-3">8. Intellectual Property</h2>
             <p className="text-gray-700 mb-2">
-              All content, features, and functionality of {"{{APP_NAME}}"} are owned by {"{{COMPANY_NAME}}"} and protected by international copyright, trademark, and other intellectual property laws.
+              All content, features, and functionality of {"Spicy vs Sweet"} are owned by {"{{COMPANY_NAME}}"} and protected by international copyright, trademark, and other intellectual property laws.
             </p>
             <p className="text-gray-700">
               You retain ownership of the content you submit for analysis. By using our service, you grant us a limited license to process and analyze your content solely for the purpose of providing the service.

@@ -19,7 +19,7 @@ When you create a pull request, GitHub Actions automatically:
 │                                                  │
 │  Frontend (Hosting)                             │
 │  ├─ Deployed to Preview Channel                 │
-│  ├─ URL: pr-123--{{PROJECT_ID}}.web.app        │
+│  ├─ URL: pr-123--spicy-vs-sweety.web.app        │
 │  └─ Expires: 7 days                             │
 │                                                  │
 │  Backend (Functions, Firestore, Auth)           │
@@ -39,7 +39,7 @@ When a PR is created, you'll receive a comment with a preview URL:
 ```
 🔥 Firebase Preview Deployment
 ✅ Status: Ready for Testing
-🌐 Preview URL: https://pr-123--{{PROJECT_ID}}.web.app
+🌐 Preview URL: https://pr-123--spicy-vs-sweety.web.app
 ```
 
 **What's deployed:**
@@ -148,7 +148,7 @@ Use Stripe CLI for local webhook testing:
 stripe login
 
 # Forward webhooks to local emulator
-stripe listen --forward-to localhost:5001/{{PROJECT_ID}}/us-central1/stripeWebhook
+stripe listen --forward-to localhost:5001/spicy-vs-sweety/us-central1/stripeWebhook
 
 # In another terminal, trigger test events
 stripe trigger checkout.session.completed
@@ -185,12 +185,12 @@ All checks must pass for the PR to be approved.
 **Solution:** Service account needs `roles/secretmanager.viewer` and `roles/secretmanager.secretAccessor` roles.
 
 ```bash
-gcloud projects add-iam-policy-binding {{PROJECT_ID}} \
-  --member="serviceAccount:github-action-XXXXX@{{PROJECT_ID}}.iam.gserviceaccount.com" \
+gcloud projects add-iam-policy-binding spicy-vs-sweety \
+  --member="serviceAccount:github-action-XXXXX@spicy-vs-sweety.iam.gserviceaccount.com" \
   --role="roles/secretmanager.viewer"
 
-gcloud projects add-iam-policy-binding {{PROJECT_ID}} \
-  --member="serviceAccount:github-action-XXXXX@{{PROJECT_ID}}.iam.gserviceaccount.com" \
+gcloud projects add-iam-policy-binding spicy-vs-sweety \
+  --member="serviceAccount:github-action-XXXXX@spicy-vs-sweety.iam.gserviceaccount.com" \
   --role="roles/secretmanager.secretAccessor"
 ```
 

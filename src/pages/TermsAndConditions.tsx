@@ -21,7 +21,7 @@ const TermsAndConditions = () => {
           <section>
             <h2 className="text-2xl font-semibold text-gray-900 mb-3">1. General Information</h2>
             <p className="text-gray-700 mb-2">
-              These Terms and Conditions ("Conditions") apply to all purchases and subscriptions made through {"{{APP_NAME}}"}. By purchasing or subscribing to our services, you agree to these Conditions.
+              These Terms and Conditions ("Conditions") apply to all purchases and subscriptions made through {"Spicy vs Sweet"}. By purchasing or subscribing to our services, you agree to these Conditions.
             </p>
             <div className="bg-gray-50 p-4 rounded-lg mt-3">
               <p className="text-gray-700"><strong>Seller:</strong> {"{{COMPANY_NAME}}"}</p>
@@ -32,7 +32,7 @@ const TermsAndConditions = () => {
 
           <section>
             <h2 className="text-2xl font-semibold text-gray-900 mb-3">2. Services and Pricing</h2>
-            <p className="text-gray-700 mb-3">{"{{APP_NAME}}"} offers the following service plans:</p>
+            <p className="text-gray-700 mb-3">{"Spicy vs Sweet"} offers the following service plans:</p>
 
             <div className="space-y-3">
               <div className="border border-gray-200 rounded-lg p-4">
@@ -158,7 +158,7 @@ const TermsAndConditions = () => {
           <section>
             <h2 className="text-2xl font-semibold text-gray-900 mb-3">11. Intellectual Property Rights</h2>
             <p className="text-gray-700 mb-2">
-              <strong>Our IP:</strong> All rights, title, and interest in {"{{APP_NAME}}"}, including software, design, logos, trademarks, and content, belong to {"{{COMPANY_NAME}}"}. You may not copy, modify, distribute, sell, or reverse engineer any part of our service.
+              <strong>Our IP:</strong> All rights, title, and interest in {"Spicy vs Sweet"}, including software, design, logos, trademarks, and content, belong to {"{{COMPANY_NAME}}"}. You may not copy, modify, distribute, sell, or reverse engineer any part of our service.
             </p>
             <p className="text-gray-700">
               <strong>Your Content:</strong> You retain full ownership of the content you submit for analysis. We process your content solely to provide the service and do not claim any ownership rights.
@@ -267,7 +267,7 @@ const TermsAndConditions = () => {
           <section>
             <h2 className="text-2xl font-semibold text-gray-900 mb-3">19. Entire Agreement</h2>
             <p className="text-gray-700">
-              These Terms and Conditions, together with our Terms of Service, constitute the entire agreement between you and {"{{COMPANY_NAME}}"} regarding your use of {"{{APP_NAME}}"} and supersede all prior agreements and understandings.
+              These Terms and Conditions, together with our Terms of Service, constitute the entire agreement between you and {"{{COMPANY_NAME}}"} regarding your use of {"Spicy vs Sweet"} and supersede all prior agreements and understandings.
             </p>
           </section>
         </div>

@@ -1,12 +1,12 @@
-# {{APP_NAME}} - AI-Powered Cold Email Analysis Tool
+# Spicy vs Sweet - AI-Powered Cold Email Analysis Tool
 
 ## Overview
 
-{{APP_NAME}} is a professional web-based SaaS platform designed to help sales professionals, marketers, business developers, recruiters, and entrepreneurs improve their cold email campaigns through AI-powered analysis and feedback.
+Spicy vs Sweet is a professional web-based SaaS platform designed to help sales professionals, marketers, business developers, recruiters, and entrepreneurs improve their cold email campaigns through AI-powered analysis and feedback.
 
-## What {{APP_NAME}} Does
+## What Spicy vs Sweet Does
 
-{{APP_NAME}} analyzes cold emails in real-time using Google's advanced **Gemini 2.5 Flash AI** model via Vertex AI. The platform evaluates emails across **7 critical dimensions** and provides:
+Spicy vs Sweet analyzes cold emails in real-time using Google's advanced **Gemini 2.5 Flash AI** model via Vertex AI. The platform evaluates emails across **7 critical dimensions** and provides:
 
 - **Detailed scoring** (0-10) for each criterion
 - **Actionable improvement suggestions** prioritized by impact

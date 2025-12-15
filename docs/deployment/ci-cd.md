@@ -98,27 +98,27 @@ The script handles everything:
 
 ```bash
 # Deploy EVERYTHING (Hosting + Functions + Firestore)
-firebase deploy --project {{PROJECT_ID}}
+firebase deploy --project spicy-vs-sweety
 
 # Deploy hosting only
 npm run build
-firebase deploy --only hosting --project {{PROJECT_ID}}
+firebase deploy --only hosting --project spicy-vs-sweety
 
 # Deploy functions only
 cd functions && npm run build && cd ..
-firebase deploy --only functions --project {{PROJECT_ID}}
+firebase deploy --only functions --project spicy-vs-sweety
 
 # Deploy Firestore rules only
-firebase deploy --only firestore:rules --project {{PROJECT_ID}}
+firebase deploy --only firestore:rules --project spicy-vs-sweety
 
 # Deploy Firestore indexes only
-firebase deploy --only firestore:indexes --project {{PROJECT_ID}}
+firebase deploy --only firestore:indexes --project spicy-vs-sweety
 
 # Deploy rules + indexes together
-firebase deploy --only firestore:rules,firestore:indexes --project {{PROJECT_ID}}
+firebase deploy --only firestore:rules,firestore:indexes --project spicy-vs-sweety
 
 # Deploy Hosting + Functions + Firestore (like CI/CD)
-firebase deploy --only hosting,functions,firestore:rules,firestore:indexes --project {{PROJECT_ID}}
+firebase deploy --only hosting,functions,firestore:rules,firestore:indexes --project spicy-vs-sweety
 ```
 
 ### Option 3: npm Scripts
@@ -166,20 +166,20 @@ In Settings > Secrets and variables > Actions, configure:
 firebase functions:config:set \
   stripe.secret_key="sk_live_..." \
   stripe.webhook_secret="whsec_..." \
-  --project {{PROJECT_ID}}
+  --project spicy-vs-sweety
 
 # Verify
-firebase functions:config:get --project {{PROJECT_ID}}
+firebase functions:config:get --project spicy-vs-sweety
 
 # Deploy with new config
-firebase deploy --only functions --project {{PROJECT_ID}}
+firebase deploy --only functions --project spicy-vs-sweety
 ```
 
 ⚠️ **IMPORTANT:**
 - ✅ **LIVE** keys (`sk_live_...`) in production
 - ✅ **TEST** keys (`sk_test_...`) in development
 - ❌ NEVER commit keys
-- ✅ Stripe Webhook: `https://us-central1-{{PROJECT_ID}}.cloudfunctions.net/stripeWebhook`
+- ✅ Stripe Webhook: `https://us-central1-spicy-vs-sweety.cloudfunctions.net/stripeWebhook`
 
 ### Local Environment Variables
 
@@ -195,20 +195,20 @@ STRIPE_WEBHOOK_SECRET=whsec_...
 
 ```bash
 # Open the application
-open https://{{DOMAIN}}
+open https://spicy-vs-sweet.com
 
 # Firebase Hosting Console
-open https://console.firebase.google.com/project/{{PROJECT_ID}}/hosting
+open https://console.firebase.google.com/project/spicy-vs-sweety/hosting
 ```
 
 ### 2. Functions
 
 ```bash
 # Real-time logs
-firebase functions:log --project {{PROJECT_ID}} --lines 50
+firebase functions:log --project spicy-vs-sweety --lines 50
 
 # List functions
-firebase functions:list --project {{PROJECT_ID}}
+firebase functions:list --project spicy-vs-sweety
 ```
 
 ### 3. Functional Tests
@@ -228,7 +228,7 @@ Test checklist:
 
 ```bash
 # View history
-firebase hosting:channel:list --project {{PROJECT_ID}}
+firebase hosting:channel:list --project spicy-vs-sweety
 
 # Rollback (or redeploy an old commit)
 git checkout <old-commit>
@@ -277,7 +277,7 @@ npm run type-check
 
 ```bash
 # Check logs
-firebase functions:log --project {{PROJECT_ID}}
+firebase functions:log --project spicy-vs-sweety
 
 # Verify lib/ exists
 cd functions
@@ -286,13 +286,13 @@ ls -la lib/  # Should contain index.js
 cd ..
 
 # Redeploy
-firebase deploy --only functions --project {{PROJECT_ID}}
+firebase deploy --only functions --project spicy-vs-sweety
 ```
 
 ### ❌ Stripe webhook not working
 
 1. Check webhook in Stripe Dashboard
-2. Correct URL: `https://us-central1-{{PROJECT_ID}}.cloudfunctions.net/stripeWebhook`
+2. Correct URL: `https://us-central1-spicy-vs-sweety.cloudfunctions.net/stripeWebhook`
 3. Configured events:
    - `checkout.session.completed`
    - `customer.subscription.updated`
@@ -311,14 +311,14 @@ firebase deploy --only functions --project {{PROJECT_ID}}
 
 If you see this error when deploying Firestore rules:
 ```
-Error: Request to https://firebaserules.googleapis.com/v1/projects/{{PROJECT_ID}}:test had HTTP Error: 403
+Error: Request to https://firebaserules.googleapis.com/v1/projects/spicy-vs-sweety:test had HTTP Error: 403
 ```
 
 **Solution:** The service account doesn't have necessary permissions.
 
 1. **Go to Google Cloud Console > IAM:**
    ```
-   https://console.cloud.google.com/iam-admin/iam?project={{PROJECT_ID}}
+   https://console.cloud.google.com/iam-admin/iam?project=spicy-vs-sweety
    ```
 
 2. **Find the service account** used (visible in the GitHub secret JSON)
@@ -362,8 +362,8 @@ firebase hosting:channel:list
 
 | Service | URL |
 |---------|-----|
-| 🌐 **Production** | https://{{DOMAIN}} |
-| 🔥 **Firebase Console** | https://console.firebase.google.com/project/{{PROJECT_ID}} |
+| 🌐 **Production** | https://spicy-vs-sweet.com |
+| 🔥 **Firebase Console** | https://console.firebase.google.com/project/spicy-vs-sweety |
 | 💳 **Stripe Dashboard** | https://dashboard.stripe.com/ |
 | 🤖 **GitHub Actions** | Check your repository's Actions tab |
 | 📊 **Google Cloud Console** | https://console.cloud.google.com/ |

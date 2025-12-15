@@ -25,7 +25,7 @@ This command opens a browser to authenticate with your Stripe account.
 #### Option A: With Stripe CLI (Recommended)
 ```bash
 # Start webhook forwarding
-stripe listen --forward-to http://localhost:5001/{{PROJECT_ID}}/us-central1/stripeWebhook
+stripe listen --forward-to http://localhost:5001/spicy-vs-sweety/us-central1/stripeWebhook
 ```
 
 This command will:
@@ -98,7 +98,7 @@ For production deployment:
 
 1. Configure **live** Stripe keys (start with `sk_live_`)
 2. Set up webhooks in Stripe Dashboard:
-   - URL: `https://us-central1-{{PROJECT_ID}}.cloudfunctions.net/stripeWebhook`
+   - URL: `https://us-central1-spicy-vs-sweety.cloudfunctions.net/stripeWebhook`
    - Events: `checkout.session.completed`, `customer.subscription.updated`, `customer.subscription.deleted`
 3. Use Firebase Functions config to store secrets:
    ```bash

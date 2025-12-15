@@ -4,7 +4,7 @@
 
 Deployment fails with error:
 ```
-Error: Request to https://firebaserules.googleapis.com/v1/projects/{{PROJECT_ID}}:test had HTTP Error: 403, The caller does not have permission
+Error: Request to https://firebaserules.googleapis.com/v1/projects/spicy-vs-sweety:test had HTTP Error: 403, The caller does not have permission
 ```
 
 This means the service account doesn't have permissions to deploy Firestore rules.
@@ -18,14 +18,14 @@ The service account is in the GitHub secret `FIREBASE_SERVICE_ACCOUNT`.
 To see which service account is used:
 ```bash
 # In GitHub Secrets, the JSON contains a "client_email" field
-# It looks like: firebase-adminsdk-xxxxx@{{PROJECT_ID}}.iam.gserviceaccount.com
+# It looks like: firebase-adminsdk-xxxxx@spicy-vs-sweety.iam.gserviceaccount.com
 ```
 
 ### Step 2: Add Roles via Google Cloud Console (Interface)
 
 1. **Go to IAM:**
    ```
-   https://console.cloud.google.com/iam-admin/iam?project={{PROJECT_ID}}
+   https://console.cloud.google.com/iam-admin/iam?project=spicy-vs-sweety
    ```
 
 2. **Find the service account** (search for the service account email)
@@ -51,8 +51,8 @@ To see which service account is used:
 
 ```bash
 # Replace SERVICE_ACCOUNT_EMAIL with your service account email
-SERVICE_ACCOUNT_EMAIL="firebase-adminsdk-xxxxx@{{PROJECT_ID}}.iam.gserviceaccount.com"
-PROJECT_ID="{{PROJECT_ID}}"
+SERVICE_ACCOUNT_EMAIL="firebase-adminsdk-xxxxx@spicy-vs-sweety.iam.gserviceaccount.com"
+PROJECT_ID="spicy-vs-sweety"
 
 # Option 1: Add Firebase Admin role (simple)
 gcloud projects add-iam-policy-binding $PROJECT_ID \
@@ -98,7 +98,7 @@ gcloud projects add-iam-policy-binding $PROJECT_ID \
 If you prefer to create a new service account:
 
 ```bash
-PROJECT_ID="{{PROJECT_ID}}"
+PROJECT_ID="spicy-vs-sweety"
 SERVICE_ACCOUNT_NAME="github-actions-deploy"
 SERVICE_ACCOUNT_EMAIL="${SERVICE_ACCOUNT_NAME}@${PROJECT_ID}.iam.gserviceaccount.com"
 
@@ -152,8 +152,8 @@ git push origin master
 To verify current service account permissions:
 
 ```bash
-SERVICE_ACCOUNT_EMAIL="firebase-adminsdk-xxxxx@{{PROJECT_ID}}.iam.gserviceaccount.com"
-PROJECT_ID="{{PROJECT_ID}}"
+SERVICE_ACCOUNT_EMAIL="firebase-adminsdk-xxxxx@spicy-vs-sweety.iam.gserviceaccount.com"
+PROJECT_ID="spicy-vs-sweety"
 
 gcloud projects get-iam-policy $PROJECT_ID \
   --flatten="bindings[].members" \
@@ -193,7 +193,7 @@ gcloud projects get-iam-policy $PROJECT_ID \
 ```bash
 # Use the service account locally
 export GOOGLE_APPLICATION_CREDENTIALS=~/github-actions-key.json
-firebase deploy --project {{PROJECT_ID}}
+firebase deploy --project spicy-vs-sweety
 ```
 
 ---

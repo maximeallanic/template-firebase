@@ -1,4 +1,4 @@
-# Robots.txt for {{APP_NAME}} - AI-Powered Cold Email Analysis
+# Robots.txt for Spicy vs Sweet - AI-Powered Cold Email Analysis
 # Last updated: 2025-10-11
 
 # Allow all search engines
@@ -45,4 +45,4 @@ Disallow: /functions/
 Disallow: /__/
 
 # Sitemap location
-Sitemap: https://{{DOMAIN}}/sitemap.xml
+Sitemap: https://spicy-vs-sweet.com/sitemap.xml

@@ -26,7 +26,7 @@ When you push to `master`, the GitHub Actions pipeline **automatically** deploys
 ```bash
 firebase deploy \
   --only hosting,functions,firestore:rules,firestore:indexes \
-  --project {{PROJECT_ID}} \
+  --project spicy-vs-sweety \
   --non-interactive \
   --force
 ```
@@ -59,7 +59,7 @@ git push origin master
 ./scripts/deploy-all.sh
 
 # Option 2: Direct Firebase CLI
-firebase deploy --project {{PROJECT_ID}}
+firebase deploy --project spicy-vs-sweety
 ```
 
 ---
@@ -70,9 +70,9 @@ firebase deploy --project {{PROJECT_ID}}
 
 ```bash
 VITE_FIREBASE_API_KEY=your_api_key
-VITE_FIREBASE_AUTH_DOMAIN={{PROJECT_ID}}.firebaseapp.com
-VITE_FIREBASE_PROJECT_ID={{PROJECT_ID}}
-VITE_FIREBASE_STORAGE_BUCKET={{PROJECT_ID}}.firebasestorage.app
+VITE_FIREBASE_AUTH_DOMAIN=spicy-vs-sweety.firebaseapp.com
+VITE_FIREBASE_PROJECT_ID=spicy-vs-sweety
+VITE_FIREBASE_STORAGE_BUCKET=spicy-vs-sweety.firebasestorage.app
 VITE_FIREBASE_MESSAGING_SENDER_ID=your_sender_id
 VITE_FIREBASE_APP_ID=your_app_id
 VITE_FIREBASE_MEASUREMENT_ID=your_measurement_id
@@ -102,8 +102,8 @@ Configured in: **Settings → Secrets and variables → Actions**
 
 ### 1. Firebase Hosting
 
-- **Production URL:** https://{{DOMAIN}}
-- **Alternative URL:** https://{{PROJECT_ID}}.web.app
+- **Production URL:** https://spicy-vs-sweet.com
+- **Alternative URL:** https://spicy-vs-sweety.web.app
 - **Content:** Compiled React/Vite application
 - **Cache:** Automatic (Firebase CDN)
 
@@ -138,21 +138,21 @@ Configured in: **Settings → Secrets and variables → Actions**
 
 ```bash
 # All Functions logs
-firebase functions:log --project {{PROJECT_ID}}
+firebase functions:log --project spicy-vs-sweety
 
 # Specific function logs
-firebase functions:log --only analyzeEmail --project {{PROJECT_ID}}
+firebase functions:log --only analyzeEmail --project spicy-vs-sweety
 
 # Real-time logs
-firebase functions:log --tail --project {{PROJECT_ID}}
+firebase functions:log --tail --project spicy-vs-sweety
 ```
 
 ### Firebase Console
 
-1. **Functions:** https://console.firebase.google.com/project/{{PROJECT_ID}}/functions
-2. **Hosting:** https://console.firebase.google.com/project/{{PROJECT_ID}}/hosting
-3. **Firestore:** https://console.firebase.google.com/project/{{PROJECT_ID}}/firestore
-4. **Analytics:** https://console.firebase.google.com/project/{{PROJECT_ID}}/analytics
+1. **Functions:** https://console.firebase.google.com/project/spicy-vs-sweety/functions
+2. **Hosting:** https://console.firebase.google.com/project/spicy-vs-sweety/hosting
+3. **Firestore:** https://console.firebase.google.com/project/spicy-vs-sweety/firestore
+4. **Analytics:** https://console.firebase.google.com/project/spicy-vs-sweety/analytics
 
 ---
 
@@ -188,7 +188,7 @@ npm run build
 ls -la lib/
 
 # Deploy functions only
-firebase deploy --only functions --project {{PROJECT_ID}}
+firebase deploy --only functions --project spicy-vs-sweety
 ```
 
 ### Firestore rules won't update
@@ -196,10 +196,10 @@ firebase deploy --only functions --project {{PROJECT_ID}}
 **Check:**
 ```bash
 # Rules syntax
-firebase firestore:rules --project {{PROJECT_ID}}
+firebase firestore:rules --project spicy-vs-sweety
 
 # Deploy rules only
-firebase deploy --only firestore:rules --project {{PROJECT_ID}}
+firebase deploy --only firestore:rules --project spicy-vs-sweety
 ```
 
 ---
@@ -210,7 +210,7 @@ After each deployment, verify:
 
 1. **Hosting accessible:**
    ```bash
-   curl -I https://{{DOMAIN}}
+   curl -I https://spicy-vs-sweet.com
    # Should return HTTP 200
    ```
 
@@ -236,10 +236,10 @@ After each deployment, verify:
 ./scripts/deploy-all.sh
 
 # Selective manual deployment
-firebase deploy --only hosting --project {{PROJECT_ID}}
-firebase deploy --only functions --project {{PROJECT_ID}}
-firebase deploy --only firestore:rules,firestore:indexes --project {{PROJECT_ID}}
+firebase deploy --only hosting --project spicy-vs-sweety
+firebase deploy --only functions --project spicy-vs-sweety
+firebase deploy --only firestore:rules,firestore:indexes --project spicy-vs-sweety
 
 # Monitoring
-firebase functions:log --tail --project {{PROJECT_ID}}
+firebase functions:log --tail --project spicy-vs-sweety
 ```

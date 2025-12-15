@@ -135,7 +135,7 @@ export const EmailActionHandler: React.FC = () => {
             </div>
             <h1 className="text-2xl font-extrabold">
               <span className="bg-clip-text text-transparent bg-gradient-to-r from-blue-600 to-purple-600">
-                {"{{APP_NAME}}"}
+                {"Spicy vs Sweet"}
               </span>
             </h1>
           </div>

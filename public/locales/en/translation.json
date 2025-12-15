@@ -5,7 +5,7 @@
     "signIn": "Sign In",
     "signOut": "Sign Out",
     "manageSubscription": "Manage Subscription",
-    "appName": "{{APP_NAME}}"
+    "appName": "Spicy vs Sweet"
   },
   "hero": {
     "freeTrial": "🎉 Try Your First Email FREE - No Sign-Up Required!",
@@ -162,7 +162,7 @@
   },
   "success": {
     "freeTrialUsed": "🎉 Free trial used! Sign up to get 5 analyses per month for free.",
-    "welcomePro": "🎉 Welcome to {{APP_NAME}} Pro! Your subscription is now active.",
+    "welcomePro": "🎉 Welcome to Spicy vs Sweet Pro! Your subscription is now active.",
     "signUpComplete": "✅ Sign-up completed",
     "analysisComplete": "✅ Analysis completed"
   },

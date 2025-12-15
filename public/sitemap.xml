@@ -6,7 +6,7 @@
 
   <!-- Main page - Highest priority -->
   <url>
-    <loc>https://{{DOMAIN}}/</loc>
+    <loc>https://spicy-vs-sweet.com/</loc>
     <lastmod>2025-10-11</lastmod>
     <changefreq>weekly</changefreq>
     <priority>1.0</priority>

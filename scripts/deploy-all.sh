@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# {{APP_NAME}} - Complete Deployment Script
+# Spicy vs Sweet - Complete Deployment Script
 # Deploys Hosting, Functions, and Firestore rules to Firebase Production
 
 set -e # Exit on error
@@ -22,7 +22,7 @@ if [ -z "$PROJECT_ID" ]; then
 fi
 
 echo -e "${BLUE}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
-echo -e "${BLUE}   {{APP_NAME}} - Full Deployment Script${NC}"
+echo -e "${BLUE}   Spicy vs Sweet - Full Deployment Script${NC}"
 echo -e "${BLUE}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
 echo ""
 
@@ -116,7 +116,7 @@ echo -e "${GREEN}━━━━━━━━━━━━━━━━━━━━━
 echo -e "${GREEN}   Deployment Summary${NC}"
 echo -e "${GREEN}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
 echo ""
-echo -e "🌐 Hosting: ${BLUE}https://{{DOMAIN}}${NC}"
+echo -e "🌐 Hosting: ${BLUE}https://spicy-vs-sweet.com${NC}"
 echo -e "⚡ Functions: ${BLUE}Deployed to us-central1${NC}"
 echo -e "🔥 Firestore: ${BLUE}Rules and indexes updated${NC}"
 echo ""

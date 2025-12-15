@@ -28,7 +28,7 @@
 
 ### 2. Add Permissions to Service Account
 
-**Where:** `https://console.cloud.google.com/iam-admin/iam?project={{PROJECT_ID}}`
+**Where:** `https://console.cloud.google.com/iam-admin/iam?project=spicy-vs-sweety`
 
 **Actions:**
 1. Find the service account used in GitHub Actions (look for `firebase-adminsdk` or check `client_email` in the secret JSON)
@@ -62,10 +62,10 @@ STRIPE_WEBHOOK_SECRET=whsec_...
 firebase functions:config:set \
   stripe.secret_key="sk_live_YOUR_LIVE_KEY" \
   stripe.webhook_secret="whsec_YOUR_LIVE_WEBHOOK_SECRET" \
-  --project {{PROJECT_ID}}
+  --project spicy-vs-sweety
 
 # Deploy with new config
-firebase deploy --only functions --project {{PROJECT_ID}}
+firebase deploy --only functions --project spicy-vs-sweety
 ```
 
 **Note:** `GOOGLE_API_KEY` is NOT needed in production because Functions use Vertex AI with the service account automatically.
@@ -83,7 +83,7 @@ firebase deploy --only functions --project {{PROJECT_ID}}
 
 2. **Create webhook with URL:**
    ```
-   https://us-central1-{{PROJECT_ID}}.cloudfunctions.net/stripeWebhook
+   https://us-central1-spicy-vs-sweety.cloudfunctions.net/stripeWebhook
    ```
 
 3. **Events to listen:**
@@ -104,7 +104,7 @@ firebase deploy --only functions --project {{PROJECT_ID}}
 - [ ] Stripe webhook configured (production)
 - [ ] Push to `master` to trigger deployment
 - [ ] Verify GitHub Actions build passes
-- [ ] Test application in production: https://{{DOMAIN}}
+- [ ] Test application in production: https://spicy-vs-sweet.com
 - [ ] Verify Firebase Analytics works
 - [ ] Test main functionality
 - [ ] Test Stripe payment
@@ -125,11 +125,11 @@ npm run dev
 
 ### View Functions Logs
 ```bash
-firebase functions:log --project {{PROJECT_ID}} --lines 50
+firebase functions:log --project spicy-vs-sweety --lines 50
 ```
 
 ### Test in Production
-1. Open: https://{{DOMAIN}}
+1. Open: https://spicy-vs-sweet.com
 2. Sign in with Google
 3. Test main functionality
 4. Verify it works

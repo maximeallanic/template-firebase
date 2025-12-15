@@ -263,7 +263,7 @@ const session = await getDoc(doc(db, 'emailSessions', mySessionId));
 
 ### Test Manuel depuis la Console Firebase
 
-1. Ouvrir [Firebase Console > Firestore > Rules Playground](https://console.firebase.google.com/project/{{PROJECT_ID}}/firestore/rules)
+1. Ouvrir [Firebase Console > Firestore > Rules Playground](https://console.firebase.google.com/project/spicy-vs-sweety/firestore/rules)
 2. Simuler un utilisateur authentifié : `auth.uid = "test-user-123"`
 3. Tenter d'écrire dans `users/test-user-123`
 4. **Résultat attendu:** `permission-denied`

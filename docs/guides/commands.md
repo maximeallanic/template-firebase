@@ -6,8 +6,8 @@ Quick reference for all important commands.
 
 ```bash
 # Clone repository (if from git)
-git clone https://github.com/yourusername/{{APP_NAME_SLUG}}.git
-cd {{APP_NAME_SLUG}}
+git clone https://github.com/yourusername/spicy-vs-sweet.git
+cd spicy-vs-sweet
 
 # Install frontend dependencies
 npm install
@@ -251,10 +251,10 @@ firebase functions:config:unset anthropic.key
 # Initial commit
 git init
 git add .
-git commit -m "Initial commit: {{APP_NAME}} MVP"
+git commit -m "Initial commit: Spicy vs Sweet MVP"
 
 # Create GitHub repo and push
-git remote add origin https://github.com/yourusername/{{APP_NAME_SLUG}}.git
+git remote add origin https://github.com/yourusername/spicy-vs-sweet.git
 git branch -M main
 git push -u origin main
 
@@ -314,7 +314,7 @@ open "https://console.cloud.google.com/"
 open "http://localhost:5173"
 
 # Open production site
-open "https://{{DOMAIN}}"
+open "https://spicy-vs-sweet.com"
 ```
 
 ## 📖 Documentation Commands
