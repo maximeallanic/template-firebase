@@ -13,7 +13,7 @@ const TermsAndConditions = () => {
             Back to Home
           </Link>
           <h1 className="text-4xl font-bold text-gray-900 mb-2">Terms and Conditions</h1>
-          <p className="text-gray-600">Last updated: {"{{LAST_UPDATED}}"}</p>
+          <p className="text-gray-600">Last updated: {"2025-12-15"}</p>
         </div>
 
         {/* Content */}
@@ -24,8 +24,8 @@ const TermsAndConditions = () => {
               These Terms and Conditions ("Conditions") apply to all purchases and subscriptions made through {"Spicy vs Sweet"}. By purchasing or subscribing to our services, you agree to these Conditions.
             </p>
             <div className="bg-gray-50 p-4 rounded-lg mt-3">
-              <p className="text-gray-700"><strong>Seller:</strong> {"{{COMPANY_NAME}}"}</p>
-              <p className="text-gray-700"><strong>Address:</strong> {"{{COMPANY_ADDRESS}}"}</p>
+              <p className="text-gray-700"><strong>Seller:</strong> {"Addeus"}</p>
+              <p className="text-gray-700"><strong>Address:</strong> {"4 rue du marché 63140 Châtel-Guyon"}</p>
               {/* Add additional company details as needed */}
             </div>
           </section>
@@ -158,7 +158,7 @@ const TermsAndConditions = () => {
           <section>
             <h2 className="text-2xl font-semibold text-gray-900 mb-3">11. Intellectual Property Rights</h2>
             <p className="text-gray-700 mb-2">
-              <strong>Our IP:</strong> All rights, title, and interest in {"Spicy vs Sweet"}, including software, design, logos, trademarks, and content, belong to {"{{COMPANY_NAME}}"}. You may not copy, modify, distribute, sell, or reverse engineer any part of our service.
+              <strong>Our IP:</strong> All rights, title, and interest in {"Spicy vs Sweet"}, including software, design, logos, trademarks, and content, belong to {"Addeus"}. You may not copy, modify, distribute, sell, or reverse engineer any part of our service.
             </p>
             <p className="text-gray-700">
               <strong>Your Content:</strong> You retain full ownership of the content you submit for analysis. We process your content solely to provide the service and do not claim any ownership rights.
@@ -209,7 +209,7 @@ const TermsAndConditions = () => {
           <section>
             <h2 className="text-2xl font-semibold text-gray-900 mb-3">14. Limitation of Liability</h2>
             <p className="text-gray-700 mb-2">
-              To the maximum extent permitted by law, {"{{COMPANY_NAME}}"}'s total liability for all claims arising from these Conditions shall not exceed the amount paid by you in the 12 months preceding the claim.
+              To the maximum extent permitted by law, {"Addeus"}'s total liability for all claims arising from these Conditions shall not exceed the amount paid by you in the 12 months preceding the claim.
             </p>
             <p className="text-gray-700">
               We are not liable for:
@@ -244,9 +244,9 @@ const TermsAndConditions = () => {
               For questions about these Terms and Conditions, billing, refunds, or to exercise your rights:
             </p>
             <div className="bg-gray-50 p-4 rounded-lg">
-              <p className="text-gray-700"><strong>{"{{COMPANY_NAME}}"}</strong></p>
-              <p className="text-gray-700">{"{{COMPANY_ADDRESS}}"}</p>
-              <p className="text-gray-700">{"{{SUPPORT_EMAIL}}"}</p>
+              <p className="text-gray-700"><strong>{"Addeus"}</strong></p>
+              <p className="text-gray-700">{"4 rue du marché 63140 Châtel-Guyon"}</p>
+              <p className="text-gray-700">{"contact@spicy-vs-sweet.com"}</p>
             </div>
           </section>
 
@@ -267,7 +267,7 @@ const TermsAndConditions = () => {
           <section>
             <h2 className="text-2xl font-semibold text-gray-900 mb-3">19. Entire Agreement</h2>
             <p className="text-gray-700">
-              These Terms and Conditions, together with our Terms of Service, constitute the entire agreement between you and {"{{COMPANY_NAME}}"} regarding your use of {"Spicy vs Sweet"} and supersede all prior agreements and understandings.
+              These Terms and Conditions, together with our Terms of Service, constitute the entire agreement between you and {"Addeus"} regarding your use of {"Spicy vs Sweet"} and supersede all prior agreements and understandings.
             </p>
           </section>
         </div>

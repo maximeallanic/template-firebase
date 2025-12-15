@@ -65,7 +65,7 @@ Evaluates grammar, spelling, formatting, and presentation quality. Professional 
 
 ## Support
 
-For questions or feedback, contact us at **{{SUPPORT_EMAIL}}**
+For questions or feedback, contact us at **contact@spicy-vs-sweet.com**
 
 ---
 

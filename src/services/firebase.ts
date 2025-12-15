@@ -17,6 +17,7 @@ import {
 } from 'firebase/auth';
 import { getFunctions, httpsCallable, connectFunctionsEmulator } from 'firebase/functions';
 import { getFirestore, connectFirestoreEmulator, collection, query, orderBy, limit as firestoreLimit, getDocs, doc, getDoc, onSnapshot, Timestamp } from 'firebase/firestore';
+import { getDatabase, connectDatabaseEmulator } from 'firebase/database';
 // Analytics imported dynamically for performance (see initializeAnalytics)
 import { initializeAppCheck, ReCaptchaEnterpriseProvider } from 'firebase/app-check';
 import type { AnalyzeEmailRequest, AnalyzeEmailResponse, AnalysisRecord } from '../types/analysis';
@@ -59,6 +60,7 @@ let analyticsInitialized = false;
 export const auth = getAuth(app);
 export const functions = getFunctions(app, 'us-central1');
 export const db = getFirestore(app);
+export const rtdb = getDatabase(app);
 
 // Initialize Analytics only in production
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -118,7 +120,8 @@ if (import.meta.env.DEV) {
   try {
     connectFunctionsEmulator(functions, 'localhost', 5001);
     connectFirestoreEmulator(db, 'localhost', 8080);
-    console.log('✅ Connected to Firebase emulators (Functions:5001, Firestore:8080)');
+    connectDatabaseEmulator(rtdb, 'localhost', 9000);
+    console.log('✅ Connected to Firebase emulators (Functions:5001, Firestore:8080, RTSB:9000)');
     console.log('ℹ️  Auth emulator will connect on first use');
   } catch (error) {
     console.warn('⚠️ Failed to connect to emulators:', error);

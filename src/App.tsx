@@ -10,6 +10,10 @@ const AnalysisDetailPage = lazy(() => import('./pages/AnalysisDetailPage').then(
 const EmailActionHandler = lazy(() => import('./components/EmailActionHandler'));
 const TermsOfService = lazy(() => import('./pages/TermsOfService'));
 const TermsAndConditions = lazy(() => import('./pages/TermsAndConditions'));
+// Game Modules
+const HostLobby = lazy(() => import('./pages/HostLobby'));
+const JoinGame = lazy(() => import('./pages/JoinGame'));
+const GameRoom = lazy(() => import('./pages/GameRoom'));
 
 function App() {
   const [user, setUser] = useState<User | null>(null);
@@ -42,7 +46,7 @@ function App() {
           element={
             <HistoryPage
               user={user}
-              onSignIn={() => {}}
+              onSignIn={() => { }}
               subscriptionStatus="free"
             />
           }
@@ -52,7 +56,7 @@ function App() {
           element={
             <AnalysisDetailPage
               user={user}
-              onSignIn={() => {}}
+              onSignIn={() => { }}
               subscriptionStatus="free"
             />
           }
@@ -60,6 +64,11 @@ function App() {
         <Route path="/auth/action" element={<EmailActionHandler />} />
         <Route path="/terms-of-service" element={<TermsOfService />} />
         <Route path="/terms-and-conditions" element={<TermsAndConditions />} />
+
+        {/* Game Routes */}
+        <Route path="/host" element={<HostLobby />} />
+        <Route path="/play" element={<JoinGame />} />
+        <Route path="/room/:id" element={<GameRoom />} />
       </Routes>
     </Suspense>
   );

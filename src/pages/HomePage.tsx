@@ -399,6 +399,37 @@ export default function HomePage({ user, setUser }: HomePageProps) {
               </div>
             </section>
 
+            {/* GAME ENTRY POINTS */}
+            <section className="max-w-4xl mx-auto mb-16 px-4">
+              <div className="bg-white rounded-3xl shadow-xl p-8 border-4 border-indigo-100 overflow-hidden relative">
+                <div className="absolute top-0 left-0 w-full h-2 bg-gradient-to-r from-red-500 via-pink-500 to-indigo-500"></div>
+                <div className="text-center mb-8">
+                  <h2 className="text-3xl font-black italic tracking-tighter mb-2">
+                    <span className="text-red-500">SPICY</span> <span className="text-gray-900">VS</span> <span className="text-pink-500">SWEET</span>
+                  </h2>
+                  <p className="text-gray-500 font-medium">The Ultimate Live Interactive Game Show</p>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <Link to="/host" className="group relative overflow-hidden rounded-2xl bg-gradient-to-br from-slate-900 to-slate-800 p-6 text-center hover:shadow-2xl transition-all hover:-translate-y-1">
+                    <div className="relative z-10">
+                      <div className="text-4xl mb-3">👨‍🍳</div>
+                      <h3 className="text-xl font-bold text-white mb-2">HOST A GAME</h3>
+                      <p className="text-slate-400 text-sm">Open your kitchen, invite friends, and run the show!</p>
+                    </div>
+                  </Link>
+
+                  <Link to="/play" className="group relative overflow-hidden rounded-2xl bg-gradient-to-br from-indigo-600 to-purple-600 p-6 text-center hover:shadow-2xl transition-all hover:-translate-y-1">
+                    <div className="relative z-10">
+                      <div className="text-4xl mb-3">🎮</div>
+                      <h3 className="text-xl font-bold text-white mb-2">JOIN A GAME</h3>
+                      <p className="text-indigo-100 text-sm">Enter a room code and jump into the chaos!</p>
+                    </div>
+                  </Link>
+                </div>
+              </div>
+            </section>
+
             {/* Success Message */}
             {successMessage && (
               <div className="max-w-4xl mx-auto mb-6 p-4 bg-green-50 border border-green-200 rounded-lg">
@@ -664,26 +695,26 @@ export default function HomePage({ user, setUser }: HomePageProps) {
 
       </main>
 
-        {/* Footer */}
-        <footer role="contentinfo" className="text-center mt-20 pt-10 border-t border-gray-200">
-          <div className="flex items-center justify-center gap-2 mb-2">
-            <svg className="w-5 h-5 text-gray-400" fill="currentColor" viewBox="0 0 20 20">
-              <path d="M2.003 5.884L10 9.882l7.997-3.998A2 2 0 0016 4H4a2 2 0 00-1.997 1.884z" />
-              <path d="M18 8.118l-8 4-8-4V14a2 2 0 002 2h12a2 2 0 002-2V8.118z" />
-            </svg>
-            <p className="text-sm font-medium text-gray-600">{t('app.name')}</p>
-          </div>
-          <p className="text-xs text-gray-500 mb-2">{t('footer.poweredBy')}</p>
-          <div className="text-xs text-gray-500">
-            <Link to="/terms-of-service" className="text-blue-600 hover:text-blue-700 underline">
-              {t('footer.termsOfService')}
-            </Link>
-            {' • '}
-            <Link to="/terms-and-conditions" className="text-blue-600 hover:text-blue-700 underline">
-              {t('footer.termsAndConditions')}
-            </Link>
-          </div>
-        </footer>
+      {/* Footer */}
+      <footer role="contentinfo" className="text-center mt-20 pt-10 border-t border-gray-200">
+        <div className="flex items-center justify-center gap-2 mb-2">
+          <svg className="w-5 h-5 text-gray-400" fill="currentColor" viewBox="0 0 20 20">
+            <path d="M2.003 5.884L10 9.882l7.997-3.998A2 2 0 0016 4H4a2 2 0 00-1.997 1.884z" />
+            <path d="M18 8.118l-8 4-8-4V14a2 2 0 002 2h12a2 2 0 002-2V8.118z" />
+          </svg>
+          <p className="text-sm font-medium text-gray-600">{t('app.name')}</p>
+        </div>
+        <p className="text-xs text-gray-500 mb-2">{t('footer.poweredBy')}</p>
+        <div className="text-xs text-gray-500">
+          <Link to="/terms-of-service" className="text-blue-600 hover:text-blue-700 underline">
+            {t('footer.termsOfService')}
+          </Link>
+          {' • '}
+          <Link to="/terms-and-conditions" className="text-blue-600 hover:text-blue-700 underline">
+            {t('footer.termsAndConditions')}
+          </Link>
+        </div>
+      </footer>
     </div>
   );
 }

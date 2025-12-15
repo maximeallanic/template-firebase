@@ -13,7 +13,7 @@ const TermsOfService = () => {
             Back to Home
           </Link>
           <h1 className="text-4xl font-bold text-gray-900 mb-2">Terms of Service</h1>
-          <p className="text-gray-600">Last updated: {"{{LAST_UPDATED}}"}</p>
+          <p className="text-gray-600">Last updated: {"2025-12-15"}</p>
         </div>
 
         {/* Content */}
@@ -29,8 +29,8 @@ const TermsOfService = () => {
             <h2 className="text-2xl font-semibold text-gray-900 mb-3">2. Service Provider</h2>
             <p className="text-gray-700 mb-2">{"Spicy vs Sweet"} is operated by:</p>
             <div className="bg-gray-50 p-4 rounded-lg">
-              <p className="text-gray-700"><strong>Company:</strong> {"{{COMPANY_NAME}}"}</p>
-              <p className="text-gray-700"><strong>Address:</strong> {"{{COMPANY_ADDRESS}}"}</p>
+              <p className="text-gray-700"><strong>Company:</strong> {"Addeus"}</p>
+              <p className="text-gray-700"><strong>Address:</strong> {"4 rue du marché 63140 Châtel-Guyon"}</p>
               {/* Add additional company details as needed */}
             </div>
           </section>
@@ -109,7 +109,7 @@ const TermsOfService = () => {
           <section>
             <h2 className="text-2xl font-semibold text-gray-900 mb-3">8. Intellectual Property</h2>
             <p className="text-gray-700 mb-2">
-              All content, features, and functionality of {"Spicy vs Sweet"} are owned by {"{{COMPANY_NAME}}"} and protected by international copyright, trademark, and other intellectual property laws.
+              All content, features, and functionality of {"Spicy vs Sweet"} are owned by {"Addeus"} and protected by international copyright, trademark, and other intellectual property laws.
             </p>
             <p className="text-gray-700">
               You retain ownership of the content you submit for analysis. By using our service, you grant us a limited license to process and analyze your content solely for the purpose of providing the service.
@@ -132,7 +132,7 @@ const TermsOfService = () => {
           <section>
             <h2 className="text-2xl font-semibold text-gray-900 mb-3">10. Limitation of Liability</h2>
             <p className="text-gray-700">
-              TO THE MAXIMUM EXTENT PERMITTED BY LAW, {"{{COMPANY_NAME}}"} SHALL NOT BE LIABLE FOR ANY INDIRECT, INCIDENTAL, SPECIAL, CONSEQUENTIAL, OR PUNITIVE DAMAGES, OR ANY LOSS OF PROFITS OR REVENUES, WHETHER INCURRED DIRECTLY OR INDIRECTLY, OR ANY LOSS OF DATA, USE, GOODWILL, OR OTHER INTANGIBLE LOSSES RESULTING FROM:
+              TO THE MAXIMUM EXTENT PERMITTED BY LAW, {"Addeus"} SHALL NOT BE LIABLE FOR ANY INDIRECT, INCIDENTAL, SPECIAL, CONSEQUENTIAL, OR PUNITIVE DAMAGES, OR ANY LOSS OF PROFITS OR REVENUES, WHETHER INCURRED DIRECTLY OR INDIRECTLY, OR ANY LOSS OF DATA, USE, GOODWILL, OR OTHER INTANGIBLE LOSSES RESULTING FROM:
             </p>
             <ul className="list-disc list-inside text-gray-700 ml-4 mt-2 space-y-1">
               <li>Your use or inability to use the service</li>
@@ -176,9 +176,9 @@ const TermsOfService = () => {
               For questions about these Terms, please contact us at:
             </p>
             <div className="bg-gray-50 p-4 rounded-lg mt-2">
-              <p className="text-gray-700">{"{{COMPANY_NAME}}"}</p>
-              <p className="text-gray-700">{"{{COMPANY_ADDRESS}}"}</p>
-              <p className="text-gray-700">{"{{SUPPORT_EMAIL}}"}</p>
+              <p className="text-gray-700">{"Addeus"}</p>
+              <p className="text-gray-700">{"4 rue du marché 63140 Châtel-Guyon"}</p>
+              <p className="text-gray-700">{"contact@spicy-vs-sweet.com"}</p>
             </div>
           </section>
 

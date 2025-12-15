@@ -223,4 +223,4 @@ Many ad blockers block Firebase Analytics (30-40% of users). This is expected an
 
 Need help?
 - Firebase Support: [firebase.google.com/support](https://firebase.google.com/support)
-- Project Support: [{{SUPPORT_EMAIL}}](mailto:{{SUPPORT_EMAIL}})
+- Project Support: [contact@spicy-vs-sweet.com](mailto:contact@spicy-vs-sweet.com)

@@ -47,10 +47,10 @@ This script will:
 | `spicy-vs-sweet` | URL-safe slug | "my-app" |
 | `spicy-vs-sweet.com` | Your domain | "myapp.com" |
 | `spicy-vs-sweety` | Firebase project ID | "myapp-12345" |
-| `{{COMPANY_NAME}}` | Legal company name | "MyApp Inc." |
-| `{{COMPANY_ADDRESS}}` | Company address | "123 Main St" |
-| `{{SUPPORT_EMAIL}}` | Support email | "support@myapp.com" |
-| `{{TWITTER_HANDLE}}` | Twitter/X handle | "@myapp" |
+| `Addeus` | Legal company name | "MyApp Inc." |
+| `4 rue du marché 63140 Châtel-Guyon` | Company address | "123 Main St" |
+| `contact@spicy-vs-sweet.com` | Support email | "support@myapp.com" |
+| `` | Twitter/X handle | "@myapp" |
 | `spicyvssweet` | Cookie prefix | "myapp" |
 
 ## Development Requirements

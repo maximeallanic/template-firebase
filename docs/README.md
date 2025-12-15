@@ -102,4 +102,4 @@ Documentation for developers and users.
 
 For questions or support:
 - GitHub Issues: Create an issue in the repository
-- Email: {{SUPPORT_EMAIL}}
+- Email: contact@spicy-vs-sweet.com
