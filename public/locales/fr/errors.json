@@ -1,0 +1,56 @@
+{
+  "auth": {
+    "unauthenticated": "Vous devez être connecté pour effectuer cette action",
+    "unauthorized": "Vous n'avez pas la permission d'accéder à cette ressource",
+    "emailNotVerified": "Veuillez vérifier votre adresse email pour continuer",
+    "invalidCredentials": "Email ou mot de passe invalide",
+    "emailInUse": "Cet email est déjà utilisé",
+    "weakPassword": "Le mot de passe est trop faible. Utilisez au moins 6 caractères",
+    "networkError": "Erreur réseau. Veuillez vérifier votre connexion"
+  },
+  "analysis": {
+    "quotaExceeded": "Vous avez atteint votre limite mensuelle de {{limit}} analyses. Passez à Pro pour plus !",
+    "contentTooShort": "Le contenu de l'email est trop court (minimum 10 caractères)",
+    "contentTooLong": "Le contenu de l'email est trop long (maximum 10 000 caractères)",
+    "contentEmpty": "Le contenu de l'email ne peut pas être vide",
+    "invalidContent": "Contenu d'email invalide",
+    "processingFailed": "Échec de l'analyse de l'email. Veuillez réessayer",
+    "aiError": "Le service d'analyse IA est temporairement indisponible"
+  },
+  "subscription": {
+    "createSessionFailed": "Échec de la création de la session de paiement",
+    "noActiveSubscription": "Aucun abonnement actif trouvé",
+    "cancellationFailed": "Échec de l'annulation de l'abonnement",
+    "updateFailed": "Échec de la mise à jour de l'abonnement",
+    "paymentFailed": "Le paiement a échoué. Veuillez réessayer",
+    "cardDeclined": "Votre carte a été refusée"
+  },
+  "freeTrial": {
+    "alreadyUsed": "Essai gratuit déjà utilisé. Inscrivez-vous pour un compte gratuit et obtenez 5 analyses par mois !",
+    "notAvailable": "L'essai gratuit n'est pas disponible",
+    "expired": "Votre essai gratuit a expiré"
+  },
+  "emailSession": {
+    "creationFailed": "Échec de la création de la session d'analyse par email",
+    "rateLimitExceeded": "Limite de débit dépassée. Veuillez réessayer dans quelques minutes",
+    "sessionExpired": "Cette session email a expiré. Veuillez en créer une nouvelle",
+    "invalidSession": "Session email invalide",
+    "receiveFailed": "Échec de la réception de l'email"
+  },
+  "general": {
+    "somethingWrong": "Quelque chose s'est mal passé. Veuillez réessayer",
+    "serverError": "Erreur serveur. Veuillez réessayer plus tard",
+    "notFound": "Ressource non trouvée",
+    "invalidRequest": "Requête invalide",
+    "timeout": "Délai d'attente dépassé. Veuillez réessayer",
+    "maintenance": "Le système est en maintenance. Veuillez réessayer plus tard"
+  },
+  "validation": {
+    "required": "Ce champ est requis",
+    "invalidEmail": "Adresse email invalide",
+    "invalidFormat": "Format invalide",
+    "minLength": "Doit contenir au moins {{count}} caractères",
+    "maxLength": "Doit contenir au maximum {{count}} caractères",
+    "mustMatch": "Les champs doivent correspondre"
+  }
+}

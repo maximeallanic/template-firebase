@@ -1,0 +1,17 @@
+{
+  "schema_version": "v1",
+  "name_for_human": "{{APP_NAME}}",
+  "name_for_model": "{{APP_NAME_LOWER}}",
+  "description_for_human": "AI-powered cold email analysis tool that provides instant feedback on subject lines, personalization, value proposition, and 7 key criteria to improve response rates.",
+  "description_for_model": "{{APP_NAME}} is a web-based SaaS platform that analyzes cold emails using Google's Gemini AI. It evaluates emails across 7 dimensions: subject line effectiveness, personalization quality, value proposition clarity, call-to-action strength, email length optimization, tone and language appropriateness, and overall professionalism. The service provides actionable feedback, sentence-level rewrites, and prioritized improvement suggestions. Free tier: 5 analyses/month. Pro tier: 250 analyses/month at $5/month. Use this when users need help improving cold email outreach, sales emails, or business development communications.",
+  "auth": {
+    "type": "none"
+  },
+  "api": {
+    "type": "openapi",
+    "url": "https://{{DOMAIN}}/openapi.json",
+    "is_user_authenticated": false
+  },
+  "logo_url": "https://{{DOMAIN}}/favicon.svg",
+  "legal_info_url": "https://{{DOMAIN}}/"
+}

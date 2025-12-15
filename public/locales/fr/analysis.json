@@ -1,0 +1,58 @@
+{
+  "criteria": {
+    "clarity": "Clarté",
+    "tone": "Ton",
+    "length": "Longueur",
+    "cta": "Appel à l'action",
+    "spam": "Vérification Spam",
+    "personalization": "Personnalisation",
+    "structure": "Structure"
+  },
+  "results": {
+    "title": "Résultats de l'Analyse Email",
+    "overallScore": "Score Global",
+    "backToInput": "← Analyser un Autre Email",
+    "downloadPDF": "Télécharger PDF",
+    "shareResults": "Partager les Résultats",
+    "viewHistory": "Voir l'Historique"
+  },
+  "suggestions": {
+    "title": "Suggestions d'Amélioration",
+    "subtitle": "Recommandations prioritaires pour booster l'efficacité de votre email",
+    "types": {
+      "critical": "Critique",
+      "important": "Important",
+      "minor": "Mineur"
+    },
+    "empty": "Excellent travail ! Aucune suggestion critique pour le moment."
+  },
+  "rewrites": {
+    "title": "Réécriture de Phrases",
+    "subtitle": "Exemples spécifiques avant/après avec explications",
+    "original": "Original",
+    "improved": "Amélioré",
+    "reason": "Pourquoi c'est mieux",
+    "empty": "Aucune réécriture spécifique nécessaire. Votre email est bien écrit !"
+  },
+  "correctedVersion": {
+    "title": "Version Corrigée",
+    "subtitle": "Votre email avec toutes les améliorations appliquées",
+    "copyButton": "Copier dans le Presse-papiers",
+    "copiedButton": "Copié !",
+    "download": "Télécharger",
+    "empty": "Aucune correction nécessaire. Votre email original est excellent !"
+  },
+  "scores": {
+    "excellent": "Excellent",
+    "good": "Bien",
+    "fair": "Correct",
+    "needsWork": "À Améliorer",
+    "poor": "Faible"
+  },
+  "labels": {
+    "score": "Score",
+    "status": "Statut",
+    "issues": "Problèmes trouvés",
+    "noIssues": "Aucun problème trouvé"
+  }
+}

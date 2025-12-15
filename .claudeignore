@@ -1,0 +1,26 @@
+# Claude Code ignore file
+# Files and directories listed here will be excluded from Claude Code's context
+
+# Archive documentation (obsolete/historical)
+docs/archive/
+
+# Build artifacts
+dist/
+functions/lib/
+node_modules/
+
+# Environment files
+.env
+.env.local
+functions/.env.local
+
+# Firebase
+.firebase/
+
+# Logs
+*.log
+npm-debug.log*
+
+# IDE
+.vscode/
+.idea/

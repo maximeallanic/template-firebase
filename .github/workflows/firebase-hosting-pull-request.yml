@@ -1,0 +1,158 @@
+name: Firebase Hosting Preview on PR
+
+on: pull_request
+
+permissions:
+  checks: write
+  contents: read
+  pull-requests: write
+
+env:
+  NODE_VERSION: '22'
+
+jobs:
+  # Job 1: Run quality checks
+  quality-checks:
+    name: Quality Checks
+    runs-on: ubuntu-latest
+    if: ${{ github.event.pull_request.head.repo.full_name == github.repository }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+          cache-dependency-path: |
+            package-lock.json
+            functions/package-lock.json
+
+      - name: Install frontend dependencies
+        run: npm ci
+
+      - name: Run ESLint
+        run: npm run lint
+
+      - name: Run TypeScript type check
+        run: npm run type-check
+
+      - name: Install functions dependencies
+        working-directory: ./functions
+        run: npm ci
+
+      - name: Build and validate functions
+        working-directory: ./functions
+        run: npm run build
+
+  # Job 2: Build and deploy preview
+  build_and_preview:
+    name: Build and Deploy Preview
+    runs-on: ubuntu-latest
+    needs: quality-checks
+    if: ${{ github.event.pull_request.head.repo.full_name == github.repository }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: Install frontend dependencies
+        run: npm ci
+
+      - name: Create preview .env file
+        run: |
+          cat > .env << EOF
+          VITE_FIREBASE_API_KEY=${{ secrets.VITE_FIREBASE_API_KEY }}
+          VITE_FIREBASE_AUTH_DOMAIN=${{ secrets.VITE_FIREBASE_AUTH_DOMAIN }}
+          VITE_FIREBASE_PROJECT_ID=${{ secrets.VITE_FIREBASE_PROJECT_ID }}
+          VITE_FIREBASE_STORAGE_BUCKET=${{ secrets.VITE_FIREBASE_STORAGE_BUCKET }}
+          VITE_FIREBASE_MESSAGING_SENDER_ID=${{ secrets.VITE_FIREBASE_MESSAGING_SENDER_ID }}
+          VITE_FIREBASE_APP_ID=${{ secrets.VITE_FIREBASE_APP_ID }}
+          VITE_FIREBASE_MEASUREMENT_ID=${{ secrets.VITE_FIREBASE_MEASUREMENT_ID }}
+          VITE_RECAPTCHA_ENTERPRISE_SITE_KEY=${{ secrets.VITE_RECAPTCHA_ENTERPRISE_SITE_KEY }}
+          EOF
+
+      - name: Build frontend
+        run: npm run build
+
+      - name: Get bundle size
+        id: bundle-size
+        run: |
+          BUNDLE_SIZE=$(du -sh dist/ | cut -f1)
+          echo "size=$BUNDLE_SIZE" >> $GITHUB_OUTPUT
+
+      - name: Deploy preview to Firebase Hosting
+        id: deploy
+        uses: FirebaseExtended/action-hosting-deploy@v0
+        with:
+          repoToken: ${{ secrets.GITHUB_TOKEN }}
+          firebaseServiceAccount: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+          projectId: ${{ secrets.FIREBASE_PROJECT_ID }}
+          expires: 7d
+          channelId: pr-${{ github.event.pull_request.number }}
+
+      - name: Comment PR with detailed preview info
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const prNumber = context.issue.number;
+            const previewUrl = '${{ steps.deploy.outputs.details_url }}';
+            const bundleSize = '${{ steps.bundle-size.outputs.size }}';
+
+            const body = `## 🔥 Firebase Preview Deployment
+
+            ### ✅ Status: Ready for Testing
+
+            | Component | Status | Details |
+            |-----------|--------|---------|
+            | 🎨 Frontend | ✅ Deployed | Preview Channel \`pr-${prNumber}\` |
+            | 🔍 Quality Checks | ✅ Passed | ESLint + TypeScript |
+            | ⚡ Functions | ✅ Built | Validated (not deployed) |
+            | 📦 Bundle Size | ${bundleSize} | Optimized build |
+
+            ### 🌐 Preview URL
+            ${previewUrl || 'Check the Firebase action logs for the preview URL'}
+
+            ### 🧪 Testing Instructions
+
+            **Frontend Testing:**
+            - The preview URL above shows the deployed frontend
+            - Uses production Firebase backend (Functions, Firestore, Auth)
+            - App Check (reCAPTCHA) is enabled
+
+            **Functions Testing (Local):**
+            \`\`\`bash
+            # 1. Checkout this PR branch
+            git fetch origin pull/${prNumber}/head:pr-${prNumber}
+            git checkout pr-${prNumber}
+
+            # 2. Start Firebase emulators
+            npm run emulators
+
+            # 3. In another terminal, start frontend dev server
+            npm run dev
+
+            # 4. Open http://localhost:5173
+            # Functions will run locally at http://localhost:5001
+            \`\`\`
+
+            **Note:** Firebase Preview Channels don't support Cloud Functions deployment. Functions must be tested locally with emulators. See [PR Testing Guide](https://github.com/${context.repo.owner}/${context.repo.repo}/blob/master/docs/pr-preview-testing.md) for details.
+
+            ### ⏰ Expiration
+            This preview will expire in **7 days** and will be automatically cleaned up.
+
+            ---
+            *Preview deployed from commit ${context.sha.substring(0, 7)}*`;
+
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: body
+            })

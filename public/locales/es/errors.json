@@ -1,0 +1,8 @@
+{
+  "auth": {
+    "unauthenticated": "Debes iniciar sesión para realizar esta acción"
+  },
+  "general": {
+    "somethingWrong": "Algo salió mal. Por favor, inténtalo de nuevo"
+  }
+}

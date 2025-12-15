@@ -1,0 +1,61 @@
+{
+  "mcpServers": {
+    "stripe": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "@stripe/mcp",
+        "--tools=all"
+      ],
+      "env": {
+        "STRIPE_SECRET_KEY": "YOUR_STRIPE_SECRET_KEY_HERE"
+      }
+    },
+    "google-analytics": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "mcp-server-google-analytics"
+      ],
+      "env": {
+        "GOOGLE_CLIENT_EMAIL": "YOUR_SERVICE_ACCOUNT_EMAIL",
+        "GOOGLE_PRIVATE_KEY": "YOUR_PRIVATE_KEY_HERE",
+        "GA_PROPERTY_ID": "YOUR_GA_PROPERTY_ID"
+      }
+    },
+    "firebase": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "firebase-tools@latest",
+        "experimental:mcp"
+      ]
+    },
+    "google-ads-mcp": {
+      "type": "stdio",
+      "command": "pipx",
+      "args": [
+        "run",
+        "--spec",
+        "git+https://github.com/googleads/google-ads-mcp.git",
+        "google-ads-mcp"
+      ],
+      "env": {
+        "GOOGLE_APPLICATION_CREDENTIALS": "/path/to/your/credentials.json",
+        "GOOGLE_PROJECT_ID": "your-project-id",
+        "GOOGLE_ADS_DEVELOPER_TOKEN": "YOUR_DEVELOPER_TOKEN_HERE"
+      }
+    },
+    "gcp": {
+      "type": "stdio",
+      "command": "sh",
+      "args": [
+        "-c",
+        "npx -y gcp-mcp"
+      ]
+    }
+  }
+}

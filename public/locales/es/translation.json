@@ -1,0 +1,43 @@
+{
+  "nav": {
+    "home": "Inicio",
+    "history": "Historial",
+    "signIn": "Iniciar Sesión",
+    "signOut": "Cerrar Sesión",
+    "manageSubscription": "Gestionar Suscripción",
+    "appName": "{{APP_NAME}}"
+  },
+  "hero": {
+    "freeTrial": "🎉 ¡Prueba tu Primer Email GRATIS - Sin Registro!",
+    "title": "Convierte Emails Fríos en",
+    "titleHighlight": "Respuestas Calientes",
+    "subtitle": "Obtén comentarios instantáneos impulsados por IA sobre tus emails fríos.",
+    "subtitleBold": "Aumenta tus tasas de respuesta hasta 3x",
+    "subtitleEnd": "con insights accionables en segundos.",
+    "stats": {
+      "emailsAnalyzed": "10,000+ Emails Analizados",
+      "averageRating": "Calificación Promedio 4.9/5",
+      "instantResults": "Resultados Instantáneos"
+    }
+  },
+  "pricing": {
+    "title": "Elige tu Plan",
+    "subtitle": "Comienza gratis, actualiza cuando estés listo. No se requiere tarjeta de crédito.",
+    "free": {
+      "title": "Gratis",
+      "price": "$0",
+      "period": "/mes"
+    },
+    "pro": {
+      "title": "Pro",
+      "price": "$5",
+      "period": "/mes"
+    }
+  },
+  "footer": {
+    "poweredBy": "© 2025 • Impulsado por Gemini AI",
+    "termsOfService": "Términos de Servicio",
+    "termsAndConditions": "Términos y Condiciones"
+  },
+  "loading": "Cargando..."
+}

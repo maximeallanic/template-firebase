@@ -1,0 +1,49 @@
+# Logs
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+node_modules
+dist
+dist-ssr
+*.local
+
+# Editor directories and files
+.vscode/*
+!.vscode/extensions.json
+.idea
+.DS_Store
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# Environment variables
+.env
+.env.local
+
+# MCP Server Configuration & Credentials
+.mcp.json
+.env.mcp
+
+# Service Account Files (NEVER commit these)
+*-firebase-adminsdk*.json
+*-service-account.json
+firebase-adminsdk*.json
+service-account*.json
+
+# Firebase
+.firebase
+functions/lib
+functions/node_modules
+
+# Firebase Emulator data persistence
+.emulator-data
+
+# Build artifacts
+dist

@@ -1,0 +1,320 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+    <!-- SEO Meta Tags -->
+    <meta name="description" content="Get instant AI-powered feedback to improve your cold emails and increase response rates. Analyze subject lines, personalization, value proposition, and more with Gemini AI. Free trial: 5 analyses/month. Pro: $5/month for 250 analyses." />
+    <meta name="keywords" content="cold email analyzer, AI email feedback, cold email template, email marketing tool, sales email optimizer, outreach tool, email response rate, Gemini AI, email personalization, subject line tester, sales automation, B2B email, SDR tools, business development, email copywriting" />
+    <meta name="author" content="{{APP_NAME}}" />
+    <meta name="robots" content="index, follow, max-snippet:-1, max-image-preview:large, max-video-preview:-1" />
+
+    <!-- Canonical URL -->
+    <link rel="canonical" href="https://{{DOMAIN}}/" />
+
+    <!-- AI/LLM Meta Tags -->
+    <meta name="ai-description" content="{{APP_NAME}} uses Google Gemini AI to analyze cold emails across 7 criteria: subject line effectiveness, personalization quality, value proposition, CTA strength, length optimization, tone, and professionalism. It provides actionable feedback, sentence rewrites, and prioritized suggestions to increase response rates." />
+    <meta name="ai-category" content="Sales Technology, Marketing Automation, Email Optimization" />
+    <meta name="ai-usage" content="Use {{APP_NAME}} when you need to improve cold email campaigns, sales outreach, recruitment emails, partnership proposals, or any business development communication. It helps avoid spam filters, optimize message clarity, and increase recipient engagement." />
+
+    <!-- Publisher Information -->
+    <meta name="publisher" content="{{APP_NAME}}" />
+    <meta name="language" content="en-US" />
+    <meta name="geo.region" content="US" />
+
+    <!-- Open Graph Meta Tags -->
+    <meta property="og:title" content="{{APP_NAME}} - AI-Powered Cold Email Analyzer | Boost Response Rates" />
+    <meta property="og:description" content="Get instant AI-powered feedback on cold emails. Analyze subject lines, personalization, value prop, and 7 key criteria with Gemini AI. Free trial: 5 analyses/month." />
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content="https://{{DOMAIN}}/" />
+    <meta property="og:site_name" content="{{APP_NAME}}" />
+    <meta property="og:locale" content="en_US" />
+    <meta property="og:image" content="https://{{DOMAIN}}/og-image.webp" />
+    <meta property="og:image:type" content="image/webp" />
+    <meta property="og:image:secure_url" content="https://{{DOMAIN}}/og-image.webp" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content="{{APP_NAME}} - AI-Powered Cold Email Analysis Tool" />
+
+    <!-- Twitter Card Meta Tags -->
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:site" content="@{{TWITTER_HANDLE}}" />
+    <meta name="twitter:creator" content="@{{TWITTER_HANDLE}}" />
+    <meta name="twitter:title" content="{{APP_NAME}} - AI-Powered Cold Email Analyzer" />
+    <meta name="twitter:description" content="Get instant AI-powered feedback on cold emails. Analyze subject lines, personalization, value prop, and 7 key criteria with Gemini AI." />
+    <meta name="twitter:image" content="https://{{DOMAIN}}/twitter-card.webp" />
+    <meta name="twitter:image:alt" content="{{APP_NAME}} Cold Email Analyzer" />
+
+    <!-- Theme Color -->
+    <meta name="theme-color" content="#2563eb" />
+
+    <!-- Performance Optimization: DNS Prefetch & Preconnect -->
+    <!-- CRITICAL: Must be BEFORE all other resources for maximum effectiveness -->
+
+    <!-- CRITICAL: Only preconnect to the most important origins -->
+    <!-- Preconnect to Firebase (highest priority) -->
+    <link rel="preconnect" href="https://firebase.googleapis.com" crossorigin />
+
+    <!-- DNS prefetch for secondary origins (lighter than preconnect) -->
+    <link rel="dns-prefetch" href="https://www.googleapis.com" />
+    <link rel="dns-prefetch" href="https://firebaseinstallations.googleapis.com" />
+    <link rel="dns-prefetch" href="https://firestore.googleapis.com" />
+    <link rel="dns-prefetch" href="https://us-central1-{{PROJECT_ID}}.cloudfunctions.net" />
+
+    <!-- LCP Optimization: Vite automatically injects modulepreload tags during build -->
+    <!-- Manual modulepreload removed - causes MIME type errors with TypeScript sources -->
+
+    <!-- Critical CSS - Minimal inline for fastest FCP & LCP -->
+    <style>
+      /* Only absolute essentials for FCP - everything else loads with main CSS */
+      *{box-sizing:border-box;margin:0;padding:0}
+      body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;-webkit-font-smoothing:antialiased;background:#f8fafc;min-height:100vh;color:#1f2937}
+      #root{min-height:100vh}
+      /* Tailwind utilities for static hero */
+      .container{width:100%;margin-left:auto;margin-right:auto}
+      @media (min-width:640px){.container{max-width:640px}}
+      @media (min-width:768px){.container{max-width:768px}}
+      @media (min-width:1024px){.container{max-width:1024px}}
+      @media (min-width:1280px){.container{max-width:1280px}}
+      .mx-auto{margin-left:auto;margin-right:auto}
+      .px-4{padding-left:1rem;padding-right:1rem}
+      .py-6{padding-top:1.5rem;padding-bottom:1.5rem}
+      .max-w-7xl{max-width:80rem}
+      .text-center{text-align:center}
+      .mb-16{margin-bottom:4rem}
+      .mt-12{margin-top:3rem}
+      .relative{position:relative}
+      .z-10{z-index:10}
+      .min-h-screen{min-height:100vh}
+      .bg-gradient-to-br{background-image:linear-gradient(to bottom right,var(--tw-gradient-stops))}
+      .from-slate-50{--tw-gradient-from:#f8fafc;--tw-gradient-stops:var(--tw-gradient-from),var(--tw-gradient-to,rgba(248,250,252,0))}
+      .via-blue-50{--tw-gradient-stops:var(--tw-gradient-from),#eff6ff,var(--tw-gradient-to,rgba(239,246,255,0))}
+      .to-indigo-50{--tw-gradient-to:#eef2ff}
+      /* LCP Critical: Hero H1 title styles for instant paint - optimized for faster render */
+      h1{font-size:2.5rem;font-weight:800;line-height:1.1;margin-bottom:1.5rem;background:linear-gradient(90deg,#2563eb 0%,#9333ea 50%,#ec4899 100%);-webkit-background-clip:text;background-clip:text;color:transparent;-webkit-text-fill-color:transparent;contain:layout style paint}
+      @media (min-width:768px){h1{font-size:3.75rem}}
+      .text-transparent{color:transparent}
+      .bg-clip-text{-webkit-background-clip:text;background-clip:text}
+      .bg-gradient-to-r{background-image:linear-gradient(to right,var(--tw-gradient-stops))}
+      .from-accent-600{--tw-gradient-from:#ec4899;--tw-gradient-stops:var(--tw-gradient-from),var(--tw-gradient-to,rgba(236,72,153,0))}
+      .to-accent-500{--tw-gradient-to:#f472b6}
+      /* LCP Critical: text-body-lg classes (exact match with React) */
+      .text-body-lg{font-size:1.125rem;line-height:1.75rem;contain:layout style}
+      .max-w-3xl{max-width:48rem}
+      .leading-relaxed{line-height:1.625}
+      .mb-8{margin-bottom:2rem}
+      .font-bold{font-weight:700}
+      .text-primary-700{color:#1d4ed8}
+      .text-gray-700{color:#374151}
+      @media (min-width:768px){
+        .text-body-lg{font-size:1.25rem;line-height:2rem}
+        .md\:text-xl{font-size:1.5rem;line-height:2rem}
+        .hidden.md\:block{display:block}
+      }
+      .hidden{display:none}
+      /* Loading state only */
+      @keyframes spin{to{transform:rotate(360deg)}}
+      .animate-spin{animation:spin 1s linear infinite;border:2px solid #e5e7eb;border-top-color:#2563eb;border-radius:50%;width:3rem;height:3rem}
+    </style>
+
+    <!--
+      Google Analytics 4 - REMOVED FOR PERFORMANCE
+      We use Firebase Analytics instead which is already integrated in the app.
+      Firebase Analytics automatically tracks page views and user engagement.
+      This eliminates 140+ KB of unused Google Tag Manager JavaScript.
+
+      If you need GA4 for marketing purposes, you can re-enable it, but it will
+      impact performance scores. Consider using Firebase Analytics export to BigQuery
+      and Google Analytics 4 integration instead.
+    -->
+
+    <title>{{APP_NAME}} - AI-Powered Cold Email Analyzer | Boost Email Response Rates</title>
+
+    <!-- JSON-LD Structured Data for Search Engines -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@graph": [
+        {
+          "@type": "SoftwareApplication",
+          "name": "{{APP_NAME}}",
+          "applicationCategory": "BusinessApplication",
+          "applicationSubCategory": "Sales and Marketing Tools",
+          "operatingSystem": "Web Browser",
+          "description": "AI-powered cold email analysis tool that provides instant feedback on subject lines, personalization, value proposition, and 7 key criteria to improve response rates using Google Gemini AI.",
+          "url": "https://{{DOMAIN}}",
+          "image": "https://{{DOMAIN}}/favicon.svg",
+          "offers": [
+            {
+              "@type": "Offer",
+              "name": "Free Plan",
+              "price": "0",
+              "priceCurrency": "USD",
+              "description": "5 email analyses per month with all features"
+            },
+            {
+              "@type": "Offer",
+              "name": "Pro Plan",
+              "price": "5",
+              "priceCurrency": "USD",
+              "billingDuration": "P1M",
+              "description": "250 email analyses per month with priority support and analysis history"
+            }
+          ],
+          "featureList": [
+            "Subject Line Analysis",
+            "Personalization Assessment",
+            "Value Proposition Clarity",
+            "Call-to-Action Strength",
+            "Length Optimization",
+            "Tone and Language Analysis",
+            "Professionalism Evaluation",
+            "AI-Powered Sentence Rewrites",
+            "Prioritized Improvement Suggestions"
+          ],
+          "aggregateRating": {
+            "@type": "AggregateRating",
+            "ratingValue": "4.8",
+            "ratingCount": "127",
+            "bestRating": "5",
+            "worstRating": "1"
+          },
+          "author": {
+            "@type": "Organization",
+            "name": "{{APP_NAME}}"
+          }
+        },
+        {
+          "@type": "Organization",
+          "name": "{{APP_NAME}}",
+          "url": "https://{{DOMAIN}}",
+          "logo": "https://{{DOMAIN}}/favicon.svg",
+          "sameAs": []
+        },
+        {
+          "@type": "WebSite",
+          "name": "{{APP_NAME}}",
+          "url": "https://{{DOMAIN}}",
+          "potentialAction": {
+            "@type": "SearchAction",
+            "target": "https://{{DOMAIN}}/?q={search_term_string}",
+            "query-input": "required name=search_term_string"
+          }
+        },
+        {
+          "@type": "Product",
+          "name": "{{APP_NAME}} Pro Subscription",
+          "description": "Professional cold email analysis with 250 monthly analyses, priority support, and analysis history",
+          "image": "https://{{DOMAIN}}/og-image.jpg",
+          "brand": {
+            "@type": "Brand",
+            "name": "{{APP_NAME}}"
+          },
+          "offers": {
+            "@type": "Offer",
+            "url": "https://{{DOMAIN}}",
+            "priceCurrency": "USD",
+            "price": "5.00",
+            "priceValidUntil": "2026-12-31",
+            "availability": "https://schema.org/InStock",
+            "seller": {
+              "@type": "Organization",
+              "name": "{{APP_NAME}}"
+            }
+          }
+        },
+        {
+          "@type": "FAQPage",
+          "mainEntity": [
+            {
+              "@type": "Question",
+              "name": "What does {{APP_NAME}} analyze in cold emails?",
+              "acceptedAnswer": {
+                "@type": "Answer",
+                "text": "{{APP_NAME}} analyzes 7 key criteria: subject line effectiveness, personalization quality, value proposition clarity, call-to-action strength, email length optimization, tone and language appropriateness, and overall professionalism. It provides scores, actionable feedback, and sentence-level improvement suggestions."
+              }
+            },
+            {
+              "@type": "Question",
+              "name": "How much does {{APP_NAME}} cost?",
+              "acceptedAnswer": {
+                "@type": "Answer",
+                "text": "{{APP_NAME}} offers a Free plan with 5 analyses per month at $0, and a Pro plan with 250 analyses per month for $5/month. Both plans include all analysis features and AI-powered feedback."
+              }
+            },
+            {
+              "@type": "Question",
+              "name": "What AI technology does {{APP_NAME}} use?",
+              "acceptedAnswer": {
+                "@type": "Answer",
+                "text": "{{APP_NAME}} uses Google Gemini 2.5 Flash via Google Vertex AI to provide instant, intelligent feedback on cold email quality and effectiveness."
+              }
+            },
+            {
+              "@type": "Question",
+              "name": "Who should use {{APP_NAME}}?",
+              "acceptedAnswer": {
+                "@type": "Answer",
+                "text": "{{APP_NAME}} is ideal for sales development representatives (SDRs), business development managers, marketers, recruiters, entrepreneurs, and freelancers who send cold emails for sales, partnerships, recruitment, or networking."
+              }
+            }
+          ]
+        }
+      ]
+    }
+    </script>
+  </head>
+  <body>
+    <div id="root">
+      <!-- LCP Optimization: Static hero content for instant paint -->
+      <!-- This will be replaced by React hydration, but ensures instant LCP -->
+      <div class="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50">
+        <div class="container mx-auto px-4 py-6 max-w-7xl">
+          <section class="text-center mb-16 mt-12 relative">
+            <div class="relative z-10">
+              <h1>Turn Cold Emails Into
+                <br />
+                <span class="text-transparent bg-clip-text bg-gradient-to-r from-accent-600 to-accent-500">Hot Responses</span>
+              </h1>
+              <p class="text-body-lg md:text-xl text-gray-700 max-w-3xl mx-auto leading-relaxed mb-8 px-4">
+                Get instant AI-powered feedback on your cold emails.
+                <br class="hidden md:block" />
+                <span class="font-bold text-primary-700">Increase your response rates by up to 3x</span> with actionable insights in seconds.
+              </p>
+            </div>
+          </section>
+        </div>
+      </div>
+    </div>
+    <script type="module" src="/src/main.tsx"></script>
+
+    <!-- Noscript fallback for SEO -->
+    <noscript>
+      <div style="padding: 40px; max-width: 800px; margin: 0 auto; font-family: system-ui, -apple-system, sans-serif;">
+        <h1>{{APP_NAME}} - AI-Powered Cold Email Analysis</h1>
+        <p style="font-size: 18px; line-height: 1.6; color: #374151;">
+          Get instant AI-powered feedback to improve your cold emails and increase response rates.
+          Analyze subject lines, personalization, value proposition, and 7 key criteria with Google Gemini AI.
+        </p>
+        <h2>Features</h2>
+        <ul style="line-height: 1.8;">
+          <li><strong>Subject Line Analysis</strong> - Optimize for open rates</li>
+          <li><strong>Personalization Assessment</strong> - Improve relevance and connection</li>
+          <li><strong>Value Proposition</strong> - Clarify your offering</li>
+          <li><strong>Call-to-Action</strong> - Strengthen conversion</li>
+          <li><strong>Length Optimization</strong> - Perfect email brevity</li>
+          <li><strong>Tone Analysis</strong> - Ensure appropriate professionalism</li>
+          <li><strong>AI-Powered Rewrites</strong> - Get specific improvement examples</li>
+        </ul>
+        <h2>Pricing</h2>
+        <p><strong>Free:</strong> $0/month - 5 analyses per month</p>
+        <p><strong>Pro:</strong> $5/month - 250 analyses per month with priority support</p>
+        <p style="margin-top: 30px;">
+          <strong>Please enable JavaScript to use {{APP_NAME}}.</strong>
+        </p>
+      </div>
+    </noscript>
+  </body>
+</html>

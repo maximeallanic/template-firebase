@@ -1,0 +1,58 @@
+{
+  "criteria": {
+    "clarity": "Clarity",
+    "tone": "Tone",
+    "length": "Length",
+    "cta": "Call-to-Action",
+    "spam": "Spam Check",
+    "personalization": "Personalization",
+    "structure": "Structure"
+  },
+  "results": {
+    "title": "Email Analysis Results",
+    "overallScore": "Overall Score",
+    "backToInput": "← Analyze Another Email",
+    "downloadPDF": "Download PDF",
+    "shareResults": "Share Results",
+    "viewHistory": "View History"
+  },
+  "suggestions": {
+    "title": "Suggestions for Improvement",
+    "subtitle": "Prioritized recommendations to boost your email effectiveness",
+    "types": {
+      "critical": "Critical",
+      "important": "Important",
+      "minor": "Minor"
+    },
+    "empty": "Great job! No critical suggestions at this time."
+  },
+  "rewrites": {
+    "title": "Sentence Rewrites",
+    "subtitle": "Specific before/after examples with explanations",
+    "original": "Original",
+    "improved": "Improved",
+    "reason": "Why this works better",
+    "empty": "No specific rewrites needed. Your email is well-written!"
+  },
+  "correctedVersion": {
+    "title": "Corrected Version",
+    "subtitle": "Your email with all improvements applied",
+    "copyButton": "Copy to Clipboard",
+    "copiedButton": "Copied!",
+    "download": "Download",
+    "empty": "No corrections needed. Your original email is excellent!"
+  },
+  "scores": {
+    "excellent": "Excellent",
+    "good": "Good",
+    "fair": "Fair",
+    "needsWork": "Needs Work",
+    "poor": "Poor"
+  },
+  "labels": {
+    "score": "Score",
+    "status": "Status",
+    "issues": "Issues found",
+    "noIssues": "No issues found"
+  }
+}

@@ -1,0 +1,170 @@
+{
+  "nav": {
+    "home": "Home",
+    "history": "History",
+    "signIn": "Sign In",
+    "signOut": "Sign Out",
+    "manageSubscription": "Manage Subscription",
+    "appName": "{{APP_NAME}}"
+  },
+  "hero": {
+    "freeTrial": "🎉 Try Your First Email FREE - No Sign-Up Required!",
+    "title": "Turn Cold Emails Into",
+    "titleHighlight": "Hot Responses",
+    "subtitle": "Get instant AI-powered feedback on your cold emails.",
+    "subtitleBold": "Increase your response rates by up to 3x",
+    "subtitleEnd": "with actionable insights in seconds.",
+    "stats": {
+      "emailsAnalyzed": "10,000+ Emails Analyzed",
+      "averageRating": "4.9/5 Average Rating",
+      "instantResults": "Instant Results"
+    }
+  },
+  "freeTrial": {
+    "title": "🎁 Free Trial Available",
+    "description": "Try analyzing your first email with no sign-up required! Experience the power of AI-driven email analysis instantly.",
+    "cta": "Use Free Trial",
+    "signUp": "Or sign up for 5 free analyses per month"
+  },
+  "usage": {
+    "title": "Your Usage",
+    "analyses": "{{used}} / {{limit}} analyses used this month",
+    "period": "Period ends:",
+    "upgrade": "Upgrade to Pro",
+    "manage": "Manage Plan",
+    "atLimit": "You've reached your monthly limit. Upgrade to Pro to continue analyzing emails.",
+    "nearLimit": "You're running low on analyses. Consider upgrading to Pro for 250 analyses/month.",
+    "upgradeCta": "Upgrade to Pro - $5/mo",
+    "loading": "Loading..."
+  },
+  "emailInput": {
+    "label": "Your Cold Email",
+    "placeholder": "Paste your cold email here...\n\n📧 Include subject line and email body\n✨ Aim for 50-125 words for best results",
+    "tryExample": "Try Example",
+    "stats": {
+      "words": "words",
+      "optimal": "✓ Optimal",
+      "addMore": "→ Add more",
+      "tooLong": "→ Too long",
+      "chars": "chars",
+      "perfectLength": "Perfect length",
+      "addWordsMore": "Add ~{{count}} more words",
+      "removeWordsMore": "Remove ~{{count}} words"
+    },
+    "errors": {
+      "empty": "Please enter an email to analyze",
+      "tooShort": "Email is too short to analyze (minimum 10 characters)",
+      "tooLong": "Email is too long (maximum 10000 characters)"
+    },
+    "buttons": {
+      "analyzing": "Analyzing your email...",
+      "analyzeWithAI": "Analyze Email with AI",
+      "tryFree": "Try FREE - No Sign-Up Required",
+      "signInToAnalyze": "Sign In to Analyze More Emails"
+    },
+    "tips": {
+      "title": "💡 Pro Tips for Best Results:",
+      "tip1": "Include both subject line and email body",
+      "tip2": "Aim for 50-125 words (optimal length)",
+      "tip3": "Try our example email to see how it works"
+    },
+    "modes": {
+      "email": {
+        "title": "Forward by Email",
+        "subtitle": "Get a unique email address",
+        "badge": "NEW"
+      },
+      "paste": {
+        "title": "Paste Text",
+        "subtitle": "Copy & paste your email"
+      }
+    },
+    "emailMode": {
+      "title": "Analyze by Email",
+      "description": "Forward your cold email to receive instant AI feedback",
+      "loading": "Generating your unique email address...",
+      "yourEmail": "Your unique email address:",
+      "copyButton": "Copy",
+      "copiedButton": "Copied!",
+      "expiresIn": "Expires in: {{time}}",
+      "howItWorks": "How it works:",
+      "step1": "Copy the email address above",
+      "step2": "Forward your cold email to it from Gmail, Outlook, or any email client",
+      "step3": "Your AI analysis will appear automatically in ~30 seconds",
+      "status": {
+        "waiting": "Waiting for your email...",
+        "received": "Email received!",
+        "analyzing": "AI analyzing your email...",
+        "completed": "Analysis complete! Redirecting...",
+        "error": "Error",
+        "tryAgain": "Try Again"
+      }
+    }
+  },
+  "features": {
+    "title": "Everything You Need to Write Better Cold Emails",
+    "subtitle": "Powered by Google Gemini AI, our platform analyzes every aspect of your email to maximize engagement",
+    "instant": {
+      "title": "⚡ Instant Feedback",
+      "description": "Get AI-powered analysis in seconds with real-time scoring across 7 critical metrics",
+      "link": "Learn more"
+    },
+    "metrics": {
+      "title": "📊 7 Key Metrics",
+      "description": "Comprehensive evaluation: Clarity, Tone, Length, CTA, Spam Score, Personalization & Structure",
+      "link": "See metrics"
+    },
+    "insights": {
+      "title": "✨ Actionable Insights",
+      "description": "Get specific, actionable recommendations you can implement immediately to boost response rates",
+      "link": "View example"
+    }
+  },
+  "pricing": {
+    "title": "Choose Your Plan",
+    "subtitle": "Start for free, upgrade when you're ready. No credit card required.",
+    "moneyBack": "30-day money-back guarantee • Cancel anytime",
+    "free": {
+      "badge": "Perfect to Start",
+      "title": "Free",
+      "price": "$0",
+      "period": "/month",
+      "features": {
+        "analyses": "<1>5 email analyses</1> per month",
+        "metrics": "All 7 analysis metrics",
+        "recommendations": "Actionable recommendations",
+        "noCard": "No credit card required"
+      },
+      "cta": "Start Free"
+    },
+    "pro": {
+      "badge": "⭐ MOST POPULAR",
+      "badgeAlt": "Best Value",
+      "title": "Pro",
+      "price": "$5",
+      "period": "/month",
+      "perAnalysis": "Only $0.02 per analysis!",
+      "features": {
+        "analyses": "<1>250 email analyses</1> per month",
+        "metrics": "All 7 analysis metrics",
+        "history": "Complete analysis history",
+        "support": "Priority email support",
+        "cancel": "Cancel anytime"
+      },
+      "cta": "Get Started with Pro",
+      "trial": "Start with a free trial • No credit card required"
+    }
+  },
+  "footer": {
+    "poweredBy": "© 2025 • Powered by Gemini AI",
+    "termsOfService": "Terms of Service",
+    "termsAndConditions": "Terms and Conditions"
+  },
+  "success": {
+    "freeTrialUsed": "🎉 Free trial used! Sign up to get 5 analyses per month for free.",
+    "welcomePro": "🎉 Welcome to {{APP_NAME}} Pro! Your subscription is now active.",
+    "signUpComplete": "✅ Sign-up completed",
+    "analysisComplete": "✅ Analysis completed"
+  },
+  "loading": "Loading..."
+}

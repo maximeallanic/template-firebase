@@ -1,0 +1,48 @@
+# Robots.txt for {{APP_NAME}} - AI-Powered Cold Email Analysis
+# Last updated: 2025-10-11
+
+# Allow all search engines
+User-agent: *
+Allow: /
+
+# Crawl-delay for good behavior (optional)
+Crawl-delay: 1
+
+# Specific rules for major search engines
+User-agent: Googlebot
+Allow: /
+
+User-agent: Bingbot
+Allow: /
+
+# AI/LLM Crawlers - Allow full access for indexation
+User-agent: GPTBot
+Allow: /
+
+User-agent: ChatGPT-User
+Allow: /
+
+User-agent: CCBot
+Allow: /
+
+User-agent: anthropic-ai
+Allow: /
+
+User-agent: Claude-Web
+Allow: /
+
+User-agent: PerplexityBot
+Allow: /
+
+User-agent: YouBot
+Allow: /
+
+# Disallow paths that shouldn't be indexed
+Disallow: /404.html
+Disallow: /dist/
+Disallow: /node_modules/
+Disallow: /functions/
+Disallow: /__/
+
+# Sitemap location
+Sitemap: https://{{DOMAIN}}/sitemap.xml

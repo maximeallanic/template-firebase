@@ -1,0 +1,11 @@
+{
+  "criteria": {
+    "clarity": "Claridad",
+    "tone": "Tono",
+    "length": "Longitud",
+    "cta": "Llamada a la Acción",
+    "spam": "Verificación de Spam",
+    "personalization": "Personalización",
+    "structure": "Estructura"
+  }
+}

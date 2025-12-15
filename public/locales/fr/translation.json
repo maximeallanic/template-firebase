@@ -1,0 +1,170 @@
+{
+  "nav": {
+    "home": "Accueil",
+    "history": "Historique",
+    "signIn": "Se connecter",
+    "signOut": "Se déconnecter",
+    "manageSubscription": "Gérer l'abonnement",
+    "appName": "{{APP_NAME}}"
+  },
+  "hero": {
+    "freeTrial": "🎉 Essayez votre premier email GRATUITEMENT - Sans inscription !",
+    "title": "Transformez les emails froids en",
+    "titleHighlight": "Réponses chaudes",
+    "subtitle": "Obtenez des retours instantanés propulsés par l'IA sur vos emails froids.",
+    "subtitleBold": "Augmentez vos taux de réponse jusqu'à 3x",
+    "subtitleEnd": "avec des insights actionnables en quelques secondes.",
+    "stats": {
+      "emailsAnalyzed": "10 000+ Emails Analysés",
+      "averageRating": "Note moyenne 4,9/5",
+      "instantResults": "Résultats Instantanés"
+    }
+  },
+  "freeTrial": {
+    "title": "🎁 Essai Gratuit Disponible",
+    "description": "Essayez d'analyser votre premier email sans inscription ! Découvrez la puissance de l'analyse d'emails par IA instantanément.",
+    "cta": "Utiliser l'Essai Gratuit",
+    "signUp": "Ou inscrivez-vous pour 5 analyses gratuites par mois"
+  },
+  "usage": {
+    "title": "Votre Utilisation",
+    "analyses": "{{used}} / {{limit}} analyses utilisées ce mois-ci",
+    "period": "La période se termine le :",
+    "upgrade": "Passer à Pro",
+    "manage": "Gérer le forfait",
+    "atLimit": "Vous avez atteint votre limite mensuelle. Passez à Pro pour continuer à analyser des emails.",
+    "nearLimit": "Vous manquez d'analyses. Passez à Pro pour 250 analyses/mois.",
+    "upgradeCta": "Passer à Pro - 5€/mois",
+    "loading": "Chargement..."
+  },
+  "emailInput": {
+    "label": "Votre Email Froid",
+    "placeholder": "Collez votre email froid ici...\n\n📧 Incluez la ligne d'objet et le corps de l'email\n✨ Visez 50-125 mots pour de meilleurs résultats",
+    "tryExample": "Essayer l'Exemple",
+    "stats": {
+      "words": "mots",
+      "optimal": "✓ Optimal",
+      "addMore": "→ Ajoutez plus",
+      "tooLong": "→ Trop long",
+      "chars": "caractères",
+      "perfectLength": "Longueur parfaite",
+      "addWordsMore": "Ajoutez ~{{count}} mots de plus",
+      "removeWordsMore": "Retirez ~{{count}} mots"
+    },
+    "errors": {
+      "empty": "Veuillez entrer un email à analyser",
+      "tooShort": "L'email est trop court pour être analysé (minimum 10 caractères)",
+      "tooLong": "L'email est trop long (maximum 10000 caractères)"
+    },
+    "buttons": {
+      "analyzing": "Analyse de votre email...",
+      "analyzeWithAI": "Analyser l'Email avec l'IA",
+      "tryFree": "Essayer GRATUITEMENT - Sans Inscription",
+      "signInToAnalyze": "Se Connecter pour Analyser Plus d'Emails"
+    },
+    "tips": {
+      "title": "💡 Conseils Pro pour de Meilleurs Résultats :",
+      "tip1": "Incluez à la fois la ligne d'objet et le corps de l'email",
+      "tip2": "Visez 50-125 mots (longueur optimale)",
+      "tip3": "Essayez notre exemple d'email pour voir comment ça fonctionne"
+    },
+    "modes": {
+      "email": {
+        "title": "Transférer par Email",
+        "subtitle": "Obtenez une adresse email unique",
+        "badge": "NOUVEAU"
+      },
+      "paste": {
+        "title": "Coller le Texte",
+        "subtitle": "Copiez et collez votre email"
+      }
+    },
+    "emailMode": {
+      "title": "Analyser par Email",
+      "description": "Transférez votre email froid pour recevoir un retour IA instantané",
+      "loading": "Génération de votre adresse email unique...",
+      "yourEmail": "Votre adresse email unique :",
+      "copyButton": "Copier",
+      "copiedButton": "Copié !",
+      "expiresIn": "Expire dans : {{time}}",
+      "howItWorks": "Comment ça marche :",
+      "step1": "Copiez l'adresse email ci-dessus",
+      "step2": "Transférez votre email froid depuis Gmail, Outlook ou n'importe quel client email",
+      "step3": "Votre analyse IA apparaîtra automatiquement en ~30 secondes",
+      "status": {
+        "waiting": "En attente de votre email...",
+        "received": "Email reçu !",
+        "analyzing": "L'IA analyse votre email...",
+        "completed": "Analyse terminée ! Redirection...",
+        "error": "Erreur",
+        "tryAgain": "Réessayer"
+      }
+    }
+  },
+  "features": {
+    "title": "Tout ce dont vous avez besoin pour écrire de meilleurs emails froids",
+    "subtitle": "Propulsé par Google Gemini AI, notre plateforme analyse chaque aspect de votre email pour maximiser l'engagement",
+    "instant": {
+      "title": "⚡ Retour Instantané",
+      "description": "Obtenez une analyse IA en quelques secondes avec notation en temps réel sur 7 métriques critiques",
+      "link": "En savoir plus"
+    },
+    "metrics": {
+      "title": "📊 7 Métriques Clés",
+      "description": "Évaluation complète : Clarté, Ton, Longueur, Appel à l'action, Score spam, Personnalisation et Structure",
+      "link": "Voir les métriques"
+    },
+    "insights": {
+      "title": "✨ Insights Actionnables",
+      "description": "Obtenez des recommandations spécifiques et actionnables que vous pouvez implémenter immédiatement pour augmenter les taux de réponse",
+      "link": "Voir un exemple"
+    }
+  },
+  "pricing": {
+    "title": "Choisissez Votre Forfait",
+    "subtitle": "Commencez gratuitement, passez à la version supérieure quand vous êtes prêt. Aucune carte de crédit requise.",
+    "moneyBack": "Garantie satisfait ou remboursé 30 jours • Annulez à tout moment",
+    "free": {
+      "badge": "Parfait pour Commencer",
+      "title": "Gratuit",
+      "price": "0€",
+      "period": "/mois",
+      "features": {
+        "analyses": "<1>5 analyses d'emails</1> par mois",
+        "metrics": "Toutes les 7 métriques d'analyse",
+        "recommendations": "Recommandations actionnables",
+        "noCard": "Aucune carte de crédit requise"
+      },
+      "cta": "Commencer Gratuitement"
+    },
+    "pro": {
+      "badge": "⭐ LE PLUS POPULAIRE",
+      "badgeAlt": "Meilleur Rapport Qualité-Prix",
+      "title": "Pro",
+      "price": "5€",
+      "period": "/mois",
+      "perAnalysis": "Seulement 0,02€ par analyse !",
+      "features": {
+        "analyses": "<1>250 analyses d'emails</1> par mois",
+        "metrics": "Toutes les 7 métriques d'analyse",
+        "history": "Historique complet des analyses",
+        "support": "Support email prioritaire",
+        "cancel": "Annulez à tout moment"
+      },
+      "cta": "Commencer avec Pro",
+      "trial": "Commencez avec un essai gratuit • Aucune carte de crédit requise"
+    }
+  },
+  "footer": {
+    "poweredBy": "© 2025 • Propulsé par Gemini AI",
+    "termsOfService": "Conditions d'Utilisation",
+    "termsAndConditions": "Conditions Générales"
+  },
+  "success": {
+    "freeTrialUsed": "🎉 Essai gratuit utilisé ! Inscrivez-vous pour obtenir 5 analyses gratuites par mois.",
+    "welcomePro": "🎉 Bienvenue dans {{APP_NAME}} Pro ! Votre abonnement est maintenant actif.",
+    "signUpComplete": "✅ Inscription terminée",
+    "analysisComplete": "✅ Analyse terminée"
+  },
+  "loading": "Chargement..."
+}

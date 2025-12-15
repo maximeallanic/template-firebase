@@ -1,0 +1,53 @@
+{
+  "buttons": {
+    "continue": "Continue",
+    "cancel": "Cancel",
+    "save": "Save",
+    "close": "Close",
+    "delete": "Delete",
+    "edit": "Edit",
+    "submit": "Submit",
+    "back": "Back",
+    "next": "Next",
+    "confirm": "Confirm",
+    "retry": "Retry",
+    "upgrade": "Upgrade"
+  },
+  "labels": {
+    "email": "Email",
+    "password": "Password",
+    "name": "Name",
+    "optional": "Optional",
+    "required": "Required"
+  },
+  "messages": {
+    "success": "Success!",
+    "error": "Error",
+    "warning": "Warning",
+    "info": "Information",
+    "loading": "Loading...",
+    "saving": "Saving...",
+    "processing": "Processing...",
+    "noData": "No data available",
+    "comingSoon": "Coming soon"
+  },
+  "time": {
+    "seconds": "seconds",
+    "minutes": "minutes",
+    "hours": "hours",
+    "days": "days",
+    "weeks": "weeks",
+    "months": "months",
+    "years": "years",
+    "ago": "ago",
+    "remaining": "remaining"
+  },
+  "plans": {
+    "free": "Free Plan",
+    "pro": "Pro Plan",
+    "active": "Active",
+    "inactive": "Inactive",
+    "expired": "Expired",
+    "canceled": "Canceled"
+  }
+}

@@ -1,0 +1,53 @@
+{
+  "buttons": {
+    "continue": "Continuer",
+    "cancel": "Annuler",
+    "save": "Enregistrer",
+    "close": "Fermer",
+    "delete": "Supprimer",
+    "edit": "Modifier",
+    "submit": "Soumettre",
+    "back": "Retour",
+    "next": "Suivant",
+    "confirm": "Confirmer",
+    "retry": "Réessayer",
+    "upgrade": "Mettre à niveau"
+  },
+  "labels": {
+    "email": "Email",
+    "password": "Mot de passe",
+    "name": "Nom",
+    "optional": "Optionnel",
+    "required": "Requis"
+  },
+  "messages": {
+    "success": "Succès !",
+    "error": "Erreur",
+    "warning": "Attention",
+    "info": "Information",
+    "loading": "Chargement...",
+    "saving": "Enregistrement...",
+    "processing": "Traitement...",
+    "noData": "Aucune donnée disponible",
+    "comingSoon": "Bientôt disponible"
+  },
+  "time": {
+    "seconds": "secondes",
+    "minutes": "minutes",
+    "hours": "heures",
+    "days": "jours",
+    "weeks": "semaines",
+    "months": "mois",
+    "years": "ans",
+    "ago": "il y a",
+    "remaining": "restant"
+  },
+  "plans": {
+    "free": "Forfait Gratuit",
+    "pro": "Forfait Pro",
+    "active": "Actif",
+    "inactive": "Inactif",
+    "expired": "Expiré",
+    "canceled": "Annulé"
+  }
+}

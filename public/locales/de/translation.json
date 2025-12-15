@@ -1,0 +1,22 @@
+{
+  "nav": {
+    "home": "Startseite",
+    "history": "Verlauf",
+    "signIn": "Anmelden",
+    "signOut": "Abmelden",
+    "manageSubscription": "Abonnement Verwalten",
+    "appName": "{{APP_NAME}}"
+  },
+  "hero": {
+    "freeTrial": "🎉 Testen Sie Ihre Erste E-Mail KOSTENLOS - Keine Anmeldung Erforderlich!",
+    "title": "Verwandeln Sie Kalte E-Mails in",
+    "titleHighlight": "Heiße Antworten",
+    "subtitle": "Erhalten Sie sofortiges KI-gestütztes Feedback zu Ihren Kalt-E-Mails.",
+    "subtitleBold": "Erhöhen Sie Ihre Antwortrate um bis zu 3x",
+    "subtitleEnd": "mit umsetzbaren Erkenntnissen in Sekunden."
+  },
+  "footer": {
+    "poweredBy": "© 2025 • Angetrieben von Gemini AI"
+  },
+  "loading": "Laden..."
+}

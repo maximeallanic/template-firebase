@@ -1,0 +1,12 @@
+{
+  "buttons": {
+    "continue": "Continuar",
+    "cancel": "Cancelar",
+    "save": "Guardar",
+    "close": "Cerrar"
+  },
+  "plans": {
+    "free": "Plan Gratuito",
+    "pro": "Plan Pro"
+  }
+}

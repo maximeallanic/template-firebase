@@ -1,0 +1,22 @@
+{
+  "nav": {
+    "home": "Início",
+    "history": "Histórico",
+    "signIn": "Entrar",
+    "signOut": "Sair",
+    "manageSubscription": "Gerenciar Assinatura",
+    "appName": "{{APP_NAME}}"
+  },
+  "hero": {
+    "freeTrial": "🎉 Experimente Seu Primeiro Email GRÁTIS - Sem Cadastro!",
+    "title": "Transforme Emails Frios em",
+    "titleHighlight": "Respostas Quentes",
+    "subtitle": "Obtenha feedback instantâneo com IA sobre seus emails frios.",
+    "subtitleBold": "Aumente suas taxas de resposta em até 3x",
+    "subtitleEnd": "com insights acionáveis em segundos."
+  },
+  "footer": {
+    "poweredBy": "© 2025 • Desenvolvido por Gemini AI"
+  },
+  "loading": "Carregando..."
+}

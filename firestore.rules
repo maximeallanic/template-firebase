@@ -1,0 +1,65 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Users collection
+    match /users/{userId} {
+      // Users can only read their own data
+      allow read: if request.auth != null && request.auth.uid == userId;
+
+      // CRITICAL: Users CANNOT modify their own subscription data
+      // Only Cloud Functions (using Admin SDK which bypasses rules) can write
+      // This prevents users from:
+      // - Upgrading to Pro without payment
+      // - Resetting their usage counter
+      // - Changing their email
+      // - Modifying analysis limits
+      // - Changing subscription periods
+      allow write: if false;
+
+      // Note: Cloud Functions use Firebase Admin SDK which bypasses these rules
+      // and can write directly to any document
+
+      // User's analysis history subcollection
+      match /analyses/{analysisId} {
+        allow read: if request.auth != null && request.auth.uid == userId;
+        // Users cannot write directly to analyses (only Cloud Functions)
+        // This prevents users from fabricating their own analysis history
+        allow write: if false;
+      }
+    }
+
+    // Guest usage tracking (for free trial anti-abuse)
+    match /guestUsage/{fingerprint} {
+      // No read access (privacy protection)
+      allow read: if false;
+      // No write access - only Cloud Functions can write
+      // Cloud Functions use Admin SDK which bypasses these rules
+      allow write: if false;
+    }
+
+    // Email analysis sessions (for analyze-by-email feature)
+    match /emailSessions/{sessionId} {
+      // Authenticated users can read only their own sessions
+      allow read: if request.auth != null && resource.data.userId == request.auth.uid;
+
+      // Guests can read only their specific session if they know the exact sessionId
+      // This prevents guests from listing all sessions
+      // The sessionId is returned by createEmailAnalysisSession and acts as a capability token
+      allow read: if request.auth == null &&
+                     resource != null &&
+                     resource.data.fingerprint != null &&
+                     resource.id == sessionId;
+
+      // No write access - only Cloud Functions can write
+      // Cloud Functions use Admin SDK which bypasses these rules
+      allow write: if false;
+    }
+
+    // Deny all other access
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}
