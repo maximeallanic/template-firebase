@@ -22,6 +22,7 @@ class AudioService {
 
     private init() {
         if (!this.ctx) {
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             this.ctx = new (window.AudioContext || (window as any).webkitAudioContext)();
         }
         if (this.ctx.state === 'suspended') {
@@ -123,7 +124,7 @@ class AudioService {
 
     public stopAmbient() {
         this.ambientOscillators.forEach(osc => {
-            try { osc.stop(); } catch (e) { }
+            try { osc.stop(); } catch { /* ignore */ }
         });
         this.ambientOscillators = [];
         if (this.ambientGain) {

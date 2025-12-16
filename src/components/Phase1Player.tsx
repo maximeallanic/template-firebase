@@ -289,7 +289,7 @@ export function Phase1Player({ room, playerId, isHost }: Phase1PlayerProps) {
 }
 
 function getAvatarIcon(avatar: string) {
-    const map: Record<string, any> = {
+    const map: Record<string, React.ElementType> = {
         donut: Circle, // Fallback
         pizza: Pizza,
         taco: Sandwich, // Fallback

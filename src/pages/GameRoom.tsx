@@ -100,6 +100,7 @@ export default function GameRoom() {
 
             prevStatus.current = room.state.status;
         }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [room?.players, room?.state.status]);
 
     const [isMuted, setIsMuted] = useState(false);
@@ -342,7 +343,7 @@ function PlayerCard({ player, theme }: { player: Player, theme?: 'spicy' | 'swee
 }
 
 function getAvatarIcon(avatar: string) {
-    const map: Record<string, any> = {
+    const map: Record<string, React.ElementType> = {
         donut: Circle, // Fallback
         pizza: Pizza,
         taco: Sandwich, // Fallback

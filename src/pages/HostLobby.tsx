@@ -119,7 +119,7 @@ export default function HostLobby() {
 }
 
 function getAvatarIcon(avatar: string) {
-    const map: Record<string, any> = {
+    const map: Record<string, React.ElementType> = {
         donut: Circle, pizza: Pizza, taco: Sandwich, sushi: Fish,
         chili: Flame, cookie: Cookie, icecream: IceCream, fries: Utensils
     };

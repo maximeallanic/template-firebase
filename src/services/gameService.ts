@@ -177,7 +177,7 @@ export const updatePlayerTeam = async (code: string, playerId: string, team: Tea
 
 export const setGameStatus = async (code: string, status: GameState['status']) => {
     const roomId = code.toUpperCase();
-    const updates: any = {};
+    const updates: Record<string, unknown> = {};
     updates[`rooms/${roomId}/state/status`] = status;
 
     // Reset phase 1 state when entering it
@@ -209,7 +209,7 @@ export const setGameStatus = async (code: string, status: GameState['status']) =
     // If starting Phase 1, auto-transition to answering after delay
     if (status === 'phase1') {
         setTimeout(async () => {
-            const answeringUpdates: any = {};
+            const answeringUpdates: Record<string, unknown> = {};
             answeringUpdates[`rooms/${roomId}/state/phaseState`] = 'answering';
             answeringUpdates[`rooms/${roomId}/state/questionStartTime`] = Date.now();
             await update(ref(rtdb), answeringUpdates);
@@ -225,7 +225,7 @@ export const startNextQuestion = async (code: string, nextIndex: number) => {
     // Safety check
     if (nextIndex >= QUESTIONS.length) return;
 
-    const updates: any = {};
+    const updates: Record<string, unknown> = {};
     updates[`rooms/${roomId}/state/currentQuestionIndex`] = nextIndex;
     updates[`rooms/${roomId}/state/phaseState`] = 'reading'; // Give players a moment to read Q
     updates[`rooms/${roomId}/state/roundWinner`] = null;
@@ -235,7 +235,7 @@ export const startNextQuestion = async (code: string, nextIndex: number) => {
 
     // Auto-switch to answering mode after 3 seconds (Reading time)
     setTimeout(async () => {
-        const answeringUpdates: any = {};
+        const answeringUpdates: Record<string, unknown> = {};
         answeringUpdates[`rooms/${roomId}/state/phaseState`] = 'answering';
         answeringUpdates[`rooms/${roomId}/state/questionStartTime`] = Date.now();
         await update(ref(rtdb), answeringUpdates);
@@ -260,7 +260,7 @@ export const submitAnswer = async (code: string, playerId: string, answerIndex: 
     const currentQuestion = QUESTIONS[qIndex];
     const isCorrect = answerIndex === currentQuestion.correctIndex;
 
-    const updates: any = {};
+    const updates: Record<string, unknown> = {};
 
     // 1. Record Answer
     updates[`rooms/${roomId}/state/phase1Answers/${playerId}`] = isCorrect;
@@ -306,7 +306,7 @@ export const nextPhase2Item = async (code: string) => {
     // Assuming infinite loop or check length? The data is infinite logic usually for Phase 2 (Salt/Pepper list).
     // Let's just increment.
 
-    const updates: any = {};
+    const updates: Record<string, unknown> = {};
     updates[`rooms/${roomId}/state/roundWinner`] = null;
     updates[`rooms/${roomId}/state/phase2Answers`] = {}; // Clear previous answers
 
@@ -337,7 +337,7 @@ export const submitPhase2Answer = async (
     // if (room.state.roundWinner) return; 
 
     const isCorrect = answer === correctAnswer;
-    const updates: any = {};
+    const updates: Record<string, unknown> = {};
 
     // 1. Record that this player answered
     updates[`rooms/${roomId}/state/phase2Answers/${playerId}`] = isCorrect;
@@ -357,7 +357,7 @@ export const submitPhase2Answer = async (
 
 export const endPhase2Round = async (roomCode: string) => {
     const roomId = roomCode.toUpperCase();
-    const updates: any = {};
+    const updates: Record<string, unknown> = {};
     updates[`rooms/${roomId}/state/phaseState`] = 'result';
     // Dummy winner to signal round end, though individual client checks their own answer
     updates[`rooms/${roomId}/state/roundWinner`] = {
@@ -408,7 +408,7 @@ export const endMenuTurn = async (roomCode: string) => {
     const room = snapshot.val() as Room;
     const currentTeam = room.state.currentMenuTeam;
 
-    const updates: any = {};
+    const updates: Record<string, unknown> = {};
     updates[`rooms/${roomId}/state/phaseState`] = 'menu_selection';
     updates[`rooms/${roomId}/state/currentMenuQuestionIndex`] = 0;
 
@@ -437,7 +437,7 @@ export const addTeamPoints = async (roomCode: string, team: Team, points: number
     if (!snapshot.exists()) return;
 
     const room = snapshot.val() as Room;
-    const updates: any = {};
+    const updates: Record<string, unknown> = {};
 
     Object.values(room.players).forEach(player => {
         if (player.team === team) {
@@ -521,7 +521,7 @@ export const nextPhase4Question = async (roomCode: string) => {
 
 export const startPhase5 = async (roomCode: string) => {
     const roomId = roomCode.toUpperCase();
-    const updates: any = {};
+    const updates: Record<string, unknown> = {};
     updates[`rooms/${roomId}/state/status`] = 'phase5';
     updates[`rooms/${roomId}/state/phase5State`] = 'idle';
     updates[`rooms/${roomId}/state/phase5QuestionIndex`] = 0;
@@ -541,7 +541,7 @@ export const nextPhase5State = async (roomCode: string, newState: 'reading' | 'a
 
 export const nextPhase5Question = async (roomCode: string, currentIndex: number, correct?: boolean) => {
     const roomId = roomCode.toUpperCase();
-    const updates: any = {};
+    const updates: Record<string, unknown> = {};
     updates[`rooms/${roomId}/state/phase5QuestionIndex`] = currentIndex + 1;
     if (correct) {
         updates[`rooms/${roomId}/state/phase5Score`] = increment(1);

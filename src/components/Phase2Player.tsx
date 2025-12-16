@@ -63,6 +63,9 @@ export const Phase2Player: React.FC<Phase2PlayerProps> = ({
     }, [itemIndex, controls]);
 
     // HOST ONLY: Monitor Completion
+    const playerCount = Object.keys(players).length;
+    const answersString = JSON.stringify(phase2Answers);
+
     useEffect(() => {
         if (!isHost || phaseState !== 'reading') return;
 
@@ -98,7 +101,7 @@ export const Phase2Player: React.FC<Phase2PlayerProps> = ({
             endPhase2Round(roomId);
         }
 
-    }, [isHost, phaseState, Object.keys(players).length, JSON.stringify(phase2Answers), roomId, players, phase2Answers]);
+    }, [isHost, phaseState, playerCount, answersString, roomId, players, phase2Answers]);
 
     const handleAnswer = useCallback(async (choice: 'A' | 'B' | 'Both', direction: 'left' | 'right' | 'up') => {
         if (hasAnswered || phaseState === 'result') return;
@@ -145,7 +148,7 @@ export const Phase2Player: React.FC<Phase2PlayerProps> = ({
     }, [handleAnswer, hasAnswered]);
 
     // Drag End Handler
-    const handleDragEnd = async (_: any, info: PanInfo) => {
+    const handleDragEnd = async (_: MouseEvent | TouchEvent | PointerEvent, info: PanInfo) => {
         const threshold = 100;
         const { x, y } = info.offset;
 

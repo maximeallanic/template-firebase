@@ -4,7 +4,7 @@ import { motion } from 'framer-motion';
 import { selectMenu, nextMenuQuestion, endMenuTurn, addTeamPoints, setGameStatus } from '../services/gameService';
 import type { Room } from '../services/gameService';
 import { PHASE3_DATA } from '../services/data/phase3';
-import { Flame, Candy, Check, X, ChefHat, Info } from 'lucide-react'; // Imports for icons
+import { Flame, Candy, Check, X, ChefHat, Info, Zap } from 'lucide-react'; // Imports for icons
 
 interface Phase3PlayerProps {
     room: Room;
@@ -14,12 +14,12 @@ interface Phase3PlayerProps {
 export const Phase3Player: React.FC<Phase3PlayerProps> = ({ room, isHost }) => {
     const { phaseState, phase3MenuSelection, currentMenuTeam, currentMenuQuestionIndex } = room.state;
 
-    const isReading = room.state.phaseState === 'questioning';
+    // const isReading = room.state.phaseState === 'questioning';
     // const isMenuSelection = room.state.phaseState === 'menu_selection'; // unused
 
     // The original code had `currentMenuTeam` which is `room.state.currentMenuTeam`.
     // The snippet uses `currentTeam` which is not defined. I'll assume `currentMenuTeam` is intended.
-    const currentMenuIndex = (currentMenuTeam && room.state.phase3MenuSelection) ? room.state.phase3MenuSelection[currentMenuTeam] : undefined;
+    // const currentMenuIndex = (currentMenuTeam && room.state.phase3MenuSelection) ? room.state.phase3MenuSelection[currentMenuTeam] : undefined;
 
     // Assuming phase3CompletedMenus is a new property on room.state
     const completedMenus = room.state.phase3CompletedMenus || [];

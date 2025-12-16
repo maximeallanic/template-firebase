@@ -59,9 +59,10 @@ export default function JoinGame() {
                 navigate(`/room/${joinCode.toUpperCase()}?debugPlayerId=${playerId}`);
             }
 
-        } catch (err: any) {
+        } catch (err: unknown) {
             console.error(err);
-            setError(err.message || "Could not join room. Check the code!");
+            const errorMessage = err instanceof Error ? err.message : 'Unknown error';
+            setError('Failed to join room. Please check the code. ' + errorMessage);
         } finally {
             setIsJoining(false);
         }
@@ -145,7 +146,7 @@ export default function JoinGame() {
 }
 
 function getAvatarIcon(avatar: string) {
-    const map: Record<string, any> = {
+    const map: Record<string, React.ElementType> = {
         donut: Circle, pizza: Pizza, taco: Sandwich, sushi: Fish,
         chili: Flame, cookie: Cookie, icecream: IceCream, fries: Utensils
     };
