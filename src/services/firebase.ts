@@ -17,8 +17,10 @@ import {
   browserLocalPersistence,
   browserSessionPersistence,
   inMemoryPersistence,
-  type User
+  type User as FirebaseUser
 } from 'firebase/auth';
+
+export type User = FirebaseUser;
 import { getFunctions, httpsCallable, connectFunctionsEmulator } from 'firebase/functions';
 import { getFirestore, connectFirestoreEmulator, collection, query, orderBy, limit as firestoreLimit, getDocs, doc, getDoc, onSnapshot, Timestamp } from 'firebase/firestore';
 import { getDatabase, connectDatabaseEmulator } from 'firebase/database';
@@ -35,6 +37,7 @@ const firebaseConfig = {
   messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID,
   appId: import.meta.env.VITE_FIREBASE_APP_ID,
   measurementId: import.meta.env.VITE_FIREBASE_MEASUREMENT_ID,
+  databaseURL: import.meta.env.VITE_FIREBASE_DATABASE_URL,
 };
 
 // Initialize Firebase
