@@ -1,6 +1,6 @@
 import { useEffect, useState, useRef } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { subscribeToRoom, type Room, type Player, setGameStatus, updatePlayerTeam } from '../services/gameService';
+import { subscribeToRoom, type Room, type Player, setGameStatus, updatePlayerTeam, markPlayerOnline } from '../services/gameService';
 import { checkPhase1Exhaustion } from '../services/historyService';
 import { Phase1Player } from '../components/Phase1Player';
 import { Phase2Player } from '../components/Phase2Player';
@@ -27,6 +27,7 @@ export default function GameRoom() {
     const [isAIModalOpen, setIsAIModalOpen] = useState(false);
     const [aiAutoTrigger, setAiAutoTrigger] = useState(false);
     const hasCheckedExhaustion = useRef(false);
+    const hasMarkedOnline = useRef(false);
 
     // Safe boolean check for host
     const isHost = !!(room?.hostId && myId && room.hostId === myId);
@@ -49,7 +50,13 @@ export default function GameRoom() {
                     const localId = debugPlayerId || safeStorage.getItem('spicy_player_id');
                     const isPlayerInRoom = localId && data.players && data.players[localId];
 
-                    if (!isPlayerInRoom) {
+                    if (isPlayerInRoom) {
+                        // Player is in the room - mark them as online (handles reconnection)
+                        if (!hasMarkedOnline.current && localId) {
+                            hasMarkedOnline.current = true;
+                            markPlayerOnline(data.code, localId);
+                        }
+                    } else {
                         // User is NOT a recognized player
 
                         // Case A: Game is in Lobby -> Redirect to Join
@@ -64,7 +71,7 @@ export default function GameRoom() {
                             }, 500);
                         }
                         // Case B: Game Started -> Stay as Spectator (Don't redirect, just don't set myId)
-                        // User stays on this page, but 'myId' remains null. 
+                        // User stays on this page, but 'myId' remains null.
                     }
                 }
             });

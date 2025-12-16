@@ -57,19 +57,8 @@ export default defineConfig({
             return 'firebase-analytics';
           }
 
-          // React and all React-dependent libs in same chunk
-          // This prevents "createContext" errors from loading order issues
-          if (
-            id.includes('react') ||
-            id.includes('react-dom') ||
-            id.includes('react-router') ||
-            id.includes('i18next') ||
-            id.includes('@stripe/stripe-js')
-          ) {
-            return 'react-vendor';
-          }
-
-          // Other node_modules as separate vendor chunk
+          // All other node_modules in single vendor chunk
+          // This prevents React initialization order issues
           if (id.includes('node_modules')) {
             return 'vendor';
           }

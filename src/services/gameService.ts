@@ -324,6 +324,23 @@ const setupDisconnectHandler = (roomId: string, playerId: string) => {
     onDisconnect(playerOnlineRef).set(false);
 };
 
+// Mark player as online (for reconnection scenarios)
+export const markPlayerOnline = async (code: string, playerId: string) => {
+    const roomId = code.toUpperCase();
+    const playerRef = ref(rtdb, `rooms/${roomId}/players/${playerId}`);
+    const snapshot = await get(playerRef);
+
+    if (snapshot.exists()) {
+        await update(ref(rtdb), {
+            [`rooms/${roomId}/players/${playerId}/isOnline`]: true
+        });
+        // Re-setup disconnect handler
+        setupDisconnectHandler(roomId, playerId);
+        return true;
+    }
+    return false;
+};
+
 // === HOST ACTIONS ===
 
 export const updatePlayerTeam = async (code: string, playerId: string, team: Team) => {
