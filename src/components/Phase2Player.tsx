@@ -2,11 +2,11 @@ import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { motion, useAnimation, AnimatePresence } from 'framer-motion';
 import type { PanInfo } from 'framer-motion';
 import { submitPhase2Answer, endPhase2Round } from '../services/gameService';
-import type { Player, PhaseState } from '../services/gameService';
+import type { Player, PhaseState, Room } from '../services/gameService';
 import { PHASE2_SETS } from '../data/phase2';
 import { audioService } from '../services/audioService';
 import { SimpleConfetti } from './SimpleConfetti';
-import { ArrowLeft, ArrowRight, ArrowUp, Check, X, Utensils, Info } from 'lucide-react';
+import { ArrowLeft, ArrowRight, ArrowUp, Check, X, Utensils, Info, Pizza, Circle, Cookie, IceCream, Flame, Fish, Sandwich, User } from 'lucide-react';
 
 interface Phase2PlayerProps {
     roomId: string;
@@ -18,6 +18,7 @@ interface Phase2PlayerProps {
     phase2Answers?: Record<string, boolean>;
     roundWinner?: { playerId: string; name: string; team: string } | null;
     isHost?: boolean;
+    customQuestions?: Room['customQuestions'];
 }
 
 export const Phase2Player: React.FC<Phase2PlayerProps> = ({
@@ -30,8 +31,10 @@ export const Phase2Player: React.FC<Phase2PlayerProps> = ({
     phase2Answers,
     players,
     // roundWinner - unused for now in binary phase
+    customQuestions,
 }) => {
-    const currentSet = PHASE2_SETS[setIndex];
+    // Prefer custom questions if available
+    const currentSet = customQuestions?.phase2?.[setIndex] || PHASE2_SETS[setIndex];
     const currentItem = currentSet?.items[itemIndex];
     const [hasAnswered, setHasAnswered] = useState(false);
     const controls = useAnimation();
@@ -190,8 +193,49 @@ export const Phase2Player: React.FC<Phase2PlayerProps> = ({
     }
 
 
+    // Get current player's team and teammates
+    const myTeam = players[playerId]?.team;
+    const teammates = Object.values(players).filter(
+        (p: Player) => p.id !== playerId && p.team === myTeam && p.isOnline
+    );
+
     return (
         <div className="fixed inset-0 flex overflow-hidden">
+
+            {/* Teammates Answer Status - Top Bar */}
+            {teammates.length > 0 && (
+                <div className="absolute top-4 left-1/2 -translate-x-1/2 z-50 bg-slate-900/80 backdrop-blur px-4 py-2 rounded-full border border-white/10 flex items-center gap-2">
+                    <span className="text-xs text-slate-400 mr-2">Team:</span>
+                    {teammates.slice(0, 5).map((p: Player) => {
+                        const AvatarIcon = getAvatarIcon(p.avatar);
+                        const hasAnswered = phase2Answers && p.id in phase2Answers;
+                        const wasCorrect = phase2Answers?.[p.id];
+                        return (
+                            <div
+                                key={p.id}
+                                className={`w-8 h-8 rounded-full border-2 flex items-center justify-center text-sm relative text-white transition-all
+                                    ${hasAnswered
+                                        ? (wasCorrect ? 'bg-green-500 border-green-400' : 'bg-red-500 border-red-400')
+                                        : 'bg-slate-700 border-slate-600 animate-pulse'}
+                                `}
+                                title={`${p.name}${hasAnswered ? (wasCorrect ? ' ✓' : ' ✗') : ' (thinking...)'}`}
+                            >
+                                <AvatarIcon className="w-4 h-4" />
+                                {hasAnswered && (
+                                    <div className={`absolute -bottom-1 -right-1 w-4 h-4 rounded-full flex items-center justify-center text-xs font-bold ${wasCorrect ? 'bg-green-600' : 'bg-red-600'}`}>
+                                        {wasCorrect ? '✓' : '✗'}
+                                    </div>
+                                )}
+                            </div>
+                        );
+                    })}
+                    {teammates.length > 5 && (
+                        <div className="w-8 h-8 rounded-full bg-slate-800 border-2 border-slate-700 flex items-center justify-center text-xs text-white font-bold">
+                            +{teammates.length - 5}
+                        </div>
+                    )}
+                </div>
+            )}
 
             {/* Confetti if Won */}
             {didIWin && <SimpleConfetti />}
@@ -341,3 +385,17 @@ export const Phase2Player: React.FC<Phase2PlayerProps> = ({
         </div >
     );
 };
+
+function getAvatarIcon(avatar: string) {
+    const map: Record<string, React.ElementType> = {
+        donut: Circle,
+        pizza: Pizza,
+        taco: Sandwich,
+        sushi: Fish,
+        chili: Flame,
+        cookie: Cookie,
+        icecream: IceCream,
+        fries: Utensils
+    };
+    return map[avatar] || User;
+}

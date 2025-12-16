@@ -151,98 +151,98 @@ export const analyzeEmailGuest = onCall(
     consumeAppCheckToken: true, // Validates and consumes App Check token
   },
   async ({ data, auth, rawRequest }) => {
-  try {
-    const { emailContent } = data;
+    try {
+      const { emailContent } = data;
 
-    // Guest users should not be authenticated
-    if (auth) {
-      throw new HttpsError('failed-precondition', 'This endpoint is for guest users only. Please use the regular analyze endpoint.');
-    }
-
-    // Validation
-    if (!emailContent || typeof emailContent !== 'string') {
-      throw new HttpsError('invalid-argument', 'Email content is required and must be a string');
-    }
-
-    if (emailContent.trim().length === 0) {
-      throw new HttpsError('invalid-argument', 'Email content cannot be empty');
-    }
-
-    if (emailContent.length > 10000) {
-      throw new HttpsError('invalid-argument', 'Email content is too long (max 10000 characters)');
-    }
-
-    // Extract IP address and browser fingerprint
-    const req = rawRequest;
-    const ipAddress = req.ip || req.headers['x-forwarded-for'] || req.headers['x-real-ip'] || 'unknown';
-    const userAgent = req.headers['user-agent'] || 'unknown';
-    const acceptLanguage = req.headers['accept-language'] || 'unknown';
-
-    // Create unique fingerprint hash (SHA-256)
-    const fingerprintString = `${ipAddress}|${userAgent}|${acceptLanguage}`;
-    const fingerprint = crypto.createHash('sha256').update(fingerprintString).digest('hex');
-
-    // Hash IP separately for privacy (we don't store raw IPs)
-    const hashedIP = crypto.createHash('sha256').update(ipAddress.toString()).digest('hex');
-
-    // Check if this fingerprint has already used the free trial
-    const guestUsageRef = db.collection('guestUsage').doc(fingerprint);
-    const guestDoc = await guestUsageRef.get();
-
-    if (guestDoc.exists) {
-      const data = guestDoc.data();
-      const expiresAt = data?.expiresAt;
-
-      // Check if not expired (30 days)
-      if (expiresAt && Timestamp.now().toMillis() < expiresAt.toMillis()) {
-        throw new HttpsError(
-          'resource-exhausted',
-          'Free trial already used. Sign up for a free account to get 5 analyses per month!'
-        );
+      // Guest users should not be authenticated
+      if (auth) {
+        throw new HttpsError('failed-precondition', 'This endpoint is for guest users only. Please use the regular analyze endpoint.');
       }
 
-      // If expired, delete old record and allow new trial
-      await guestUsageRef.delete();
+      // Validation
+      if (!emailContent || typeof emailContent !== 'string') {
+        throw new HttpsError('invalid-argument', 'Email content is required and must be a string');
+      }
+
+      if (emailContent.trim().length === 0) {
+        throw new HttpsError('invalid-argument', 'Email content cannot be empty');
+      }
+
+      if (emailContent.length > 10000) {
+        throw new HttpsError('invalid-argument', 'Email content is too long (max 10000 characters)');
+      }
+
+      // Extract IP address and browser fingerprint
+      const req = rawRequest;
+      const ipAddress = req.ip || req.headers['x-forwarded-for'] || req.headers['x-real-ip'] || 'unknown';
+      const userAgent = req.headers['user-agent'] || 'unknown';
+      const acceptLanguage = req.headers['accept-language'] || 'unknown';
+
+      // Create unique fingerprint hash (SHA-256)
+      const fingerprintString = `${ipAddress}|${userAgent}|${acceptLanguage}`;
+      const fingerprint = crypto.createHash('sha256').update(fingerprintString).digest('hex');
+
+      // Hash IP separately for privacy (we don't store raw IPs)
+      const hashedIP = crypto.createHash('sha256').update(ipAddress.toString()).digest('hex');
+
+      // Check if this fingerprint has already used the free trial
+      const guestUsageRef = db.collection('guestUsage').doc(fingerprint);
+      const guestDoc = await guestUsageRef.get();
+
+      if (guestDoc.exists) {
+        const data = guestDoc.data();
+        const expiresAt = data?.expiresAt;
+
+        // Check if not expired (30 days)
+        if (expiresAt && Timestamp.now().toMillis() < expiresAt.toMillis()) {
+          throw new HttpsError(
+            'resource-exhausted',
+            'Free trial already used. Sign up for a free account to get 5 analyses per month!'
+          );
+        }
+
+        // If expired, delete old record and allow new trial
+        await guestUsageRef.delete();
+      }
+
+      // Call Genkit flow for analysis (automatically traced in Firebase Console)
+      const result = await analyzeEmailFlow({
+        emailContent,
+        userId: 'guest',
+      });
+
+      // Record this free trial usage
+      await guestUsageRef.set({
+        fingerprint,
+        ipAddressHash: hashedIP,
+        usedAt: FieldValue.serverTimestamp(),
+        expiresAt: Timestamp.fromDate(new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)), // 30 days
+        userAgent: userAgent.substring(0, 200), // Store truncated for debugging
+      });
+
+      // Clean up expired guest usage records (older than 30 days)
+      const thirtyDaysAgo = Timestamp.fromDate(new Date(Date.now() - 30 * 24 * 60 * 60 * 1000));
+      const expiredDocs = await db.collection('guestUsage')
+        .where('expiresAt', '<', thirtyDaysAgo)
+        .limit(100)
+        .get();
+
+      const deletePromises = expiredDocs.docs.map(doc => doc.ref.delete());
+      await Promise.all(deletePromises);
+
+      // Return analysis (no usage info since guest user)
+      return {
+        success: true,
+        data: result.analysis,
+        message: 'Free trial used! Sign up to get 5 analyses per month.',
+      };
+    } catch (error: unknown) {
+      console.error('Error analyzing email (guest):', error);
+      if (error instanceof HttpsError) throw error;
+      const message = error instanceof Error ? error.message : 'Unknown error';
+      throw new HttpsError('internal', `Failed to analyze email: ${message}`);
     }
-
-    // Call Genkit flow for analysis (automatically traced in Firebase Console)
-    const result = await analyzeEmailFlow({
-      emailContent,
-      userId: 'guest',
-    });
-
-    // Record this free trial usage
-    await guestUsageRef.set({
-      fingerprint,
-      ipAddressHash: hashedIP,
-      usedAt: FieldValue.serverTimestamp(),
-      expiresAt: Timestamp.fromDate(new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)), // 30 days
-      userAgent: userAgent.substring(0, 200), // Store truncated for debugging
-    });
-
-    // Clean up expired guest usage records (older than 30 days)
-    const thirtyDaysAgo = Timestamp.fromDate(new Date(Date.now() - 30 * 24 * 60 * 60 * 1000));
-    const expiredDocs = await db.collection('guestUsage')
-      .where('expiresAt', '<', thirtyDaysAgo)
-      .limit(100)
-      .get();
-
-    const deletePromises = expiredDocs.docs.map(doc => doc.ref.delete());
-    await Promise.all(deletePromises);
-
-    // Return analysis (no usage info since guest user)
-    return {
-      success: true,
-      data: result.analysis,
-      message: 'Free trial used! Sign up to get 5 analyses per month.',
-    };
-  } catch (error: unknown) {
-    console.error('Error analyzing email (guest):', error);
-    if (error instanceof HttpsError) throw error;
-    const message = error instanceof Error ? error.message : 'Unknown error';
-    throw new HttpsError('internal', `Failed to analyze email: ${message}`);
-  }
-});
+  });
 
 /**
  * Get User Subscription
@@ -404,30 +404,30 @@ export const cancelSubscription = onCall(
     consumeAppCheckToken: true,
   },
   async ({ auth }) => {
-  if (!auth) {
-    throw new HttpsError('unauthenticated', 'User must be authenticated');
-  }
+    if (!auth) {
+      throw new HttpsError('unauthenticated', 'User must be authenticated');
+    }
 
-  // Initialize Stripe with secret
-  const stripe = new Stripe(stripeSecretKey.value(), { apiVersion: '2023-10-16' });
+    // Initialize Stripe with secret
+    const stripe = new Stripe(stripeSecretKey.value(), { apiVersion: '2023-10-16' });
 
-  const userId = auth.uid;
-  const userDoc = await db.collection('users').doc(userId).get();
-  const userData = userDoc.data();
+    const userId = auth.uid;
+    const userDoc = await db.collection('users').doc(userId).get();
+    const userData = userDoc.data();
 
-  if (!userData?.subscriptionId) {
-    throw new HttpsError('not-found', 'No active subscription found');
-  }
+    if (!userData?.subscriptionId) {
+      throw new HttpsError('not-found', 'No active subscription found');
+    }
 
-  try {
-    await stripe.subscriptions.cancel(userData.subscriptionId);
-    return { success: true, message: 'Subscription cancelled successfully' };
-  } catch (error: unknown) {
-    console.error('Error cancelling subscription:', error);
-    const message = error instanceof Error ? error.message : 'Unknown error';
-    throw new HttpsError('internal', message);
-  }
-});
+    try {
+      await stripe.subscriptions.cancel(userData.subscriptionId);
+      return { success: true, message: 'Subscription cancelled successfully' };
+    } catch (error: unknown) {
+      console.error('Error cancelling subscription:', error);
+      const message = error instanceof Error ? error.message : 'Unknown error';
+      throw new HttpsError('internal', message);
+    }
+  });
 
 /**
  * Handle Stripe Webhooks
@@ -501,4 +501,51 @@ export { cleanExpiredSessions, cleanExpiredSessionsScheduled } from './cleanExpi
 /**
  * Usage Analytics Functions
  */
-export { getUserUsageStats } from './getUserUsageStats';
+// ... existing exports ...
+
+import { generateGameQuestionsFlow } from './services/gameGenerator';
+
+/**
+ * Generate Game Questions (AI)
+ * Use Gemini to generate funny/absurd questions for the game.
+ * Protected by App Check.
+ */
+export const generateGameQuestions = onCall(
+  {
+    consumeAppCheckToken: true,
+    timeoutSeconds: 60, // AI generation needed time
+    memory: "1GiB",     // Genkit + Gemini needs some memory
+  },
+  async ({ data, auth }) => {
+    // 1. Auth Check (Host only ideally, but at least authenticated)
+    if (!auth) {
+      throw new HttpsError('unauthenticated', 'User must be authenticated to generate content.');
+    }
+
+    // 2. Data Validation
+    const { phase, topic, difficulty } = data;
+    if (!phase || !['phase1', 'phase2', 'phase5'].includes(phase)) {
+      throw new HttpsError('invalid-argument', 'Invalid phase provided.');
+    }
+
+    try {
+      // 3. Call Genkit Flow
+      const result = await generateGameQuestionsFlow({
+        phase,
+        topic: topic || 'General Knowledge',
+        difficulty: difficulty || 'normal',
+      });
+
+      return {
+        success: true,
+        data: result.data,
+        usage: result.usage
+      };
+    } catch (e: unknown) {
+      console.error('AI Generation Error:', e);
+      const message = e instanceof Error ? e.message : 'Unknown error';
+      throw new HttpsError('internal', `Generation failed: ${message}`);
+    }
+  }
+);
+

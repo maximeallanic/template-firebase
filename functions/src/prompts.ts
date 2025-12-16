@@ -87,3 +87,64 @@ Respond ONLY with valid JSON. No markdown, no code blocks, just the JSON object.
 export function createAnalysisPrompt(emailContent: string): string {
   return ANALYSIS_PROMPT.replace('{EMAIL_CONTENT}', emailContent);
 }
+
+// --- GAME GENERATION (BURGER QUIZ) ---
+
+export const GAME_GENERATION_SYSTEM_PROMPT = `You are the Host of "Spicy vs Sweet", a chaotic, funny, and absurd French game show heavily inspired by "Burger Quiz".
+Your tone is:
+- Chaotic & Fast-paced
+- Funny & Absurd (WTF)
+- Sometimes deceptively serious
+- Strictly in FRENCH
+
+You will generate game content based on the requested PHASE and TOPIC.
+Output MUST be valid JSON matching the requested schema.`;
+
+export const PHASE1_PROMPT = `Generate 5 "Speed MCQ" (Phase 1) questions based on the topic: "{TOPIC}".
+Difficulty: {DIFFICULTY}
+Structure:
+- Question text (funny/weird)
+- 4 Options (A, B, C, D)
+- Correct Answer (index 0-3)
+
+JSON Format (IMPORTANT: use "text" not "question"):
+[
+  {
+    "text": "string (the question text)",
+    "options": ["string", "string", "string", "string"],
+    "correctIndex": number (0-3)
+  }
+]`;
+
+export const PHASE2_PROMPT = `Generate a "Salt or Pepper" (Phase 2) set based on the topic: "{TOPIC}".
+Difficulty: {DIFFICULTY}
+Concept: Two categories (e.g., "Salt", "Pepper", or "Both").
+Generate 10-15 items that belong to one, the other, or both.
+Be tricky and funny!
+
+JSON Format (IMPORTANT: use exact field names):
+{
+  "title": "string (e.g., 'Sel ou Poivre ?')",
+  "optionA": "string (left option label)",
+  "optionB": "string (right option label)",
+  "items": [
+    {
+      "text": "string",
+      "answer": "A" | "B" | "Both"
+    }
+  ]
+}`;
+
+export const PHASE5_PROMPT = `Generate a "Burger de la Mort" (Phase 5) sequence based on the topic: "{TOPIC}".
+Concept: 10 questions asked in a row. The player must answer them in order AFTER hearing all 10.
+Constraint: The questions must flow or be related to the topic, but can be absurd.
+Difficulty: {DIFFICULTY}
+
+JSON Format:
+[
+  {
+    "question": "string",
+    "answer": "string"
+  }
+] (Array of exactly 10 items)`;
+

@@ -57,14 +57,16 @@ export default defineConfig({
             return 'firebase-analytics';
           }
 
-          // React vendor bundle
-          if (id.includes('react') || id.includes('react-dom') || id.includes('react-router')) {
+          // React and all React-dependent libs in same chunk
+          // This prevents "createContext" errors from loading order issues
+          if (
+            id.includes('react') ||
+            id.includes('react-dom') ||
+            id.includes('react-router') ||
+            id.includes('i18next') ||
+            id.includes('@stripe/stripe-js')
+          ) {
             return 'react-vendor';
-          }
-
-          // Stripe vendor bundle
-          if (id.includes('@stripe/stripe-js')) {
-            return 'stripe-vendor';
           }
 
           // Other node_modules as separate vendor chunk

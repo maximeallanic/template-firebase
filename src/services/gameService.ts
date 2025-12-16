@@ -1,12 +1,11 @@
-import { ref, set, get, update, onValue, push, onDisconnect, increment } from 'firebase/database';
+import { ref, set, get, update, onValue, onDisconnect, push, increment } from 'firebase/database';
 import { rtdb } from './firebase';
-import { QUESTIONS } from '../data/questions';
+import { QUESTIONS, type Question } from '../data/questions';
+import { markQuestionAsSeen } from './historyService';
 
-// === TYPES ===
-export type Team = 'spicy' | 'sweet';
+// ... types
 export type Avatar = 'donut' | 'pizza' | 'taco' | 'sushi' | 'chili' | 'cookie' | 'icecream' | 'fries';
-export type GameStatus = 'lobby' | 'phase1' | 'phase2' | 'phase3' | 'phase4' | 'phase5' | 'results';
-export type PhaseState = 'idle' | 'reading' | 'answering' | 'result' | 'menu_selection' | 'questioning';
+export type Team = 'spicy' | 'sweet';
 
 export interface Player {
     id: string;
@@ -20,41 +19,45 @@ export interface Player {
 }
 
 export interface GameState {
-    status: GameStatus;
-    // Phase 1 (MCQ) specific
-    // Phase 1 (MCQ) specific
-    phaseState?: PhaseState;
-    currentQuestionIndex?: number; // For Phase 1
-    phase1Answers?: Record<string, boolean>; // playerId -> true/false
-
-    // Phase 2 State
+    status: 'lobby' | 'phase1' | 'phase2' | 'phase3' | 'phase4' | 'phase5';
+    phaseState: 'idle' | 'reading' | 'answering' | 'result' | 'menu_selection' | 'questioning' | 'buzzed';
+    currentQuestionIndex?: number;
+    phase1Answers?: Record<string, boolean>;
+    roundWinner?: { playerId: string | 'ALL'; name: string; team: Team | 'neutral' } | null;
+    // Phase 2
     currentPhase2Set?: number;
     currentPhase2Item?: number;
-    phase2Answers?: Record<string, boolean>; // playerId -> true (correct) / false (wrong)
-
-    // Phase 3 State
-    phase3MenuSelection?: {
-        spicy?: number; // Index of menu chosen by Spicy
-        sweet?: number; // Index of menu chosen by Sweet
-    };
-    phase3CompletedMenus?: number[]; // Indices of menus already played
-    currentMenuTeam?: 'spicy' | 'sweet';
+    phase2Answers?: Record<string, boolean>;
+    // Phase 3
+    currentMenuTeam?: Team;
     currentMenuQuestionIndex?: number;
-    questionStartTime?: number;
-    roundWinner?: { playerId: string; name: string; team: Team } | null;
-
-    // Phase 4 State (L'Addition)
-    phase4State?: 'idle' | 'buzzed' | 'answering';
-    buzzedTeam?: Team | null;
+    phase3MenuSelection?: Record<Team, number>;
+    phase3CompletedMenus?: number[];
+    // Phase 4
     currentPhase4QuestionIndex?: number;
-
-    // Phase 5 State (Burger de la Mort)
+    buzzedTeam?: Team | null;
+    phase4State?: 'idle' | 'buzzed';
+    questionStartTime?: number;
+    // Phase 5
     phase5State?: 'idle' | 'reading' | 'answering';
     phase5QuestionIndex?: number;
     phase5Score?: number;
 }
 
+export type PhaseState = GameState['phaseState'];
 
+
+export interface SimplePhase2Set {
+    title: string;
+    items: { text: string; answer: 'A' | 'B' | 'Both' }[];
+    optionA: string;
+    optionB: string;
+}
+
+export interface Phase5Data {
+    ingredients: string[];
+    recipe?: string;
+}
 
 export interface Room {
     code: string;
@@ -62,7 +65,160 @@ export interface Room {
     players: Record<string, Player>;
     state: GameState;
     createdAt: number;
+    customQuestions?: {
+        phase1?: Question[];
+        phase2?: SimplePhase2Set[]; // Array of sets, generated one usually
+        phase5?: Phase5Data;
+    };
 }
+
+// ... existing helpers/core services
+
+// === CONTENT MANAGEMENT ===
+
+export const overwriteGameQuestions = async (code: string, phase: 'phase1' | 'phase2' | 'phase5', data: Question[] | SimplePhase2Set | SimplePhase2Set[] | Phase5Data | Record<string, unknown> | unknown[]) => {
+    const roomId = code.toUpperCase();
+    const updatePath = `rooms/${roomId}/customQuestions/${phase}`;
+
+    // For Phase 2, the AI returns a single set object, but our system supports array of sets.
+    // We will wrap it in an array if phase is phase2.
+    let contentStore: Question[] | SimplePhase2Set[] | Phase5Data | unknown[] | Record<string, unknown> = data as Question[] | SimplePhase2Set[] | Phase5Data | unknown[] | Record<string, unknown>;
+    if (phase === 'phase2' && !Array.isArray(data)) {
+        contentStore = [data as SimplePhase2Set]; // AI generates one set, we store as first item
+    }
+
+    await set(ref(rtdb, updatePath), contentStore);
+
+    // Reset state for new content
+    const updates: Record<string, unknown> = {};
+    if (phase === 'phase1') {
+        updates[`rooms/${roomId}/state/currentQuestionIndex`] = 0;
+        updates[`rooms/${roomId}/state/status`] = 'phase1';
+        updates[`rooms/${roomId}/state/phaseState`] = 'reading';
+    } else if (phase === 'phase2') {
+        updates[`rooms/${roomId}/state/currentPhase2Set`] = 0;
+        updates[`rooms/${roomId}/state/currentPhase2Item`] = 0;
+        updates[`rooms/${roomId}/state/status`] = 'phase2';
+    }
+
+    await update(ref(rtdb), updates);
+};
+
+// ... existing host actions
+
+export const startNextQuestion = async (code: string, nextIndex: number) => {
+    const roomId = code.toUpperCase();
+    const snapshot = await get(ref(rtdb, `rooms/${roomId}`));
+    if (!snapshot.exists()) return;
+    const room = snapshot.val() as Room;
+
+    const questionsList = room.customQuestions?.phase1 || QUESTIONS;
+
+    // Safety check
+    if (nextIndex >= questionsList.length) return;
+
+    // ... rest of function
+    const updates: Record<string, unknown> = {};
+    updates[`rooms/${roomId}/state/currentQuestionIndex`] = nextIndex;
+    updates[`rooms/${roomId}/state/phaseState`] = 'reading';
+    updates[`rooms/${roomId}/state/roundWinner`] = null;
+    updates[`rooms/${roomId}/state/phase1Answers`] = {};
+
+    // Mark question as seen for all players
+    const currentQ = questionsList[nextIndex];
+    if (currentQ && room.players) {
+        Object.keys(room.players).forEach(pid => {
+            markQuestionAsSeen(pid, currentQ.text);
+        });
+    }
+
+    await update(ref(rtdb), updates);
+
+    // Auto-switch to answering mode
+    setTimeout(async () => {
+        const answeringUpdates: Record<string, unknown> = {};
+        answeringUpdates[`rooms/${roomId}/state/phaseState`] = 'answering';
+        answeringUpdates[`rooms/${roomId}/state/questionStartTime`] = Date.now();
+        await update(ref(rtdb), answeringUpdates);
+    }, 3000);
+};
+
+export const submitAnswer = async (code: string, playerId: string, answerIndex: number) => {
+    const roomId = code.toUpperCase();
+    const roomRef = ref(rtdb, `rooms/${roomId}`);
+    const snapshot = await get(roomRef);
+    if (!snapshot.exists()) return;
+
+    const room = snapshot.val() as Room;
+    const { state, players } = room;
+    const qIndex = state.currentQuestionIndex ?? -1;
+    const player = players[playerId];
+
+    if (state.phaseState !== 'answering' || qIndex === -1 || !player) return;
+
+    // USE DYNAMIC QUESTIONS
+    const questionsList = room.customQuestions?.phase1 || QUESTIONS;
+    const currentQuestion = questionsList[qIndex];
+    if (!currentQuestion) return; // Guard
+
+    const isCorrect = answerIndex === currentQuestion.correctIndex;
+    // ... rest of function logic identical
+    const updates: Record<string, unknown> = {};
+
+    // 1. Record Answer
+    updates[`rooms/${roomId}/state/phase1Answers/${playerId}`] = isCorrect;
+    if (isCorrect) {
+        const newScore = (player.score || 0) + 1;
+        updates[`rooms/${roomId}/players/${playerId}/score`] = newScore;
+    }
+
+    // 2. Check if ALL players have answered
+    const currentAnswers = state.phase1Answers || {};
+    const nextAnswers = { ...currentAnswers, [playerId]: isCorrect };
+
+    const activePlayers = Object.values(players).filter(p => !p.isHost && p.isOnline);
+    const totalActive = activePlayers.length;
+    const answeredCount = activePlayers.filter(p => p.id in nextAnswers).length;
+
+    if (answeredCount >= totalActive) {
+        updates[`rooms/${roomId}/state/phaseState`] = 'result';
+        setTimeout(() => {
+            startNextQuestion(code, qIndex + 1);
+        }, 3000);
+    }
+
+    await update(ref(rtdb), updates);
+};
+
+// --- PHASE 2 LOGIC ---
+
+export const nextPhase2Item = async (code: string) => {
+    // ... setup
+    const roomId = code.toUpperCase();
+    const roomRef = ref(rtdb, `rooms/${roomId}`);
+    const snapshot = await get(roomRef);
+    if (!snapshot.exists()) return;
+
+    const room = snapshot.val() as Room;
+    if (room.state.status !== 'phase2') return;
+
+    // ... logic
+    const updates: Record<string, unknown> = {};
+    updates[`rooms/${roomId}/state/roundWinner`] = null;
+    updates[`rooms/${roomId}/state/phase2Answers`] = {};
+
+    const nextIndex = (room.state.currentPhase2Item ?? 0) + 1;
+    updates[`rooms/${roomId}/state/currentPhase2Item`] = nextIndex;
+    updates[`rooms/${roomId}/state/phaseState`] = 'reading';
+
+    await update(ref(rtdb), updates);
+};
+
+// ... submitPhase2Answer is handled by client state check usually, but let's update it in case
+// Actually `Phase2Player` does the `currentItem` lookup. Verification in `submitPhase2Answer` uses `answer === correctAnswer` passed from client?
+// Checking `gameService.ts`: 
+// `submitPhase2Answer` takes `answer` and `correctAnswer` as ARGUMENTS. So it trusts the client.
+// So `submitPhase2Answer` does NOT need modification for data source, `Phase2Player` DOES. 
 
 // === HELPER ===
 const generateRoomCode = () => {
@@ -217,106 +373,11 @@ export const setGameStatus = async (code: string, status: GameState['status']) =
     }
 };
 
-// === PHASE 1: SPEED MCQ LOGIC ===
 
-export const startNextQuestion = async (code: string, nextIndex: number) => {
-    const roomId = code.toUpperCase();
-
-    // Safety check
-    if (nextIndex >= QUESTIONS.length) return;
-
-    const updates: Record<string, unknown> = {};
-    updates[`rooms/${roomId}/state/currentQuestionIndex`] = nextIndex;
-    updates[`rooms/${roomId}/state/phaseState`] = 'reading'; // Give players a moment to read Q
-    updates[`rooms/${roomId}/state/roundWinner`] = null;
-    updates[`rooms/${roomId}/state/phase1Answers`] = {}; // Clear previous answers
-
-    await update(ref(rtdb), updates);
-
-    // Auto-switch to answering mode after 3 seconds (Reading time)
-    setTimeout(async () => {
-        const answeringUpdates: Record<string, unknown> = {};
-        answeringUpdates[`rooms/${roomId}/state/phaseState`] = 'answering';
-        answeringUpdates[`rooms/${roomId}/state/questionStartTime`] = Date.now();
-        await update(ref(rtdb), answeringUpdates);
-    }, 3000);
-};
-
-export const submitAnswer = async (code: string, playerId: string, answerIndex: number) => {
-    const roomId = code.toUpperCase();
-    const roomRef = ref(rtdb, `rooms/${roomId}`);
-    const snapshot = await get(roomRef);
-    if (!snapshot.exists()) return;
-
-    const room = snapshot.val() as Room;
-    const { state, players } = room;
-    const qIndex = state.currentQuestionIndex ?? -1;
-    const player = players[playerId];
-
-    // Validation: Correct Phase, Valid Question, Valid Player
-    if (state.phaseState !== 'answering' || qIndex === -1 || !player) return;
-
-    // Start Phase 1 Logic
-    const currentQuestion = QUESTIONS[qIndex];
-    const isCorrect = answerIndex === currentQuestion.correctIndex;
-
-    const updates: Record<string, unknown> = {};
-
-    // 1. Record Answer
-    updates[`rooms/${roomId}/state/phase1Answers/${playerId}`] = isCorrect;
-    if (isCorrect) {
-        // Update Score
-        const newScore = (player.score || 0) + 1;
-        updates[`rooms/${roomId}/players/${playerId}/score`] = newScore;
-    }
-
-    // 2. Check if ALL players have answered
-    const currentAnswers = state.phase1Answers || {};
-    const nextAnswers = { ...currentAnswers, [playerId]: isCorrect };
-
-    // Filter active players (online, not host)
-    const activePlayers = Object.values(players).filter(p => !p.isHost && p.isOnline);
-    const totalActive = activePlayers.length;
-    const answeredCount = activePlayers.filter(p => p.id in nextAnswers).length;
-
-    // If everyone answered, show result then auto-advance
-    if (answeredCount >= totalActive) {
-        updates[`rooms/${roomId}/state/phaseState`] = 'result';
-        // Trigger auto-advance
-        setTimeout(() => {
-            startNextQuestion(code, qIndex + 1);
-        }, 3000); // 3s delay to see result
-    }
-
-    await update(ref(rtdb), updates);
-};
 
 // --- PHASE 2 LOGIC ---
 
-export const nextPhase2Item = async (code: string) => {
-    const roomId = code.toUpperCase();
-    const roomRef = ref(rtdb, `rooms/${roomId}`);
-    const snapshot = await get(roomRef);
-    if (!snapshot.exists()) return;
 
-    const room = snapshot.val() as Room;
-    if (room.state.status !== 'phase2') return;
-
-    // Reset loop or finish? 
-    // Assuming infinite loop or check length? The data is infinite logic usually for Phase 2 (Salt/Pepper list).
-    // Let's just increment.
-
-    const updates: Record<string, unknown> = {};
-    updates[`rooms/${roomId}/state/roundWinner`] = null;
-    updates[`rooms/${roomId}/state/phase2Answers`] = {}; // Clear previous answers
-
-    // Increment item
-    const nextIndex = (room.state.currentPhase2Item ?? 0) + 1;
-    updates[`rooms/${roomId}/state/currentPhase2Item`] = nextIndex;
-    updates[`rooms/${roomId}/state/phaseState`] = 'reading';
-
-    await update(ref(rtdb), updates);
-};
 
 export const submitPhase2Answer = async (
     roomId: string,

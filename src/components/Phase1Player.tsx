@@ -27,9 +27,12 @@ const ICONS = [Triangle, Diamond, Circle, Square]; // Shapes corresponding to co
 
 export function Phase1Player({ room, playerId, isHost }: Phase1PlayerProps) {
     const { state } = room;
-    const { phaseState, currentQuestionIndex } = state;
+    const { phaseState, currentQuestionIndex, phase1Answers } = state;
+
+    // Use custom AI-generated questions if available, fallback to default QUESTIONS
+    const questionsList = room.customQuestions?.phase1 || QUESTIONS;
     const currentQuestion = (currentQuestionIndex !== undefined && currentQuestionIndex >= 0)
-        ? QUESTIONS[currentQuestionIndex]
+        ? questionsList[currentQuestionIndex]
         : null;
 
     const [myAnswer, setMyAnswer] = useState<number | null>(null);
@@ -51,7 +54,7 @@ export function Phase1Player({ room, playerId, isHost }: Phase1PlayerProps) {
 
     // HOST LOGIC
     const nextQIndex = (currentQuestionIndex ?? -1) + 1;
-    const isFinished = nextQIndex >= QUESTIONS.length;
+    const isFinished = nextQIndex >= questionsList.length;
 
     const handleNextQuestion = () => {
         if (!isFinished) {
@@ -139,26 +142,42 @@ export function Phase1Player({ room, playerId, isHost }: Phase1PlayerProps) {
                 <div className="flex items-center gap-2">
                     <span className="text-xs font-bold uppercase text-slate-400 tracking-wider">Round</span>
                     <span className="text-white font-black bg-slate-700 px-2 py-0.5 rounded text-sm">
-                        {(currentQuestionIndex ?? -1) + 1} / {QUESTIONS.length}
+                        {(currentQuestionIndex ?? -1) + 1} / {questionsList.length}
                     </span>
                 </div>
 
-                {/* Teammates Mini Roster */}
-                <div className="flex -space-x-2">
+                {/* Teammates Mini Roster - Shows answer status */}
+                <div className="flex -space-x-1 items-center">
                     {Object.values(room.players)
                         .filter(p => p.id !== playerId && p.team === room.players[playerId]?.team)
-                        .slice(0, 4) // Show max 4 teammates
+                        .slice(0, 6) // Show max 6 teammates
                         .map(p => {
                             const AvatarIcon = getAvatarIcon(p.avatar);
+                            const hasAnswered = phase1Answers && p.id in phase1Answers;
+                            const wasCorrect = phase1Answers?.[p.id];
                             return (
-                                <div key={p.id} className="w-8 h-8 rounded-full bg-slate-700 border-2 border-slate-900 flex items-center justify-center text-sm relative group text-white" title={p.name}>
+                                <div
+                                    key={p.id}
+                                    className={`w-8 h-8 rounded-full border-2 flex items-center justify-center text-sm relative text-white transition-all
+                                        ${hasAnswered
+                                            ? (wasCorrect ? 'bg-green-500 border-green-400' : 'bg-red-500 border-red-400')
+                                            : 'bg-slate-700 border-slate-600'}
+                                        ${hasAnswered ? 'scale-110 z-10' : ''}
+                                    `}
+                                    title={`${p.name}${hasAnswered ? (wasCorrect ? ' ✓' : ' ✗') : ' (waiting...)'}`}
+                                >
                                     <AvatarIcon className="w-4 h-4" />
+                                    {hasAnswered && (
+                                        <div className={`absolute -bottom-1 -right-1 w-4 h-4 rounded-full flex items-center justify-center text-xs font-bold ${wasCorrect ? 'bg-green-600' : 'bg-red-600'}`}>
+                                            {wasCorrect ? '✓' : '✗'}
+                                        </div>
+                                    )}
                                 </div>
                             );
                         })}
-                    {Object.values(room.players).filter(p => p.id !== playerId && p.team === room.players[playerId]?.team).length > 4 && (
+                    {Object.values(room.players).filter(p => p.id !== playerId && p.team === room.players[playerId]?.team).length > 6 && (
                         <div className="w-8 h-8 rounded-full bg-slate-800 border-2 border-slate-900 flex items-center justify-center text-xs text-white font-bold">
-                            +{Object.values(room.players).filter(p => p.id !== playerId && p.team === room.players[playerId]?.team).length - 4}
+                            +{Object.values(room.players).filter(p => p.id !== playerId && p.team === room.players[playerId]?.team).length - 6}
                         </div>
                     )}
                 </div>

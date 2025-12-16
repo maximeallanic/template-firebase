@@ -1,11 +1,13 @@
 import { useEffect, useState, useRef } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { subscribeToRoom, type Room, type Player, setGameStatus, updatePlayerTeam } from '../services/gameService';
+import { checkPhase1Exhaustion } from '../services/historyService';
 import { Phase1Player } from '../components/Phase1Player';
 import { Phase2Player } from '../components/Phase2Player';
 import { Phase3Player } from '../components/Phase3Player';
 import Phase4Player from '../components/Phase4Player';
 import { Phase5Player } from '../components/Phase5Player';
+import { AIGeneratorModal } from '../components/AIGeneratorModal';
 import {
     Flame, Candy, Link, Eye, Clapperboard, Loader,
     User, Pizza, Circle, Cookie, IceCream, Fish, Sandwich, Utensils,
@@ -22,6 +24,12 @@ export default function GameRoom() {
     const navigate = useNavigate();
     const [room, setRoom] = useState<Room | null>(null);
     const [myId, setMyId] = useState<string | null>(null);
+    const [isAIModalOpen, setIsAIModalOpen] = useState(false);
+    const [aiAutoTrigger, setAiAutoTrigger] = useState(false);
+    const hasCheckedExhaustion = useRef(false);
+
+    // Safe boolean check for host
+    const isHost = !!(room?.hostId && myId && room.hostId === myId);
 
     // Debug / E2E Override
     const query = new URLSearchParams(window.location.search);
@@ -64,6 +72,26 @@ export default function GameRoom() {
         }
     }, [roomId, navigate, debugPlayerId]);
 
+    // Auto-Generation Check (Smart Logic)
+    useEffect(() => {
+        const checkSmartGeneration = async () => {
+            if (room && room.state.status === 'lobby' && isHost && !hasCheckedExhaustion.current && room.players) {
+                hasCheckedExhaustion.current = true;
+                // Only check if we are using default questions (no custom phase 1)
+                if (!room.customQuestions?.phase1) {
+                    const isExhausted = await checkPhase1Exhaustion(Object.values(room.players));
+                    if (isExhausted) {
+                        console.log("Static pool exhausted! Prompting AI generation.");
+                        setAiAutoTrigger(true);
+                        setIsAIModalOpen(true);
+                        // Optional: Show a toast or alert? Modal opening is strong enough signal.
+                    }
+                }
+            }
+        };
+        checkSmartGeneration();
+    }, [room, isHost]);
+
     // Audio Effect: Player Joined & Ambience
     const prevPlayerCount = useRef(0);
     const prevStatus = useRef<string>('');
@@ -86,7 +114,7 @@ export default function GameRoom() {
             }
 
             // Ambience Logic
-            if (room.state.status === 'lobby' || room.state.status === 'results') {
+            if (room.state.status === 'lobby') {
                 audioService.playAmbient('lobby');
             } else if (room.state.status === 'phase5') {
                 // Phase 5 manages its own specific tension in the component, 
@@ -119,8 +147,6 @@ export default function GameRoom() {
             </div>
         )
     }
-
-    const isHost = myId === room.hostId;
 
     // ----- LOBBY PHASE -----
     if (room.state.status === 'lobby') {
@@ -215,15 +241,19 @@ export default function GameRoom() {
                             )}
                         </div>
 
-                        {/* Start Button */}
+                        {/* Start Button & AI Controls */}
                         {isHost ? (
-                            <button
-                                onClick={() => setGameStatus(room.code, 'phase1')}
-                                disabled={players.length < 2}
-                                className="w-full bg-gradient-to-r from-yellow-400 to-orange-500 text-brand-darker text-xl font-black py-4 px-8 rounded-xl shadow-lg hover:shadow-yellow-500/20 hover:scale-105 active:scale-95 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-                            >
-                                START THE SHOW <Clapperboard className="w-6 h-6" />
-                            </button>
+                            <div className="w-full space-y-3">
+
+
+                                <button
+                                    onClick={() => setGameStatus(room.code, 'phase1')}
+                                    disabled={players.length < 2}
+                                    className="w-full bg-gradient-to-r from-yellow-400 to-orange-500 text-brand-darker text-xl font-black py-4 px-8 rounded-xl shadow-lg hover:shadow-yellow-500/20 hover:scale-105 active:scale-95 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                                >
+                                    START THE SHOW <Clapperboard className="w-6 h-6" />
+                                </button>
+                            </div>
                         ) : (
                             <div className="text-center animate-pulse">
                                 <p className="text-gray-400 font-medium">Waiting for host to start...</p>
@@ -273,7 +303,8 @@ export default function GameRoom() {
                         phaseState={room.state.phaseState || 'idle'}
                         phase2Answers={room.state.phase2Answers}
                         roundWinner={room.state.roundWinner}
-                        isHost={isHost}
+                        isHost={!!isHost}
+                        customQuestions={room.customQuestions}
                     />
                 </div>
             </div>
@@ -286,7 +317,7 @@ export default function GameRoom() {
                 <div className="flex-1 w-full max-w-7xl mx-auto flex flex-col items-center justify-center p-4">
                     <Phase3Player
                         room={room}
-                        isHost={isHost}
+                        isHost={!!isHost}
                     />
                 </div>
             </div>
@@ -300,7 +331,7 @@ export default function GameRoom() {
                     <Phase4Player
                         playerId={myId || ''}
                         room={room}
-                        isHost={isHost}
+                        isHost={!!isHost}
                     />
                 </div>
             </div>
@@ -314,7 +345,7 @@ export default function GameRoom() {
                 <div className="flex-1 w-full max-w-7xl mx-auto flex flex-col items-center justify-center p-4">
                     <Phase5Player
                         room={room}
-                        isHost={isHost}
+                        isHost={!!isHost}
                     />
                 </div>
             </div>
@@ -323,13 +354,27 @@ export default function GameRoom() {
 
     // Default Fallback
     return (
-        <div className="min-h-screen bg-slate-900 text-white flex items-center justify-center">
-            Unknown Phase: {room.state.status}
-        </div>
+        <>
+            <div className="min-h-screen bg-slate-900 text-white flex items-center justify-center">
+                Unknown Phase: {room.state.status}
+            </div>
+            {/* AI Modal */}
+            {room && (
+                <AIGeneratorModal
+                    isOpen={isAIModalOpen}
+                    onClose={() => {
+                        setIsAIModalOpen(false);
+                        setAiAutoTrigger(false);
+                    }}
+                    roomCode={room.code}
+                    autoTrigger={aiAutoTrigger}
+                />
+            )}
+        </>
     );
 }
 
-function PlayerCard({ player, theme }: { player: Player, theme?: 'spicy' | 'sweet' }) {
+function PlayerCard({ player, theme }: { player: Player, theme: 'spicy' | 'sweet' }) {
     const borderColor = theme === 'spicy' ? 'border-spicy-500/50' : theme === 'sweet' ? 'border-sweet-500/50' : 'border-white/5';
     const bgColor = theme === 'spicy' ? 'bg-spicy-900/40' : theme === 'sweet' ? 'bg-sweet-900/40' : 'bg-white/10';
     const AvatarIcon = getAvatarIcon(player.avatar);
