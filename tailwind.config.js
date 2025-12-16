@@ -44,8 +44,37 @@ export default {
           800: '#065f46',
           900: '#064e3b',
         },
+        spicy: {
+          50: '#fef2f2',
+          100: '#fee2e2',
+          200: '#fecaca',
+          300: '#fca5a5',
+          400: '#f87171',
+          500: '#ef4444', // Base Red
+          600: '#dc2626',
+          700: '#b91c1c',
+          800: '#991b1b',
+          900: '#7f1d1d',
+        },
+        sweet: {
+          50: '#fdf2f8',
+          100: '#fce7f3',
+          200: '#fbcfe8',
+          300: '#f9a8d4',
+          400: '#f472b6',
+          500: '#ec4899', // Base Pink
+          600: '#db2777',
+          700: '#be185d',
+          800: '#9d174d',
+          900: '#831843',
+        },
+        brand: {
+          dark: '#0f172a', // Slate 900
+          darker: '#020617',
+        },
       },
       // Consistent Spacing Scale
+
       spacing: {
         '18': '4.5rem',
         '22': '5.5rem',
@@ -77,6 +106,9 @@ export default {
         'body-lg': ['1.125rem', { lineHeight: '1.75', fontWeight: '400' }],
         'body': ['1rem', { lineHeight: '1.625', fontWeight: '400' }],
         'body-sm': ['0.875rem', { lineHeight: '1.5', fontWeight: '400' }],
+      },
+      fontFamily: {
+        sans: ['Outfit', 'sans-serif'],
       },
       // Animation
       animation: {

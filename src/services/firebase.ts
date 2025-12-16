@@ -13,6 +13,10 @@ import {
   sendPasswordResetEmail,
   verifyPasswordResetCode,
   confirmPasswordReset,
+  setPersistence,
+  browserLocalPersistence,
+  browserSessionPersistence,
+  inMemoryPersistence,
   type User
 } from 'firebase/auth';
 import { getFunctions, httpsCallable, connectFunctionsEmulator } from 'firebase/functions';
@@ -85,6 +89,26 @@ export async function initializeAuth(): Promise<void> {
       console.warn('⚠️ Failed to connect to Auth emulator:', error);
     }
   }
+
+  // Set Persistence safely
+  try {
+    await setPersistence(auth, browserLocalPersistence);
+    console.log('✅ Auth persistence set to LOCAL');
+  } catch (err) {
+    console.warn('⚠️ Failed to set local persistence, trying session...', err);
+    try {
+      await setPersistence(auth, browserSessionPersistence);
+      console.log('✅ Auth persistence set to SESSION');
+    } catch (err2) {
+      console.warn('⚠️ Failed to set session persistence, falling back to NONE (memory)...', err2);
+      try {
+        await setPersistence(auth, inMemoryPersistence);
+        console.log('✅ Auth persistence set to MEMORY (Top Secret Spy Mode 🕵️)');
+      } catch (err3) {
+        console.error('❌ Failed to set ANY auth persistence. Auth might not work.', err3);
+      }
+    }
+  }
 }
 
 /**
@@ -118,10 +142,10 @@ export { analytics };
 // Initialize Functions and Firestore emulators in development (no auth yet)
 if (import.meta.env.DEV) {
   try {
-    connectFunctionsEmulator(functions, 'localhost', 5001);
-    connectFirestoreEmulator(db, 'localhost', 8080);
-    connectDatabaseEmulator(rtdb, 'localhost', 9000);
-    console.log('✅ Connected to Firebase emulators (Functions:5001, Firestore:8080, RTSB:9000)');
+    connectFunctionsEmulator(functions, '127.0.0.1', 5001);
+    connectFirestoreEmulator(db, '127.0.0.1', 8080);
+    connectDatabaseEmulator(rtdb, '127.0.0.1', 9000);
+    console.log('✅ Connected to Firebase emulators (Functions:5001, Firestore:8080, RTDB:9000)');
     console.log('ℹ️  Auth emulator will connect on first use');
   } catch (error) {
     console.warn('⚠️ Failed to connect to emulators:', error);
