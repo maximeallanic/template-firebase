@@ -148,6 +148,13 @@ Si tu ne peux pas lister 5 items ÉVIDENTS pour la catégorie B → CHANGE LE JE
 - Anecdotes WTF et faits divers marquants
 - Culture pop, actualité, mèmes connus
 
+⚠️ RÈGLES OPTIONS (CRITIQUE) ⚠️
+- optionA et optionB doivent être des NOMS DE CATÉGORIES COURTS (2-4 mots max)
+- PAS de proverbes, expressions idiomatiques, ou phrases longues
+- Les deux doivent être des CATÉGORIES CONCRÈTES avec des items listables
+- ❌ INTERDIT: "Être né avec une cuillère en argent" (trop long, c'est une expression)
+- ✅ BON: "Mer" / "Mère", "Ver de terre" / "Verre de terre", "Pot de vin" / "Poteau de vin"
+
 RÈGLES ITEMS :
 - Items SURPRENANTS (réponse contre-intuitive)
 - Maximum 4 mots par item
@@ -168,8 +175,8 @@ Cette justification sera affichée aux joueurs après leur réponse.
 
 FORMAT JSON :
 {
-  "optionA": "[Phrase sérieuse]",
-  "optionB": "[Calembour qui SONNE PAREIL]",
+  "optionA": "[Catégorie courte - 2-4 mots max]",
+  "optionB": "[Calembour court - 2-4 mots max]",
   "items": [
     { "text": "[item]", "answer": "A", "justification": "[Pourquoi c'est A]" },
     { "text": "[item]", "answer": "B", "justification": "[Pourquoi c'est B]" },
@@ -471,6 +478,22 @@ RÈGLES SUPPLÉMENTAIRES :
 - Catégorie B = sens absurde/calembour
 - Les deux doivent représenter des CHOSES CONCRÈTES pour lesquelles on peut trouver des items
 
+⚠️ RÈGLE OPTIONS (CRITIQUE) ⚠️
+Les options doivent être des NOMS DE CATÉGORIES COURTS, pas des phrases !
+- Maximum 4 mots par option (optionA ET optionB)
+- Les deux doivent représenter des CATÉGORIES concrètes (pas des expressions idiomatiques)
+
+❌ MAUVAIS EXEMPLES D'OPTIONS (trop long ou abstrait) :
+- "Être né avec une cuillère en argent" → INTERDIT (expression idiomatique, trop long)
+- "Avoir le cafard du dimanche soir" → INTERDIT (trop long, pas une catégorie)
+- "Les trains qui arrivent à l'heure" → INTERDIT (phrase, pas catégorie)
+
+✅ BONS EXEMPLES D'OPTIONS :
+- "Mer" / "Mère" (1 mot, concret)
+- "Ver de terre" / "Verre de terre" (3 mots, concret)
+- "Pot de vin" / "Poteau de vin" (3 mots, concret)
+- "Saint" / "Sein" (1 mot, concret)
+
 RÈGLES ITEMS (TRÈS STRICT) :
 - Maximum 4 mots par item
 - Réponse = FAIT vérifiable (pas opinion)
@@ -531,8 +554,8 @@ INTERDIT :
 
 FORMAT JSON (STRICTEMENT) :
 {
-  "optionA": "Phrase sérieuse",
-  "optionB": "Calembour qui sonne pareil",
+  "optionA": "Catégorie courte (2-4 mots max)",
+  "optionB": "Calembour court (2-4 mots max)",
   "reasoning": "Transcription IPA: /.../ = /.../ - Explication de pourquoi les sons sont IDENTIQUES",
   "items": [
     { "text": "Item max 4 mots", "answer": "A", "justification": "Pourquoi cet item va dans A" },

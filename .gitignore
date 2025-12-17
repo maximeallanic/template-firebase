@@ -45,5 +45,8 @@ functions/node_modules
 # Firebase Emulator data persistence
 .emulator-data
 
+# Firebase Emulator export folders (auto-generated)
+firebase-export-*
+
 # Build artifacts
 dist

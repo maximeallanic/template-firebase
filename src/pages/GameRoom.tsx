@@ -2,7 +2,10 @@ import { useEffect, useLayoutEffect, useState, useRef, useCallback } from 'react
 import { useNavigate, useParams } from 'react-router-dom';
 import { subscribeToRoom, type Room, type Player, type Avatar, setGameStatus, updatePlayerTeam, markPlayerOnline, overwriteGameQuestions } from '../services/gameService';
 import { generateWithRetry } from '../services/aiClient';
-import { checkPhase1Exhaustion } from '../services/historyService';
+import { checkPhase1Exhaustion, filterUnseenQuestions } from '../services/historyService';
+import { QUESTIONS } from '../data/questions';
+import { PHASE4_QUESTIONS } from '../data/phase4';
+import { PHASE5_QUESTIONS } from '../data/phase5';
 import { getRandomQuestionSet } from '../services/questionStorageService';
 import { ref, get, child } from 'firebase/database';
 import { rtdb } from '../services/firebase';
@@ -26,7 +29,7 @@ import { AvatarIcon } from '../components/AvatarIcon';
 import { safeStorage } from '../utils/storage';
 import { audioService } from '../services/audioService';
 
-type GameStatus = 'lobby' | 'phase1' | 'phase2' | 'phase3' | 'phase4' | 'phase5';
+type GameStatus = 'lobby' | 'phase1' | 'phase2' | 'phase3' | 'phase4' | 'phase5' | 'victory';
 
 export default function GameRoom() {
     // Fix: App.tsx defines route as /room/:id, so we must destructure 'id', not 'roomId'
@@ -166,6 +169,50 @@ export default function GameRoom() {
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [room?.state.status, room?.customQuestions?.phase2, room?.code, isHost]);
 
+    // Automatic Phase 4 Filtering - filter unseen questions when entering Phase 4
+    const hasFilteredPhase4 = useRef(false);
+    useEffect(() => {
+        const filterPhase4Questions = async () => {
+            if (!room || room.state.status !== 'phase4') return;
+            if (hasFilteredPhase4.current) return;
+            if (room.customQuestions?.phase4) return; // Already has custom questions
+            if (!isHost) return; // Only host filters
+
+            hasFilteredPhase4.current = true;
+            console.log("🔍 Phase 4: Filtrage des questions déjà vues...");
+
+            const filtered = await filterUnseenQuestions(PHASE4_QUESTIONS, q => q.question);
+            if (filtered.length < PHASE4_QUESTIONS.length) {
+                console.log(`✅ Phase 4: ${filtered.length}/${PHASE4_QUESTIONS.length} questions non vues`);
+                await overwriteGameQuestions(room.code, 'phase4', filtered);
+            }
+        };
+        filterPhase4Questions();
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [room?.state.status, room?.customQuestions?.phase4, room?.code, isHost]);
+
+    // Automatic Phase 5 Filtering - filter unseen questions when entering Phase 5
+    const hasFilteredPhase5 = useRef(false);
+    useEffect(() => {
+        const filterPhase5Questions = async () => {
+            if (!room || room.state.status !== 'phase5') return;
+            if (hasFilteredPhase5.current) return;
+            if (room.customQuestions?.phase5) return; // Already has custom questions
+            if (!isHost) return; // Only host filters
+
+            hasFilteredPhase5.current = true;
+            console.log("🔍 Phase 5: Filtrage des questions déjà vues...");
+
+            const filtered = await filterUnseenQuestions(PHASE5_QUESTIONS, q => q.question);
+            if (filtered.length < PHASE5_QUESTIONS.length) {
+                console.log(`✅ Phase 5: ${filtered.length}/${PHASE5_QUESTIONS.length} questions non vues`);
+                await overwriteGameQuestions(room.code, 'phase5', filtered);
+            }
+        };
+        filterPhase5Questions();
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [room?.state.status, room?.customQuestions?.phase5, room?.code, isHost]);
+
     // Audio Effects: Player Joined & Ambience (can use regular useEffect)
     const prevPlayerCount = useRef(0);
     const prevAudioStatus = useRef<string>('');
@@ -235,8 +282,18 @@ export default function GameRoom() {
         console.log("📊 Résultat exhaustion:", isExhausted);
 
         if (!isExhausted) {
-            // Default questions are fine, start the game
-            console.log("✅ Questions par défaut disponibles, lancement direct");
+            // Default questions available - filter to prioritize unseen questions
+            console.log("🔍 Filtrage des questions déjà vues...");
+            const filteredQuestions = await filterUnseenQuestions(QUESTIONS, q => q.text);
+
+            if (filteredQuestions.length < QUESTIONS.length) {
+                // Some questions were filtered - store filtered list as custom questions
+                console.log(`✅ ${filteredQuestions.length}/${QUESTIONS.length} questions non vues, stockage...`);
+                await overwriteGameQuestions(room.code, 'phase1', filteredQuestions);
+            } else {
+                console.log("✅ Toutes les questions sont nouvelles, lancement direct");
+            }
+
             setGameStatus(room.code, 'phase1');
             return;
         }
@@ -627,6 +684,103 @@ export default function GameRoom() {
 
                 {/* Phase Transition Overlay */}
                 {renderTransition()}
+
+                {/* Debug Panel (dev only) */}
+                <DebugPanel room={room} />
+            </div>
+        );
+    }
+
+    // ----- VICTORY SCREEN -----
+    if (room.state.status === 'victory') {
+        const players = Object.values(room.players);
+        const spicyScore = players.filter(p => p.team === 'spicy').reduce((sum, p) => sum + (p.score || 0), 0);
+        const sweetScore = players.filter(p => p.team === 'sweet').reduce((sum, p) => sum + (p.score || 0), 0);
+        const winnerTeam = room.state.winnerTeam;
+
+        return (
+            <div className="min-h-screen bg-gradient-to-b from-slate-900 via-slate-800 to-black flex flex-col items-center justify-center p-8 relative overflow-hidden">
+                {/* Animated Background */}
+                <div className="absolute inset-0 overflow-hidden pointer-events-none">
+                    <div className={`absolute top-0 left-0 w-96 h-96 rounded-full blur-3xl opacity-30 animate-pulse ${winnerTeam === 'spicy' ? 'bg-red-500' : winnerTeam === 'sweet' ? 'bg-pink-500' : 'bg-yellow-500'}`} />
+                    <div className={`absolute bottom-0 right-0 w-96 h-96 rounded-full blur-3xl opacity-30 animate-pulse delay-500 ${winnerTeam === 'spicy' ? 'bg-orange-500' : winnerTeam === 'sweet' ? 'bg-purple-500' : 'bg-amber-500'}`} />
+                </div>
+
+                <motion.div
+                    initial={{ opacity: 0, scale: 0.8 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    transition={{ duration: 0.8, ease: [0.25, 0.46, 0.45, 0.94] }}
+                    className="text-center z-10"
+                >
+                    {/* Winner Announcement */}
+                    <motion.div
+                        initial={{ y: -50, opacity: 0 }}
+                        animate={{ y: 0, opacity: 1 }}
+                        transition={{ delay: 0.3, duration: 0.6 }}
+                    >
+                        {winnerTeam === 'tie' ? (
+                            <h1 className="text-6xl md:text-8xl font-black text-yellow-400 uppercase tracking-tighter mb-4">
+                                Égalité !
+                            </h1>
+                        ) : (
+                            <>
+                                <h2 className="text-2xl md:text-3xl font-bold text-slate-400 uppercase tracking-widest mb-2">
+                                    Vainqueur
+                                </h2>
+                                <h1 className={`text-6xl md:text-8xl font-black uppercase tracking-tighter mb-4 flex items-center justify-center gap-4 ${winnerTeam === 'spicy' ? 'text-red-500' : 'text-pink-500'}`}>
+                                    {winnerTeam === 'spicy' ? (
+                                        <>Team Spicy <Flame className="w-16 h-16 md:w-24 md:h-24" /></>
+                                    ) : (
+                                        <>Team Sweet <Candy className="w-16 h-16 md:w-24 md:h-24" /></>
+                                    )}
+                                </h1>
+                            </>
+                        )}
+                    </motion.div>
+
+                    {/* Score Display */}
+                    <motion.div
+                        initial={{ y: 50, opacity: 0 }}
+                        animate={{ y: 0, opacity: 1 }}
+                        transition={{ delay: 0.6, duration: 0.6 }}
+                        className="flex items-center justify-center gap-8 md:gap-16 my-12"
+                    >
+                        {/* Spicy Score */}
+                        <div className={`text-center p-6 rounded-2xl ${winnerTeam === 'spicy' ? 'bg-red-500/20 ring-4 ring-red-500' : 'bg-slate-800/50'}`}>
+                            <Flame className={`w-12 h-12 mx-auto mb-2 ${winnerTeam === 'spicy' ? 'text-red-400' : 'text-slate-500'}`} />
+                            <div className="text-lg font-bold text-slate-400 uppercase">Spicy</div>
+                            <div className={`text-6xl md:text-8xl font-black ${winnerTeam === 'spicy' ? 'text-red-400' : 'text-slate-500'}`}>
+                                {spicyScore}
+                            </div>
+                        </div>
+
+                        <div className="text-4xl font-black text-slate-600">VS</div>
+
+                        {/* Sweet Score */}
+                        <div className={`text-center p-6 rounded-2xl ${winnerTeam === 'sweet' ? 'bg-pink-500/20 ring-4 ring-pink-500' : 'bg-slate-800/50'}`}>
+                            <Candy className={`w-12 h-12 mx-auto mb-2 ${winnerTeam === 'sweet' ? 'text-pink-400' : 'text-slate-500'}`} />
+                            <div className="text-lg font-bold text-slate-400 uppercase">Sweet</div>
+                            <div className={`text-6xl md:text-8xl font-black ${winnerTeam === 'sweet' ? 'text-pink-400' : 'text-slate-500'}`}>
+                                {sweetScore}
+                            </div>
+                        </div>
+                    </motion.div>
+
+                    {/* Play Again Button */}
+                    {isHost && (
+                        <motion.button
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            transition={{ delay: 1.2 }}
+                            whileHover={{ scale: 1.05 }}
+                            whileTap={{ scale: 0.95 }}
+                            onClick={() => setGameStatus(room.code, 'lobby')}
+                            className="mt-8 bg-gradient-to-r from-yellow-400 to-orange-500 text-black px-12 py-4 rounded-xl text-xl font-black shadow-lg hover:shadow-yellow-500/30"
+                        >
+                            Rejouer
+                        </motion.button>
+                    )}
+                </motion.div>
 
                 {/* Debug Panel (dev only) */}
                 <DebugPanel room={room} />

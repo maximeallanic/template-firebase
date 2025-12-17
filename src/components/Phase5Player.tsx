@@ -1,9 +1,10 @@
 import { useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { type Room, nextPhase5State, nextPhase5Question } from '../services/gameService';
+import { type Room, type Phase5Question, nextPhase5State, nextPhase5Question, endGameWithVictory } from '../services/gameService';
 import { PHASE5_QUESTIONS } from '../data/phase5';
 import { Check, X, Star, Trophy, Volume2, Gamepad2 } from 'lucide-react';
 import { audioService } from '../services/audioService';
+import { markQuestionAsSeen } from '../services/historyService';
 
 interface Phase5PlayerProps {
     room: Room;
@@ -14,7 +15,11 @@ export function Phase5Player({ room, isHost }: Phase5PlayerProps) {
     const { phase5State, phase5QuestionIndex, phase5Score } = room.state;
     const currentIdx = phase5QuestionIndex || 0;
     const score = phase5Score || 0;
-    const currentQ = PHASE5_QUESTIONS[currentIdx];
+
+    // Use custom AI-generated questions if available, fallback to default PHASE5_QUESTIONS
+    const questionsList: Phase5Question[] = (room.customQuestions?.phase5 as Phase5Question[]) || PHASE5_QUESTIONS;
+    const currentQ = questionsList[currentIdx];
+    const totalQuestions = questionsList.length;
 
     // SFX for state changes
     useEffect(() => {
@@ -24,6 +29,13 @@ export function Phase5Player({ room, isHost }: Phase5PlayerProps) {
             audioService.playTimerTick(); // Ticking feel for memory recall
         }
     }, [phase5State]);
+
+    // Track question as seen when displayed during reading phase
+    useEffect(() => {
+        if (phase5State === 'reading' && currentQ?.question) {
+            markQuestionAsSeen('', currentQ.question);
+        }
+    }, [phase5State, currentQ?.question]);
 
     const handleCorrect = () => {
         audioService.playSuccess();
@@ -57,7 +69,7 @@ export function Phase5Player({ room, isHost }: Phase5PlayerProps) {
                         Burger<br />Ultime
                     </h1>
                     <p className="mt-6 text-xl md:text-2xl font-light text-slate-300 max-w-2xl mx-auto leading-relaxed">
-                        10 Questions. <span className="text-yellow-400 font-bold">Memorize only.</span><br />
+                        {totalQuestions} Questions. <span className="text-yellow-400 font-bold">Memorize only.</span><br />
                         Answer them all <span className="underline decoration-yellow-500 underline-offset-4">in order</span> only after hearing them all.
                     </p>
                 </motion.div>
@@ -84,10 +96,10 @@ export function Phase5Player({ room, isHost }: Phase5PlayerProps) {
     }
 
     // 1. FINISHED / RESULT
-    // If index >= 10
+    // If we've gone through all questions
     if (!currentQ) { // Reached end of questions
-        const isBigBurger = score === 10;
-        const isSmallBurger = score >= 5 && score < 10;
+        const isBigBurger = score === totalQuestions;
+        const isSmallBurger = score >= Math.floor(totalQuestions / 2) && score < totalQuestions;
 
         return (
             <div className="flex flex-col items-center justify-center p-8 h-full w-full text-white overflow-hidden bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-slate-800 via-slate-900 to-black">
@@ -104,7 +116,7 @@ export function Phase5Player({ room, isHost }: Phase5PlayerProps) {
                         transition={{ delay: 0.3, duration: 0.5 }}
                         className="text-[12rem] font-black leading-none text-transparent bg-clip-text bg-gradient-to-b from-white to-slate-400 drop-shadow-2xl"
                     >
-                        {score}<span className="text-4xl align-top text-slate-600">/10</span>
+                        {score}<span className="text-4xl align-top text-slate-600">/{totalQuestions}</span>
                     </motion.div>
 
                     <div className="mt-8 space-y-4">
@@ -126,16 +138,43 @@ export function Phase5Player({ room, isHost }: Phase5PlayerProps) {
                             <div className="text-2xl text-slate-500 font-medium">Try again next time!</div>
                         )}
                     </div>
-                </motion.div>
 
-                {/* Background Confetti Effect could go here */}
+                    {/* End Game Button - Host Only */}
+                    {isHost && (
+                        <motion.button
+                            initial={{ opacity: 0, y: 20 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ delay: 1, duration: 0.5 }}
+                            whileHover={{ scale: 1.05 }}
+                            whileTap={{ scale: 0.95 }}
+                            onClick={() => {
+                                audioService.playClick();
+                                endGameWithVictory(room.code);
+                            }}
+                            className="mt-12 bg-gradient-to-r from-yellow-500 to-orange-500 text-black px-12 py-6 rounded-2xl text-2xl font-black shadow-2xl uppercase tracking-wider hover:shadow-yellow-500/30"
+                        >
+                            <Trophy className="w-8 h-8 inline-block mr-3" />
+                            Voir les résultats finaux
+                        </motion.button>
+                    )}
+                    {!isHost && (
+                        <motion.div
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            transition={{ delay: 1.5 }}
+                            className="mt-12 text-slate-500 animate-pulse"
+                        >
+                            En attente des résultats finaux...
+                        </motion.div>
+                    )}
+                </motion.div>
             </div>
         );
     }
 
     // 2. READING PHASE (Host reads, players listen)
     if (phase5State === 'reading') {
-        const isLastQuestion = currentIdx === 9; // 0-based index, 10th question is index 9
+        const isLastQuestion = currentIdx === totalQuestions - 1; // 0-based index
 
         return (
             <div className="flex flex-col h-full w-full max-w-4xl mx-auto p-6 md:p-12 relative">
@@ -143,8 +182,8 @@ export function Phase5Player({ room, isHost }: Phase5PlayerProps) {
                 <div className="absolute top-0 left-0 w-full h-2 bg-slate-800">
                     <motion.div
                         className="h-full bg-yellow-500"
-                        initial={{ width: `${(currentIdx / 10) * 100}%` }}
-                        animate={{ width: `${((currentIdx + 1) / 10) * 100}%` }}
+                        initial={{ width: `${(currentIdx / totalQuestions) * 100}%` }}
+                        animate={{ width: `${((currentIdx + 1) / totalQuestions) * 100}%` }}
                     />
                 </div>
 
@@ -201,7 +240,7 @@ export function Phase5Player({ room, isHost }: Phase5PlayerProps) {
     if (phase5State === 'answering') {
         return (
             <div className="flex flex-col h-full w-full bg-slate-900 text-white relative">
-                <div className="absolute top-0 left-0 h-2 bg-green-600 transition-all duration-500" style={{ width: `${((currentIdx) / 10) * 100}%` }} />
+                <div className="absolute top-0 left-0 h-2 bg-green-600 transition-all duration-500" style={{ width: `${((currentIdx) / totalQuestions) * 100}%` }} />
 
                 <div className="flex-1 flex flex-col items-center justify-center p-6 text-center">
                     <div className="mb-4 text-slate-500 font-bold uppercase tracking-widest text-lg">

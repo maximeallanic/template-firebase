@@ -1,5 +1,5 @@
-# Robots.txt for Spicy vs Sweet - AI-Powered Cold Email Analysis
-# Last updated: 2025-10-11
+# Robots.txt for Spicy vs Sweet - Multiplayer Party Quiz Game
+# Last updated: 2025-12-17
 
 # Allow all search engines
 User-agent: *

@@ -91,8 +91,21 @@ async function main() {
             console.log('📝 Set Phase 2 (Sel ou Poivre):');
             console.log('━'.repeat(60));
             console.log(`\n🎭 Jeu de mots:`);
-            console.log(`   A: ${data.optionA}`);
-            console.log(`   B: ${data.optionB}`);
+            const optionAWords = data.optionA.split(/\s+/).length;
+            const optionBWords = data.optionB.split(/\s+/).length;
+            console.log(`   A: ${data.optionA} (${optionAWords} mots)`);
+            console.log(`   B: ${data.optionB} (${optionBWords} mots)`);
+
+            // Validate option length
+            console.log(`\n📏 Validation longueur options:`);
+            if (optionAWords <= 4 && optionBWords <= 4) {
+                console.log(`   ✅ Options courtes (≤4 mots) - OK!`);
+            } else {
+                console.log(`   ❌ Options trop longues!`);
+                if (optionAWords > 4) console.log(`      optionA: ${optionAWords} mots (max 4)`);
+                if (optionBWords > 4) console.log(`      optionB: ${optionBWords} mots (max 4)`);
+            }
+
             console.log(`\n📋 Items (${data.items.length}):`);
             data.items.forEach((item, idx) => {
                 const emoji = item.answer === 'A' ? '🅰️ ' : item.answer === 'B' ? '🅱️ ' : '🔁';

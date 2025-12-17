@@ -4,6 +4,10 @@ import react from '@vitejs/plugin-react'
 // https://vite.dev/config/
 export default defineConfig({
   plugins: [react()],
+  // Drop console.log and debugger in production builds
+  esbuild: {
+    drop: ['console', 'debugger'],
+  },
   build: {
     // Optimize chunk splitting for better caching and tree-shaking
     rollupOptions: {
@@ -57,6 +61,21 @@ export default defineConfig({
             return 'firebase-analytics';
           }
 
+          // Framer Motion - Large animation library, separate chunk for better caching
+          if (id.includes('framer-motion')) {
+            return 'framer-motion';
+          }
+
+          // Lucide React icons - Separate chunk (tree-shaking friendly)
+          if (id.includes('lucide-react')) {
+            return 'icons';
+          }
+
+          // React Router - Routing library
+          if (id.includes('react-router') || id.includes('@remix-run/router')) {
+            return 'router';
+          }
+
           // All other node_modules in single vendor chunk
           // This prevents React initialization order issues
           if (id.includes('node_modules')) {
@@ -90,18 +109,6 @@ export default defineConfig({
     ],
     // Exclude heavy dependencies from pre-bundling
     exclude: ['firebase/analytics'],
-    // Enable esbuild optimizations
-    esbuildOptions: {
-      target: 'es2020',
-      // Drop console.log in production
-      drop: ['console', 'debugger'],
-      // Minify identifiers
-      minifyIdentifiers: true,
-      minifySyntax: true,
-      minifyWhitespace: true,
-      // Tree shaking
-      treeShaking: true,
-    },
   },
   // Server configuration for development
   server: {

@@ -8,6 +8,7 @@ import { audioService } from '../services/audioService';
 import { SimpleConfetti } from './SimpleConfetti';
 import { ArrowLeft, ArrowRight, ArrowUp, Check, X, Info, Utensils } from 'lucide-react';
 import { AvatarIcon } from './AvatarIcon';
+import { markQuestionAsSeen } from '../services/historyService';
 
 interface Phase2PlayerProps {
     roomId: string;
@@ -44,21 +45,6 @@ export const Phase2Player: React.FC<Phase2PlayerProps> = ({
     const [hasAnswered, setHasAnswered] = useState(false);
     const controls = useAnimation();
 
-    // Debug: Log custom questions status
-    console.log('🔍 Phase2 Debug:', {
-        hasCustomQuestions: !!customQuestions?.phase2,
-        customQuestionsLength: customQuestions?.phase2?.length,
-        setIndex,
-        itemIndex,
-        currentSetOptions: currentSet ? `${currentSet.optionA} vs ${currentSet.optionB}` : null,
-        currentItemText: currentItem?.text,
-        totalItems: currentSet?.items?.length,
-        usingDefault: !customQuestions?.phase2?.[setIndex],
-        onlinePlayersCount: onlinePlayers.length,
-        phaseState,
-        hasAnswered
-    });
-
     // Determine correctness for local player
     const isRoundOver = phaseState === 'result';
     const didIWin = isRoundOver && phase2Answers?.[playerId] === true;
@@ -85,6 +71,13 @@ export const Phase2Player: React.FC<Phase2PlayerProps> = ({
         controls.set({ x: 0, y: 0, opacity: 1 });
     }, [itemIndex, controls]);
 
+    // Track question as seen when displayed
+    useEffect(() => {
+        if (currentItem?.text) {
+            markQuestionAsSeen('', currentItem.text);
+        }
+    }, [currentItem?.text]);
+
     // Animate card to correct position when result is shown
     useEffect(() => {
         if (isRoundOver && hasAnswered && currentItem) {
@@ -110,25 +103,15 @@ export const Phase2Player: React.FC<Phase2PlayerProps> = ({
     // The host still has a "Force Next Item" button for emergencies
 
     const handleAnswer = useCallback((choice: 'A' | 'B' | 'Both', direction: 'left' | 'right' | 'up') => {
-        console.log('🖐️ handleAnswer called:', { choice, direction, hasAnswered, phaseState, currentItem: !!currentItem });
-
         if (hasAnswered || phaseState === 'result') {
-            console.log('⛔ handleAnswer blocked:', { hasAnswered, phaseState });
             return;
         }
 
         // Submit answer FIRST (before state change unmounts the card)
+        // SECURITY: correctAnswer is now fetched server-side, not passed from client
         if (currentItem) {
-            console.log('🎯 Submitting Phase2 answer:', {
-                playerId: playerId.slice(0, 8) + '...',
-                choice,
-                correctAnswer: currentItem.answer,
-                onlinePlayersCount: onlinePlayers.length,
-                onlinePlayerIds: onlinePlayers.map((p: Player) => p.id.slice(0, 8) + '...')
-            });
-            submitPhase2Answer(roomId, playerId, choice, currentItem.answer, onlinePlayers.length);
+            submitPhase2Answer(roomId, playerId, choice, onlinePlayers.length);
         } else {
-            console.error('❌ No currentItem, cannot submit answer');
             return;
         }
 
@@ -148,7 +131,6 @@ export const Phase2Player: React.FC<Phase2PlayerProps> = ({
         // Update local state (card remains visible, will animate to correct position on result)
         setHasAnswered(true);
         audioService.playClick();
-        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [hasAnswered, phaseState, controls, roomId, playerId, currentItem, onlinePlayers.length]);
 
     // Keyboard Listeners

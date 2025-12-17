@@ -1,8 +1,10 @@
+import { useEffect } from 'react';
 import { motion } from 'framer-motion';
 import type { Room, Phase4Question } from '../services/gameService';
 import { buzz, resolveBuzz, nextPhase4Question, startPhase5 } from '../services/gameService';
 import { PHASE4_QUESTIONS } from '../data/phase4';
 import { Hand, Check, X, Mic, Lock, Zap } from 'lucide-react';
+import { markQuestionAsSeen } from '../services/historyService';
 
 interface Phase4PlayerProps {
     room: Room;
@@ -21,6 +23,13 @@ export default function Phase4Player({ room, playerId, isHost }: Phase4PlayerPro
     const currentQuestionIdx = currentPhase4QuestionIndex || 0;
     const currentQuestion = questionsList[currentQuestionIdx];
     const isFinished = !currentQuestion;
+
+    // Track question as seen when displayed
+    useEffect(() => {
+        if (currentQuestion?.question) {
+            markQuestionAsSeen('', currentQuestion.question);
+        }
+    }, [currentQuestion?.question]);
 
     // --- HOST VIEW ---
     if (isHost) {

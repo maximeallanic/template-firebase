@@ -9,7 +9,11 @@ import { ChefHat, Mail, Lock, ArrowRight, Loader2 } from 'lucide-react';
 
 type AuthMode = 'login' | 'register' | 'reset';
 
-export function LoginPage() {
+interface LoginPageProps {
+    disableAutoRedirect?: boolean;
+}
+
+export function LoginPage({ disableAutoRedirect = false }: LoginPageProps) {
     const navigate = useNavigate();
     const [mode, setMode] = useState<AuthMode>('login');
     const [email, setEmail] = useState('');
@@ -19,7 +23,10 @@ export function LoginPage() {
     const [isLoading, setIsLoading] = useState(false);
 
     // After successful login, handle redirect based on pending action
+    // Skip this when rendered inside AuthRequired (which handles its own redirect)
     useEffect(() => {
+        if (disableAutoRedirect) return;
+
         const unsubscribe = auth.onAuthStateChanged(async (user) => {
             if (user) {
                 // Check for pending join code
@@ -65,7 +72,7 @@ export function LoginPage() {
         });
 
         return () => unsubscribe();
-    }, [navigate]);
+    }, [navigate, disableAutoRedirect]);
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();

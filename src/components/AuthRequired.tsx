@@ -1,9 +1,11 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, lazy, Suspense } from 'react';
 import type { ReactNode } from 'react';
 import { onAuthChange, resendVerificationEmail } from '../services/firebase';
 import type { User } from '../services/firebase';
-import { LoginPage } from '../pages/LoginPage';
 import { Mail, RefreshCw } from 'lucide-react';
+
+// Lazy load LoginPage to avoid circular import and improve code splitting
+const LoginPage = lazy(() => import('../pages/LoginPage').then(m => ({ default: m.LoginPage })));
 
 interface AuthRequiredProps {
     children: ReactNode;
@@ -54,7 +56,15 @@ export function AuthRequired({ children, requireEmailVerified = true }: AuthRequ
     }
 
     if (!user) {
-        return <LoginPage />;
+        return (
+            <Suspense fallback={
+                <div className="min-h-screen bg-slate-900 flex items-center justify-center text-white">
+                    <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-yellow-500" />
+                </div>
+            }>
+                <LoginPage disableAutoRedirect />
+            </Suspense>
+        );
     }
 
     // Check email verification for email/password users (Google users are auto-verified)

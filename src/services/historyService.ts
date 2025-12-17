@@ -56,6 +56,53 @@ export async function hasUserSeenQuestion(playerId: string, questionText: string
 }
 
 /**
+ * Retrieves all question hashes seen by the current authenticated user.
+ * Returns a Set of hash strings for efficient lookup.
+ */
+export async function getSeenQuestionHashes(): Promise<Set<string>> {
+    const user = auth.currentUser;
+    if (!user) return new Set();
+
+    try {
+        const historyRef = ref(rtdb, `userHistory/${user.uid}`);
+        const snapshot = await get(historyRef);
+        return snapshot.exists() ? new Set(Object.keys(snapshot.val())) : new Set();
+    } catch (error) {
+        console.error('Error getting seen questions:', error);
+        return new Set();
+    }
+}
+
+/**
+ * Filters out questions that have been seen by the current user.
+ * Uses a callback function to extract the text from each question object.
+ * If all questions have been seen, returns all questions to allow cycling.
+ *
+ * @param questions - Array of question objects to filter
+ * @param getTextFn - Function to extract the text from a question object
+ * @returns Array of unseen questions, or all questions if all have been seen
+ */
+export async function filterUnseenQuestions<T>(
+    questions: T[],
+    getTextFn: (q: T) => string
+): Promise<T[]> {
+    if (!questions || questions.length === 0) return questions;
+
+    const seenHashes = await getSeenQuestionHashes();
+    if (seenHashes.size === 0) return questions;
+
+    const unseen = questions.filter(q => {
+        const text = getTextFn(q);
+        if (!text) return true; // Keep items without text
+        const hash = generateQuestionId(text);
+        return !seenHashes.has(hash);
+    });
+
+    // If all questions have been seen, return all to allow cycling
+    return unseen.length > 0 ? unseen : questions;
+}
+
+/**
  * Check if ANY player in the room has exhausted the static Phase 1 questions.
  * Returns true if for any player, the number of seen static questions >= total static questions.
  * (Or a more sophisticated check: if the intersection of unseen questions for all players is empty).

@@ -1,10 +1,11 @@
 
-import React from 'react';
+import React, { useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { selectMenu, nextMenuQuestion, endMenuTurn, addTeamPoints, setGameStatus } from '../services/gameService';
 import type { Room, Phase3Menu } from '../services/gameService';
 import { PHASE3_DATA } from '../services/data/phase3';
 import { Flame, Candy, Check, X, ChefHat, Info, Zap } from 'lucide-react';
+import { markQuestionAsSeen } from '../services/historyService';
 
 interface Phase3PlayerProps {
     room: Room;
@@ -20,6 +21,18 @@ export const Phase3Player: React.FC<Phase3PlayerProps> = ({ room, isHost }) => {
     const completedMenus = room.state.phase3CompletedMenus || [];
     const isMenuTaken = (idx: number) => completedMenus.includes(idx);
     const allMenusTaken = menuData.length > 0 && completedMenus.length >= menuData.length;
+
+    // Get current question for tracking (if in questioning phase)
+    const currentMenuIndex = currentMenuTeam ? phase3MenuSelection?.[currentMenuTeam] : undefined;
+    const currentMenu = currentMenuIndex !== undefined ? menuData[currentMenuIndex] : null;
+    const currentQuestion = currentMenu?.questions[currentMenuQuestionIndex || 0];
+
+    // Track question as seen when displayed during questioning phase
+    useEffect(() => {
+        if (phaseState === 'questioning' && currentQuestion?.question) {
+            markQuestionAsSeen('', currentQuestion.question);
+        }
+    }, [phaseState, currentQuestion?.question]);
 
     // Helper to get remaining menus
     const getAvailableMenus = () => {

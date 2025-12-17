@@ -52,6 +52,12 @@ const PHASE_INFO: Record<PhaseStatus, {
         color: 'text-orange-400',
         bgGradient: 'from-orange-900/90 via-red-800/80 to-orange-900/90',
     },
+    victory: {
+        number: 6,
+        icon: 'burger',
+        color: 'text-yellow-400',
+        bgGradient: 'from-yellow-600/90 via-amber-500/80 to-yellow-600/90',
+    },
 };
 
 // Spotlight beam component - OPACITY ONLY (no scaleY on backdrop)
