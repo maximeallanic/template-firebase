@@ -20,12 +20,29 @@ EXEMPLES DE BONS THÈMES :
 - "Les expressions françaises qu'on utilise mal"
 - "Les films qu'on cite sans les avoir vus"
 - "La science du quotidien"
+- "Les pires prénoms de bébé"
+- "Les dramas de la téléréalité"
+- "Les accidents de cuisine célèbres"
+- "Les chansons qu'on connaît tous"
+- "Les sports bizarres qui existent vraiment"
+- "Les records inutiles"
+- "Les rumeurs de stars"
+- "Les trucs qu'on fait tous mais qu'on avoue pas"
+
+⚠️ THÈMES INTERDITS (trop génériques, JAMAIS ÇA) :
+- "Culture générale" ❌
+- "Quiz général" ❌
+- "Questions diverses" ❌
+- "Tout et n'importe quoi" ❌
+- "Le monde" ❌
+- Tout thème contenant "général" ou "divers" ❌
 
 IMPORTANT :
 - Réponds UNIQUEMENT avec le thème, rien d'autre
 - Pas de guillemets, pas d'explication
 - Maximum 6 mots
-- En français`;
+- En français
+- SOIS CRÉATIF ET SPÉCIFIQUE !`;
 
 // Topic generation specifically for Phase 2 (homophones)
 export const GENERATE_TOPIC_PHASE2_PROMPT = `Tu génères un thème pour la phase "Sel ou Poivre" de Burger Quiz.

@@ -153,7 +153,7 @@ export function Phase1Player({ room, playerId, isHost }: Phase1PlayerProps) {
     useEffect(() => {
         if (isResult && isHost) {
             const hasAnecdote = currentQuestion?.anecdote;
-            const delay = hasAnecdote ? 7000 : 3500; // 7s with anecdote, 3.5s without
+            const delay = hasAnecdote ? 10000 : 3500; // 10s with anecdote, 3.5s without
             const timer = setTimeout(() => {
                 if (isFinished) {
                     // Auto-transition to Phase 2

@@ -185,6 +185,55 @@ function parseJsonFromText(text: string): unknown {
     return JSON.parse(jsonMatch[0]);
 }
 
+// List of banned generic topics that we want to avoid
+const BANNED_TOPICS = [
+    'culture générale',
+    'quiz général',
+    'questions diverses',
+    'tout et n\'importe quoi',
+    'le monde',
+    'général',
+    'divers',
+    'connaissance',
+    'savoir',
+    'quiz',
+    'questions',
+];
+
+// Fallback topics to use when AI fails to generate something creative
+const FALLBACK_TOPICS = [
+    'Les ratés de l\'histoire',
+    'Les animaux qui font peur',
+    'Les inventions bizarres',
+    'Les dramas de célébrités',
+    'Les sports qu\'on ne comprend pas',
+    'Les expressions mal utilisées',
+    'Les records inutiles',
+    'Les superstitions absurdes',
+    'Les modes qui ont mal vieilli',
+    'Les scandales culinaires',
+    'Les chansons incompréhensibles',
+    'Les prénoms improbables',
+    'Les pires films de tous les temps',
+    'Les légendes urbaines',
+    'Les trucs qu\'on fait en cachette',
+];
+
+/**
+ * Check if a topic is too generic/banned
+ */
+function isTopicBanned(topic: string): boolean {
+    const lowerTopic = topic.toLowerCase();
+    return BANNED_TOPICS.some(banned => lowerTopic.includes(banned));
+}
+
+/**
+ * Get a random fallback topic
+ */
+function getRandomFallbackTopic(): string {
+    return FALLBACK_TOPICS[Math.floor(Math.random() * FALLBACK_TOPICS.length)];
+}
+
 /**
  * Generate a creative topic using AI
  * Fast call to get a fun, original theme for the quiz
@@ -196,26 +245,46 @@ async function generateCreativeTopic(phase?: string): Promise<string> {
     // Use specific prompt for Phase 2 (homophones need specific topics)
     const prompt = phase === 'phase2' ? GENERATE_TOPIC_PHASE2_PROMPT : GENERATE_TOPIC_PROMPT;
 
-    const response = await genAI.models.generateContent({
-        model: MODEL_CONFIG.model,
-        config: {
-            ...MODEL_CONFIG.config,
-            maxOutputTokens: 50, // Very short response expected
-            temperature: 1.2, // Higher creativity
-        },
-        contents: [{ role: 'user', parts: [{ text: prompt }] }]
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    } as any);
+    // Try up to 3 times to get a non-generic topic
+    const maxAttempts = 3;
 
-    // Clean up the response - remove quotes, extra spaces, etc.
-    const topic = (response.text || 'Culture générale')
-        .trim()
-        .replace(/^["']|["']$/g, '') // Remove surrounding quotes
-        .replace(/\n/g, ' ')
-        .slice(0, 60); // Max 60 chars
+    for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+        try {
+            const response = await genAI.models.generateContent({
+                model: MODEL_CONFIG.model,
+                config: {
+                    ...MODEL_CONFIG.config,
+                    maxOutputTokens: 50, // Very short response expected
+                    temperature: 1.2 + (attempt * 0.1), // Increase creativity with each attempt
+                },
+                contents: [{ role: 'user', parts: [{ text: prompt }] }]
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            } as any);
 
-    console.log(`✨ AI generated topic: "${topic}"`);
-    return topic;
+            // Clean up the response - remove quotes, extra spaces, etc.
+            const rawTopic = response.text || '';
+            const topic = rawTopic
+                .trim()
+                .replace(/^["']|["']$/g, '') // Remove surrounding quotes
+                .replace(/\n/g, ' ')
+                .slice(0, 60); // Max 60 chars
+
+            // Check if topic is valid (not empty and not banned)
+            if (topic && !isTopicBanned(topic)) {
+                console.log(`✨ AI generated topic (attempt ${attempt}): "${topic}"`);
+                return topic;
+            }
+
+            console.warn(`⚠️ Attempt ${attempt}: Topic "${topic}" is too generic, retrying...`);
+        } catch (err) {
+            console.warn(`⚠️ Attempt ${attempt} failed:`, err);
+        }
+    }
+
+    // All attempts failed - use a random fallback topic
+    const fallbackTopic = getRandomFallbackTopic();
+    console.warn(`⚠️ All AI attempts failed. Using fallback topic: "${fallbackTopic}"`);
+    return fallbackTopic;
 }
 
 /**

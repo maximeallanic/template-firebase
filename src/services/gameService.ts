@@ -592,6 +592,19 @@ export const submitPhase2Answer = async (
 
 export const endPhase2Round = async (roomCode: string) => {
     const roomId = roomCode.toUpperCase();
+
+    // Récupérer la room pour accéder à l'item actuel
+    const roomRef = ref(rtdb, `rooms/${roomId}`);
+    const snapshot = await get(roomRef);
+    if (!snapshot.exists()) return;
+    const room = snapshot.val() as Room;
+
+    // Vérifier si l'item actuel a une anecdote
+    const setIndex = room.state.currentPhase2Set ?? 0;
+    const itemIndex = room.state.currentPhase2Item ?? 0;
+    const currentSet = room.customQuestions?.phase2?.[setIndex] || PHASE2_SETS[setIndex];
+    const hasAnecdote = currentSet?.items?.[itemIndex]?.anecdote;
+
     const updates: Record<string, unknown> = {};
     updates[`rooms/${roomId}/state/phaseState`] = 'result';
     // Dummy winner to signal round end, though individual client checks their own answer
@@ -603,10 +616,11 @@ export const endPhase2Round = async (roomCode: string) => {
 
     await update(ref(rtdb), updates);
 
-    // Auto-Advance logic
+    // Auto-Advance avec délai conditionnel (10s avec anecdote, 2s sans)
+    const delay = hasAnecdote ? 10000 : 2000;
     setTimeout(() => {
         nextPhase2Item(roomId);
-    }, 2000);
+    }, delay);
 };
 
 // --- PHASE 3 LOGIC ---

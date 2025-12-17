@@ -71,13 +71,19 @@ export default defineConfig({
             return 'icons';
           }
 
-          // React Router - Routing library
-          if (id.includes('react-router') || id.includes('@remix-run/router')) {
-            return 'router';
+          // React core + Router - MUST be in same chunk to avoid createContext errors
+          // React Router calls React.createContext() during module init
+          if (
+            id.includes('node_modules/react/') ||
+            id.includes('node_modules/react-dom/') ||
+            id.includes('react-router') ||
+            id.includes('@remix-run/router') ||
+            id.includes('scheduler')
+          ) {
+            return 'react-core';
           }
 
           // All other node_modules in single vendor chunk
-          // This prevents React initialization order issues
           if (id.includes('node_modules')) {
             return 'vendor';
           }
