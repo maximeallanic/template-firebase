@@ -165,10 +165,5 @@
     "hub": {
       "port": 4400
     }
-  },
-  "emulators-data": {
-    "export": {
-      "path": ".emulator-data"
-    }
   }
 }

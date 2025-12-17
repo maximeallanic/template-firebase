@@ -4,66 +4,24 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-This is a **Firebase + React SaaS Template** for building AI-powered web applications. It provides a complete foundation with authentication, subscriptions, and AI integration ready to use.
+**Spicy vs Sweet** is a multiplayer party quiz game inspired by "Burger Quiz". Players join rooms, split into teams (Spicy vs Sweet), and compete through 5 chaotic, funny game phases.
 
-**Features:**
-- **Free Trial**: 1 action without sign-up (IP+fingerprint tracked for 30 days)
-- **Free Plan**: 5 actions/month (requires sign-up)
-- **Pro Plan**: 250 actions/month at $5/month
-- **Email Input Feature**: Users can send content via unique email addresses (powered by Mailgun)
+**Core Features:**
+- **Real-time Multiplayer**: 2-20 players per room via Firebase Realtime Database
+- **Team-based Gameplay**: Spicy (red) vs Sweet (pink) teams
+- **5 Game Phases**: Tenders, Sucré Salé, La Carte, La Note, Burger Ultime
+- **AI-Generated Questions**: Custom content via Google Gemini (Genkit)
+- **Food Mascot Avatars**: 15 customizable food-themed avatars
 
 **Tech Stack:**
-- Frontend: React 19 + TypeScript + Vite + Tailwind CSS
+- Frontend: React 19 + TypeScript + Vite + Tailwind CSS + Framer Motion
 - Backend: Firebase Functions (Node 22) with Firebase Functions v2 API
-- AI: Google Vertex AI (Gemini 2.5 Flash) via `@google-cloud/vertexai`
-- Database: Firestore with security rules
+- Database: Firebase Realtime Database (game state) + Firestore (user data)
+- AI: Google Gemini via Genkit (`@genkit-ai/googleai`)
 - Auth: Firebase Authentication (Google Sign-In)
-- Payments: Stripe
-- Email: Mailgun (receiving & parsing emails)
+- Payments: Stripe (for premium features)
 - Analytics: Firebase Analytics (production only)
 - CI/CD: GitHub Actions with multi-stage pipeline
-- Internationalization: i18next (5 languages: EN, FR, ES, DE, PT)
-
-## Template Setup
-
-### First-Time Setup
-
-Run the setup script to configure your project:
-
-```bash
-./scripts/setup-template.sh
-```
-
-This script will:
-1. Ask for your project configuration (app name, domain, Firebase project ID, etc.)
-2. Replace all `{{PLACEHOLDER}}` values throughout the codebase
-3. Create your `.env` and `functions/.env.local` files
-
-### Placeholders Used
-
-| Placeholder | Description | Example |
-|-------------|-------------|---------|
-| `Spicy vs Sweet` | Display name | "MyApp" |
-| `spicy-vs-sweet` | URL-safe slug | "my-app" |
-| `spicy-vs-sweet.com` | Your domain | "myapp.com" |
-| `spicy-vs-sweety` | Firebase project ID | "myapp-12345" |
-| `Addeus` | Legal company name | "MyApp Inc." |
-| `4 rue du marché 63140 Châtel-Guyon` | Company address | "123 Main St" |
-| `contact@spicy-vs-sweet.com` | Support email | "support@myapp.com" |
-| `` | Twitter/X handle | "@myapp" |
-| `spicyvssweet` | Cookie prefix | "myapp" |
-
-## Development Requirements
-
-**Node.js Version:**
-- **Frontend (Vite 7)**: Requires Node.js 20.19+ or 22.12+
-- **Backend (Firebase Functions)**: Requires Node.js 22
-- **Recommended**: Use Node.js 22 for both frontend and backend
-
-To check your Node version:
-```bash
-node --version  # Should show v20.19+ or v22+
-```
 
 ## Development Commands
 
@@ -72,7 +30,7 @@ node --version  # Should show v20.19+ or v22+
 # Start dev server (frontend only, port 5173)
 npm run dev
 
-# Start Firebase emulators (Auth:9099, Functions:5001, Firestore:8080, UI:4000)
+# Start Firebase emulators (Auth:9099, Functions:5001, Database:9000, UI:4000)
 npm run emulators
 
 # Type checking
@@ -101,7 +59,7 @@ npm run logs
 
 ### Deployment
 ```bash
-# Deploy everything (recommended - uses script)
+# Deploy everything
 ./scripts/deploy-all.sh
 
 # Deploy via npm scripts
@@ -110,7 +68,7 @@ npm run deploy:hosting      # Hosting only
 npm run deploy:functions    # Functions only
 
 # Deploy via Firebase CLI
-firebase deploy --only hosting,functions,firestore:rules,firestore:indexes
+firebase deploy --only hosting,functions,database
 ```
 
 ### Quality Checks (MANDATORY)
@@ -128,24 +86,36 @@ npm run lint
 
 ## Architecture
 
-### Application Flow
-1. **Free Trial (No Auth)**: Frontend calls `analyzeEmailGuest` → Function creates IP+fingerprint hash → checks `guestUsage` collection → if not used, calls Vertex AI → records usage with 30-day expiry
-2. **User Authentication**: Firebase Auth with Google Sign-In → creates/updates user document in Firestore
-3. **Main Action (Authenticated)**: Frontend calls Cloud Function → Function validates auth & usage limits → calls Vertex AI → updates usage counter → returns result
-4. **Email Input (via Mailgun)**:
-   - User clicks "Input by Email" → Frontend calls `createEmailAnalysisSession` → generates unique email address using Faker → stores session in Firestore
-   - User sends content to unique address → Mailgun receives → triggers webhook → processes with Vertex AI
-   - Frontend listens to session updates in real-time → displays results
-5. **Subscription Management**: Stripe Checkout Session → webhook updates Firestore → UI reflects new plan
+### Game Flow
+1. **Create Room**: Host creates room → gets 4-character room code
+2. **Join Room**: Players join with code → select avatar and name
+3. **Lobby**: Host assigns teams (Spicy/Sweet) → starts game
+4. **Game Phases 1-5**: Teams compete through 5 different game modes
+5. **Victory**: Team with most points wins
+
+### Game Phases
+
+| Phase | Name | Mechanics |
+|-------|------|-----------|
+| 1 | **Tenders** | Speed MCQ - First correct answer wins point |
+| 2 | **Sucré Salé** | Binary choice (A/B/Both) - All players answer |
+| 3 | **La Carte** | Team selects menu, answers themed questions |
+| 4 | **La Note** | Buzzer round - Teams race to buzz and answer |
+| 5 | **Burger Ultime** | 10-question sequence - Answer all after hearing all |
 
 ### Key Design Patterns
 
+**Real-time State with Firebase RTDB:**
+- All game state lives in `rooms/{roomId}` in Realtime Database
+- Frontend subscribes via `onValue()` for real-time updates
+- Disconnect handlers track player online status
+
 **Data Access Priority:**
-- **ALWAYS prefer direct Firestore calls** from frontend over Cloud Functions when possible
-- Only use Cloud Functions for: auth validation, server-side logic, API calls (Stripe, Vertex AI), writes requiring server timestamp
+- **Game state**: Direct Firebase RTDB calls from frontend
+- **User data**: Firestore for persistent user profiles
+- **Cloud Functions**: Only for AI generation, Stripe, and protected operations
 
 **Firebase Functions v2 API:**
-All functions use the v2 callable syntax with destructured parameters:
 ```typescript
 export const functionName = onCall(async ({ data, auth }) => {
   // auth.uid, auth.token available
@@ -153,174 +123,133 @@ export const functionName = onCall(async ({ data, auth }) => {
 });
 ```
 
-**Firestore FieldValue/Timestamp Import:**
-CRITICAL: Always import from `firebase-admin/firestore`, NOT from `admin.firestore`:
-```typescript
-import { getFirestore, FieldValue, Timestamp } from 'firebase-admin/firestore';
-const db = getFirestore();
-
-// Use directly:
-createdAt: FieldValue.serverTimestamp()
-periodEnd: Timestamp.fromDate(new Date())
-```
-
-**Environment Variables:**
-- Frontend: `VITE_*` prefix required (e.g., `VITE_FIREBASE_API_KEY`)
-- Functions (local): `functions/.env.local` (NOT `.env` - v2 requirement)
-- Functions (prod): Vertex AI uses service account automatically (no API key needed)
-- IMPORTANT: Variables starting with `FIREBASE_` are filtered out by Functions v2
-
 ### Data Model
 
-**Firestore Collections:**
+**Firebase Realtime Database:**
+```
+rooms/{roomCode}
+  - code: string (4-char room code)
+  - hostId: string (player ID of host)
+  - createdAt: number (timestamp)
+  - players: {
+      {playerId}: {
+        id: string
+        name: string
+        avatar: Avatar (burger, pizza, taco, etc.)
+        team: 'spicy' | 'sweet' | null
+        isHost: boolean
+        score: number
+        joinedAt: number
+        isOnline: boolean
+      }
+    }
+  - state: {
+      status: 'lobby' | 'phase1' | 'phase2' | 'phase3' | 'phase4' | 'phase5'
+      phaseState: 'idle' | 'reading' | 'answering' | 'result' | 'menu_selection' | 'questioning' | 'buzzed'
+      currentQuestionIndex?: number
+      roundWinner?: { playerId, name, team }
+      // Phase-specific state...
+    }
+  - customQuestions?: {
+      phase1?: Question[]
+      phase2?: SimplePhase2Set[]
+      phase5?: Phase5Data
+    }
+
+userHistory/{playerId}
+  - seenQuestions: string[] (hashes to avoid repeats)
+```
+
+**Firestore (unchanged from template):**
 ```
 users/{userId}
-  - email: string
-  - subscriptionStatus: 'free' | 'active'
-  - analysesUsedThisMonth: number
-  - analysesLimit: number (5 for free, 250 for pro)
-  - currentPeriodStart: Timestamp
-  - currentPeriodEnd: Timestamp
-  - stripeCustomerId?: string
-  - subscriptionId?: string
-  - createdAt: Timestamp
-  - updatedAt: Timestamp
-
-  analyses/{analysisId}  (subcollection)
-    - content: string
-    - result: object (JSON result)
-    - usageMetadata?: { promptTokens, candidatesTokens, totalTokens }
-    - source?: 'text' | 'email'
-    - createdAt: Timestamp
-
-guestUsage/{fingerprintHash}
-  - fingerprint: string (SHA-256 hash)
-  - ipAddressHash: string (SHA-256 hash for privacy)
-  - usedAt: Timestamp
-  - expiresAt: Timestamp (30 days after usedAt)
-
-emailSessions/{sessionId}
-  - sessionId: string
-  - emailAddress: string (unique generated address)
-  - userId?: string (if authenticated)
-  - status: 'waiting' | 'received' | 'analyzing' | 'completed' | 'error'
-  - createdAt: Timestamp
-  - expiresAt: Timestamp (24 hours)
+  - email, subscriptionStatus, stripeCustomerId, etc.
 ```
 
 ### Cloud Functions
 
 **Exported Functions:**
-- `analyzeEmailGuest` - Guest action (no auth, IP+fingerprint tracking)
-- `analyzeEmail` - Main action (requires auth, calls Vertex AI)
+- `generateGameQuestions` - AI generation for phases 1, 2, 5 (requires auth, uses Genkit)
 - `getUserSubscription` - Fetches user subscription data
 - `createCheckoutSession` - Creates Stripe checkout
 - `createPortalSession` - Opens Stripe billing portal
 - `cancelSubscription` - Cancels Stripe subscription
 - `stripeWebhook` - Handles Stripe events
-- `createEmailAnalysisSession` - Generates unique email address
-- `receiveEmailWebhook` - Mailgun webhook for emails
-- `cleanExpiredSessionsScheduled` - Daily cleanup at 3 AM UTC
 
-**Vertex AI Integration:**
-- Model: `gemini-2.5-flash` (temperature: 0.3, max tokens: 8192)
-- Prompt: See `functions/src/prompts.ts`
-- Response parsing: `result.response.candidates?.[0]?.content?.parts?.[0]?.text`
+**AI Integration (Genkit + Gemini):**
+- Model: `gemini-2.0-flash` via Genkit
+- Prompts: See `functions/src/prompts.ts`
+- Flow: See `functions/src/services/gameGenerator.ts`
 
-**Free Trial Anti-Abuse System:**
-Multi-layer protection:
-1. **Backend (Primary)**: SHA-256 hash from IP + User-Agent + Accept-Language
-2. **Frontend (Secondary)**: localStorage + cookie (30 days)
-3. **Auto-cleanup**: Expired records deleted during each call
-4. **Privacy**: IP addresses hashed, never stored in plain text
+## Project Structure
 
-## CI/CD Pipeline
-
-### GitHub Actions Workflows
-
-#### Production Deployment (`.github/workflows/firebase-hosting-merge.yml`)
-**Triggers:** Push to `master` branch
-
-**Stages:**
-1. **Quality Checks** - ESLint, TypeScript type-check
-2. **Build** - Frontend + Functions builds, upload artifacts
-3. **Deploy** - Download artifacts, deploy to Firebase
-
-#### PR Preview Environment (`.github/workflows/firebase-hosting-pull-request.yml`)
-**Triggers:** Pull request creation or update
-
-**Features:**
-- Automatic preview deployment to Firebase Preview Channel
-- Quality checks (ESLint, TypeScript, Functions build validation)
-- Temporary preview URLs (expire after 7 days)
-
-**Required GitHub Secrets:**
-- `FIREBASE_SERVICE_ACCOUNT` - Service account JSON
-- `FIREBASE_PROJECT_ID` - Firebase project ID
-- `DOMAIN` - Your production domain
-- `VITE_FIREBASE_*` - All Firebase config variables
-- `VITE_RECAPTCHA_ENTERPRISE_SITE_KEY` - reCAPTCHA Enterprise site key
-
-**Service Account Permissions Required:**
-- `Firebase Admin` role or specific roles:
-  - `Firebase Rules Admin`
-  - `Cloud Functions Developer`
-  - `Firebase Hosting Admin`
-  - `Cloud Datastore Index Admin`
-  - `Service Account User`
-  - `Secret Manager Viewer` + `Secret Manager Secret Accessor`
-  - `Cloud Scheduler Admin` (for scheduled functions)
-
-## Configuration Files
-
-### Environment Files
-- `.env` - Frontend Firebase config (VITE_* variables)
-- `functions/.env.local` - Functions local config (Stripe, Mailgun, APP_NAME, APP_URL)
-- `.env.example` - Template for required variables
-
-### Firebase Configuration
-- `firebase.json` - Defines hosting, functions, Firestore rules, emulator ports
-- `firestore.rules` - Security rules
-- `.firebaserc` - Project configuration
-
-### Mailgun Configuration (for Email Input Feature)
-
-**DNS Records (add to domain registrar):**
 ```
-MX      spicy-vs-sweet.com  →  mxa.mailgun.org (priority 10)
-MX      spicy-vs-sweet.com  →  mxb.mailgun.org (priority 10)
-TXT     spicy-vs-sweet.com  →  v=spf1 include:mailgun.org ~all
-TXT     k1._domainkey...  →  [DKIM key from Mailgun]
-```
+src/
+├── components/
+│   ├── Phase1Player.tsx      # Speed MCQ player view
+│   ├── Phase1Host.tsx        # Speed MCQ host controls
+│   ├── Phase2Player.tsx      # Sucré Salé player view
+│   ├── Phase3Player.tsx      # La Carte player view
+│   ├── Phase4Player.tsx      # La Note buzzer view
+│   ├── Phase5Player.tsx      # Burger Ultime view
+│   ├── AIGeneratorModal.tsx  # AI content generation UI
+│   ├── DebugPanel.tsx        # Debug panel for testing (DEV ONLY)
+│   ├── AvatarIcon.tsx        # Food mascot avatars
+│   ├── UserBar.tsx           # Auth status + profile
+│   └── Logo.tsx              # Game logo
+├── pages/
+│   ├── HomePage.tsx          # Landing + Create/Join
+│   ├── HostLobby.tsx         # Room creation + team management
+│   ├── JoinGame.tsx          # Join room with code
+│   ├── GameRoom.tsx          # Main game view (routes to phases)
+│   └── LoginPage.tsx         # Authentication
+├── services/
+│   ├── firebase.ts           # Firebase initialization
+│   ├── gameService.ts        # Game state management (RTDB)
+│   ├── debugService.ts       # Debug utilities (mock players, phase skip) - DEV ONLY
+│   ├── audioService.ts       # Sound effects
+│   └── historyService.ts     # Question deduplication
+├── data/
+│   ├── questions.ts          # Default Phase 1 questions
+│   ├── phase2.ts             # Default Phase 2 sets
+│   ├── phase4.ts             # Default Phase 4 questions
+│   └── phase5.ts             # Default Phase 5 questions
+└── hooks/
+    └── useAuthUser.ts        # Firebase auth hook
 
-**Mailgun Route:**
-```
-Match Recipient: *@spicy-vs-sweet.com
-Forward to: https://us-central1-spicy-vs-sweety.cloudfunctions.net/receiveEmailWebhook
-```
-
-## Internationalization (i18n)
-
-Supports **5 languages**: English (EN), French (FR), Spanish (ES), German (DE), Portuguese (PT).
-
-**Structure:**
-```
-public/locales/
-  {lang}/
-    translation.json  # Main UI strings
-```
-
-**Using translations:**
-```tsx
-import { useTranslation } from 'react-i18next';
-
-function MyComponent() {
-  const { t } = useTranslation();
-  return <h1>{t('hero.title')}</h1>;
-}
+functions/src/
+├── index.ts                  # Function exports
+├── prompts.ts                # AI prompts for game generation
+├── config/
+│   ├── firebase.ts           # Admin SDK setup
+│   └── genkit.ts             # Genkit + Gemini setup
+├── services/
+│   └── gameGenerator.ts      # Genkit flow for AI questions
+└── utils/
+    └── costCalculator.ts     # Token cost estimation
 ```
 
 ## Common Tasks
+
+### Adding a New Game Phase
+1. Create `Phase{N}Player.tsx` component in `src/components/`
+2. Add phase data in `src/data/phase{n}.ts`
+3. Update `GameState` type in `src/services/gameService.ts`
+4. Add phase logic functions (start, submit, next) in `gameService.ts`
+5. Update `GameRoom.tsx` to route to new phase
+6. Update `setGameStatus()` to initialize phase state
+
+### Adding New Avatars
+1. Add avatar name to `Avatar` type in `src/services/gameService.ts`
+2. Add to `AVATAR_LIST` array
+3. Add emoji/icon mapping in `src/components/AvatarIcon.tsx`
+
+### Modifying AI Prompts
+Edit `functions/src/prompts.ts`:
+- `GAME_GENERATION_SYSTEM_PROMPT` - Base persona
+- `PHASE1_PROMPT` - Tenders (Speed MCQ) format
+- `PHASE2_PROMPT` - Sucré Salé (Binary choice) format
+- `PHASE5_PROMPT` - Burger Ultime format
 
 ### Adding a New Cloud Function
 1. Add function in `functions/src/index.ts` using v2 syntax
@@ -328,27 +257,64 @@ function MyComponent() {
 3. Export in frontend: `src/services/firebase.ts`
 4. Call from frontend: `await myFunction({ param: value })`
 
-### Modifying the AI Prompt
-Edit `functions/src/prompts.ts` → `createAnalysisPrompt()` function.
+## Debug Tools (Dev Mode Only)
 
-### Changing Subscription Limits
-Update in `functions/src/index.ts`:
-- Free tier: `analysesLimit: 5`
-- Pro tier: `analysesLimit: 250`
+### Debug Panel
+A floating debug panel appears automatically in development mode (`npm run dev`) in the bottom-right corner of `GameRoom.tsx`. It provides:
 
-### Adding a New Secret to Firebase Functions
+- **Mock Players**: Add/remove fake players to teams for single-window testing
+- **Phase Skip**: Jump directly to any game phase (lobby, phase1-5)
+- **Reset Scores**: Reset all player scores to 0
 
-1. Create secret: `firebase functions:secrets:set SECRET_NAME`
-2. Grant permissions to service accounts:
-   ```bash
-   gcloud projects add-iam-policy-binding spicy-vs-sweety \
-     --member="serviceAccount:SA_EMAIL" \
-     --role="roles/secretmanager.viewer"
-   gcloud projects add-iam-policy-binding spicy-vs-sweety \
-     --member="serviceAccount:SA_EMAIL" \
-     --role="roles/secretmanager.secretAccessor"
-   ```
-3. Use in function: `const mySecret = defineSecret('SECRET_NAME');`
+### Debug Service (`src/services/debugService.ts`)
+```typescript
+// Add a mock player to a team
+addMockPlayer(code: string, team: 'spicy' | 'sweet'): Promise<string>
+
+// Remove all mock players from room
+clearMockPlayers(code: string): Promise<number>
+
+// Skip directly to any phase (initializes correct state)
+skipToPhase(code: string, phase: 'lobby' | 'phase1' | ... | 'phase5'): Promise<void>
+
+// Reset all player scores
+resetAllScores(code: string): Promise<void>
+```
+
+### Mock Player Convention
+- **ID prefix**: All mock players have IDs starting with `mock_` (e.g., `mock_001`)
+- **Passive**: Mock players don't auto-respond - they just fill team slots
+- **Excluded from completion checks**: Phase 2 round completion only counts real players
+- **Food-themed names**: "Chef Pepper", "Princess Honey", etc.
+
+### Usage Example
+1. Run `npm run dev`
+2. Create a room and join as host
+3. Use Debug Panel to add mock players to both teams
+4. Skip to any phase to test it directly
+
+### Important for Phase Logic
+When implementing phase completion logic that depends on "all players answered":
+```typescript
+// CORRECT: Exclude mock players from count
+const realPlayers = Object.values(players).filter(p => p.isOnline && !p.id.startsWith('mock_'));
+
+// WRONG: This would wait for mock players who never answer
+const allPlayers = Object.values(players).filter(p => p.isOnline);
+```
+
+## Configuration Files
+
+### Environment Files
+- `.env` - Frontend Firebase config (VITE_* variables)
+- `functions/.env.local` - Functions local config (Stripe secrets, APP_NAME, APP_URL)
+- `.env.example` - Template for required variables
+
+### Firebase Configuration
+- `firebase.json` - Defines hosting, functions, database rules, emulator ports
+- `database.rules.json` - Realtime Database security rules
+- `firestore.rules` - Firestore security rules
+- `.firebaserc` - Project configuration
 
 ## Known Issues & Gotchas
 
@@ -357,45 +323,43 @@ Update in `functions/src/index.ts`:
 - Cannot use variables starting with `FIREBASE_` prefix
 - Do NOT call `dotenv.config()` manually - Functions v2 auto-loads `.env.local`
 
-### Vertex AI Response Parsing
-Access text via: `result.response.candidates?.[0]?.content?.parts?.[0]?.text`
+### Realtime Database vs Firestore
+- **RTDB**: Used for game state (rooms, players, phases) - optimized for real-time sync
+- **Firestore**: Used for user profiles, subscriptions - optimized for queries
 
-### Firebase Analytics
-Only loads in production: `if (import.meta.env.PROD && import.meta.env.VITE_FIREBASE_MEASUREMENT_ID)`
+### Genkit/Gemini
+- Use `ai.defineFlow()` for structured AI operations
+- JSON extraction from response: `text.match(/\{[\s\S]*\}|\[[\s\S]*\]/)`
+- Model config in `functions/src/config/genkit.ts`
 
-### Stripe Integration
-- Test mode in development (keys in `.env.local`)
-- Production: `firebase functions:config:set stripe.secret_key="sk_live_..."`
-- Webhook URL: `https://us-central1-spicy-vs-sweety.cloudfunctions.net/stripeWebhook`
+### Player Disconnect Handling
+- `onDisconnect()` sets `isOnline: false` when player disconnects
+- `markPlayerOnline()` for reconnection scenarios
+- UI should show offline players differently
 
 ## Deployment Checklist
 
 Before deploying to production:
-1. Run `./scripts/setup-template.sh` to configure all placeholders
-2. Configure GitHub Secrets (all VITE_* variables, FIREBASE_SERVICE_ACCOUNT, FIREBASE_PROJECT_ID, DOMAIN)
-3. Ensure service account has Firebase Admin role
-4. Set Stripe LIVE keys via `firebase functions:config:set`
-5. Configure Stripe webhook with production URL
-6. Add your domain to Firebase Auth authorized domains
-7. Test in emulators first: `npm run emulators`
+1. Configure GitHub Secrets (VITE_* variables, FIREBASE_SERVICE_ACCOUNT)
+2. Ensure service account has Firebase Admin role
+3. Set Stripe keys via `firebase functions:secrets:set`
+4. Configure Stripe webhook with production URL
+5. Add domain to Firebase Auth authorized domains
+6. Test in emulators first: `npm run emulators`
+7. Run quality checks: `npm run type-check && npm run lint`
 
-## Documentation Structure
+## CI/CD Pipeline
 
-All documentation is organized in the `docs/` directory:
+### Production Deployment (`.github/workflows/firebase-hosting-merge.yml`)
+**Triggers:** Push to `master` branch
 
-- **Setup** (`docs/setup/`): Installation and configuration guides
-- **Deployment** (`docs/deployment/`): CI/CD and deployment guides
-- **Guides** (`docs/guides/`): User and developer guides
-- **i18n** (`docs/i18n/`): Internationalization documentation
+**Stages:**
+1. Quality Checks - ESLint, TypeScript type-check
+2. Build - Frontend + Functions builds
+3. Deploy - Deploy to Firebase Hosting + Functions
 
-See `docs/README.md` for the complete documentation index.
-
-## Performance Optimizations
-
-The template includes performance optimizations:
-- **Code Splitting**: React components and routes split into multiple chunks
-- **Lazy Loading**: Heavy components loaded on demand
-- **Critical CSS**: Inlined in HTML head for faster render
-- **DNS Preconnect**: Early connection hints for Firebase and Google APIs
-- **Cache Headers**: 1-year immutable cache for static assets
-- **Build Optimization**: esbuild minification, vendor chunk separation
+### PR Preview (`.github/workflows/firebase-hosting-pull-request.yml`)
+**Triggers:** Pull request creation or update
+- Automatic preview deployment
+- Quality checks validation
+- Temporary preview URLs (expire after 7 days)

@@ -3,246 +3,10 @@ import { defineSecret } from 'firebase-functions/params';
 import { FieldValue, Timestamp } from 'firebase-admin/firestore';
 import { db } from './config/firebase';
 import Stripe from 'stripe';
-import * as crypto from 'crypto';
-import { analyzeEmailFlow } from './services/aiAnalysis';
 
 // Define secrets (automatically loaded from .env.local in emulator, from Secret Manager in production)
 const stripeSecretKey = defineSecret('STRIPE_SECRET_KEY');
 const stripeWebhookSecret = defineSecret('STRIPE_WEBHOOK_SECRET');
-
-/**
- * Analyze Email Function
- * Protected by Firebase App Check to prevent bot abuse
- * Uses Genkit flow for automatic monitoring in Firebase Console
- */
-export const analyzeEmail = onCall(
-  {
-    consumeAppCheckToken: true, // Validates and consumes App Check token
-  },
-  async ({ data, auth }) => {
-    try {
-      const { emailContent } = data;
-
-      // Check authentication
-      if (!auth) {
-        throw new HttpsError('unauthenticated', 'User must be authenticated to analyze emails');
-      }
-
-      // Check email verification
-      if (!auth.token.email_verified) {
-        throw new HttpsError(
-          'failed-precondition',
-          'Email address must be verified before analyzing emails. Please check your inbox and verify your email.'
-        );
-      }
-
-      const userId = auth.uid;
-
-      // Validation
-      if (!emailContent || typeof emailContent !== 'string') {
-        throw new HttpsError('invalid-argument', 'Email content is required and must be a string');
-      }
-
-      if (emailContent.trim().length === 0) {
-        throw new HttpsError('invalid-argument', 'Email content cannot be empty');
-      }
-
-      if (emailContent.length > 10000) {
-        throw new HttpsError('invalid-argument', 'Email content is too long (max 10000 characters)');
-      }
-
-      // Check user's subscription and usage
-      const userDoc = await db.collection('users').doc(userId).get();
-      const userData = userDoc.data();
-
-      if (!userData) {
-        // Create user document
-        await db.collection('users').doc(userId).set({
-          email: auth.token.email,
-          subscriptionStatus: 'free',
-          analysesUsedThisMonth: 0,
-          analysesLimit: 5,
-          currentPeriodStart: FieldValue.serverTimestamp(),
-          currentPeriodEnd: Timestamp.fromDate(new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)),
-          createdAt: FieldValue.serverTimestamp(),
-          updatedAt: FieldValue.serverTimestamp(),
-        });
-      } else {
-        // Check if period ended and reset
-        const now = Timestamp.now();
-        const periodEnd = userData.currentPeriodEnd;
-
-        if (periodEnd && now.toMillis() > periodEnd.toMillis()) {
-          await db.collection('users').doc(userId).update({
-            analysesUsedThisMonth: 0,
-            currentPeriodStart: FieldValue.serverTimestamp(),
-            currentPeriodEnd: Timestamp.fromDate(new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)),
-          });
-        } else {
-          // Check limit
-          const used = userData.analysesUsedThisMonth || 0;
-          const limit = userData.analysesLimit || 5;
-
-          if (used >= limit && userData.subscriptionStatus === 'free') {
-            throw new HttpsError(
-              'resource-exhausted',
-              `You have reached your monthly limit of ${limit} analyses. Upgrade to Pro for more!`
-            );
-          }
-        }
-      }
-
-      // Call Genkit flow for analysis (automatically traced in Firebase Console)
-      const result = await analyzeEmailFlow({
-        emailContent,
-        userId,
-      });
-
-      // Increment usage counter atomically (prevents race conditions)
-      await db.collection('users').doc(userId).update({
-        analysesUsedThisMonth: FieldValue.increment(1),
-        updatedAt: FieldValue.serverTimestamp(),
-      });
-
-      // Get updated usage for response
-      const updatedUserDoc = await db.collection('users').doc(userId).get();
-      const updatedUserData = updatedUserDoc.data();
-      const currentUsage = updatedUserData?.analysesUsedThisMonth || 0;
-
-      // Save analysis to history subcollection with token usage metrics
-      const analysisDoc = await db.collection('users').doc(userId).collection('analyses').add({
-        emailContent,
-        analysis: result.analysis,
-        usageMetadata: {
-          promptTokens: result.usage.promptTokens,
-          candidatesTokens: result.usage.candidatesTokens,
-          totalTokens: result.usage.totalTokens,
-          thinkingTokens: result.usage.thinkingTokens,
-        },
-        createdAt: FieldValue.serverTimestamp(),
-      });
-
-      // Return analysis with usage info and analysis ID
-      return {
-        success: true,
-        data: result.analysis,
-        analysisId: analysisDoc.id,
-        usage: {
-          used: currentUsage,
-          limit: updatedUserData?.analysesLimit || 5,
-        },
-      };
-    } catch (error: unknown) {
-      console.error('Error analyzing email:', error);
-      if (error instanceof HttpsError) throw error;
-      const message = error instanceof Error ? error.message : 'Unknown error';
-      throw new HttpsError('internal', `Failed to analyze email: ${message}`);
-    }
-  }
-);
-
-/**
- * Analyze Email for Guest (No Authentication Required)
- * Uses IP + Browser Fingerprint to prevent abuse (1 free trial per unique visitor)
- * Protected by Firebase App Check to prevent bot abuse
- */
-export const analyzeEmailGuest = onCall(
-  {
-    consumeAppCheckToken: true, // Validates and consumes App Check token
-  },
-  async ({ data, auth, rawRequest }) => {
-    try {
-      const { emailContent } = data;
-
-      // Guest users should not be authenticated
-      if (auth) {
-        throw new HttpsError('failed-precondition', 'This endpoint is for guest users only. Please use the regular analyze endpoint.');
-      }
-
-      // Validation
-      if (!emailContent || typeof emailContent !== 'string') {
-        throw new HttpsError('invalid-argument', 'Email content is required and must be a string');
-      }
-
-      if (emailContent.trim().length === 0) {
-        throw new HttpsError('invalid-argument', 'Email content cannot be empty');
-      }
-
-      if (emailContent.length > 10000) {
-        throw new HttpsError('invalid-argument', 'Email content is too long (max 10000 characters)');
-      }
-
-      // Extract IP address and browser fingerprint
-      const req = rawRequest;
-      const ipAddress = req.ip || req.headers['x-forwarded-for'] || req.headers['x-real-ip'] || 'unknown';
-      const userAgent = req.headers['user-agent'] || 'unknown';
-      const acceptLanguage = req.headers['accept-language'] || 'unknown';
-
-      // Create unique fingerprint hash (SHA-256)
-      const fingerprintString = `${ipAddress}|${userAgent}|${acceptLanguage}`;
-      const fingerprint = crypto.createHash('sha256').update(fingerprintString).digest('hex');
-
-      // Hash IP separately for privacy (we don't store raw IPs)
-      const hashedIP = crypto.createHash('sha256').update(ipAddress.toString()).digest('hex');
-
-      // Check if this fingerprint has already used the free trial
-      const guestUsageRef = db.collection('guestUsage').doc(fingerprint);
-      const guestDoc = await guestUsageRef.get();
-
-      if (guestDoc.exists) {
-        const data = guestDoc.data();
-        const expiresAt = data?.expiresAt;
-
-        // Check if not expired (30 days)
-        if (expiresAt && Timestamp.now().toMillis() < expiresAt.toMillis()) {
-          throw new HttpsError(
-            'resource-exhausted',
-            'Free trial already used. Sign up for a free account to get 5 analyses per month!'
-          );
-        }
-
-        // If expired, delete old record and allow new trial
-        await guestUsageRef.delete();
-      }
-
-      // Call Genkit flow for analysis (automatically traced in Firebase Console)
-      const result = await analyzeEmailFlow({
-        emailContent,
-        userId: 'guest',
-      });
-
-      // Record this free trial usage
-      await guestUsageRef.set({
-        fingerprint,
-        ipAddressHash: hashedIP,
-        usedAt: FieldValue.serverTimestamp(),
-        expiresAt: Timestamp.fromDate(new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)), // 30 days
-        userAgent: userAgent.substring(0, 200), // Store truncated for debugging
-      });
-
-      // Clean up expired guest usage records (older than 30 days)
-      const thirtyDaysAgo = Timestamp.fromDate(new Date(Date.now() - 30 * 24 * 60 * 60 * 1000));
-      const expiredDocs = await db.collection('guestUsage')
-        .where('expiresAt', '<', thirtyDaysAgo)
-        .limit(100)
-        .get();
-
-      const deletePromises = expiredDocs.docs.map(doc => doc.ref.delete());
-      await Promise.all(deletePromises);
-
-      // Return analysis (no usage info since guest user)
-      return {
-        success: true,
-        data: result.analysis,
-        message: 'Free trial used! Sign up to get 5 analyses per month.',
-      };
-    } catch (error: unknown) {
-      console.error('Error analyzing email (guest):', error);
-      if (error instanceof HttpsError) throw error;
-      const message = error instanceof Error ? error.message : 'Unknown error';
-      throw new HttpsError('internal', `Failed to analyze email: ${message}`);
-    }
-  });
 
 /**
  * Get User Subscription
@@ -491,17 +255,6 @@ export const stripeWebhook = onRequest(
   }
 );
 
-/**
- * Email Analysis Functions
- */
-export { createEmailAnalysisSession } from './createEmailSession';
-export { receiveEmailWebhook } from './receiveEmailWebhook';
-export { cleanExpiredSessions, cleanExpiredSessionsScheduled } from './cleanExpiredSessions';
-
-/**
- * Usage Analytics Functions
- */
-// ... existing exports ...
 
 import { generateGameQuestionsFlow } from './services/gameGenerator';
 
@@ -509,11 +262,12 @@ import { generateGameQuestionsFlow } from './services/gameGenerator';
  * Generate Game Questions (AI)
  * Use Gemini to generate funny/absurd questions for the game.
  * Protected by App Check.
+ * Automatically saves generated questions to Firestore for reuse.
  */
 export const generateGameQuestions = onCall(
   {
     consumeAppCheckToken: true,
-    timeoutSeconds: 60, // AI generation needed time
+    timeoutSeconds: 300, // gemini-3-pro-preview uses "thinking" tokens, needs more time
     memory: "1GiB",     // Genkit + Gemini needs some memory
   },
   async ({ data, auth }) => {
@@ -524,7 +278,7 @@ export const generateGameQuestions = onCall(
 
     // 2. Data Validation
     const { phase, topic, difficulty } = data;
-    if (!phase || !['phase1', 'phase2', 'phase5'].includes(phase)) {
+    if (!phase || !['phase1', 'phase2', 'phase3', 'phase4', 'phase5'].includes(phase)) {
       throw new HttpsError('invalid-argument', 'Invalid phase provided.');
     }
 
@@ -536,9 +290,117 @@ export const generateGameQuestions = onCall(
         difficulty: difficulty || 'normal',
       });
 
+      // 4. Shuffle options for MCQ questions (phase1) to randomize correct answer position
+      let processedData = result.data;
+      if (phase === 'phase1' && Array.isArray(result.data)) {
+        processedData = result.data.map((q: { text: string; options: string[]; correctIndex: number; anecdote?: string }) => {
+          // Fisher-Yates shuffle with index tracking
+          const options = [...q.options];
+          const correctAnswer = options[q.correctIndex];
+
+          // Shuffle the options array
+          for (let i = options.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [options[i], options[j]] = [options[j], options[i]];
+          }
+
+          // Find new position of correct answer
+          const newCorrectIndex = options.indexOf(correctAnswer);
+
+          return {
+            ...q,
+            options,
+            correctIndex: newCorrectIndex,
+          };
+        });
+      }
+
+      // 5. Save to Firestore for reuse (different structure per phase)
+      // Include embeddings for semantic deduplication
+      const embeddings = result.embeddings || [];
+      try {
+        if (phase === 'phase2') {
+          // Phase 2: Save each item individually with its embedding
+          const setData = processedData as { optionA: string; optionB: string; items: Array<{ text: string; answer: string }> };
+          const batch = db.batch();
+          const questionsRef = db.collection('questions');
+
+          for (let i = 0; i < setData.items.length; i++) {
+            const item = setData.items[i];
+            const docRef = questionsRef.doc();
+            batch.set(docRef, {
+              phase,
+              topic: topic || 'General Knowledge',
+              difficulty: difficulty || 'normal',
+              optionA: setData.optionA,
+              optionB: setData.optionB,
+              text: item.text,
+              answer: item.answer,
+              embedding: embeddings[i] || null,
+              embeddingModel: embeddings[i] ? 'text-embedding-004' : null,
+              createdAt: FieldValue.serverTimestamp(),
+              usageCount: 0,
+              generatedBy: auth?.uid || 'anonymous',
+            });
+          }
+
+          await batch.commit();
+          console.log(`📦 Saved ${setData.items.length} ${phase} items to Firestore with embeddings`);
+        } else if (phase === 'phase1') {
+          // Phase 1: Save each question individually with embedding
+          const questions = Array.isArray(processedData) ? processedData : [];
+          const batch = db.batch();
+          const questionsRef = db.collection('questions');
+
+          for (let i = 0; i < questions.length; i++) {
+            const question = questions[i];
+            const docRef = questionsRef.doc();
+            batch.set(docRef, {
+              phase,
+              topic: topic || 'General Knowledge',
+              difficulty: difficulty || 'normal',
+              ...question,
+              embedding: embeddings[i] || null,
+              embeddingModel: embeddings[i] ? 'text-embedding-004' : null,
+              createdAt: FieldValue.serverTimestamp(),
+              usageCount: 0,
+              generatedBy: auth?.uid || 'anonymous',
+            });
+          }
+
+          await batch.commit();
+          console.log(`📦 Saved ${questions.length} ${phase} questions to Firestore with embeddings`);
+        } else {
+          // Phase 3, 4, 5: Save each question individually (no embeddings yet)
+          const questions = Array.isArray(processedData) ? processedData : [];
+          const batch = db.batch();
+          const questionsRef = db.collection('questions');
+
+          for (const question of questions) {
+            const docRef = questionsRef.doc();
+            batch.set(docRef, {
+              phase,
+              topic: topic || 'General Knowledge',
+              difficulty: difficulty || 'normal',
+              ...question,
+              createdAt: FieldValue.serverTimestamp(),
+              usageCount: 0,
+              generatedBy: auth?.uid || 'anonymous',
+            });
+          }
+
+          await batch.commit();
+          console.log(`📦 Saved ${questions.length} ${phase} questions to Firestore`);
+        }
+      } catch (saveError) {
+        // Log but don't fail the request - questions are still usable
+        console.error('Failed to save questions to Firestore:', saveError);
+      }
+
       return {
         success: true,
-        data: result.data,
+        data: processedData,
+        topic: result.topic, // Return the AI-generated topic
         usage: result.usage
       };
     } catch (e: unknown) {

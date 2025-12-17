@@ -2,9 +2,9 @@
 import React from 'react';
 import { motion } from 'framer-motion';
 import { selectMenu, nextMenuQuestion, endMenuTurn, addTeamPoints, setGameStatus } from '../services/gameService';
-import type { Room } from '../services/gameService';
+import type { Room, Phase3Menu } from '../services/gameService';
 import { PHASE3_DATA } from '../services/data/phase3';
-import { Flame, Candy, Check, X, ChefHat, Info, Zap } from 'lucide-react'; // Imports for icons
+import { Flame, Candy, Check, X, ChefHat, Info, Zap } from 'lucide-react';
 
 interface Phase3PlayerProps {
     room: Room;
@@ -14,25 +14,17 @@ interface Phase3PlayerProps {
 export const Phase3Player: React.FC<Phase3PlayerProps> = ({ room, isHost }) => {
     const { phaseState, phase3MenuSelection, currentMenuTeam, currentMenuQuestionIndex } = room.state;
 
-    // const isReading = room.state.phaseState === 'questioning';
-    // const isMenuSelection = room.state.phaseState === 'menu_selection'; // unused
+    // Use custom AI-generated menus if available, fallback to default PHASE3_DATA
+    const menuData: Phase3Menu[] = room.customQuestions?.phase3 || PHASE3_DATA;
 
-    // The original code had `currentMenuTeam` which is `room.state.currentMenuTeam`.
-    // The snippet uses `currentTeam` which is not defined. I'll assume `currentMenuTeam` is intended.
-    // const currentMenuIndex = (currentMenuTeam && room.state.phase3MenuSelection) ? room.state.phase3MenuSelection[currentMenuTeam] : undefined;
-
-    // Assuming phase3CompletedMenus is a new property on room.state
     const completedMenus = room.state.phase3CompletedMenus || [];
     const isMenuTaken = (idx: number) => completedMenus.includes(idx);
-    // Assuming MENUS refers to PHASE3_DATA
-    const allMenusTaken = PHASE3_DATA.length > 0 && completedMenus.length >= PHASE3_DATA.length;
+    const allMenusTaken = menuData.length > 0 && completedMenus.length >= menuData.length;
 
     // Helper to get remaining menus
     const getAvailableMenus = () => {
-        // The original logic used phase3MenuSelection to mark menus as taken.
-        // The new logic introduces `completedMenus`. I will combine both for robustness.
         const usedIndicesFromSelection = Object.values(phase3MenuSelection || {});
-        return PHASE3_DATA.map((menu, index) => ({
+        return menuData.map((menu, index) => ({
             ...menu,
             index,
             taken: usedIndicesFromSelection.includes(index) || isMenuTaken(index)
@@ -104,8 +96,8 @@ export const Phase3Player: React.FC<Phase3PlayerProps> = ({ room, isHost }) => {
         const menuIndex = phase3MenuSelection[currentMenuTeam];
         if (menuIndex === undefined) return <div>Error loading menu</div>;
 
-        const menu = PHASE3_DATA[menuIndex];
-        const questionData = menu.questions[currentMenuQuestionIndex || 0];
+        const menu = menuData[menuIndex];
+        const questionData = menu?.questions[currentMenuQuestionIndex || 0];
 
         // Check if finished
         if (!questionData) {
@@ -129,7 +121,7 @@ export const Phase3Player: React.FC<Phase3PlayerProps> = ({ room, isHost }) => {
                                     onClick={() => setGameStatus(room.code, 'phase4')}
                                     className="bg-yellow-400 hover:bg-yellow-300 text-black px-8 py-3 rounded-full font-bold shadow-lg animate-pulse flex items-center gap-2"
                                 >
-                                    <Zap className="w-5 h-5" /> Start Phase 4: L'Addition
+                                    <Zap className="w-5 h-5" /> Start Phase 4: La Note
                                 </button>
                             )}
                         </div>

@@ -1,5 +1,5 @@
 import { motion } from 'framer-motion';
-import type { Room } from '../services/gameService';
+import type { Room, Phase4Question } from '../services/gameService';
 import { buzz, resolveBuzz, nextPhase4Question, startPhase5 } from '../services/gameService';
 import { PHASE4_QUESTIONS } from '../data/phase4';
 import { Hand, Check, X, Mic, Lock, Zap } from 'lucide-react';
@@ -15,8 +15,11 @@ export default function Phase4Player({ room, playerId, isHost }: Phase4PlayerPro
     const team = player?.team;
     const { phase4State, buzzedTeam, currentPhase4QuestionIndex } = room.state;
 
+    // Use custom AI-generated questions if available, fallback to default PHASE4_QUESTIONS
+    const questionsList: Phase4Question[] = room.customQuestions?.phase4 || PHASE4_QUESTIONS;
+
     const currentQuestionIdx = currentPhase4QuestionIndex || 0;
-    const currentQuestion = PHASE4_QUESTIONS[currentQuestionIdx];
+    const currentQuestion = questionsList[currentQuestionIdx];
     const isFinished = !currentQuestion;
 
     // --- HOST VIEW ---
@@ -25,13 +28,13 @@ export default function Phase4Player({ room, playerId, isHost }: Phase4PlayerPro
             return (
                 <div className="flex flex-col items-center justify-center p-8 space-y-6 max-h-screen overflow-y-auto w-full text-white">
                     <h2 className="text-4xl font-black">PHASE 4 COMPLETE!</h2>
-                    <div className="text-2xl">L'Addition is served.</div>
+                    <div className="text-2xl">La Note is served.</div>
 
                     <button
                         onClick={() => startPhase5(room.code)}
                         className="bg-yellow-500 hover:bg-yellow-400 px-8 py-4 rounded-xl text-xl font-bold shadow-lg flex items-center gap-2"
                     >
-                        <span>Start Phase 5 (Burger de la Mort)</span>
+                        <span>Start Phase 5 (Burger Ultime)</span>
                     </button>
                 </div>
             );

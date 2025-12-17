@@ -1,5 +1,5 @@
 import { ref, get, update, child } from 'firebase/database';
-import { rtdb } from './firebase';
+import { rtdb, auth } from './firebase';
 import type { Player } from './gameService';
 import { QUESTIONS } from '../data/questions';
 
@@ -19,15 +19,18 @@ export function generateQuestionId(text: string): string {
 }
 
 /**
- * Marks a question as seen by a specific player in the RTDB.
- * Path: userHistory/{playerId}/{questionId} = timestamp
+ * Marks a question as seen by the current authenticated user in the RTDB.
+ * Path: userHistory/{auth.uid}/{questionId} = timestamp
+ * Note: Uses auth.uid (not playerId) to match database security rules.
  */
-export async function markQuestionAsSeen(playerId: string, questionText: string): Promise<void> {
-    if (!playerId || !questionText) return;
+export async function markQuestionAsSeen(_playerId: string, questionText: string): Promise<void> {
+    // Use auth.uid for database path (required by security rules)
+    const userId = auth.currentUser?.uid;
+    if (!userId || !questionText) return;
 
     try {
         const qId = generateQuestionId(questionText);
-        const historyRef = ref(rtdb, `userHistory/${playerId}`);
+        const historyRef = ref(rtdb, `userHistory/${userId}`);
         await update(historyRef, {
             [qId]: Date.now()
         });
@@ -62,6 +65,12 @@ export async function checkPhase1Exhaustion(players: Player[]): Promise<boolean>
 
     try {
         const totalStaticQuestions = QUESTIONS.length;
+
+        // If no default questions exist, always trigger AI generation
+        if (totalStaticQuestions === 0) {
+            console.log("📋 Aucune question par défaut - génération IA requise");
+            return true;
+        }
         // Optimization: checking specific questions is expensive for many players.
         // For now, we can check count or assume if they have a lot of history.
         // Better approach: Get all history for all players and check overlap.
@@ -92,7 +101,8 @@ export async function checkPhase1Exhaustion(players: Player[]): Promise<boolean>
         // Actually, trigger condition: "Si un utilisateur ... a déja eu TOUTE les questions"
         // So checking if ANY player has seen ALL static questions.
 
-        for (const seenSet of playerSeenIds) {
+        for (let i = 0; i < playerSeenIds.length; i++) {
+            const seenSet = playerSeenIds[i];
             let seenCount = 0;
             for (const q of QUESTIONS) {
                 const qId = generateQuestionId(q.text);
@@ -100,12 +110,15 @@ export async function checkPhase1Exhaustion(players: Player[]): Promise<boolean>
                     seenCount++;
                 }
             }
-            // If a single player has seen >= 90% of questions, trigger generation/custom questions.
-            if (seenCount >= totalStaticQuestions * 0.9) {
+            console.log(`📋 Joueur ${players[i]?.id?.slice(0, 8)}... : ${seenCount}/${totalStaticQuestions} questions vues`);
+            // If a single player has seen 100% of questions, trigger AI generation
+            if (seenCount >= totalStaticQuestions) {
+                console.log("✅ Exhaustion détectée pour ce joueur !");
                 return true;
             }
         }
 
+        console.log("❌ Aucun joueur n'a vu 100% des questions");
         return false;
     } catch (error) {
         console.error("Error checking exhaustion:", error);

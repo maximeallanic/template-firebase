@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { verifyEmailCode, verifyPasswordResetCodeAndGetEmail, resetPassword } from '../services/firebase';
+import { Logo } from './Logo';
 
 type ActionMode = 'verifyEmail' | 'resetPassword' | null;
 type VerificationStatus = 'loading' | 'success' | 'error';
@@ -127,18 +128,7 @@ export const EmailActionHandler: React.FC = () => {
       <div className="max-w-md w-full">
         {/* Logo */}
         <div className="text-center mb-8">
-          <div className="inline-flex items-center gap-3 mb-4">
-            <div className="w-12 h-12 bg-gradient-to-br from-blue-600 to-purple-600 rounded-xl flex items-center justify-center shadow-md">
-              <svg className="w-7 h-7 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
-              </svg>
-            </div>
-            <h1 className="text-2xl font-extrabold">
-              <span className="bg-clip-text text-transparent bg-gradient-to-r from-blue-600 to-purple-600">
-                {"Spicy vs Sweet"}
-              </span>
-            </h1>
-          </div>
+          <Logo className="h-16 mx-auto" />
         </div>
 
         {/* Main Card */}

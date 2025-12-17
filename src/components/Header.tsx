@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next';
 import type { User } from 'firebase/auth';
 import { signOut, createPortalSession } from '../services/firebase';
 import { LanguageSelector } from './LanguageSelector';
+import { Logo } from './Logo';
 
 interface HeaderProps {
   user: User | null;
@@ -50,14 +51,7 @@ export const Header: React.FC<HeaderProps> = ({ user, onSignIn, subscriptionStat
         <div className="flex items-center justify-between">
           {/* Logo - Clickable to home */}
           <Link to="/" className="flex items-center gap-3 hover:opacity-80 transition-opacity duration-250">
-            <div className="w-10 h-10 bg-gradient-to-br from-primary-600 to-secondary-600 rounded-card flex items-center justify-center shadow-button">
-              <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
-              </svg>
-            </div>
-            <h1 className="text-2xl font-extrabold gradient-text-primary">
-              {t('nav.appName')}
-            </h1>
+            <Logo className="h-12 w-auto" />
           </Link>
 
           {/* User menu */}

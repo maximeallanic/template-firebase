@@ -37,21 +37,24 @@ export function Phase5Player({ room, isHost }: Phase5PlayerProps) {
 
     // --- RENDER HELPERS ---
 
+    // Organic easing curve
+    const organicEase = [0.25, 0.46, 0.45, 0.94] as const;
+
     // 0. IDLE / INTRO
     if (phase5State === 'idle') {
         return (
             <div className="flex flex-col items-center justify-center p-8 space-y-8 h-full w-full text-white bg-gradient-to-br from-slate-900 via-slate-800 to-black">
                 <motion.div
-                    initial={{ scale: 0.8, opacity: 0 }}
-                    animate={{ scale: 1, opacity: 1 }}
-                    transition={{ duration: 0.8, ease: "easeOut" }}
+                    initial={{ opacity: 0, y: 30 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.6, ease: organicEase }}
                     className="text-center"
                 >
                     <div className="mb-4 flex justify-center">
                         <Gamepad2 className="w-24 h-24 text-yellow-500 drop-shadow-[0_0_15px_rgba(234,179,8,0.5)]" />
                     </div>
                     <h1 className="text-5xl md:text-7xl font-black uppercase tracking-tighter text-transparent bg-clip-text bg-gradient-to-b from-yellow-300 to-yellow-600 drop-shadow-sm">
-                        Le Burger<br />de la Mort
+                        Burger<br />Ultime
                     </h1>
                     <p className="mt-6 text-xl md:text-2xl font-light text-slate-300 max-w-2xl mx-auto leading-relaxed">
                         10 Questions. <span className="text-yellow-400 font-bold">Memorize only.</span><br />
@@ -89,15 +92,20 @@ export function Phase5Player({ room, isHost }: Phase5PlayerProps) {
         return (
             <div className="flex flex-col items-center justify-center p-8 h-full w-full text-white overflow-hidden bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-slate-800 via-slate-900 to-black">
                 <motion.div
-                    initial={{ scale: 0, rotate: -180 }}
-                    animate={{ scale: 1, rotate: 0 }}
-                    transition={{ type: "spring", stiffness: 100, damping: 10 }}
+                    initial={{ opacity: 0, y: 50 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.6, ease: organicEase }}
                     className="text-center relative z-10"
                 >
                     <h2 className="text-4xl font-bold mb-2 tracking-widest text-slate-400 uppercase">Final Score</h2>
-                    <div className="text-[12rem] font-black leading-none text-transparent bg-clip-text bg-gradient-to-b from-white to-slate-400 drop-shadow-2xl">
+                    <motion.div
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        transition={{ delay: 0.3, duration: 0.5 }}
+                        className="text-[12rem] font-black leading-none text-transparent bg-clip-text bg-gradient-to-b from-white to-slate-400 drop-shadow-2xl"
+                    >
                         {score}<span className="text-4xl align-top text-slate-600">/10</span>
-                    </div>
+                    </motion.div>
 
                     <div className="mt-8 space-y-4">
                         {isBigBurger && (

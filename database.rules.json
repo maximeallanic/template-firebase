@@ -2,16 +2,40 @@
   "rules": {
     "rooms": {
       "$roomId": {
-        ".read": true,
-        ".write": true,
+        // Authenticated users can read rooms they're part of, or any room (to join)
+        ".read": "auth != null",
+        // Write allowed if: creating new room OR user is host OR user is a player in the room
+        ".write": "auth != null && (
+          !data.exists() ||
+          data.child('hostId').val() == auth.uid ||
+          data.child('players').child(auth.uid).exists()
+        )",
         "players": {
           "$playerId": {
-            ".validate": "newData.hasChildren(['id', 'name', 'avatar', 'isHost', 'score', 'joinedAt', 'isOnline'])"
+            ".validate": "newData.hasChildren(['id', 'name', 'avatar', 'isHost', 'score', 'joinedAt', 'isOnline'])",
+            // Players can only modify their own data (except host can modify anyone)
+            ".write": "auth != null && (
+              $playerId == auth.uid ||
+              data.parent().parent().child('hostId').val() == auth.uid
+            )"
           }
         },
         "state": {
-          ".validate": "newData.hasChild('status') && newData.hasChild('phaseState')"
+          ".validate": "newData.hasChild('status') && newData.hasChild('phaseState')",
+          // Only host can modify game state
+          ".write": "auth != null && data.parent().child('hostId').val() == auth.uid"
+        },
+        "hostId": {
+          // Host ID can only be set on room creation, cannot be changed
+          ".write": "auth != null && !data.exists()"
         }
+      }
+    },
+    "userHistory": {
+      "$playerId": {
+        // Users can only read/write their own history
+        ".read": "auth != null && auth.uid == $playerId",
+        ".write": "auth != null && auth.uid == $playerId"
       }
     },
     ".read": false,

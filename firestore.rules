@@ -8,18 +8,22 @@ service cloud.firestore {
       // Users can only read their own data
       allow read: if request.auth != null && request.auth.uid == userId;
 
-      // CRITICAL: Users CANNOT modify their own subscription data
-      // Only Cloud Functions (using Admin SDK which bypasses rules) can write
-      // This prevents users from:
-      // - Upgrading to Pro without payment
-      // - Resetting their usage counter
-      // - Changing their email
-      // - Modifying analysis limits
-      // - Changing subscription periods
-      allow write: if false;
+      // Allow users to update ONLY their profile fields (profileName, profileAvatar)
+      // CRITICAL: Users CANNOT modify subscription data (subscriptionStatus, analysesLimit, etc.)
+      allow update: if request.auth != null
+        && request.auth.uid == userId
+        && request.resource.data.diff(resource.data).affectedKeys()
+            .hasOnly(['profileName', 'profileAvatar', 'updatedAt']);
+
+      // Allow users to create their own document with profile fields only
+      // (for first-time users before subscription is fetched)
+      allow create: if request.auth != null
+        && request.auth.uid == userId
+        && request.resource.data.keys()
+            .hasOnly(['profileName', 'profileAvatar', 'createdAt', 'updatedAt']);
 
       // Note: Cloud Functions use Firebase Admin SDK which bypasses these rules
-      // and can write directly to any document
+      // and can write directly to any document (for subscription management)
 
       // User's analysis history subcollection
       match /analyses/{analysisId} {
@@ -55,6 +59,25 @@ service cloud.firestore {
       // No write access - only Cloud Functions can write
       // Cloud Functions use Admin SDK which bypasses these rules
       allow write: if false;
+    }
+
+    // AI-generated questions (stored for reuse)
+    match /generatedQuestions/{questionSetId} {
+      // Authenticated users can read question sets
+      allow read: if request.auth != null;
+      // Only Cloud Functions can write (uses Admin SDK which bypasses rules)
+      allow write: if false;
+    }
+
+    // Individual questions collection (created by generateGameQuestions)
+    match /questions/{questionId} {
+      // Authenticated users can read questions
+      allow read: if request.auth != null;
+      // Allow authenticated users to only increment usageCount
+      allow update: if request.auth != null
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['usageCount']);
+      // Only Cloud Functions can create/delete (uses Admin SDK which bypasses rules)
+      allow create, delete: if false;
     }
 
     // Deny all other access

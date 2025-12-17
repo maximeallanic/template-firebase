@@ -20,8 +20,8 @@
     "deploy:functions": "cd functions && npm run build && cd .. && firebase deploy --only functions",
     "emulators": "firebase emulators:start --import=.emulator-data --export-on-exit=.emulator-data",
     "emulators:clean": "firebase emulators:start",
-    "start": "concurrently \"npm run dev\" \"npm run emulators\"",
-    "start:clean": "concurrently \"npm run dev\" \"npm run emulators:clean\"",
+    "start": "./scripts/start-dev.sh",
+    "start:clean": "concurrently --raw \"npm run dev\" \"npm run emulators:clean\"",
     "logs": "firebase functions:log"
   },
   "dependencies": {

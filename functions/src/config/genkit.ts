@@ -27,26 +27,56 @@ export const ai = genkit({
 });
 
 /**
- * Configure Google Gen AI client for Vertex AI
- * Uses service account authentication (no API key required)
+ * Configure Google Gen AI client
+ * - With GEMINI_API_KEY: Use Gemini API for gemini-3-pro-preview
+ * - Without: Fall back to Vertex AI with gemini-2.0-flash
  */
-export const genAI = new GoogleGenAI({
-  vertexai: true,  // Use Vertex AI instead of Google AI Developer API
-  project: process.env.GCLOUD_PROJECT,  // Set via Firebase project configuration
-  location: 'us-central1',
-});
+const useGeminiApi = !!process.env.GEMINI_API_KEY;
+
+export const genAI = useGeminiApi
+  ? new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY })
+  : new GoogleGenAI({
+      vertexai: true,
+      project: process.env.GCLOUD_PROJECT || 'spicy-vs-sweety',
+      location: 'us-central1',
+    });
 
 /**
- * Model configuration for Gemini 2.5 Flash
- * Optimized for fast, high-quality email analysis
+ * Model configuration
+ * - gemini-3-pro-preview: Best reasoning model (requires GEMINI_API_KEY)
+ * - gemini-2.0-flash: Fast, capable, with Google Search grounding (Vertex AI)
  */
 export const MODEL_CONFIG = {
-  model: 'gemini-2.5-flash',
-  generationConfig: {
-    temperature: 0.3,      // Low temperature for consistent, factual analysis
-    maxOutputTokens: 8192, // Allow long analysis responses
+  model: useGeminiApi ? 'gemini-3-pro-preview' : 'gemini-2.0-flash',
+  config: {
+    // gemini-3-pro-preview uses ~8K tokens for "thinking" before producing output
+    maxOutputTokens: useGeminiApi ? 32768 : 8192,
+    temperature: 1,
+    topP: 0.95,
+    safetySettings: [
+      { category: 'HARM_CATEGORY_HATE_SPEECH', threshold: 'OFF' },
+      { category: 'HARM_CATEGORY_DANGEROUS_CONTENT', threshold: 'OFF' },
+      { category: 'HARM_CATEGORY_SEXUALLY_EXPLICIT', threshold: 'OFF' },
+      { category: 'HARM_CATEGORY_HARASSMENT', threshold: 'OFF' },
+    ],
   },
-  thinkingConfig: {
-    thinkingBudget: -1,    // Enable thinking tokens (internal reasoning)
+} as const;
+
+/**
+ * Model configuration for factual content (Phase 1, Phase 3, Phase 4)
+ * Lower temperature for more accurate, deterministic responses
+ */
+export const MODEL_CONFIG_FACTUAL = {
+  model: useGeminiApi ? 'gemini-3-pro-preview' : 'gemini-2.0-flash',
+  config: {
+    maxOutputTokens: useGeminiApi ? 32768 : 8192,
+    temperature: 0.8, // Lower for more factual accuracy
+    topP: 0.95,
+    safetySettings: [
+      { category: 'HARM_CATEGORY_HATE_SPEECH', threshold: 'OFF' },
+      { category: 'HARM_CATEGORY_DANGEROUS_CONTENT', threshold: 'OFF' },
+      { category: 'HARM_CATEGORY_SEXUALLY_EXPLICIT', threshold: 'OFF' },
+      { category: 'HARM_CATEGORY_HARASSMENT', threshold: 'OFF' },
+    ],
   },
 } as const;

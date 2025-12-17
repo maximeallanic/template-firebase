@@ -6,7 +6,7 @@ import { audioService } from '../services/audioService';
 import { SimpleConfetti } from './SimpleConfetti';
 import {
     Triangle, Diamond, Circle, Square,
-    Clock, Trophy, XCircle, Play, ArrowRight, Flag, Utensils,
+    Clock, Trophy, XCircle, Play, Utensils,
     Pizza, Cookie, IceCream, Flame, Fish, Sandwich, User
 } from 'lucide-react';
 
@@ -26,8 +26,8 @@ const COLORS = [
 const ICONS = [Triangle, Diamond, Circle, Square]; // Shapes corresponding to colors
 
 export function Phase1Player({ room, playerId, isHost }: Phase1PlayerProps) {
-    const { state } = room;
-    const { phaseState, currentQuestionIndex, phase1Answers } = state;
+    const { state, players } = room;
+    const { phaseState, currentQuestionIndex, phase1Answers, phase1BlockedTeams } = state;
 
     // Use custom AI-generated questions if available, fallback to default QUESTIONS
     const questionsList = room.customQuestions?.phase1 || QUESTIONS;
@@ -37,6 +37,11 @@ export function Phase1Player({ room, playerId, isHost }: Phase1PlayerProps) {
 
     const [myAnswer, setMyAnswer] = useState<number | null>(null);
 
+    // Check if my team is blocked
+    const myTeam = players[playerId]?.team;
+    const blockedTeams = phase1BlockedTeams || [];
+    const isMyTeamBlocked = myTeam ? blockedTeams.includes(myTeam) : false;
+
     // Reset local answer when question changes
     const prevQIndex = useRef(currentQuestionIndex);
     if (prevQIndex.current !== currentQuestionIndex) {
@@ -45,7 +50,7 @@ export function Phase1Player({ room, playerId, isHost }: Phase1PlayerProps) {
     }
 
     const handleAnswer = (index: number) => {
-        if (phaseState === 'answering' && myAnswer === null) {
+        if (phaseState === 'answering' && myAnswer === null && !isMyTeamBlocked) {
             audioService.playClick();
             setMyAnswer(index);
             submitAnswer(room.code, playerId, index);
@@ -79,28 +84,36 @@ export function Phase1Player({ room, playerId, isHost }: Phase1PlayerProps) {
     }, [isReading]);
 
     // Determining feedback if result is shown
-    let resultMessage = "Waiting...";
+    let resultMessage = "En attente...";
     let resultIcon = <Clock className="w-8 h-8" />;
     let resultColor = "text-slate-400";
 
     if (isResult) {
+        const winnerTeam = state.roundWinner?.team;
+        const didMyTeamWin = winnerTeam && winnerTeam === myTeam;
+
         if (state.roundWinner?.playerId === playerId) {
-            resultMessage = "YOU WON! +1 YUM";
+            resultMessage = "BRAVO ! +1 POINT";
             resultIcon = <Trophy className="w-8 h-8" />;
             resultColor = "text-green-400";
+        } else if (didMyTeamWin) {
+            resultMessage = "Ton équipe a gagné !";
+            resultIcon = <Trophy className="w-8 h-8" />;
+            resultColor = "text-green-400";
+        } else if (winnerTeam && winnerTeam !== 'neutral') {
+            resultMessage = `L'équipe ${winnerTeam === 'spicy' ? 'Spicy' : 'Sweet'} gagne !`;
+            resultIcon = <XCircle className="w-8 h-8" />;
+            resultColor = "text-red-400";
+        } else if (!state.roundWinner) {
+            resultMessage = "Personne n'a trouvé !";
+            resultIcon = <XCircle className="w-8 h-8" />;
+            resultColor = "text-slate-400";
         } else if (myAnswer !== null) {
-            const correctIdx = currentQuestion ? currentQuestion.correctIndex : -1;
-            if (myAnswer === correctIdx) {
-                resultMessage = "Correct, but too slow!";
-                resultIcon = <Clock className="w-8 h-8" />;
-                resultColor = "text-yellow-400";
-            } else {
-                resultMessage = "Wrong Answer!";
-                resultIcon = <XCircle className="w-8 h-8" />;
-                resultColor = "text-red-400";
-            }
+            resultMessage = "Mauvaise réponse !";
+            resultIcon = <XCircle className="w-8 h-8" />;
+            resultColor = "text-red-400";
         } else {
-            resultMessage = "Time's up!";
+            resultMessage = "Manche terminée";
             resultIcon = <Clock className="w-8 h-8" />;
             resultColor = "text-slate-400";
         }
@@ -109,20 +122,20 @@ export function Phase1Player({ room, playerId, isHost }: Phase1PlayerProps) {
     // Audio & Visual Effects Logic
     useEffect(() => {
         if (isResult) {
+            const winnerTeam = state.roundWinner?.team;
+            const didMyTeamWin = winnerTeam && winnerTeam === myTeam;
+
             if (state.roundWinner?.playerId === playerId) {
                 audioService.playWinRound();
-            } else if (myAnswer !== null) {
-                const correctIdx = currentQuestion ? currentQuestion.correctIndex : -1;
-                if (myAnswer === correctIdx) {
-                    audioService.playSuccess();
-                } else {
-                    audioService.playError();
-                }
+            } else if (didMyTeamWin) {
+                audioService.playSuccess();
+            } else if (winnerTeam && winnerTeam !== 'neutral') {
+                audioService.playError(); // Other team won
             } else {
-                audioService.playError(); // Time's up is also a "fail"
+                audioService.playError(); // No winner
             }
         }
-    }, [isResult, state.roundWinner, playerId, myAnswer, currentQuestion]);
+    }, [isResult, state.roundWinner, playerId, myTeam]);
 
     // Timer Tick Audio
     useEffect(() => {
@@ -134,13 +147,32 @@ export function Phase1Player({ room, playerId, isHost }: Phase1PlayerProps) {
         }
     }, [isReading]);
 
+    // Auto-advance to next question after showing result (host only)
+    // Longer delay when there's an anecdote to read
+    // Auto-transition to Phase 2 when all questions are done
+    useEffect(() => {
+        if (isResult && isHost) {
+            const hasAnecdote = currentQuestion?.anecdote;
+            const delay = hasAnecdote ? 7000 : 3500; // 7s with anecdote, 3.5s without
+            const timer = setTimeout(() => {
+                if (isFinished) {
+                    // Auto-transition to Phase 2
+                    setGameStatus(room.code, 'phase2');
+                } else {
+                    startNextQuestion(room.code, nextQIndex);
+                }
+            }, delay);
+            return () => clearTimeout(timer);
+        }
+    }, [isResult, isHost, isFinished, room.code, nextQIndex, currentQuestion?.anecdote]);
+
     return (
-        <div className="flex flex-col items-center justify-center h-full w-full max-w-md mx-auto p-4 space-y-6 relative">
+        <div className="flex flex-col items-center justify-center h-full w-full max-w-2xl mx-auto p-4 space-y-6 relative">
 
             {/* Top Bar: Progress & Roster */}
             <div className="w-full flex items-center justify-between bg-slate-800/50 p-2 rounded-xl border border-white/5 mb-2">
                 <div className="flex items-center gap-2">
-                    <span className="text-xs font-bold uppercase text-slate-400 tracking-wider">Round</span>
+                    <span className="text-xs font-bold uppercase text-slate-400 tracking-wider">Manche</span>
                     <span className="text-white font-black bg-slate-700 px-2 py-0.5 rounded text-sm">
                         {(currentQuestionIndex ?? -1) + 1} / {questionsList.length}
                     </span>
@@ -164,7 +196,7 @@ export function Phase1Player({ room, playerId, isHost }: Phase1PlayerProps) {
                                             : 'bg-slate-700 border-slate-600'}
                                         ${hasAnswered ? 'scale-110 z-10' : ''}
                                     `}
-                                    title={`${p.name}${hasAnswered ? (wasCorrect ? ' ✓' : ' ✗') : ' (waiting...)'}`}
+                                    title={`${p.name}${hasAnswered ? (wasCorrect ? ' ✓' : ' ✗') : ' (en attente...)'}`}
                                 >
                                     <AvatarIcon className="w-4 h-4" />
                                     {hasAnswered && (
@@ -184,21 +216,22 @@ export function Phase1Player({ room, playerId, isHost }: Phase1PlayerProps) {
             </div>
 
             {/* Context Header */}
-            <div className="text-center space-y-4 w-full">
+            <div className="space-y-4 w-full">
                 {/* Question Text */}
                 {currentQuestion && (
-                    <div className="bg-slate-800/80 p-4 rounded-xl backdrop-blur-sm border border-slate-700 shadow-xl">
-                        <p className="text-white font-bold text-lg md:text-xl leading-snug">
+                    <div className="bg-slate-800/80 p-6 rounded-xl backdrop-blur-sm border border-slate-700 shadow-xl">
+                        <p className="text-white font-bold text-xl md:text-2xl leading-relaxed text-left">
                             {currentQuestion.text}
                         </p>
                     </div>
                 )}
 
                 <h3 className="text-xl font-bold text-white opacity-80 flex items-center justify-center gap-2">
-                    {isReading && <><Clock className="w-6 h-6 animate-pulse" /> Reading Time... {countdown}s</>}
-                    {isAnswering && <><Play className="w-6 h-6" /> ANSWER NOW!</>}
-                    {isResult && "Round Over"}
-                    {phaseState === 'idle' && "Get Ready..."}
+                    {isReading && <><Clock className="w-6 h-6 animate-pulse" /> Lecture... {countdown}s</>}
+                    {isAnswering && !isMyTeamBlocked && <><Play className="w-6 h-6" /> RÉPONDEZ !</>}
+                    {isAnswering && isMyTeamBlocked && <><XCircle className="w-6 h-6 text-red-400" /> <span className="text-red-400">Équipe bloquée - Attendez !</span></>}
+                    {isResult && "Manche terminée"}
+                    {phaseState === 'idle' && "Préparez-vous..."}
                 </h3>
             </div>
 
@@ -217,11 +250,11 @@ export function Phase1Player({ room, playerId, isHost }: Phase1PlayerProps) {
                             }
                             transition={{ duration: 0.4 }}
                             onClick={() => handleAnswer(idx)}
-                            disabled={!isAnswering || myAnswer !== null}
+                            disabled={!isAnswering || myAnswer !== null || isMyTeamBlocked}
                             className={`
                                 relative w-full p-4 rounded-xl flex items-center space-x-4 shadow-lg border-b-4 transition-all
                                 ${COLORS[idx]}
-                                ${(!isAnswering && !isResult) ? 'opacity-50 grayscale' : ''}
+                                ${(!isAnswering && !isResult) || isMyTeamBlocked ? 'opacity-50 grayscale' : ''}
                                 ${(myAnswer !== null && myAnswer !== idx) ? 'opacity-40' : 'opacity-100'}
                                 ${(isResult && myAnswer === idx) ? 'ring-4 ring-white scale-[1.02]' : ''}
                                 border-black/20 text-left
@@ -260,47 +293,39 @@ export function Phase1Player({ room, playerId, isHost }: Phase1PlayerProps) {
                         </div>
                         {state.roundWinner && (
                             <div className="text-sm text-white mt-1 flex items-center gap-1">
-                                Winner: <Trophy className="w-4 h-4 text-yellow-400" /> <span className="text-yellow-400 font-bold">{state.roundWinner.name}</span>
+                                Gagnant : <Trophy className="w-4 h-4 text-yellow-400" /> <span className="text-yellow-400 font-bold">{state.roundWinner.name}</span>
                             </div>
+                        )}
+                        {/* Show correct answer when nobody found it */}
+                        {!state.roundWinner && currentQuestion && (
+                            <div className="text-sm text-white mt-2 bg-green-600/30 border border-green-500/50 px-4 py-2 rounded-lg">
+                                <span className="text-green-400 font-bold">Bonne réponse :</span>{' '}
+                                <span className="text-white font-semibold">{currentQuestion.options[currentQuestion.correctIndex]}</span>
+                            </div>
+                        )}
+                        {/* Anecdote display for AI-generated questions */}
+                        {currentQuestion?.anecdote && (
+                            <p className="text-sm text-slate-300 italic mt-3 max-w-md text-center border-t border-slate-700 pt-3">
+                                💡 {currentQuestion.anecdote}
+                            </p>
                         )}
                     </motion.div>
                 )}
             </AnimatePresence>
 
-            {/* Celebration Confetti */}
-            {isResult && state.roundWinner?.playerId === playerId && <SimpleConfetti />}
+            {/* Celebration Confetti - for personal wins or team wins */}
+            {isResult && (state.roundWinner?.playerId === playerId || (state.roundWinner?.team === myTeam)) && <SimpleConfetti />}
 
             {/* HOST CONTROLS - Fixed at bottom */}
 
-            {isHost && (
+            {isHost && currentQuestionIndex === -1 && (
                 <div className="fixed bottom-0 left-0 right-0 p-4 bg-slate-950/80 backdrop-blur border-t border-slate-800 flex justify-center z-50">
-                    {isFinished ? (
-                        <div className="flex flex-col items-center space-y-4 animate-fade-in">
-                            <div className="text-2xl font-black text-white drop-shadow-lg flex items-center gap-2">
-                                <Flag className="w-8 h-8 text-yellow-500" /> Phase 1 Complete!
-                            </div>
-                            <button
-                                onClick={() => setGameStatus(room.code, 'phase2')}
-                                className="bg-yellow-400 hover:bg-yellow-300 text-black px-6 py-2 rounded-full font-bold shadow-xl transition-transform active:scale-95 flex items-center gap-2"
-                            >
-                                <Utensils className="w-5 h-5" /> Start Phase 2
-                            </button>
-                        </div>
-                    ) : (
-                        <button
-                            onClick={handleNextQuestion}
-                            disabled={isReading}
-                            className={`
-                                px-8 py-3 rounded-full text-lg font-bold text-white shadow-lg transition-all w-full max-w-sm flex items-center justify-center gap-2
-                                ${(isReading)
-                                    ? 'bg-slate-700 cursor-not-allowed opacity-50'
-                                    : 'bg-gradient-to-r from-spicy-500 to-sweet-500 hover:scale-105 active:scale-95'
-                                }
-                            `}
-                        >
-                            {currentQuestionIndex === -1 ? <><Play className="w-5 h-5" /> Start Game</> : (isAnswering ? <><ArrowRight className="w-5 h-5" /> Skip / Next</> : <><ArrowRight className="w-5 h-5" /> Next Question</>)}
-                        </button>
-                    )}
+                    <button
+                        onClick={handleNextQuestion}
+                        className="px-8 py-3 rounded-full text-lg font-bold text-white shadow-lg transition-all w-full max-w-sm flex items-center justify-center gap-2 bg-gradient-to-r from-spicy-500 to-sweet-500 hover:scale-105 active:scale-95"
+                    >
+                        <Play className="w-5 h-5" /> Commencer
+                    </button>
                 </div>
             )}
         </div>

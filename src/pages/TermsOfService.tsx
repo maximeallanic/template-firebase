@@ -1,203 +1,254 @@
 import { Link } from 'react-router-dom';
+import { ArrowLeft } from 'lucide-react';
 
 const TermsOfService = () => {
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50">
+    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-950 to-indigo-950">
       <div className="container mx-auto px-4 py-8 max-w-4xl">
         {/* Header */}
         <div className="mb-8">
-          <Link to="/" className="inline-flex items-center text-blue-600 hover:text-blue-700 mb-4">
-            <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
-            </svg>
-            Back to Home
+          <Link to="/" className="inline-flex items-center text-indigo-400 hover:text-indigo-300 mb-4 transition-colors">
+            <ArrowLeft className="w-5 h-5 mr-2" />
+            Retour à l'accueil
           </Link>
-          <h1 className="text-4xl font-bold text-gray-900 mb-2">Terms of Service</h1>
-          <p className="text-gray-600">Last updated: {"2025-12-15"}</p>
+          <h1 className="text-4xl font-bold text-white mb-2">Politique de Confidentialité</h1>
+          <p className="text-indigo-300/70">Dernière mise à jour : 16 décembre 2025</p>
         </div>
 
         {/* Content */}
-        <div className="bg-white rounded-lg shadow-lg p-8 space-y-6">
+        <div className="bg-white/5 backdrop-blur-lg rounded-2xl border border-white/10 p-8 space-y-8">
           <section>
-            <h2 className="text-2xl font-semibold text-gray-900 mb-3">1. Introduction</h2>
-            <p className="text-gray-700">
-              Welcome to {"Spicy vs Sweet"}. These Terms of Service ("Terms") govern your use of our service. By accessing or using {"Spicy vs Sweet"}, you agree to be bound by these Terms.
+            <h2 className="text-2xl font-semibold text-white mb-3">1. Introduction</h2>
+            <p className="text-indigo-100/80">
+              Chez Allanic, nous prenons la protection de vos données personnelles au sérieux. Cette Politique de Confidentialité explique comment nous collectons, utilisons et protégeons vos informations lorsque vous utilisez Spicy vs Sweet.
             </p>
           </section>
 
           <section>
-            <h2 className="text-2xl font-semibold text-gray-900 mb-3">2. Service Provider</h2>
-            <p className="text-gray-700 mb-2">{"Spicy vs Sweet"} is operated by:</p>
-            <div className="bg-gray-50 p-4 rounded-lg">
-              <p className="text-gray-700"><strong>Company:</strong> {"Addeus"}</p>
-              <p className="text-gray-700"><strong>Address:</strong> {"4 rue du marché 63140 Châtel-Guyon"}</p>
-              {/* Add additional company details as needed */}
+            <h2 className="text-2xl font-semibold text-white mb-3">2. Responsable du Traitement</h2>
+            <div className="bg-white/5 p-4 rounded-xl border border-white/10">
+              <p className="text-indigo-100/80"><strong className="text-white">Société :</strong> Allanic</p>
+              <p className="text-indigo-100/80"><strong className="text-white">Adresse :</strong> 4 rue du marché 63140 Châtel-Guyon</p>
+              <p className="text-indigo-100/80"><strong className="text-white">Contact DPO :</strong> contact@spicy-vs-sweet.com</p>
             </div>
           </section>
 
           <section>
-            <h2 className="text-2xl font-semibold text-gray-900 mb-3">3. Service Description</h2>
-            <p className="text-gray-700 mb-2">
-              {"Spicy vs Sweet"} provides AI-powered analysis services. The service evaluates content and provides actionable feedback.
-            </p>
-            <p className="text-gray-700">
-              We offer multiple service tiers:
-            </p>
-            <ul className="list-disc list-inside text-gray-700 ml-4 mt-2 space-y-1">
-              <li><strong>Free Trial:</strong> 1 analysis without sign-up (tracked by IP and browser fingerprint for 30 days)</li>
-              <li><strong>Free Plan:</strong> 5 analyses per month (requires account registration)</li>
-              <li><strong>Pro Plan:</strong> 250 analyses per month at $5/month (requires payment)</li>
-            </ul>
-          </section>
+            <h2 className="text-2xl font-semibold text-white mb-3">3. Données Collectées</h2>
+            <p className="text-indigo-100/80 mb-4">Nous collectons les données suivantes :</p>
 
-          <section>
-            <h2 className="text-2xl font-semibold text-gray-900 mb-3">4. User Accounts</h2>
-            <p className="text-gray-700 mb-2">
-              To access certain features, you must create an account using Google Authentication. You are responsible for:
-            </p>
-            <ul className="list-disc list-inside text-gray-700 ml-4 space-y-1">
-              <li>Maintaining the security of your account credentials</li>
-              <li>All activities that occur under your account</li>
-              <li>Providing accurate and complete information</li>
-              <li>Notifying us immediately of any unauthorized use</li>
-            </ul>
-          </section>
+            <div className="space-y-4">
+              <div className="border border-white/10 rounded-xl p-4 bg-white/5">
+                <h3 className="font-semibold text-white mb-2">Données d'Authentification</h3>
+                <ul className="list-disc list-inside text-indigo-100/80 space-y-1">
+                  <li>Adresse email (via Google Authentication)</li>
+                  <li>Identifiant unique Firebase</li>
+                  <li>Photo de profil Google (si disponible)</li>
+                </ul>
+              </div>
 
-          <section>
-            <h2 className="text-2xl font-semibold text-gray-900 mb-3">5. Acceptable Use</h2>
-            <p className="text-gray-700 mb-2">You agree NOT to:</p>
-            <ul className="list-disc list-inside text-gray-700 ml-4 space-y-1">
-              <li>Use the service for any illegal or unauthorized purpose</li>
-              <li>Attempt to bypass usage limits or abuse the free trial system</li>
-              <li>Share your account credentials with others</li>
-              <li>Reverse engineer, decompile, or attempt to extract the source code</li>
-              <li>Use the service to send spam or malicious content</li>
-              <li>Violate any applicable laws or regulations</li>
-              <li>Interfere with or disrupt the service or servers</li>
-            </ul>
-          </section>
+              <div className="border border-white/10 rounded-xl p-4 bg-white/5">
+                <h3 className="font-semibold text-white mb-2">Données de Jeu</h3>
+                <ul className="list-disc list-inside text-indigo-100/80 space-y-1">
+                  <li>Pseudo choisi pour les parties</li>
+                  <li>Avatar sélectionné</li>
+                  <li>Équipe (Spicy ou Sweet)</li>
+                  <li>Scores et réponses aux questions</li>
+                  <li>Historique des questions vues (pour éviter les répétitions)</li>
+                </ul>
+              </div>
 
-          <section>
-            <h2 className="text-2xl font-semibold text-gray-900 mb-3">6. Payment and Subscriptions</h2>
-            <p className="text-gray-700 mb-2">
-              Pro Plan subscriptions are processed through Stripe and billed monthly at $5/month.
-            </p>
-            <ul className="list-disc list-inside text-gray-700 ml-4 space-y-1">
-              <li>Subscriptions automatically renew unless cancelled</li>
-              <li>You can cancel your subscription at any time through your account settings</li>
-              <li>Cancellations take effect at the end of the current billing period</li>
-              <li>No refunds are provided for partial months</li>
-              <li>We reserve the right to change pricing with 30 days notice</li>
-            </ul>
-          </section>
+              <div className="border border-white/10 rounded-xl p-4 bg-white/5">
+                <h3 className="font-semibold text-white mb-2">Données Techniques</h3>
+                <ul className="list-disc list-inside text-indigo-100/80 space-y-1">
+                  <li>Adresse IP (pour la connexion en temps réel)</li>
+                  <li>Type de navigateur et appareil</li>
+                  <li>Données de connexion/déconnexion</li>
+                </ul>
+              </div>
 
-          <section>
-            <h2 className="text-2xl font-semibold text-gray-900 mb-3">7. Data Privacy</h2>
-            <p className="text-gray-700 mb-2">
-              We take your privacy seriously:
-            </p>
-            <ul className="list-disc list-inside text-gray-700 ml-4 space-y-1">
-              <li>Content submitted for analysis is processed by Google's Vertex AI</li>
-              <li>We do not store your content permanently</li>
-              <li>Free trial usage is tracked using hashed IP addresses (SHA-256) for privacy</li>
-              <li>User data is stored in Firebase Firestore with strict security rules</li>
-              <li>Analytics are collected using Firebase Analytics (production only)</li>
-              <li>We comply with GDPR and applicable data protection laws</li>
-            </ul>
-          </section>
-
-          <section>
-            <h2 className="text-2xl font-semibold text-gray-900 mb-3">8. Intellectual Property</h2>
-            <p className="text-gray-700 mb-2">
-              All content, features, and functionality of {"Spicy vs Sweet"} are owned by {"Addeus"} and protected by international copyright, trademark, and other intellectual property laws.
-            </p>
-            <p className="text-gray-700">
-              You retain ownership of the content you submit for analysis. By using our service, you grant us a limited license to process and analyze your content solely for the purpose of providing the service.
-            </p>
-          </section>
-
-          <section>
-            <h2 className="text-2xl font-semibold text-gray-900 mb-3">9. Disclaimer of Warranties</h2>
-            <p className="text-gray-700">
-              THE SERVICE IS PROVIDED "AS IS" AND "AS AVAILABLE" WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED. WE DO NOT GUARANTEE THAT:
-            </p>
-            <ul className="list-disc list-inside text-gray-700 ml-4 mt-2 space-y-1">
-              <li>The service will be uninterrupted, timely, secure, or error-free</li>
-              <li>The results obtained from using the service will be accurate or reliable</li>
-              <li>Any errors in the service will be corrected</li>
-              <li>The AI analysis will guarantee improved results</li>
-            </ul>
-          </section>
-
-          <section>
-            <h2 className="text-2xl font-semibold text-gray-900 mb-3">10. Limitation of Liability</h2>
-            <p className="text-gray-700">
-              TO THE MAXIMUM EXTENT PERMITTED BY LAW, {"Addeus"} SHALL NOT BE LIABLE FOR ANY INDIRECT, INCIDENTAL, SPECIAL, CONSEQUENTIAL, OR PUNITIVE DAMAGES, OR ANY LOSS OF PROFITS OR REVENUES, WHETHER INCURRED DIRECTLY OR INDIRECTLY, OR ANY LOSS OF DATA, USE, GOODWILL, OR OTHER INTANGIBLE LOSSES RESULTING FROM:
-            </p>
-            <ul className="list-disc list-inside text-gray-700 ml-4 mt-2 space-y-1">
-              <li>Your use or inability to use the service</li>
-              <li>Unauthorized access to or alteration of your transmissions or data</li>
-              <li>Any content obtained from the service</li>
-              <li>Any reliance on analysis results provided by the AI</li>
-            </ul>
-          </section>
-
-          <section>
-            <h2 className="text-2xl font-semibold text-gray-900 mb-3">11. Service Modifications</h2>
-            <p className="text-gray-700">
-              We reserve the right to modify, suspend, or discontinue any part of the service at any time with or without notice. We will not be liable to you or any third party for any modification, suspension, or discontinuance of the service.
-            </p>
-          </section>
-
-          <section>
-            <h2 className="text-2xl font-semibold text-gray-900 mb-3">12. Termination</h2>
-            <p className="text-gray-700">
-              We may terminate or suspend your account and access to the service immediately, without prior notice or liability, for any reason, including breach of these Terms. Upon termination, your right to use the service will immediately cease.
-            </p>
-          </section>
-
-          <section>
-            <h2 className="text-2xl font-semibold text-gray-900 mb-3">13. Governing Law</h2>
-            <p className="text-gray-700">
-              These Terms are governed by and construed in accordance with applicable laws. Any disputes arising from these Terms or the use of the service shall be subject to the exclusive jurisdiction of the competent courts.
-            </p>
-          </section>
-
-          <section>
-            <h2 className="text-2xl font-semibold text-gray-900 mb-3">14. Changes to Terms</h2>
-            <p className="text-gray-700">
-              We reserve the right to modify these Terms at any time. We will notify users of significant changes by updating the "Last updated" date. Continued use of the service after changes constitutes acceptance of the new Terms.
-            </p>
-          </section>
-
-          <section>
-            <h2 className="text-2xl font-semibold text-gray-900 mb-3">15. Contact Information</h2>
-            <p className="text-gray-700">
-              For questions about these Terms, please contact us at:
-            </p>
-            <div className="bg-gray-50 p-4 rounded-lg mt-2">
-              <p className="text-gray-700">{"Addeus"}</p>
-              <p className="text-gray-700">{"4 rue du marché 63140 Châtel-Guyon"}</p>
-              <p className="text-gray-700">{"contact@spicy-vs-sweet.com"}</p>
+              <div className="border border-pink-500/30 rounded-xl p-4 bg-pink-500/10">
+                <h3 className="font-semibold text-white mb-2">Données de Paiement (si abonnement)</h3>
+                <ul className="list-disc list-inside text-indigo-100/80 space-y-1">
+                  <li>Identifiant client Stripe</li>
+                  <li>Statut d'abonnement</li>
+                  <li className="text-pink-300">Note : Vos données bancaires sont traitées exclusivement par Stripe et ne transitent jamais par nos serveurs</li>
+                </ul>
+              </div>
             </div>
           </section>
 
           <section>
-            <h2 className="text-2xl font-semibold text-gray-900 mb-3">16. Severability</h2>
-            <p className="text-gray-700">
-              If any provision of these Terms is held to be invalid or unenforceable, the remaining provisions will continue in full force and effect.
+            <h2 className="text-2xl font-semibold text-white mb-3">4. Finalités du Traitement</h2>
+            <p className="text-indigo-100/80 mb-2">Vos données sont utilisées pour :</p>
+            <ul className="list-disc list-inside text-indigo-100/80 ml-4 space-y-2">
+              <li><strong className="text-indigo-300">Fonctionnement du jeu :</strong> Créer et gérer les parties multijoueurs en temps réel</li>
+              <li><strong className="text-indigo-300">Authentification :</strong> Vous identifier et sécuriser votre compte</li>
+              <li><strong className="text-indigo-300">Personnalisation :</strong> Éviter de vous montrer les mêmes questions</li>
+              <li><strong className="text-indigo-300">Paiements :</strong> Gérer les abonnements premium</li>
+              <li><strong className="text-indigo-300">Amélioration :</strong> Analyser l'utilisation pour améliorer le service</li>
+            </ul>
+          </section>
+
+          <section>
+            <h2 className="text-2xl font-semibold text-white mb-3">5. Base Légale</h2>
+            <ul className="list-disc list-inside text-indigo-100/80 ml-4 space-y-2">
+              <li><strong className="text-indigo-300">Exécution du contrat :</strong> Données nécessaires au fonctionnement du jeu</li>
+              <li><strong className="text-indigo-300">Consentement :</strong> Cookies et analytics (production uniquement)</li>
+              <li><strong className="text-indigo-300">Intérêt légitime :</strong> Sécurité et prévention de la fraude</li>
+            </ul>
+          </section>
+
+          <section>
+            <h2 className="text-2xl font-semibold text-white mb-3">6. Destinataires des Données</h2>
+            <p className="text-indigo-100/80 mb-4">Vos données peuvent être partagées avec :</p>
+
+            <div className="overflow-x-auto">
+              <table className="w-full text-left border-collapse">
+                <thead>
+                  <tr className="border-b border-white/10">
+                    <th className="py-2 px-4 text-white">Service</th>
+                    <th className="py-2 px-4 text-white">Usage</th>
+                    <th className="py-2 px-4 text-white">Localisation</th>
+                  </tr>
+                </thead>
+                <tbody className="text-indigo-100/80">
+                  <tr className="border-b border-white/5">
+                    <td className="py-2 px-4">Firebase (Google)</td>
+                    <td className="py-2 px-4">Auth, Database, Hosting</td>
+                    <td className="py-2 px-4">USA (Privacy Shield)</td>
+                  </tr>
+                  <tr className="border-b border-white/5">
+                    <td className="py-2 px-4">Google Gemini</td>
+                    <td className="py-2 px-4">Génération IA</td>
+                    <td className="py-2 px-4">USA (Privacy Shield)</td>
+                  </tr>
+                  <tr className="border-b border-white/5">
+                    <td className="py-2 px-4">Stripe</td>
+                    <td className="py-2 px-4">Paiements</td>
+                    <td className="py-2 px-4">USA (Privacy Shield)</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </section>
+
+          <section>
+            <h2 className="text-2xl font-semibold text-white mb-3">7. Durée de Conservation</h2>
+            <ul className="list-disc list-inside text-indigo-100/80 ml-4 space-y-2">
+              <li><strong className="text-indigo-300">Données de compte :</strong> Conservées tant que le compte est actif, puis 3 ans après suppression</li>
+              <li><strong className="text-indigo-300">Données de jeu (rooms) :</strong> Supprimées automatiquement après 24h d'inactivité</li>
+              <li><strong className="text-indigo-300">Historique des questions :</strong> Conservé pour améliorer l'expérience de jeu</li>
+              <li><strong className="text-indigo-300">Données de facturation :</strong> Conservées 10 ans (obligation légale)</li>
+            </ul>
+          </section>
+
+          <section>
+            <h2 className="text-2xl font-semibold text-white mb-3">8. Vos Droits (RGPD)</h2>
+            <p className="text-indigo-100/80 mb-4">Conformément au RGPD, vous disposez des droits suivants :</p>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="bg-white/5 p-4 rounded-xl border border-white/10">
+                <h4 className="font-semibold text-white mb-1">Droit d'accès</h4>
+                <p className="text-indigo-100/70 text-sm">Obtenir une copie de vos données</p>
+              </div>
+              <div className="bg-white/5 p-4 rounded-xl border border-white/10">
+                <h4 className="font-semibold text-white mb-1">Droit de rectification</h4>
+                <p className="text-indigo-100/70 text-sm">Corriger vos données inexactes</p>
+              </div>
+              <div className="bg-white/5 p-4 rounded-xl border border-white/10">
+                <h4 className="font-semibold text-white mb-1">Droit à l'effacement</h4>
+                <p className="text-indigo-100/70 text-sm">Supprimer vos données ("droit à l'oubli")</p>
+              </div>
+              <div className="bg-white/5 p-4 rounded-xl border border-white/10">
+                <h4 className="font-semibold text-white mb-1">Droit à la portabilité</h4>
+                <p className="text-indigo-100/70 text-sm">Recevoir vos données dans un format standard</p>
+              </div>
+              <div className="bg-white/5 p-4 rounded-xl border border-white/10">
+                <h4 className="font-semibold text-white mb-1">Droit d'opposition</h4>
+                <p className="text-indigo-100/70 text-sm">Vous opposer à certains traitements</p>
+              </div>
+              <div className="bg-white/5 p-4 rounded-xl border border-white/10">
+                <h4 className="font-semibold text-white mb-1">Droit de limitation</h4>
+                <p className="text-indigo-100/70 text-sm">Limiter l'utilisation de vos données</p>
+              </div>
+            </div>
+
+            <p className="text-indigo-100/80 mt-4">
+              Pour exercer vos droits, contactez-nous à : <span className="text-pink-400">contact@spicy-vs-sweet.com</span>
             </p>
+          </section>
+
+          <section>
+            <h2 className="text-2xl font-semibold text-white mb-3">9. Cookies</h2>
+            <p className="text-indigo-100/80 mb-2">Nous utilisons des cookies pour :</p>
+            <ul className="list-disc list-inside text-indigo-100/80 ml-4 space-y-2">
+              <li><strong className="text-indigo-300">Cookies essentiels :</strong> Authentification et session de jeu</li>
+              <li><strong className="text-indigo-300">Cookies analytiques :</strong> Firebase Analytics (production uniquement, avec consentement)</li>
+            </ul>
+            <p className="text-indigo-100/80 mt-3">
+              Vous pouvez gérer vos préférences de cookies dans les paramètres de votre navigateur.
+            </p>
+          </section>
+
+          <section>
+            <h2 className="text-2xl font-semibold text-white mb-3">10. Sécurité</h2>
+            <p className="text-indigo-100/80 mb-2">
+              Nous mettons en œuvre des mesures de sécurité appropriées :
+            </p>
+            <ul className="list-disc list-inside text-indigo-100/80 ml-4 space-y-2">
+              <li>Chiffrement des données en transit (HTTPS/TLS)</li>
+              <li>Authentification sécurisée via Firebase Auth</li>
+              <li>Règles de sécurité Firebase pour protéger les données</li>
+              <li>Accès limité aux données selon le principe du moindre privilège</li>
+            </ul>
+          </section>
+
+          <section>
+            <h2 className="text-2xl font-semibold text-white mb-3">11. Mineurs</h2>
+            <p className="text-indigo-100/80">
+              Spicy vs Sweet n'est pas destiné aux enfants de moins de 13 ans. Nous ne collectons pas sciemment de données concernant des mineurs de moins de 13 ans. Si vous êtes parent et découvrez que votre enfant nous a fourni des données, contactez-nous pour les supprimer.
+            </p>
+          </section>
+
+          <section>
+            <h2 className="text-2xl font-semibold text-white mb-3">12. Réclamations</h2>
+            <p className="text-indigo-100/80">
+              Si vous estimez que le traitement de vos données n'est pas conforme au RGPD, vous pouvez déposer une réclamation auprès de la CNIL (Commission Nationale de l'Informatique et des Libertés) : {' '}
+              <a href="https://www.cnil.fr" target="_blank" rel="noopener noreferrer" className="text-pink-400 hover:text-pink-300 underline">
+                www.cnil.fr
+              </a>
+            </p>
+          </section>
+
+          <section>
+            <h2 className="text-2xl font-semibold text-white mb-3">13. Modifications</h2>
+            <p className="text-indigo-100/80">
+              Cette politique peut être mise à jour. Les modifications seront publiées sur cette page avec une nouvelle date de mise à jour. Nous vous encourageons à consulter régulièrement cette page.
+            </p>
+          </section>
+
+          <section>
+            <h2 className="text-2xl font-semibold text-white mb-3">14. Contact</h2>
+            <p className="text-indigo-100/80 mb-2">
+              Pour toute question concernant cette politique :
+            </p>
+            <div className="bg-white/5 p-4 rounded-xl border border-white/10">
+              <p className="text-white font-semibold">Allanic - Protection des données</p>
+              <p className="text-indigo-100/80">4 rue du marché 63140 Châtel-Guyon</p>
+              <p className="text-indigo-100/80">contact@spicy-vs-sweet.com</p>
+            </div>
           </section>
         </div>
 
         {/* Footer Links */}
-        <div className="mt-8 text-center text-sm text-gray-600">
-          <Link to="/terms-and-conditions" className="text-blue-600 hover:text-blue-700 underline">
-            Terms and Conditions
+        <div className="mt-8 text-center text-sm text-indigo-300/50">
+          <Link to="/terms" className="text-indigo-400 hover:text-indigo-300 underline transition-colors">
+            Conditions Générales d'Utilisation
           </Link>
           {' • '}
-          <Link to="/" className="text-blue-600 hover:text-blue-700 underline">
-            Back to Home
+          <Link to="/" className="text-indigo-400 hover:text-indigo-300 underline transition-colors">
+            Retour à l'accueil
           </Link>
         </div>
       </div>

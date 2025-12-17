@@ -1,10 +1,50 @@
-import { ref, set, get, update, onValue, onDisconnect, push, increment } from 'firebase/database';
-import { rtdb } from './firebase';
+import { ref, set, get, update, onValue, onDisconnect, increment, runTransaction, remove } from 'firebase/database';
+import { rtdb, auth } from './firebase';
 import { QUESTIONS, type Question } from '../data/questions';
 import { markQuestionAsSeen } from './historyService';
 
+/**
+ * Get current authenticated user ID
+ * Throws if not authenticated
+ */
+function getAuthUserId(): string {
+    const user = auth.currentUser;
+    if (!user) {
+        throw new Error('User must be authenticated to perform this action');
+    }
+    return user.uid;
+}
+
 // ... types
-export type Avatar = 'donut' | 'pizza' | 'taco' | 'sushi' | 'chili' | 'cookie' | 'icecream' | 'fries';
+export type Avatar =
+    | 'burger' | 'pizza' | 'taco' | 'sushi' | 'hotdog'
+    | 'donut' | 'cupcake' | 'icecream' | 'fries' | 'cookie'
+    | 'chili' | 'popcorn' | 'avocado' | 'egg' | 'watermelon';
+
+export const AVATAR_LIST: Avatar[] = [
+    'burger', 'pizza', 'taco', 'sushi', 'hotdog',
+    'donut', 'cupcake', 'icecream', 'fries', 'cookie',
+    'chili', 'popcorn', 'avocado', 'egg', 'watermelon'
+];
+
+// Canonical phase names - Single source of truth for the entire app
+export type PhaseStatus = 'lobby' | 'phase1' | 'phase2' | 'phase3' | 'phase4' | 'phase5';
+
+export interface PhaseInfo {
+    name: string;
+    subtitle: string;
+    shortName: string;
+}
+
+export const PHASE_NAMES: Record<PhaseStatus, PhaseInfo> = {
+    lobby: { name: 'Lobby', subtitle: 'En attente...', shortName: 'Lobby' },
+    phase1: { name: 'Tenders', subtitle: 'Sois le plus rapide à buzzer !', shortName: 'Tenders' },
+    phase2: { name: 'Sucré Salé', subtitle: 'Plutôt A ou plutôt B ?', shortName: 'Sucré Salé' },
+    phase3: { name: 'La Carte', subtitle: 'Retiens un max de plats !', shortName: 'La Carte' },
+    phase4: { name: 'La Note', subtitle: 'Questions de culture G !', shortName: 'La Note' },
+    phase5: { name: 'Burger Ultime', subtitle: 'Le défi final pour la victoire !', shortName: 'Burger Ultime' },
+};
+
 export type Team = 'spicy' | 'sweet';
 
 export interface Player {
@@ -23,6 +63,7 @@ export interface GameState {
     phaseState: 'idle' | 'reading' | 'answering' | 'result' | 'menu_selection' | 'questioning' | 'buzzed';
     currentQuestionIndex?: number;
     phase1Answers?: Record<string, boolean>;
+    phase1BlockedTeams?: Team[]; // Teams blocked after wrong answer
     roundWinner?: { playerId: string | 'ALL'; name: string; team: Team | 'neutral' } | null;
     // Phase 2
     currentPhase2Set?: number;
@@ -49,7 +90,7 @@ export type PhaseState = GameState['phaseState'];
 
 export interface SimplePhase2Set {
     title: string;
-    items: { text: string; answer: 'A' | 'B' | 'Both' }[];
+    items: { text: string; answer: 'A' | 'B' | 'Both'; anecdote?: string; justification?: string }[];
     optionA: string;
     optionB: string;
 }
@@ -57,6 +98,17 @@ export interface SimplePhase2Set {
 export interface Phase5Data {
     ingredients: string[];
     recipe?: string;
+}
+
+export interface Phase3Menu {
+    title: string;
+    description: string;
+    questions: { question: string; answer: string }[];
+}
+
+export interface Phase4Question {
+    question: string;
+    answer: string;
 }
 
 export interface Room {
@@ -68,6 +120,8 @@ export interface Room {
     customQuestions?: {
         phase1?: Question[];
         phase2?: SimplePhase2Set[]; // Array of sets, generated one usually
+        phase3?: Phase3Menu[];
+        phase4?: Phase4Question[];
         phase5?: Phase5Data;
     };
 }
@@ -76,13 +130,17 @@ export interface Room {
 
 // === CONTENT MANAGEMENT ===
 
-export const overwriteGameQuestions = async (code: string, phase: 'phase1' | 'phase2' | 'phase5', data: Question[] | SimplePhase2Set | SimplePhase2Set[] | Phase5Data | Record<string, unknown> | unknown[]) => {
+export const overwriteGameQuestions = async (
+    code: string,
+    phase: 'phase1' | 'phase2' | 'phase3' | 'phase4' | 'phase5',
+    data: Question[] | SimplePhase2Set | SimplePhase2Set[] | Phase3Menu[] | Phase4Question[] | Phase5Data | Record<string, unknown> | unknown[]
+) => {
     const roomId = code.toUpperCase();
     const updatePath = `rooms/${roomId}/customQuestions/${phase}`;
 
     // For Phase 2, the AI returns a single set object, but our system supports array of sets.
     // We will wrap it in an array if phase is phase2.
-    let contentStore: Question[] | SimplePhase2Set[] | Phase5Data | unknown[] | Record<string, unknown> = data as Question[] | SimplePhase2Set[] | Phase5Data | unknown[] | Record<string, unknown>;
+    let contentStore: Question[] | SimplePhase2Set[] | Phase3Menu[] | Phase4Question[] | Phase5Data | unknown[] | Record<string, unknown> = data as Question[] | SimplePhase2Set[] | Phase3Menu[] | Phase4Question[] | Phase5Data | unknown[] | Record<string, unknown>;
     if (phase === 'phase2' && !Array.isArray(data)) {
         contentStore = [data as SimplePhase2Set]; // AI generates one set, we store as first item
     }
@@ -99,6 +157,14 @@ export const overwriteGameQuestions = async (code: string, phase: 'phase1' | 'ph
         updates[`rooms/${roomId}/state/currentPhase2Set`] = 0;
         updates[`rooms/${roomId}/state/currentPhase2Item`] = 0;
         updates[`rooms/${roomId}/state/status`] = 'phase2';
+    } else if (phase === 'phase3') {
+        updates[`rooms/${roomId}/state/phase3CompletedMenus`] = [];
+        updates[`rooms/${roomId}/state/phase3MenuSelection`] = {};
+        updates[`rooms/${roomId}/state/phaseState`] = 'menu_selection';
+    } else if (phase === 'phase4') {
+        updates[`rooms/${roomId}/state/currentPhase4QuestionIndex`] = 0;
+        updates[`rooms/${roomId}/state/phase4State`] = 'idle';
+        updates[`rooms/${roomId}/state/buzzedTeam`] = null;
     }
 
     await update(ref(rtdb), updates);
@@ -117,12 +183,12 @@ export const startNextQuestion = async (code: string, nextIndex: number) => {
     // Safety check
     if (nextIndex >= questionsList.length) return;
 
-    // ... rest of function
     const updates: Record<string, unknown> = {};
     updates[`rooms/${roomId}/state/currentQuestionIndex`] = nextIndex;
     updates[`rooms/${roomId}/state/phaseState`] = 'reading';
     updates[`rooms/${roomId}/state/roundWinner`] = null;
     updates[`rooms/${roomId}/state/phase1Answers`] = {};
+    updates[`rooms/${roomId}/state/phase1BlockedTeams`] = []; // Reset blocked teams
 
     // Mark question as seen for all players
     const currentQ = questionsList[nextIndex];
@@ -156,35 +222,66 @@ export const submitAnswer = async (code: string, playerId: string, answerIndex: 
 
     if (state.phaseState !== 'answering' || qIndex === -1 || !player) return;
 
+    // Check if player's team is blocked
+    const blockedTeams = state.phase1BlockedTeams || [];
+    if (player.team && blockedTeams.includes(player.team)) {
+        return; // Player's team is blocked, can't answer
+    }
+
     // USE DYNAMIC QUESTIONS
     const questionsList = room.customQuestions?.phase1 || QUESTIONS;
     const currentQuestion = questionsList[qIndex];
-    if (!currentQuestion) return; // Guard
+    if (!currentQuestion) return;
 
     const isCorrect = answerIndex === currentQuestion.correctIndex;
-    // ... rest of function logic identical
     const updates: Record<string, unknown> = {};
 
     // 1. Record Answer
     updates[`rooms/${roomId}/state/phase1Answers/${playerId}`] = isCorrect;
+
     if (isCorrect) {
+        // TEAM WINS! First correct answer from a team wins the round
         const newScore = (player.score || 0) + 1;
         updates[`rooms/${roomId}/players/${playerId}/score`] = newScore;
-    }
 
-    // 2. Check if ALL players have answered
-    const currentAnswers = state.phase1Answers || {};
-    const nextAnswers = { ...currentAnswers, [playerId]: isCorrect };
-
-    const activePlayers = Object.values(players).filter(p => !p.isHost && p.isOnline);
-    const totalActive = activePlayers.length;
-    const answeredCount = activePlayers.filter(p => p.id in nextAnswers).length;
-
-    if (answeredCount >= totalActive) {
+        // Set winner and show result
+        updates[`rooms/${roomId}/state/roundWinner`] = {
+            playerId: playerId,
+            name: player.name,
+            team: player.team || 'neutral'
+        };
         updates[`rooms/${roomId}/state/phaseState`] = 'result';
+
+        await update(ref(rtdb), updates);
+
+        // Auto-advance to next question after delay
         setTimeout(() => {
             startNextQuestion(code, qIndex + 1);
         }, 3000);
+        return;
+    }
+
+    // WRONG ANSWER: Block the player's team
+    if (player.team && !blockedTeams.includes(player.team)) {
+        const newBlockedTeams = [...blockedTeams, player.team];
+        updates[`rooms/${roomId}/state/phase1BlockedTeams`] = newBlockedTeams;
+
+        // Check if ALL teams are now blocked (both spicy and sweet)
+        const allTeams: Team[] = ['spicy', 'sweet'];
+        const allBlocked = allTeams.every(t => newBlockedTeams.includes(t));
+
+        if (allBlocked) {
+            // Nobody got it right - show result and move on
+            updates[`rooms/${roomId}/state/roundWinner`] = null;
+            updates[`rooms/${roomId}/state/phaseState`] = 'result';
+
+            await update(ref(rtdb), updates);
+
+            setTimeout(() => {
+                startNextQuestion(code, qIndex + 1);
+            }, 3000);
+            return;
+        }
     }
 
     await update(ref(rtdb), updates);
@@ -233,13 +330,11 @@ const generateRoomCode = () => {
 // === CORE SERVICES ===
 
 export const createRoom = async (hostName: string, avatar: Avatar): Promise<{ code: string; playerId: string }> => {
+    // Use Firebase Auth UID as player ID for security
+    const playerId = getAuthUserId();
+
     const code = generateRoomCode();
     const roomId = code;
-
-    // Create Host Player
-    const playersRef = ref(rtdb, `rooms/${roomId}/players`);
-    const newPlayerRef = push(playersRef);
-    const playerId = newPlayerRef.key!;
 
     const hostPlayer: Player = {
         id: playerId,
@@ -272,6 +367,9 @@ export const createRoom = async (hostName: string, avatar: Avatar): Promise<{ co
 };
 
 export const joinRoom = async (code: string, playerName: string, avatar: Avatar): Promise<{ playerId: string } | null> => {
+    // Use Firebase Auth UID as player ID for security
+    const playerId = getAuthUserId();
+
     const roomId = code.toUpperCase();
     const roomRef = ref(rtdb, `rooms/${roomId}`);
 
@@ -282,14 +380,25 @@ export const joinRoom = async (code: string, playerName: string, avatar: Avatar)
 
     const room = snapshot.val() as Room;
 
-    // Check if game has already started
+    // Check if player already exists in room (reconnection scenario)
+    if (room.players && room.players[playerId]) {
+        // Player is reconnecting - update their info and mark online
+        await update(ref(rtdb, `rooms/${roomId}/players/${playerId}`), {
+            name: playerName,
+            avatar,
+            isOnline: true
+        });
+        setupDisconnectHandler(roomId, playerId);
+        return { playerId };
+    }
+
+    // Check if game has already started (new players can't join mid-game)
     if (room.state.status !== 'lobby') {
         throw new Error('Game already started');
     }
 
-    const playersRef = ref(rtdb, `rooms/${roomId}/players`);
-    const newPlayerRef = push(playersRef);
-    const playerId = newPlayerRef.key!;
+    // Create new player with auth.uid as key
+    const playerRef = ref(rtdb, `rooms/${roomId}/players/${playerId}`);
 
     const newPlayer: Player = {
         id: playerId,
@@ -302,7 +411,7 @@ export const joinRoom = async (code: string, playerName: string, avatar: Avatar)
         isOnline: true
     };
 
-    await set(newPlayerRef, newPlayer);
+    await set(playerRef, newPlayer);
     setupDisconnectHandler(roomId, playerId);
 
     return { playerId };
@@ -322,6 +431,13 @@ export const subscribeToRoom = (code: string, callback: (room: Room | null) => v
 const setupDisconnectHandler = (roomId: string, playerId: string) => {
     const playerOnlineRef = ref(rtdb, `rooms/${roomId}/players/${playerId}/isOnline`);
     onDisconnect(playerOnlineRef).set(false);
+};
+
+// Leave room (remove player from room without logging out)
+export const leaveRoom = async (code: string, playerId: string) => {
+    const roomId = code.toUpperCase();
+    const playerRef = ref(rtdb, `rooms/${roomId}/players/${playerId}`);
+    await remove(playerRef);
 };
 
 // Mark player as online (for reconnection scenarios)
@@ -348,6 +464,11 @@ export const updatePlayerTeam = async (code: string, playerId: string, team: Tea
     await update(ref(rtdb, `rooms/${roomId}/players/${playerId}`), { team });
 };
 
+export const updatePlayerProfile = async (code: string, playerId: string, name: string, avatar: Avatar) => {
+    const roomId = code.toUpperCase();
+    await update(ref(rtdb, `rooms/${roomId}/players/${playerId}`), { name, avatar });
+};
+
 export const setGameStatus = async (code: string, status: GameState['status']) => {
     const roomId = code.toUpperCase();
     const updates: Record<string, unknown> = {};
@@ -358,6 +479,7 @@ export const setGameStatus = async (code: string, status: GameState['status']) =
         updates[`rooms/${roomId}/state/currentQuestionIndex`] = 0;
         updates[`rooms/${roomId}/state/phaseState`] = 'reading';
         updates[`rooms/${roomId}/state/phase1Answers`] = {}; // Reset answers
+        updates[`rooms/${roomId}/state/phase1BlockedTeams`] = []; // Reset blocked teams
         updates[`rooms/${roomId}/state/roundWinner`] = null; // Ensure round winner is reset
     } else if (status === 'phase2') {
         updates[`rooms/${roomId}/state/currentPhase2Set`] = 0; // Default to first set
@@ -400,40 +522,72 @@ export const submitPhase2Answer = async (
     roomId: string,
     playerId: string,
     answer: 'A' | 'B' | 'Both',
-    correctAnswer: 'A' | 'B' | 'Both'
+    correctAnswer: 'A' | 'B' | 'Both',
+    totalOnlinePlayers: number
 ) => {
-    const roomRef = ref(rtdb, `rooms/${roomId}`);
-    const snapshot = await get(roomRef);
-    if (!snapshot.exists()) return;
-
-    const room = snapshot.val() as Room;
-
-    // Validation
-    if (room.state.status !== 'phase2' || room.state.phaseState !== 'reading' || !room.players[playerId]) return;
-
-    // Remove "Start Winner" block - Allow all to answer
-    // if (room.state.roundWinner) return; 
+    console.log('📤 submitPhase2Answer called:', {
+        roomId,
+        playerId: playerId.slice(0, 8) + '...',
+        answer,
+        correctAnswer,
+        totalOnlinePlayers
+    });
 
     const isCorrect = answer === correctAnswer;
-    const updates: Record<string, unknown> = {};
+    const answersRef = ref(rtdb, `rooms/${roomId}/state/phase2Answers`);
 
-    // 1. Record that this player answered
-    updates[`rooms/${roomId}/state/phase2Answers/${playerId}`] = isCorrect;
+    // Use transaction to atomically add answer
+    const result = await runTransaction(answersRef, (currentAnswers) => {
+        const answers = currentAnswers || {};
+        console.log('🔄 Transaction running:', { existingAnswers: Object.keys(answers).length, playerId: playerId.slice(0, 8) });
+        // If already answered, abort
+        if (playerId in answers) {
+            console.log('⚠️ Player already answered, aborting transaction');
+            return; // Abort transaction
+        }
+        // Add this player's answer
+        return { ...answers, [playerId]: isCorrect };
+    });
 
-    if (isCorrect) {
-        const player = room.players[playerId];
-        const newScore = (player.score || 0) + 1;
-        updates[`rooms/${roomId}/players/${playerId}/score`] = newScore;
+    console.log('📝 Transaction result:', { committed: result.committed });
+
+    // Transaction aborted (player already answered) or failed
+    if (!result.committed) {
+        console.log('❌ Transaction not committed, returning early');
+        return;
     }
 
-    // 2. Check completions
-    // MOVED TO HOST CLIENT SIDE (Phase2Player.tsx) to avoid race conditions.
-    // The Host will monitor the answers and trigger the transition.
+    // Update score if correct (outside transaction since it's a different path)
+    if (isCorrect) {
+        const scoreRef = ref(rtdb, `rooms/${roomId}/players/${playerId}/score`);
+        await runTransaction(scoreRef, (currentScore) => (currentScore || 0) + 1);
+    }
 
-    await update(ref(rtdb), updates);
+    // Check if all players answered using the transaction result (no stale data)
+    const updatedAnswers = result.snapshot.val() || {};
+    const answeredCount = Object.keys(updatedAnswers).length;
+
+    // Debug logging
+    console.log('📊 Phase2 Answer Check:', {
+        playerId: playerId.slice(0, 8) + '...',
+        answeredCount,
+        totalOnlinePlayers,
+        answerIds: Object.keys(updatedAnswers).map(id => id.slice(0, 8) + '...'),
+        shouldEndRound: answeredCount >= totalOnlinePlayers && totalOnlinePlayers > 0
+    });
+
+    // If this player was the last to answer, end the round
+    if (answeredCount >= totalOnlinePlayers && totalOnlinePlayers > 0) {
+        // Small delay to let UI update before showing result
+        console.log('✅ All players answered, ending round...');
+        setTimeout(() => {
+            endPhase2Round(roomId);
+        }, 300);
+    }
 };
 
 export const endPhase2Round = async (roomCode: string) => {
+    console.log('🏁 endPhase2Round called:', { roomCode });
     const roomId = roomCode.toUpperCase();
     const updates: Record<string, unknown> = {};
     updates[`rooms/${roomId}/state/phaseState`] = 'result';
@@ -445,6 +599,7 @@ export const endPhase2Round = async (roomCode: string) => {
     };
 
     await update(ref(rtdb), updates);
+    console.log('✅ endPhase2Round: phaseState set to result');
 
     // Auto-Advance logic
     setTimeout(() => {
@@ -529,7 +684,7 @@ export const addTeamPoints = async (roomCode: string, team: Team, points: number
     }
 };
 
-// --- PHASE 4 LOGIC (L'Addition) ---
+// --- PHASE 4 LOGIC (La Note) ---
 
 export const buzz = async (roomCode: string, team: Team) => {
     const roomId = roomCode.toUpperCase();

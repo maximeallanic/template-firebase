@@ -9,6 +9,8 @@ import {
   sendEmailVerification,
   GoogleAuthProvider,
   signInWithPopup,
+  signInWithRedirect,
+  getRedirectResult,
   applyActionCode,
   sendPasswordResetEmail,
   verifyPasswordResetCode,
@@ -20,13 +22,43 @@ import {
   type User as FirebaseUser
 } from 'firebase/auth';
 
+// Rate limiting configuration
+const RATE_LIMIT_WINDOW_MS = 60000; // 1 minute
+const MAX_AUTH_ATTEMPTS = 5;
+const MAX_PASSWORD_RESET_ATTEMPTS = 3;
+
+// Rate limiting state
+const rateLimitState = {
+  authAttempts: [] as number[],
+  passwordResetAttempts: [] as number[],
+};
+
+function checkRateLimit(attempts: number[], maxAttempts: number): boolean {
+  const now = Date.now();
+  // Remove old attempts outside the window
+  const recentAttempts = attempts.filter(time => now - time < RATE_LIMIT_WINDOW_MS);
+  attempts.length = 0;
+  attempts.push(...recentAttempts);
+
+  if (recentAttempts.length >= maxAttempts) {
+    return false; // Rate limited
+  }
+  attempts.push(now);
+  return true;
+}
+
+function getRateLimitRemainingTime(attempts: number[]): number {
+  if (attempts.length === 0) return 0;
+  const oldestAttempt = Math.min(...attempts);
+  return Math.max(0, RATE_LIMIT_WINDOW_MS - (Date.now() - oldestAttempt));
+}
+
 export type User = FirebaseUser;
 import { getFunctions, httpsCallable, connectFunctionsEmulator } from 'firebase/functions';
-import { getFirestore, connectFirestoreEmulator, collection, query, orderBy, limit as firestoreLimit, getDocs, doc, getDoc, onSnapshot, Timestamp } from 'firebase/firestore';
+import { getFirestore, connectFirestoreEmulator, doc, getDoc, Timestamp } from 'firebase/firestore';
 import { getDatabase, connectDatabaseEmulator } from 'firebase/database';
 // Analytics imported dynamically for performance (see initializeAnalytics)
 import { initializeAppCheck, ReCaptchaEnterpriseProvider } from 'firebase/app-check';
-import type { AnalyzeEmailRequest, AnalyzeEmailResponse, AnalysisRecord } from '../types/analysis';
 
 // Firebase configuration
 const firebaseConfig = {
@@ -83,15 +115,8 @@ export async function initializeAuth(): Promise<void> {
 
   authInitialized = true;
 
-  // Use emulators in development
-  if (import.meta.env.DEV) {
-    try {
-      connectAuthEmulator(auth, 'http://localhost:9099', { disableWarnings: true });
-      console.log('✅ Connected to Auth emulator (9099)');
-    } catch (error) {
-      console.warn('⚠️ Failed to connect to Auth emulator:', error);
-    }
-  }
+  // Note: In DEV mode, emulator is already connected synchronously at module load
+  // to avoid race condition with persisted sessions
 
   // Set Persistence safely
   try {
@@ -142,14 +167,17 @@ export async function initializeAnalytics(): Promise<void> {
 
 export { analytics };
 
-// Initialize Functions and Firestore emulators in development (no auth yet)
+// Initialize ALL emulators in development (must happen BEFORE any auth state change)
 if (import.meta.env.DEV) {
   try {
+    // Auth emulator MUST connect synchronously to avoid race condition with persisted sessions
+    connectAuthEmulator(auth, 'http://localhost:9099', { disableWarnings: true });
     connectFunctionsEmulator(functions, '127.0.0.1', 5001);
     connectFirestoreEmulator(db, '127.0.0.1', 8080);
     connectDatabaseEmulator(rtdb, '127.0.0.1', 9000);
-    console.log('✅ Connected to Firebase emulators (Functions:5001, Firestore:8080, RTDB:9000)');
-    console.log('ℹ️  Auth emulator will connect on first use');
+    console.log('✅ Connected to Firebase emulators (Auth:9099, Functions:5001, Firestore:8080, RTDB:9000)');
+    // Mark auth as initialized since we just connected to emulator
+    authInitialized = true;
   } catch (error) {
     console.warn('⚠️ Failed to connect to emulators:', error);
   }
@@ -158,6 +186,14 @@ if (import.meta.env.DEV) {
 // Auth functions
 export async function signIn(email: string, password: string) {
   await initializeAuth(); // Lazy-load auth on first use
+
+  // Rate limiting check
+  if (!checkRateLimit(rateLimitState.authAttempts, MAX_AUTH_ATTEMPTS)) {
+    const remainingMs = getRateLimitRemainingTime(rateLimitState.authAttempts);
+    const remainingSec = Math.ceil(remainingMs / 1000);
+    throw new Error(`Trop de tentatives. Réessayez dans ${remainingSec} secondes.`);
+  }
+
   try {
     const result = await signInWithEmailAndPassword(auth, email, password);
     return result.user;
@@ -170,6 +206,14 @@ export async function signIn(email: string, password: string) {
 
 export async function signUp(email: string, password: string) {
   await initializeAuth(); // Lazy-load auth on first use
+
+  // Rate limiting check
+  if (!checkRateLimit(rateLimitState.authAttempts, MAX_AUTH_ATTEMPTS)) {
+    const remainingMs = getRateLimitRemainingTime(rateLimitState.authAttempts);
+    const remainingSec = Math.ceil(remainingMs / 1000);
+    throw new Error(`Trop de tentatives. Réessayez dans ${remainingSec} secondes.`);
+  }
+
   try {
     const result = await createUserWithEmailAndPassword(auth, email, password);
 
@@ -186,11 +230,23 @@ export async function signUp(email: string, password: string) {
 
 export async function signInWithGoogle() {
   await initializeAuth(); // Lazy-load auth on first use
-  try {
-    const provider = new GoogleAuthProvider();
-    provider.addScope('email');
-    provider.addScope('profile');
 
+  const provider = new GoogleAuthProvider();
+  provider.addScope('email');
+  provider.addScope('profile');
+
+  // First, check for redirect result (in case we're coming back from a redirect)
+  try {
+    const redirectResult = await getRedirectResult(auth);
+    if (redirectResult) {
+      return redirectResult.user;
+    }
+  } catch (redirectError) {
+    console.warn('Redirect result check failed:', redirectError);
+  }
+
+  // Try popup first (better UX on desktop)
+  try {
     const result = await signInWithPopup(auth, provider);
     // Note: result.user.emailVerified is automatically true for Google sign-in
     return result.user;
@@ -201,14 +257,17 @@ export async function signInWithGoogle() {
     const errorCode = (error as { code?: string }).code;
     const errorMessage = error instanceof Error ? error.message : 'Failed to sign in with Google';
 
-    if (errorCode === 'auth/popup-closed-by-user') {
-      throw new Error('Sign-in cancelled');
+    // If popup is blocked or fails, fallback to redirect
+    if (errorCode === 'auth/popup-blocked' || errorCode === 'auth/popup-closed-by-user') {
+      console.log('Popup blocked or closed, falling back to redirect...');
+      // Use redirect as fallback (works on all browsers/devices)
+      await signInWithRedirect(auth, provider);
+      // This will redirect away, so we won't reach this return
+      return null as unknown as FirebaseUser;
     }
-    if (errorCode === 'auth/popup-blocked') {
-      throw new Error('Popup blocked. Please allow popups for this site.');
-    }
+
     if (errorCode === 'auth/account-exists-with-different-credential') {
-      throw new Error('An account already exists with this email. Please sign in with email/password.');
+      throw new Error('Un compte existe déjà avec cet email. Connectez-vous avec email/mot de passe.');
     }
     if (errorCode === 'auth/cancelled-popup-request') {
       // User closed popup, don't show error
@@ -314,6 +373,13 @@ export async function verifyEmailCode(code: string) {
 }
 
 export async function sendPasswordReset(email: string) {
+  // Rate limiting check (stricter for password reset to prevent email enumeration)
+  if (!checkRateLimit(rateLimitState.passwordResetAttempts, MAX_PASSWORD_RESET_ATTEMPTS)) {
+    const remainingMs = getRateLimitRemainingTime(rateLimitState.passwordResetAttempts);
+    const remainingSec = Math.ceil(remainingMs / 1000);
+    throw new Error(`Trop de tentatives. Réessayez dans ${remainingSec} secondes.`);
+  }
+
   try {
     await sendPasswordResetEmail(auth, email, {
       url: window.location.origin,
@@ -324,11 +390,14 @@ export async function sendPasswordReset(email: string) {
     console.error('Password reset email error:', error);
 
     const errorCode = (error as { code?: string }).code;
+    // Security: Don't reveal if email exists or not (prevents enumeration)
+    // Always return success message to prevent user enumeration attacks
     if (errorCode === 'auth/user-not-found') {
-      throw new Error('No account found with this email address');
+      // Silently succeed to prevent email enumeration
+      return { success: true };
     }
     if (errorCode === 'auth/invalid-email') {
-      throw new Error('Invalid email address');
+      throw new Error('Adresse email invalide');
     }
 
     const message = error instanceof Error ? error.message : 'Failed to send reset email';
@@ -377,16 +446,6 @@ export async function resetPassword(code: string, newPassword: string) {
 }
 
 // Callable functions
-const analyzeEmailFunction = httpsCallable<AnalyzeEmailRequest, AnalyzeEmailResponse>(
-  functions,
-  'analyzeEmail'
-);
-
-const analyzeEmailGuestFunction = httpsCallable<AnalyzeEmailRequest, AnalyzeEmailResponse>(
-  functions,
-  'analyzeEmailGuest'
-);
-
 const getUserSubscriptionFunction = httpsCallable<void, {
   subscriptionStatus: string;
   analysesUsed: number;
@@ -408,117 +467,6 @@ const createPortalSessionFunction = httpsCallable<{ returnUrl: string }, { url: 
   functions,
   'createPortalSession'
 );
-
-const createEmailAnalysisSessionFunction = httpsCallable<
-  void,
-  {
-    success: boolean;
-    data?: {
-      emailAddress: string;
-      displayName: string;
-      sessionId: string;
-      expiresAt: number;
-    };
-    error?: string;
-  }
->(functions, 'createEmailAnalysisSession');
-
-export async function analyzeEmail(emailContent: string) {
-  try {
-    const result = await analyzeEmailFunction({ emailContent });
-    return result.data;
-  } catch (error: unknown) {
-    console.error('Error calling analyzeEmail:', error);
-
-    // Handle specific error codes
-    const errorCode = (error as { code?: string }).code;
-    const errorMessage = error instanceof Error ? error.message : 'Failed to analyze email';
-
-    if (errorCode === 'functions/unauthenticated') {
-      throw new Error('Please sign in to analyze emails');
-    }
-    if (errorCode === 'functions/resource-exhausted') {
-      throw new Error(errorMessage || 'You have reached your monthly limit');
-    }
-    if (errorCode === 'functions/failed-precondition') {
-      throw new Error(errorMessage || 'Please verify your email address before analyzing emails');
-    }
-
-    throw new Error(errorMessage);
-  }
-}
-
-// Free Trial Helper Functions
-export function markFreeTrialUsed(): void {
-  try {
-    localStorage.setItem('hasUsedFreeTrial', 'true');
-    localStorage.setItem('freeTrialUsedAt', Date.now().toString());
-    // Set cookie for 30 days
-    const expiryDate = new Date();
-    expiryDate.setDate(expiryDate.getDate() + 30);
-    const cookiePrefix = import.meta.env.VITE_COOKIE_PREFIX || 'app';
-    document.cookie = `${cookiePrefix}_trial=used; expires=${expiryDate.toUTCString()}; path=/; SameSite=Strict`;
-  } catch (error) {
-    console.warn('Failed to mark free trial as used:', error);
-  }
-}
-
-export function hasUsedFreeTrial(): boolean {
-  try {
-    // Check localStorage
-    const localStorageUsed = localStorage.getItem('hasUsedFreeTrial') === 'true';
-
-    // Check cookie
-    const cookiePrefix = import.meta.env.VITE_COOKIE_PREFIX || 'app';
-    const cookieUsed = document.cookie.split(';').some(cookie =>
-      cookie.trim().startsWith(`${cookiePrefix}_trial=used`)
-    );
-
-    return localStorageUsed || cookieUsed;
-  } catch (error) {
-    console.warn('Failed to check free trial status:', error);
-    return false;
-  }
-}
-
-export function clearFreeTrialStatus(): void {
-  try {
-    localStorage.removeItem('hasUsedFreeTrial');
-    localStorage.removeItem('freeTrialUsedAt');
-    const cookiePrefix = import.meta.env.VITE_COOKIE_PREFIX || 'app';
-    document.cookie = `${cookiePrefix}_trial=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;`;
-  } catch (error) {
-    console.warn('Failed to clear free trial status:', error);
-  }
-}
-
-export async function analyzeEmailGuest(emailContent: string) {
-  try {
-    const result = await analyzeEmailGuestFunction({ emailContent });
-
-    // Mark trial as used on client side
-    markFreeTrialUsed();
-
-    return result.data;
-  } catch (error: unknown) {
-    console.error('Error calling analyzeEmailGuest:', error);
-
-    // Handle specific error codes
-    const errorCode = (error as { code?: string }).code;
-    const errorMessage = error instanceof Error ? error.message : 'Failed to analyze email';
-
-    if (errorCode === 'functions/resource-exhausted') {
-      // Mark as used even on error (they already used it)
-      markFreeTrialUsed();
-      throw new Error(errorMessage || 'Free trial already used. Sign up for a free account!');
-    }
-    if (errorCode === 'functions/invalid-argument') {
-      throw new Error(errorMessage || 'Invalid email content');
-    }
-
-    throw new Error(errorMessage);
-  }
-}
 
 export async function getUserSubscription() {
   try {
@@ -616,108 +564,4 @@ export async function cancelSubscription() {
     const message = error instanceof Error ? error.message : 'Failed to cancel subscription';
     throw new Error(message);
   }
-}
-
-export async function createEmailAnalysisSession() {
-  try {
-    const result = await createEmailAnalysisSessionFunction();
-    return result.data;
-  } catch (error: unknown) {
-    console.error('Error creating email analysis session:', error);
-
-    // Handle specific error codes
-    const errorCode = (error as { code?: string }).code;
-    const errorMessage = error instanceof Error ? error.message : 'Failed to create email analysis session';
-
-    if (errorCode === 'functions/resource-exhausted') {
-      throw new Error(errorMessage || 'Rate limit exceeded or quota reached');
-    }
-
-    throw new Error(errorMessage);
-  }
-}
-
-// Analysis History Functions
-export async function getAnalysisHistory(limitCount: number = 20): Promise<AnalysisRecord[]> {
-  try {
-    const user = auth.currentUser;
-    if (!user) {
-      throw new Error('User must be authenticated to view history');
-    }
-
-    const analysesRef = collection(db, 'users', user.uid, 'analyses');
-    const q = query(analysesRef, orderBy('createdAt', 'desc'), firestoreLimit(limitCount));
-    const snapshot = await getDocs(q);
-
-    return snapshot.docs.map(doc => {
-      const data = doc.data();
-      return {
-        id: doc.id,
-        emailContent: data.emailContent,
-        analysis: data.analysis,
-        createdAt: data.createdAt instanceof Timestamp ? data.createdAt.toDate() : new Date(data.createdAt),
-        originalEmail: data.originalEmail,
-      };
-    });
-  } catch (error: unknown) {
-    console.error('Error fetching analysis history:', error);
-    const message = error instanceof Error ? error.message : 'Failed to fetch analysis history';
-    throw new Error(message);
-  }
-}
-
-export async function getAnalysisById(analysisId: string): Promise<AnalysisRecord | null> {
-  try {
-    const user = auth.currentUser;
-    if (!user) {
-      throw new Error('User must be authenticated to view analysis');
-    }
-
-    const analysisRef = doc(db, 'users', user.uid, 'analyses', analysisId);
-    const analysisDoc = await getDoc(analysisRef);
-
-    if (!analysisDoc.exists()) {
-      return null;
-    }
-
-    const data = analysisDoc.data();
-    return {
-      id: analysisDoc.id,
-      emailContent: data.emailContent,
-      analysis: data.analysis,
-      createdAt: data.createdAt instanceof Timestamp ? data.createdAt.toDate() : new Date(data.createdAt),
-      originalEmail: data.originalEmail,
-    };
-  } catch (error: unknown) {
-    console.error('Error fetching analysis:', error);
-    const message = error instanceof Error ? error.message : 'Failed to fetch analysis';
-    throw new Error(message);
-  }
-}
-
-export function subscribeToAnalysisHistory(
-  callback: (analyses: AnalysisRecord[]) => void,
-  limitCount: number = 20
-): () => void {
-  const user = auth.currentUser;
-  if (!user) {
-    throw new Error('User must be authenticated to view history');
-  }
-
-  const analysesRef = collection(db, 'users', user.uid, 'analyses');
-  const q = query(analysesRef, orderBy('createdAt', 'desc'), firestoreLimit(limitCount));
-
-  return onSnapshot(q, (snapshot) => {
-    const analyses = snapshot.docs.map(doc => {
-      const data = doc.data();
-      return {
-        id: doc.id,
-        emailContent: data.emailContent,
-        analysis: data.analysis,
-        createdAt: data.createdAt instanceof Timestamp ? data.createdAt.toDate() : new Date(data.createdAt),
-        originalEmail: data.originalEmail,
-      };
-    });
-    callback(analyses);
-  });
 }

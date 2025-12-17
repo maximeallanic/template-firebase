@@ -1,10 +1,12 @@
 export interface Phase2Item {
     text: string;
     answer: 'A' | 'B' | 'Both';
+    anecdote?: string;
+    justification?: string;
 }
 
 export interface Phase2Set {
-    title: string;
+    title?: string; // Deprecated: not displayed in UI (wordplay format uses optionA/B as the question)
     optionA: string;
     optionB: string;
     items: Phase2Item[];

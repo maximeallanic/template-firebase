@@ -1,12 +1,13 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { motion, useAnimation, AnimatePresence } from 'framer-motion';
 import type { PanInfo } from 'framer-motion';
-import { submitPhase2Answer, endPhase2Round } from '../services/gameService';
+import { submitPhase2Answer } from '../services/gameService';
 import type { Player, PhaseState, Room } from '../services/gameService';
 import { PHASE2_SETS } from '../data/phase2';
 import { audioService } from '../services/audioService';
 import { SimpleConfetti } from './SimpleConfetti';
-import { ArrowLeft, ArrowRight, ArrowUp, Check, X, Utensils, Info, Pizza, Circle, Cookie, IceCream, Flame, Fish, Sandwich, User } from 'lucide-react';
+import { ArrowLeft, ArrowRight, ArrowUp, Check, X, Info, Utensils } from 'lucide-react';
+import { AvatarIcon } from './AvatarIcon';
 
 interface Phase2PlayerProps {
     roomId: string;
@@ -36,8 +37,27 @@ export const Phase2Player: React.FC<Phase2PlayerProps> = ({
     // Prefer custom questions if available
     const currentSet = customQuestions?.phase2?.[setIndex] || PHASE2_SETS[setIndex];
     const currentItem = currentSet?.items[itemIndex];
+
+    // Calculate online players for answer completion check (exclude mock players)
+    const onlinePlayers = Object.values(players).filter((p: Player) => p.isOnline && !p.id.startsWith('mock_'));
+
     const [hasAnswered, setHasAnswered] = useState(false);
     const controls = useAnimation();
+
+    // Debug: Log custom questions status
+    console.log('🔍 Phase2 Debug:', {
+        hasCustomQuestions: !!customQuestions?.phase2,
+        customQuestionsLength: customQuestions?.phase2?.length,
+        setIndex,
+        itemIndex,
+        currentSetOptions: currentSet ? `${currentSet.optionA} vs ${currentSet.optionB}` : null,
+        currentItemText: currentItem?.text,
+        totalItems: currentSet?.items?.length,
+        usingDefault: !customQuestions?.phase2?.[setIndex],
+        onlinePlayersCount: onlinePlayers.length,
+        phaseState,
+        hasAnswered
+    });
 
     // Determine correctness for local player
     const isRoundOver = phaseState === 'result';
@@ -62,75 +82,74 @@ export const Phase2Player: React.FC<Phase2PlayerProps> = ({
     // Reset local state when item changes
     useEffect(() => {
         setHasAnswered(false);
-        controls.set({ x: 0, y: 0, opacity: 1, scale: 1 });
+        controls.set({ x: 0, y: 0, opacity: 1 });
     }, [itemIndex, controls]);
 
-    // HOST ONLY: Monitor Completion
-    const playerCount = Object.keys(players).length;
-    const answersString = JSON.stringify(phase2Answers);
-
+    // Animate card to correct position when result is shown
     useEffect(() => {
-        if (!isHost || phaseState !== 'reading') return;
+        if (isRoundOver && hasAnswered && currentItem) {
+            // Calculate correct position based on the answer
+            const correctX = currentItem.answer === 'A' ? -150 : currentItem.answer === 'B' ? 150 : 0;
+            const correctY = currentItem.answer === 'Both' ? -80 : 0;
 
-        // Robust Completion Logic
-        const allPlayers = Object.values(players).filter((p: Player) => p.isOnline);
-        const activePlayers = allPlayers.filter((p: Player) => !p.isHost);
+            // Animate card to the correct zone
+            controls.start({
+                x: correctX,
+                y: correctY,
+                opacity: 1,
+                transition: {
+                    duration: 0.6,
+                    ease: [0.25, 0.46, 0.45, 0.94],
+                    delay: 0.2
+                }
+            });
+        }
+    }, [isRoundOver, hasAnswered, currentItem, controls]);
 
-        let shouldAdvance = false;
-        const currentAnswers = phase2Answers || {};
+    // Completion check is now handled server-side in submitPhase2Answer
+    // The host still has a "Force Next Item" button for emergencies
 
-        console.log(`[Phase2 HOST Check] Active Players: ${activePlayers.length}`, {
-            answers: currentAnswers,
-            activeIds: activePlayers.map(p => p.id)
+    const handleAnswer = useCallback((choice: 'A' | 'B' | 'Both', direction: 'left' | 'right' | 'up') => {
+        console.log('🖐️ handleAnswer called:', { choice, direction, hasAnswered, phaseState, currentItem: !!currentItem });
+
+        if (hasAnswered || phaseState === 'result') {
+            console.log('⛔ handleAnswer blocked:', { hasAnswered, phaseState });
+            return;
+        }
+
+        // Submit answer FIRST (before state change unmounts the card)
+        if (currentItem) {
+            console.log('🎯 Submitting Phase2 answer:', {
+                playerId: playerId.slice(0, 8) + '...',
+                choice,
+                correctAnswer: currentItem.answer,
+                onlinePlayersCount: onlinePlayers.length,
+                onlinePlayerIds: onlinePlayers.map((p: Player) => p.id.slice(0, 8) + '...')
+            });
+            submitPhase2Answer(roomId, playerId, choice, currentItem.answer, onlinePlayers.length);
+        } else {
+            console.error('❌ No currentItem, cannot submit answer');
+            return;
+        }
+
+        // Animate card to initial swipe position (not off-screen, card stays visible)
+        let swipeX = 0;
+        let swipeY = 0;
+        if (direction === 'left') swipeX = -120;
+        if (direction === 'right') swipeX = 120;
+        if (direction === 'up') swipeY = -80;
+
+        controls.start({
+            x: swipeX,
+            y: swipeY,
+            transition: { duration: 0.3, ease: [0.25, 0.46, 0.45, 0.94] }
         });
 
-        if (activePlayers.length > 0) {
-            // Multiplayer: Wait for all Active Players
-            const answeredCount = activePlayers.filter((p: Player) => p.id in currentAnswers).length;
-            console.log(`[Phase2 HOST Check] Answered: ${answeredCount}/${activePlayers.length}`);
-            if (answeredCount >= activePlayers.length) {
-                shouldAdvance = true;
-            }
-        } else {
-            // Solo Host: Wait for Host
-            const hostPlayer = allPlayers.find((p: Player) => p.isHost);
-            if (hostPlayer && hostPlayer.id in currentAnswers) {
-                shouldAdvance = true;
-            }
-        }
-
-        if (shouldAdvance) {
-            console.log('[Phase2 HOST Check] ADVANCING ROUND');
-            endPhase2Round(roomId);
-        }
-
-    }, [isHost, phaseState, playerCount, answersString, roomId, players, phase2Answers]);
-
-    const handleAnswer = useCallback(async (choice: 'A' | 'B' | 'Both', direction: 'left' | 'right' | 'up') => {
-        if (hasAnswered || phaseState === 'result') return;
-
+        // Update local state (card remains visible, will animate to correct position on result)
         setHasAnswered(true);
         audioService.playClick();
-
-        // Animate card off-screen
-        let exitX = 0;
-        let exitY = 0;
-        if (direction === 'left') exitX = -500;
-        if (direction === 'right') exitX = 500;
-        if (direction === 'up') exitY = -500;
-
-        await controls.start({
-            x: exitX,
-            y: exitY,
-            opacity: 0,
-            transition: { duration: 0.3, ease: "easeIn" }
-        });
-
-        // Submit answer
-        if (currentItem) {
-            submitPhase2Answer(roomId, playerId, choice, currentItem.answer);
-        }
-    }, [hasAnswered, phaseState, controls, roomId, playerId, currentItem]);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [hasAnswered, phaseState, controls, roomId, playerId, currentItem, onlinePlayers.length]);
 
     // Keyboard Listeners
     useEffect(() => {
@@ -193,10 +212,10 @@ export const Phase2Player: React.FC<Phase2PlayerProps> = ({
     }
 
 
-    // Get current player's team and teammates
+    // Get current player's team and teammates (exclude mock players from display)
     const myTeam = players[playerId]?.team;
     const teammates = Object.values(players).filter(
-        (p: Player) => p.id !== playerId && p.team === myTeam && p.isOnline
+        (p: Player) => p.id !== playerId && p.team === myTeam && p.isOnline && !p.id.startsWith('mock_')
     );
 
     return (
@@ -207,7 +226,6 @@ export const Phase2Player: React.FC<Phase2PlayerProps> = ({
                 <div className="absolute top-4 left-1/2 -translate-x-1/2 z-50 bg-slate-900/80 backdrop-blur px-4 py-2 rounded-full border border-white/10 flex items-center gap-2">
                     <span className="text-xs text-slate-400 mr-2">Team:</span>
                     {teammates.slice(0, 5).map((p: Player) => {
-                        const AvatarIcon = getAvatarIcon(p.avatar);
                         const hasAnswered = phase2Answers && p.id in phase2Answers;
                         const wasCorrect = phase2Answers?.[p.id];
                         return (
@@ -220,7 +238,7 @@ export const Phase2Player: React.FC<Phase2PlayerProps> = ({
                                 `}
                                 title={`${p.name}${hasAnswered ? (wasCorrect ? ' ✓' : ' ✗') : ' (thinking...)'}`}
                             >
-                                <AvatarIcon className="w-4 h-4" />
+                                <AvatarIcon avatar={p.avatar} size={16} />
                                 {hasAnswered && (
                                     <div className={`absolute -bottom-1 -right-1 w-4 h-4 rounded-full flex items-center justify-center text-xs font-bold ${wasCorrect ? 'bg-green-600' : 'bg-red-600'}`}>
                                         {wasCorrect ? '✓' : '✗'}
@@ -274,128 +292,197 @@ export const Phase2Player: React.FC<Phase2PlayerProps> = ({
             {/* CENTER: THE CARD & RESULTS */}
             <div className="absolute inset-0 flex flex-col items-center justify-center p-4 pointer-events-none">
 
-                {/* Result Message (Appears when round ends) */}
+                {/* Result Message (Appears when round ends) - OPACITY ONLY on backdrop */}
                 <AnimatePresence>
                     {phaseState === 'result' && (
                         <motion.div
-                            initial={{ opacity: 0, scale: 0.8 }}
-                            animate={{ opacity: 1, scale: 1 }}
-                            exit={{ opacity: 0, scale: 0.8 }}
-                            className="absolute inset-0 z-40 flex items-center justify-center bg-black/60 backdrop-blur-sm"
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            exit={{ opacity: 0 }}
+                            transition={{ duration: 0.4, ease: [0.25, 0.46, 0.45, 0.94] }}
+                            className="absolute inset-0 z-40 flex flex-col items-center justify-center bg-black/60 backdrop-blur-sm"
                         >
-                            {/* Only show Win/Loss if I actually played */}
-                            {phase2Answers && phase2Answers[playerId] !== undefined ? (
-                                <div className={`p-8 rounded-3xl shadow-2xl transform scale-125 border-4 ${didIWin
-                                    ? 'bg-gradient-to-br from-green-500 to-emerald-600 border-white text-white'
-                                    : 'bg-white border-red-500 text-red-500'
-                                    }`}>
-                                    <div className="text-6xl mb-4 flex justify-center">
-                                        {didIWin ? <Check className="w-24 h-24" /> : <X className="w-24 h-24" />}
+                            {/* Result Badge - moved up, no ghost card (card is reused below) */}
+                            <motion.div
+                                initial={{ y: 50, opacity: 0 }}
+                                animate={{ y: 0, opacity: 1 }}
+                                transition={{ delay: 0.6 }}
+                                className="mt-auto mb-8"
+                            >
+                                {/* Only show Win/Loss if I actually played */}
+                                {phase2Answers && phase2Answers[playerId] !== undefined ? (
+                                    <div className={`p-6 rounded-2xl shadow-2xl border-4 ${didIWin
+                                        ? 'bg-gradient-to-br from-green-500 to-emerald-600 border-white text-white'
+                                        : 'bg-white border-red-500 text-red-500'
+                                        }`}>
+                                        <div className="text-4xl mb-2 flex justify-center">
+                                            {didIWin ? <Check className="w-16 h-16" /> : <X className="w-16 h-16" />}
+                                        </div>
+                                        <div className="text-2xl font-black tracking-wider uppercase">
+                                            {didIWin ? "Correct!" : "Mauvaise réponse"}
+                                        </div>
+                                        {!didIWin && currentItem && (
+                                            <div className="text-sm mt-2 text-red-400">
+                                                C'était <span className="font-bold text-red-600">
+                                                    {currentItem.answer === 'A' ? currentSet.optionA :
+                                                     currentItem.answer === 'B' ? currentSet.optionB :
+                                                     'Les Deux'}
+                                                </span>
+                                            </div>
+                                        )}
+                                        {/* Justification explaining why */}
+                                        {currentItem?.justification && (
+                                            <p className={`text-sm mt-3 pt-3 border-t ${didIWin ? 'border-white/20 text-white/90' : 'border-red-200 text-red-600'} italic max-w-xs text-center`}>
+                                                📝 {currentItem.justification}
+                                            </p>
+                                        )}
+                                        {/* Anecdote display */}
+                                        {currentItem?.anecdote && (
+                                            <p className={`text-xs mt-2 ${didIWin ? 'text-white/70' : 'text-red-400'} italic max-w-xs text-center`}>
+                                                💡 {currentItem.anecdote}
+                                            </p>
+                                        )}
                                     </div>
-                                    <div className="text-4xl font-black tracking-wider uppercase">
-                                        {didIWin ? "Correct!" : "Wrong!"}
+                                ) : (
+                                    <div className="bg-white text-black p-6 rounded-2xl shadow-2xl border-4 border-indigo-600">
+                                        <div className="text-2xl font-black tracking-wider uppercase">
+                                            Round Over
+                                        </div>
+                                        {/* Justification display for spectators */}
+                                        {currentItem?.justification && (
+                                            <p className="text-sm mt-3 pt-3 border-t border-slate-200 italic max-w-xs text-center text-slate-600">
+                                                📝 {currentItem.justification}
+                                            </p>
+                                        )}
+                                        {/* Anecdote display for spectators */}
+                                        {currentItem?.anecdote && (
+                                            <p className="text-xs mt-2 italic max-w-xs text-center text-slate-500">
+                                                💡 {currentItem.anecdote}
+                                            </p>
+                                        )}
                                     </div>
-                                </div>
-                            ) : (
-                                <div className="bg-white text-black p-8 rounded-3xl shadow-2xl border-4 border-indigo-600">
-                                    <div className="text-4xl font-black tracking-wider uppercase">
-                                        Round Over
-                                    </div>
-                                </div>
-                            )}
+                                )}
+                            </motion.div>
                         </motion.div>
                     )}
                 </AnimatePresence>
 
-                {/* The Drag Card */}
-                {
-                    !hasAnswered && (
+                {/* Options Text - Above the card */}
+                {!hasAnswered && (
+                    <div className="absolute top-24 md:top-20 left-0 right-0 text-center pointer-events-none z-30">
+                        <p className="text-white/80 text-lg md:text-xl font-medium">
+                            <span className="text-red-400">{currentSet.optionA}</span>
+                            <span className="text-white/50">, </span>
+                            <span className="text-pink-400">{currentSet.optionB}</span>
+                            <span className="text-white/50">, ou </span>
+                            <span className="text-purple-400">les deux</span>
+                            <span className="text-white/50"> ?</span>
+                        </p>
+                        {/* Hint explaining the wordplay */}
+                        <p className="text-white/40 text-xs md:text-sm mt-2 max-w-md mx-auto px-4">
+                            🎭 Ces deux expressions se prononcent pareil !
+                            <br className="hidden md:block" />
+                            <span className="hidden md:inline">Swipe pour classer chaque élément dans la bonne catégorie.</span>
+                        </p>
+                    </div>
+                )}
+
+                {/* The Drag Card - STAYS VISIBLE after answering, animates to correct position */}
+                <motion.div
+                    drag={!hasAnswered}
+                    dragConstraints={{ left: 0, right: 0, top: 0, bottom: 0 }}
+                    dragElastic={0.7}
+                    onDragEnd={hasAnswered ? undefined : handleDragEnd}
+                    animate={controls}
+                    className={`
+                        bg-white text-slate-900 w-full max-w-xs aspect-square rounded-3xl shadow-2xl
+                        flex flex-col items-center justify-center p-6 text-center relative overflow-hidden
+                        transition-shadow duration-300
+                        ${!hasAnswered ? 'cursor-grab active:cursor-grabbing pointer-events-auto' : 'pointer-events-none'}
+                        ${isRoundOver && didIWin ? 'ring-4 ring-green-500 shadow-green-500/30' : ''}
+                        ${isRoundOver && hasAnswered && !didIWin ? 'ring-4 ring-red-500 shadow-red-500/30' : ''}
+                    `}
+                >
+                    {/* Card Decorative Elements - changes color based on result */}
+                    <div className={`absolute top-0 left-0 right-0 h-2 transition-colors duration-300 ${
+                        isRoundOver && didIWin ? 'bg-gradient-to-r from-green-400 via-emerald-400 to-green-400' :
+                        isRoundOver && hasAnswered && !didIWin ? 'bg-gradient-to-r from-red-400 via-rose-400 to-red-400' :
+                        'bg-gradient-to-r from-red-400 via-purple-400 to-pink-400'
+                    }`} />
+
+                    {/* Answer Label Badge (shows after answering) */}
+                    {hasAnswered && currentItem && (
                         <motion.div
-                            drag
-                            dragConstraints={{ left: 0, right: 0, top: 0, bottom: 0 }}
-                            dragElastic={0.7}
-                            onDragEnd={handleDragEnd}
-                            animate={controls}
-                            className="bg-white text-slate-900 w-full max-w-sm aspect-[4/5] md:aspect-square rounded-3xl shadow-2xl flex flex-col items-center justify-center p-8 text-center cursor-grab active:cursor-grabbing pointer-events-auto relative overflow-hidden"
+                            initial={{ opacity: 0, y: -10 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ delay: 0.3, duration: 0.3 }}
+                            className={`absolute -top-3 left-1/2 -translate-x-1/2 px-3 py-1 rounded-full text-xs font-bold text-white ${
+                                currentItem.answer === 'A' ? 'bg-red-500' :
+                                currentItem.answer === 'B' ? 'bg-pink-500' :
+                                'bg-purple-500'
+                            }`}
                         >
-                            {/* Card Decorative Elements */}
-                            <div className="absolute top-0 left-0 right-0 h-2 bg-gradient-to-r from-red-400 via-purple-400 to-pink-400" />
-
-                            <h3 className="text-slate-400 font-bold uppercase tracking-widest text-sm mb-6">
-                                {currentSet.title}
-                            </h3>
-
-                            <div className="flex-1 flex items-center justify-center">
-                                <h1 className="text-4xl md:text-5xl font-black leading-tight text-slate-800">
-                                    {currentItem.text}
-                                </h1>
-                            </div>
-
-                            <div className="mt-8 text-xs font-medium text-slate-400 flex flex-col gap-1">
-                                <div className="flex items-center gap-2">
-                                    <span className="bg-slate-100 p-1 rounded"><ArrowLeft className="w-3 h-3" /></span>
-                                    <span className="uppercase">{currentSet.optionA}</span>
-                                </div>
-                                <div className="flex items-center gap-2">
-                                    <span className="bg-slate-100 p-1 rounded"><ArrowRight className="w-3 h-3" /></span>
-                                    <span className="uppercase">{currentSet.optionB}</span>
-                                </div>
-                                <div className="flex items-center gap-2">
-                                    <span className="bg-slate-100 p-1 rounded"><ArrowUp className="w-3 h-3" /></span>
-                                    <span>LES DEUX</span>
-                                </div>
-                            </div>
+                            {currentItem.answer === 'A' ? currentSet.optionA :
+                             currentItem.answer === 'B' ? currentSet.optionB :
+                             'Les Deux'}
                         </motion.div>
-                    )
-                }
+                    )}
 
-                {/* Feedback for Answered State */}
-                {
-                    hasAnswered && phaseState !== 'result' && (
+                    {/* Item Text - Centered */}
+                    <h1 className="text-3xl md:text-4xl font-black leading-tight text-slate-800">
+                        {currentItem.text}
+                    </h1>
+
+                    {/* Justification (shows during result) */}
+                    {isRoundOver && currentItem?.justification && (
+                        <motion.p
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            transition={{ delay: 0.5, duration: 0.3 }}
+                            className="text-xs text-slate-600 mt-3 px-2 italic leading-snug"
+                        >
+                            {currentItem.justification}
+                        </motion.p>
+                    )}
+
+                    {/* Swipe hint at bottom (only when not answered) */}
+                    {!hasAnswered && (
+                        <div className="text-xs text-slate-400 mt-6 flex items-center gap-2">
+                            <ArrowLeft className="w-4 h-4" />
+                            <ArrowUp className="w-4 h-4" />
+                            <ArrowRight className="w-4 h-4" />
+                        </div>
+                    )}
+
+                    {/* Result icon overlay */}
+                    {isRoundOver && hasAnswered && (
                         <motion.div
-                            initial={{ opacity: 0, scale: 0.5 }}
-                            animate={{ opacity: 1, scale: 1 }}
-                            className="bg-slate-800/80 backdrop-blur text-white px-8 py-4 rounded-full font-bold text-xl animate-pulse flex items-center gap-2"
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            transition={{ delay: 0.4 }}
+                            className={`absolute bottom-3 right-3 w-10 h-10 rounded-full flex items-center justify-center ${
+                                didIWin ? 'bg-green-500 text-white' : 'bg-red-500 text-white'
+                            }`}
                         >
-                            Waiting for opponent...
+                            {didIWin ? <Check className="w-6 h-6" /> : <X className="w-6 h-6" />}
                         </motion.div>
-                    )
-                }
+                    )}
+                </motion.div>
+
+                {/* Feedback for Answered State - OPACITY ONLY (no scale) */}
+                {hasAnswered && phaseState !== 'result' && (
+                    <motion.div
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        transition={{ duration: 0.3, ease: [0.25, 0.46, 0.45, 0.94] }}
+                        className="absolute bottom-20 bg-slate-800/80 backdrop-blur text-white px-8 py-4 rounded-full font-bold text-xl flex items-center gap-2"
+                    >
+                        <span className="animate-pulse">En attente des autres...</span>
+                    </motion.div>
+                )}
             </div >
 
-            {/* Host Controls */}
-            {
-                isHost && (
-                    <div className="absolute bottom-8 right-8 z-50 flex flex-col items-end gap-2 pointer-events-auto">
-                        {/* Only show answer if Host has answered OR round is over */}
-                        {(hasAnswered || phaseState === 'result') && (
-                            <div className="bg-white text-black p-4 rounded-xl shadow-xl border-4 border-indigo-600 animate-slide-up">
-                                <span className="text-xl font-bold">Answer: {currentItem.answer}</span>
-                            </div>
-                        )}
-                        <button
-                            onClick={() => endPhase2Round(roomId)}
-                            className="bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-3 rounded-xl shadow-xl font-bold flex items-center gap-2 transform transition hover:scale-105 active:scale-95"
-                        >
-                            Force Next Item <ArrowRight />
-                        </button>
-                    </div>
-                )
-            }
         </div >
     );
 };
 
-function getAvatarIcon(avatar: string) {
-    const map: Record<string, React.ElementType> = {
-        donut: Circle,
-        pizza: Pizza,
-        taco: Sandwich,
-        sushi: Fish,
-        chili: Flame,
-        cookie: Cookie,
-        icecream: IceCream,
-        fries: Utensils
-    };
-    return map[avatar] || User;
-}

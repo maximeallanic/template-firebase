@@ -1,10 +1,11 @@
 import React, { useState, useCallback, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Sparkles, Loader2, Check, AlertTriangle, BrainCircuit } from 'lucide-react';
+import { X, Sparkles, Loader2, Check, AlertTriangle, BrainCircuit, Zap } from 'lucide-react';
 import { generateGameQuestions } from '../services/aiClient';
 import { overwriteGameQuestions } from '../services/gameService';
 
 type Difficulty = 'easy' | 'normal' | 'hard' | 'wtf';
+type Phase = 'phase1' | 'phase2' | 'phase5';
 type GeneratedData = Record<string, unknown> | unknown[] | null;
 
 interface AIGeneratorModalProps {
@@ -12,10 +13,11 @@ interface AIGeneratorModalProps {
     onClose: () => void;
     roomCode: string;
     autoTrigger?: boolean;
+    autoGenerateAll?: boolean; // New prop to auto-generate all phases
 }
 
-export const AIGeneratorModal: React.FC<AIGeneratorModalProps> = ({ isOpen, onClose, roomCode, autoTrigger = false }) => {
-    const [phase, setPhase] = useState<'phase1' | 'phase2' | 'phase5'>('phase1');
+export const AIGeneratorModal: React.FC<AIGeneratorModalProps> = ({ isOpen, onClose, roomCode, autoTrigger = false, autoGenerateAll = false }) => {
+    const [phase, setPhase] = useState<Phase>('phase1');
     const [topic, setTopic] = useState('');
     const [difficulty, setDifficulty] = useState<Difficulty>('normal');
     const [isLoading, setIsLoading] = useState(false);
@@ -23,6 +25,14 @@ export const AIGeneratorModal: React.FC<AIGeneratorModalProps> = ({ isOpen, onCl
     const [error, setError] = useState<string | null>(null);
     const [successMessage, setSuccessMessage] = useState<string | null>(null);
     const hasAutoTriggered = useRef(false);
+
+    // Progress for "Generate All" mode
+    const [isGeneratingAll, setIsGeneratingAll] = useState(false);
+    const [allPhasesProgress, setAllPhasesProgress] = useState<{
+        phase1: 'pending' | 'generating' | 'done' | 'error';
+        phase2: 'pending' | 'generating' | 'done' | 'error';
+        phase5: 'pending' | 'generating' | 'done' | 'error';
+    }>({ phase1: 'pending', phase2: 'pending', phase5: 'pending' });
 
     const handleGenerate = useCallback(async () => {
         setIsLoading(true);
@@ -44,12 +54,59 @@ export const AIGeneratorModal: React.FC<AIGeneratorModalProps> = ({ isOpen, onCl
             }
         } catch (err: unknown) {
             console.error("AI Generation Error:", err);
-            const message = err instanceof Error ? err.message : "Failed to generate questions. Try again.";
+            const message = err instanceof Error ? err.message : "Échec de la génération. Réessayez.";
             setError(message);
         } finally {
             setIsLoading(false);
         }
     }, [phase, topic, difficulty]);
+
+    // Generate all phases at once
+    const handleGenerateAll = useCallback(async () => {
+        setIsGeneratingAll(true);
+        setError(null);
+        setSuccessMessage(null);
+        setAllPhasesProgress({ phase1: 'pending', phase2: 'pending', phase5: 'pending' });
+
+        const phases: Phase[] = ['phase1', 'phase2', 'phase5'];
+        let hasError = false;
+
+        for (const p of phases) {
+            setAllPhasesProgress(prev => ({ ...prev, [p]: 'generating' }));
+
+            try {
+                console.log(`🎲 Generating ${p}...`);
+                const result = await generateGameQuestions({
+                    phase: p,
+                    topic: topic || undefined,
+                    difficulty
+                });
+
+                if (result.data) {
+                    await overwriteGameQuestions(roomCode, p, result.data);
+                    setAllPhasesProgress(prev => ({ ...prev, [p]: 'done' }));
+                    console.log(`✅ ${p} generated and applied!`);
+                } else {
+                    throw new Error(`No data for ${p}`);
+                }
+            } catch (err) {
+                console.error(`❌ Error generating ${p}:`, err);
+                setAllPhasesProgress(prev => ({ ...prev, [p]: 'error' }));
+                hasError = true;
+            }
+        }
+
+        setIsGeneratingAll(false);
+
+        if (!hasError) {
+            setSuccessMessage("🎉 Toutes les phases ont été générées avec succès!");
+            setTimeout(() => {
+                onClose();
+            }, 2000);
+        } else {
+            setError("Certaines phases ont échoué. Réessayez ou générez-les individuellement.");
+        }
+    }, [topic, difficulty, roomCode, onClose]);
 
     // Auto-Trigger Logic
     useEffect(() => {
@@ -57,17 +114,23 @@ export const AIGeneratorModal: React.FC<AIGeneratorModalProps> = ({ isOpen, onCl
             hasAutoTriggered.current = true;
             handleGenerate();
         }
+        if (isOpen && autoGenerateAll && !hasAutoTriggered.current) {
+            hasAutoTriggered.current = true;
+            handleGenerateAll();
+        }
         if (!isOpen) {
             hasAutoTriggered.current = false;
+            // Reset progress when modal closes
+            setAllPhasesProgress({ phase1: 'pending', phase2: 'pending', phase5: 'pending' });
         }
-    }, [isOpen, autoTrigger, handleGenerate]);
+    }, [isOpen, autoTrigger, autoGenerateAll, handleGenerate, handleGenerateAll]);
 
     const handleApply = async () => {
         if (!generatedData) return;
         setIsLoading(true);
         try {
             await overwriteGameQuestions(roomCode, phase, generatedData);
-            setSuccessMessage("Game updated successfully! 🎮");
+            setSuccessMessage("Jeu mis à jour avec succès ! 🎮");
             setTimeout(() => {
                 onClose();
                 setSuccessMessage(null);
@@ -75,7 +138,7 @@ export const AIGeneratorModal: React.FC<AIGeneratorModalProps> = ({ isOpen, onCl
             }, 1500);
         } catch (err: unknown) {
             console.error("Apply Error:", err);
-            setError("Failed to apply questions to game.");
+            setError("Échec de l'application des questions au jeu.");
         } finally {
             setIsLoading(false);
         }
@@ -85,12 +148,26 @@ export const AIGeneratorModal: React.FC<AIGeneratorModalProps> = ({ isOpen, onCl
 
     return (
         <AnimatePresence>
-            <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
+            {/* Backdrop - opacity animation only (no scale/translate) */}
+            <motion.div
+                key="ai-modal-backdrop"
+                className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.2 }}
+                onClick={onClose}
+            />
+
+            {/* Modal content container */}
+            <div className="fixed inset-0 z-50 flex items-center justify-center p-4 pointer-events-none">
                 <motion.div
-                    initial={{ opacity: 0, scale: 0.9, y: 20 }}
-                    animate={{ opacity: 1, scale: 1, y: 0 }}
-                    exit={{ opacity: 0, scale: 0.9, y: 20 }}
-                    className="bg-slate-900 border border-indigo-500/30 w-full max-w-2xl rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh]"
+                    key="ai-modal-content"
+                    initial={{ opacity: 0, scale: 0.95 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    exit={{ opacity: 0, scale: 0.95 }}
+                    transition={{ duration: 0.2 }}
+                    className="bg-slate-900 border border-indigo-500/30 w-full max-w-2xl rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh] pointer-events-auto"
                 >
                     {/* Header */}
                     <div className="p-6 border-b border-indigo-500/20 flex justify-between items-center bg-indigo-950/20">
@@ -99,8 +176,8 @@ export const AIGeneratorModal: React.FC<AIGeneratorModalProps> = ({ isOpen, onCl
                                 <Sparkles className="w-6 h-6 text-white" />
                             </div>
                             <div>
-                                <h2 className="text-xl font-bold text-white">AI Game Generator</h2>
-                                <p className="text-xs text-indigo-300">Powered by Google Gemini</p>
+                                <h2 className="text-xl font-bold text-white">Générateur IA</h2>
+                                <p className="text-xs text-indigo-300">Propulsé par Google Gemini</p>
                             </div>
                         </div>
                         <button onClick={onClose} className="text-slate-400 hover:text-white transition-colors">
@@ -129,28 +206,28 @@ export const AIGeneratorModal: React.FC<AIGeneratorModalProps> = ({ isOpen, onCl
                         <div className="grid md:grid-cols-2 gap-6">
                             {/* Phase Selection */}
                             <div className="space-y-2">
-                                <label className="text-sm font-medium text-slate-300">Game Phase</label>
+                                <label className="text-sm font-medium text-slate-300">Phase du Jeu</label>
                                 <div className="grid grid-cols-1 gap-2">
                                     <button
                                         onClick={() => setPhase('phase1')}
                                         className={`p-3 rounded-lg border text-left transition-all ${phase === 'phase1' ? 'bg-indigo-600 border-indigo-500 text-white' : 'bg-slate-800 border-slate-700 text-slate-400 hover:border-slate-500'}`}
                                     >
-                                        <div className="font-bold">Phase 1: Nuggets</div>
-                                        <div className="text-xs opacity-70">Speed Multiple Choice</div>
+                                        <div className="font-bold">Phase 1: Tenders</div>
+                                        <div className="text-xs opacity-70">QCM Rapide</div>
                                     </button>
                                     <button
                                         onClick={() => setPhase('phase2')}
                                         className={`p-3 rounded-lg border text-left transition-all ${phase === 'phase2' ? 'bg-indigo-600 border-indigo-500 text-white' : 'bg-slate-800 border-slate-700 text-slate-400 hover:border-slate-500'}`}
                                     >
-                                        <div className="font-bold">Phase 2: Salt or Pepper</div>
-                                        <div className="text-xs opacity-70">Rapid Fire Binary Choice</div>
+                                        <div className="font-bold">Phase 2: Sucré Salé</div>
+                                        <div className="text-xs opacity-70">Choix Binaire Ultra Rapide</div>
                                     </button>
                                     <button
                                         onClick={() => setPhase('phase5')}
                                         className={`p-3 rounded-lg border text-left transition-all ${phase === 'phase5' ? 'bg-indigo-600 border-indigo-500 text-white' : 'bg-slate-800 border-slate-700 text-slate-400 hover:border-slate-500'}`}
                                     >
-                                        <div className="font-bold">Phase 5: Burger de la Mort</div>
-                                        <div className="text-xs opacity-70">Memory Challenge</div>
+                                        <div className="font-bold">Phase 5: Burger Ultime</div>
+                                        <div className="text-xs opacity-70">Défi Mémoire</div>
                                     </button>
                                 </div>
                             </div>
@@ -158,42 +235,73 @@ export const AIGeneratorModal: React.FC<AIGeneratorModalProps> = ({ isOpen, onCl
                             {/* Parameters */}
                             <div className="space-y-4">
                                 <div className="space-y-2">
-                                    <label className="text-sm font-medium text-slate-300">Topic (Optional)</label>
+                                    <label className="text-sm font-medium text-slate-300">Thème (Optionnel)</label>
                                     <input
                                         type="text"
                                         value={topic}
                                         onChange={(e) => setTopic(e.target.value)}
-                                        placeholder="e.g., 90s Music, Star Wars, Cheeses..."
+                                        placeholder="ex: Musique des 90s, Star Wars, Fromages..."
                                         className="w-full bg-slate-800 border border-slate-700 rounded-lg p-3 text-white focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none transition-all placeholder:text-slate-500"
                                     />
-                                    <p className="text-xs text-slate-500">Leave empty for random "Burger Quiz" chaos.</p>
+                                    <p className="text-xs text-slate-500">Laissez vide pour un chaos culinaire aléatoire.</p>
                                 </div>
 
                                 <div className="space-y-2">
-                                    <label className="text-sm font-medium text-slate-300">Difficulty / Tone</label>
+                                    <label className="text-sm font-medium text-slate-300">Difficulté / Ton</label>
                                     <select
                                         value={difficulty}
                                         onChange={(e) => setDifficulty(e.target.value as Difficulty)}
                                         className="w-full bg-slate-800 border border-slate-700 rounded-lg p-3 text-white focus:ring-2 focus:ring-indigo-500 outline-none"
                                     >
-                                        <option value="normal">Normal (Classic)</option>
-                                        <option value="easy">Easy (Kids)</option>
-                                        <option value="hard">Hard (Experts)</option>
-                                        <option value="wtf">WTF (Absurd/Troll)</option>
+                                        <option value="normal">Normal (Classique)</option>
+                                        <option value="easy">Facile (Enfants)</option>
+                                        <option value="hard">Difficile (Experts)</option>
+                                        <option value="wtf">WTF (Absurde/Troll)</option>
                                     </select>
                                 </div>
                             </div>
                         </div>
 
+                        {/* Generate All Progress */}
+                        {isGeneratingAll && (
+                            <div className="mt-6 bg-slate-950 rounded-xl border border-indigo-500/30 p-4">
+                                <div className="flex items-center gap-2 mb-4">
+                                    <Zap className="w-5 h-5 text-yellow-400 animate-pulse" />
+                                    <span className="font-bold text-white">Génération de toutes les phases...</span>
+                                </div>
+                                <div className="space-y-2">
+                                    {(['phase1', 'phase2', 'phase5'] as const).map((p) => (
+                                        <div key={p} className="flex items-center gap-3">
+                                            {allPhasesProgress[p] === 'pending' && (
+                                                <div className="w-5 h-5 rounded-full border-2 border-slate-600" />
+                                            )}
+                                            {allPhasesProgress[p] === 'generating' && (
+                                                <Loader2 className="w-5 h-5 text-indigo-400 animate-spin" />
+                                            )}
+                                            {allPhasesProgress[p] === 'done' && (
+                                                <Check className="w-5 h-5 text-green-400" />
+                                            )}
+                                            {allPhasesProgress[p] === 'error' && (
+                                                <AlertTriangle className="w-5 h-5 text-red-400" />
+                                            )}
+                                            <span className={`text-sm ${allPhasesProgress[p] === 'done' ? 'text-green-400' : allPhasesProgress[p] === 'error' ? 'text-red-400' : 'text-slate-400'}`}>
+                                                {p === 'phase1' ? 'Phase 1: Tenders' : p === 'phase2' ? 'Phase 2: Sucré Salé' : 'Phase 5: Burger Ultime'}
+                                            </span>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        )}
+
                         {/* Preview Area */}
-                        {generatedData && (
+                        {generatedData && !isGeneratingAll && (
                             <div className="mt-6 bg-slate-950 rounded-xl border border-slate-800 p-4 max-h-60 overflow-y-auto">
                                 <div className="flex items-center justify-between mb-2">
                                     <label className="text-xs font-bold text-green-400 uppercase tracking-wider flex items-center gap-1">
-                                        <BrainCircuit className="w-4 h-4" /> Generated Content
+                                        <BrainCircuit className="w-4 h-4" /> Contenu Généré
                                     </label>
                                     <span className="text-xs text-slate-500">
-                                        {Array.isArray(generatedData) ? `${generatedData.length} items` : '1 Set'}
+                                        {Array.isArray(generatedData) ? `${generatedData.length} éléments` : '1 Set'}
                                     </span>
                                 </div>
                                 <pre className="text-xs text-slate-300 whitespace-pre-wrap font-mono">
@@ -205,15 +313,27 @@ export const AIGeneratorModal: React.FC<AIGeneratorModalProps> = ({ isOpen, onCl
                     </div>
 
                     {/* Footer */}
-                    <div className="p-6 border-t border-indigo-500/20 bg-slate-900/50 flex justify-end gap-3 sticky bottom-0">
+                    <div className="p-6 border-t border-indigo-500/20 bg-slate-900/50 flex flex-wrap justify-end gap-3 sticky bottom-0">
                         <button
                             onClick={onClose}
-                            className="px-6 py-3 rounded-xl font-bold text-slate-400 hover:text-white transition-colors"
+                            disabled={isGeneratingAll}
+                            className="px-6 py-3 rounded-xl font-bold text-slate-400 hover:text-white transition-colors disabled:opacity-50"
                         >
-                            Cancel
+                            {isGeneratingAll ? 'Patientez...' : 'Annuler'}
                         </button>
 
-                        {!generatedData ? (
+                        {/* Generate All button - always visible when not generating */}
+                        {!isGeneratingAll && !generatedData && (
+                            <button
+                                onClick={handleGenerateAll}
+                                disabled={isLoading}
+                                className="bg-gradient-to-r from-yellow-500 to-orange-500 hover:from-yellow-400 hover:to-orange-400 text-white px-6 py-3 rounded-xl font-bold shadow-lg shadow-yellow-500/20 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 transition-all"
+                            >
+                                <Zap className="w-5 h-5" /> Générer TOUT
+                            </button>
+                        )}
+
+                        {!generatedData && !isGeneratingAll ? (
                             <button
                                 onClick={handleGenerate}
                                 disabled={isLoading}
@@ -221,27 +341,28 @@ export const AIGeneratorModal: React.FC<AIGeneratorModalProps> = ({ isOpen, onCl
                             >
                                 {isLoading ? (
                                     <>
-                                        <Loader2 className="w-5 h-5 animate-spin" /> Generating...
+                                        <Loader2 className="w-5 h-5 animate-spin" /> Génération...
                                     </>
                                 ) : (
                                     <>
-                                        <Sparkles className="w-5 h-5" /> Generate Magic
+                                        <Sparkles className="w-5 h-5" /> Générer cette phase
                                     </>
                                 )}
                             </button>
-                        ) : (
+                        ) : generatedData && !isGeneratingAll ? (
                             <button
                                 onClick={handleApply}
                                 disabled={isLoading}
                                 className="bg-emerald-500 hover:bg-emerald-400 text-white px-8 py-3 rounded-xl font-bold shadow-lg shadow-emerald-500/20 disabled:opacity-50 flex items-center gap-2 transition-all animate-bounce-short"
                             >
                                 {isLoading ? <Loader2 className="w-5 h-5 animate-spin" /> : <Check className="w-5 h-5" />}
-                                Apply to Game
+                                Appliquer au jeu
                             </button>
-                        )}
+                        ) : null}
                     </div>
                 </motion.div>
             </div>
         </AnimatePresence>
     );
 };
+

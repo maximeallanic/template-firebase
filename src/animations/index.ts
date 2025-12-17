@@ -1,0 +1,323 @@
+/**
+ * Shared Animation System
+ *
+ * Centralized animation variants and easing curves for consistent,
+ * organic transitions throughout the game.
+ *
+ * RULES:
+ * - Backdrops/overlays: opacity only (no scale/translate)
+ * - Content: opacity + y translation allowed
+ * - Interactive elements: scale allowed (buttons, cards)
+ * - Objects (curtains, swipe cards): x/y translation allowed
+ */
+
+import type { Variants, Transition } from 'framer-motion';
+
+// Organic easing curve - used everywhere for smooth, natural feel
+export const organicEase = [0.25, 0.46, 0.45, 0.94] as const;
+
+// Fast easing for quick feedback
+export const quickEase = [0.4, 0, 0.2, 1] as const;
+
+// Spring configuration for bouncy effects (content only, not backdrops)
+export const springConfig = {
+    type: "spring" as const,
+    stiffness: 200,
+    damping: 20,
+};
+
+// Standard durations
+export const durations = {
+    fast: 0.2,
+    normal: 0.4,
+    slow: 0.6,
+    verySlow: 0.8,
+};
+
+/**
+ * Backdrop Variants - OPACITY ONLY
+ * For overlays, backgrounds, and elements with backdrop-blur
+ */
+export const backdropVariants: Variants = {
+    hidden: {
+        opacity: 0
+    },
+    visible: {
+        opacity: 1,
+        transition: {
+            duration: durations.normal,
+            ease: organicEase
+        }
+    },
+    exit: {
+        opacity: 0,
+        transition: {
+            duration: durations.fast,
+            ease: organicEase
+        }
+    }
+};
+
+/**
+ * Content Variants - Opacity + Y translation
+ * For content that appears within containers
+ */
+export const contentVariants: Variants = {
+    hidden: {
+        opacity: 0,
+        y: 20
+    },
+    visible: {
+        opacity: 1,
+        y: 0,
+        transition: {
+            duration: durations.normal,
+            ease: organicEase
+        }
+    },
+    exit: {
+        opacity: 0,
+        y: -10,
+        transition: {
+            duration: durations.fast,
+            ease: organicEase
+        }
+    }
+};
+
+/**
+ * Staggered Content Variants
+ * For lists of items that appear one after another
+ */
+export const staggerContainerVariants: Variants = {
+    hidden: { opacity: 0 },
+    visible: {
+        opacity: 1,
+        transition: {
+            staggerChildren: 0.1,
+            delayChildren: 0.2,
+        }
+    }
+};
+
+export const staggerItemVariants: Variants = {
+    hidden: {
+        opacity: 0,
+        y: 20
+    },
+    visible: {
+        opacity: 1,
+        y: 0,
+        transition: {
+            duration: durations.normal,
+            ease: organicEase
+        }
+    }
+};
+
+/**
+ * Interactive Variants - Scale allowed
+ * For buttons, cards, and interactive elements
+ */
+export const interactiveVariants = {
+    tap: { scale: 0.95 },
+    hover: { scale: 1.02 },
+};
+
+export const buttonVariants: Variants = {
+    idle: { scale: 1 },
+    hover: {
+        scale: 1.05,
+        transition: { duration: durations.fast, ease: organicEase }
+    },
+    tap: {
+        scale: 0.95,
+        transition: { duration: 0.1 }
+    }
+};
+
+/**
+ * Shimmer/Scintillation Variants
+ * For particles and decorative elements - opacity pulsation only
+ */
+export const shimmerVariants: Variants = {
+    hidden: {
+        opacity: 0
+    },
+    visible: (delay: number = 0) => ({
+        opacity: [0, 1, 0.5, 1, 0],
+        transition: {
+            duration: 2.5,
+            delay,
+            ease: "easeInOut",
+            repeat: 0,
+        }
+    })
+};
+
+/**
+ * Spotlight Variants - Opacity pulsation only (no scaleY)
+ */
+export const spotlightVariants: Variants = {
+    hidden: {
+        opacity: 0
+    },
+    visible: (delay: number = 0) => ({
+        opacity: [0, 0.3, 0.1, 0.3, 0],
+        transition: {
+            duration: 2.5,
+            delay,
+            ease: "easeInOut",
+        }
+    })
+};
+
+/**
+ * Decorative Bar Variants - Opacity with gradient animation via CSS
+ */
+export const decorativeBarVariants: Variants = {
+    hidden: {
+        opacity: 0
+    },
+    visible: {
+        opacity: 1,
+        transition: {
+            delay: 0.3,
+            duration: durations.slow,
+            ease: organicEase
+        }
+    }
+};
+
+/**
+ * Result Overlay Variants - For showing results (opacity only on backdrop)
+ */
+export const resultOverlayVariants: Variants = {
+    hidden: {
+        opacity: 0
+    },
+    visible: {
+        opacity: 1,
+        transition: {
+            duration: durations.normal,
+            ease: organicEase
+        }
+    },
+    exit: {
+        opacity: 0,
+        transition: {
+            duration: durations.fast,
+            ease: organicEase
+        }
+    }
+};
+
+/**
+ * Result Content Variants - For content inside result overlay
+ * Can use y translation and scale since it's content, not backdrop
+ */
+export const resultContentVariants: Variants = {
+    hidden: {
+        opacity: 0,
+        y: 50
+    },
+    visible: {
+        opacity: 1,
+        y: 0,
+        transition: {
+            delay: 0.3,
+            duration: durations.slow,
+            ease: organicEase
+        }
+    }
+};
+
+/**
+ * Card Position Variants - For Phase 2 swipe card
+ * Used when showing where the card should have gone
+ */
+export const cardPositionVariants: Variants = {
+    center: {
+        x: 0,
+        y: 0,
+        opacity: 1
+    },
+    left: {
+        x: -150,
+        y: 0,
+        opacity: 1,
+        transition: {
+            delay: 0.2,
+            duration: durations.slow,
+            ease: organicEase
+        }
+    },
+    right: {
+        x: 150,
+        y: 0,
+        opacity: 1,
+        transition: {
+            delay: 0.2,
+            duration: durations.slow,
+            ease: organicEase
+        }
+    },
+    up: {
+        x: 0,
+        y: -100,
+        opacity: 1,
+        transition: {
+            delay: 0.2,
+            duration: durations.slow,
+            ease: organicEase
+        }
+    }
+};
+
+/**
+ * Helper: Create a custom transition with organic easing
+ */
+export const createTransition = (
+    duration: number = durations.normal,
+    delay: number = 0
+): Transition => ({
+    duration,
+    delay,
+    ease: organicEase,
+});
+
+/**
+ * Phase-specific color schemes for SharedBackground
+ */
+export const phaseColors = {
+    lobby: {
+        red: 0.2,
+        pink: 0.2,
+        purple: 0,
+    },
+    phase1: {
+        red: 0.25,
+        pink: 0.1,
+        purple: 0.05,
+    },
+    phase2: {
+        red: 0.15,
+        pink: 0.15,
+        purple: 0.1,
+    },
+    phase3: {
+        red: 0.2,
+        pink: 0.2,
+        purple: 0,
+    },
+    phase4: {
+        red: 0.3,
+        pink: 0.1,
+        purple: 0,
+    },
+    phase5: {
+        red: 0.15,
+        pink: 0.15,
+        purple: 0.15,
+    },
+} as const;
