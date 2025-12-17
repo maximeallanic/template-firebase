@@ -70,8 +70,28 @@ export const MODEL_CONFIG_FACTUAL = {
   model: useGeminiApi ? 'gemini-3-pro-preview' : 'gemini-2.0-flash',
   config: {
     maxOutputTokens: useGeminiApi ? 32768 : 8192,
-    temperature: 0.8, // Lower for more factual accuracy
+    temperature: 0.5, // Lowered from 0.8 for better factual accuracy
     topP: 0.95,
+    safetySettings: [
+      { category: 'HARM_CATEGORY_HATE_SPEECH', threshold: 'OFF' },
+      { category: 'HARM_CATEGORY_DANGEROUS_CONTENT', threshold: 'OFF' },
+      { category: 'HARM_CATEGORY_SEXUALLY_EXPLICIT', threshold: 'OFF' },
+      { category: 'HARM_CATEGORY_HARASSMENT', threshold: 'OFF' },
+    ],
+  },
+} as const;
+
+/**
+ * Model configuration for fact-checking (post-generation verification)
+ * Very low temperature for deterministic, accurate verification
+ * Used to verify facts AFTER generation by Generator/Reviewer
+ */
+export const MODEL_CONFIG_FACT_CHECK = {
+  model: useGeminiApi ? 'gemini-3-pro-preview' : 'gemini-2.0-flash',
+  config: {
+    maxOutputTokens: 4096,
+    temperature: 0.1, // Very low for deterministic fact-checking
+    topP: 0.9,
     safetySettings: [
       { category: 'HARM_CATEGORY_HATE_SPEECH', threshold: 'OFF' },
       { category: 'HARM_CATEGORY_DANGEROUS_CONTENT', threshold: 'OFF' },

@@ -10,6 +10,7 @@ import {
     Pizza, Cookie, IceCream, Flame, Fish, Sandwich, User
 } from 'lucide-react';
 
+
 interface Phase1PlayerProps {
     room: Room;
     playerId: string;
@@ -62,7 +63,9 @@ export function Phase1Player({ room, playerId, isHost }: Phase1PlayerProps) {
     const isFinished = nextQIndex >= questionsList.length;
 
     const handleNextQuestion = () => {
+        console.log('🔘 handleNextQuestion clicked:', { isFinished, nextQIndex, roomCode: room.code });
         if (!isFinished) {
+            console.log('🔘 Calling startNextQuestion...');
             startNextQuestion(room.code, nextQIndex);
         }
     };
@@ -151,14 +154,27 @@ export function Phase1Player({ room, playerId, isHost }: Phase1PlayerProps) {
     // Longer delay when there's an anecdote to read
     // Auto-transition to Phase 2 when all questions are done
     useEffect(() => {
+        console.log('🔄 Auto-advance useEffect:', {
+            isResult,
+            isHost,
+            isFinished,
+            nextQIndex,
+            questionsListLength: questionsList.length,
+            currentQuestionIndex,
+            customQuestionsPhase1: room.customQuestions?.phase1?.length ?? 'none'
+        });
         if (isResult && isHost) {
             const hasAnecdote = currentQuestion?.anecdote;
-            const delay = hasAnecdote ? 10000 : 3500; // 10s with anecdote, 3.5s without
+            const delay = hasAnecdote ? 7000 : 5000; // 7s with anecdote, 5s without
+            console.log('⏱️ Setting timeout for auto-advance:', { hasAnecdote, delay, isFinished });
             const timer = setTimeout(() => {
+                console.log('⏰ Timeout fired! isFinished:', isFinished);
                 if (isFinished) {
                     // Auto-transition to Phase 2
+                    console.log('🏁 Transitioning to Phase 2!');
                     setGameStatus(room.code, 'phase2');
                 } else {
+                    console.log('➡️ Going to next question:', nextQIndex);
                     startNextQuestion(room.code, nextQIndex);
                 }
             }, delay);
@@ -168,7 +184,6 @@ export function Phase1Player({ room, playerId, isHost }: Phase1PlayerProps) {
 
     return (
         <div className="flex flex-col items-center justify-center h-full w-full max-w-2xl mx-auto p-4 space-y-6 relative">
-
             {/* Top Bar: Progress & Roster */}
             <div className="w-full flex items-center justify-between bg-slate-800/50 p-2 rounded-xl border border-white/5 mb-2">
                 <div className="flex items-center gap-2">

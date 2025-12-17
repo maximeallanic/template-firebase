@@ -59,6 +59,7 @@ export async function getAvailableQuestions(
     seenQuestionIds: Set<string> = new Set(),
     count = 10
 ): Promise<StoredQuestion[]> {
+    console.log('🔍 getAvailableQuestions called:', { phase, seenCount: seenQuestionIds.size, requestedCount: count });
     try {
         const questionsRef = collection(db, 'questions');
         const q = query(
@@ -70,7 +71,10 @@ export async function getAvailableQuestions(
         );
 
         const snapshot = await getDocs(q);
+        console.log('📦 Firestore returned:', snapshot.size, 'documents for phase', phase);
         const questions: StoredQuestion[] = [];
+
+        let skippedCount = 0;
 
         snapshot.forEach((docSnap) => {
             const data = docSnap.data();
@@ -79,6 +83,7 @@ export async function getAvailableQuestions(
 
             // Skip if already seen
             if (seenQuestionIds.has(qId)) {
+                skippedCount++;
                 return;
             }
 
@@ -100,7 +105,22 @@ export async function getAvailableQuestions(
             });
         });
 
-        // Return requested count
+        // If not enough unseen questions, return empty to trigger AI generation
+        // Phase 1 needs 10 questions minimum
+        console.log('✅ getAvailableQuestions result:', {
+            fromFirestore: snapshot.size,
+            skipped: skippedCount,
+            available: questions.length,
+            requested: count
+        });
+
+        // Return empty array if we don't have enough unseen questions
+        // This will trigger AI generation in GameRoom.tsx
+        if (questions.length < count) {
+            console.log(`⚠️ Not enough unseen questions (${questions.length}/${count}), returning empty to trigger AI generation`);
+            return [];
+        }
+
         return questions.slice(0, count);
     } catch (error) {
         console.error('Error fetching questions from Firestore:', error);

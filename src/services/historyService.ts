@@ -26,16 +26,23 @@ export function generateQuestionId(text: string): string {
 export async function markQuestionAsSeen(_playerId: string, questionText: string): Promise<void> {
     // Use auth.uid for database path (required by security rules)
     const userId = auth.currentUser?.uid;
-    if (!userId || !questionText) return;
+    console.log('🔍 markQuestionAsSeen called:', { userId, questionText: questionText?.substring(0, 30) });
+
+    if (!userId || !questionText) {
+        console.warn('⚠️ markQuestionAsSeen skipped:', { userId, hasText: !!questionText });
+        return;
+    }
 
     try {
         const qId = generateQuestionId(questionText);
+        console.log('📝 Marking question as seen:', { qId, userId });
         const historyRef = ref(rtdb, `userHistory/${userId}`);
         await update(historyRef, {
             [qId]: Date.now()
         });
+        console.log('✅ Question marked as seen successfully');
     } catch (error) {
-        console.error("Error marking question as seen:", error);
+        console.error("❌ Error marking question as seen:", error);
     }
 }
 

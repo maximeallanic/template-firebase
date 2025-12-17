@@ -180,6 +180,7 @@ export const overwriteGameQuestions = async (
 // ... existing host actions
 
 export const startNextQuestion = async (code: string, nextIndex: number) => {
+    console.log('🎮 startNextQuestion CALLED:', { code, nextIndex });
     const roomId = code.toUpperCase();
     const snapshot = await get(ref(rtdb, `rooms/${roomId}`));
     if (!snapshot.exists()) return;
@@ -199,10 +200,16 @@ export const startNextQuestion = async (code: string, nextIndex: number) => {
 
     // Mark question as seen for all players
     const currentQ = questionsList[nextIndex];
+    console.log('🎯 startNextQuestion - currentQ:', currentQ);
+    console.log('🎯 currentQ.text:', currentQ?.text);
+    console.log('🎯 room.players:', Object.keys(room.players || {}));
     if (currentQ && room.players) {
         Object.keys(room.players).forEach(pid => {
+            console.log('🎯 Calling markQuestionAsSeen for player:', pid);
             markQuestionAsSeen(pid, currentQ.text);
         });
+    } else {
+        console.warn('⚠️ Skipped markQuestionAsSeen - currentQ:', !!currentQ, 'players:', !!room.players);
     }
 
     await update(ref(rtdb), updates);
@@ -260,11 +267,7 @@ export const submitAnswer = async (code: string, playerId: string, answerIndex: 
         updates[`rooms/${roomId}/state/phaseState`] = 'result';
 
         await update(ref(rtdb), updates);
-
-        // Auto-advance to next question after delay
-        setTimeout(() => {
-            startNextQuestion(code, qIndex + 1);
-        }, 3000);
+        // Auto-advance handled by Phase1Player.tsx useEffect (15s with anecdote, 5s without)
         return;
     }
 
@@ -283,10 +286,7 @@ export const submitAnswer = async (code: string, playerId: string, answerIndex: 
             updates[`rooms/${roomId}/state/phaseState`] = 'result';
 
             await update(ref(rtdb), updates);
-
-            setTimeout(() => {
-                startNextQuestion(code, qIndex + 1);
-            }, 3000);
+            // Auto-advance handled by Phase1Player.tsx useEffect (15s with anecdote, 5s without)
             return;
         }
     }
@@ -616,8 +616,8 @@ export const endPhase2Round = async (roomCode: string) => {
 
     await update(ref(rtdb), updates);
 
-    // Auto-Advance avec délai conditionnel (10s avec anecdote, 2s sans)
-    const delay = hasAnecdote ? 10000 : 2000;
+    // Auto-Advance avec délai conditionnel (7s avec anecdote, 4s sans)
+    const delay = hasAnecdote ? 7000 : 4000;
     setTimeout(() => {
         nextPhase2Item(roomId);
     }, delay);

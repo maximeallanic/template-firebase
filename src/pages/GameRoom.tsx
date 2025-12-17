@@ -47,6 +47,7 @@ export default function GameRoom() {
     const hasCheckedExhaustion = useRef(false);
     const hasMarkedOnline = useRef(false);
     const isFirstRender = useRef(true);
+    const hasTriggeredPhase1Gen = useRef(false);
     const hasTriggeredPhase2Gen = useRef(false);
 
     // Safe boolean check for host
@@ -266,6 +267,12 @@ export default function GameRoom() {
     const handleStartGame = useCallback(async () => {
         if (!room) return;
 
+        // Prevent double execution
+        if (hasTriggeredPhase1Gen.current) {
+            console.log("⚠️ Phase 1 generation already triggered, skipping");
+            return;
+        }
+
         setGenerationError(null);
 
         // Check if custom questions already exist
@@ -274,6 +281,9 @@ export default function GameRoom() {
             setGameStatus(room.code, 'phase1');
             return;
         }
+
+        // Mark as triggered to prevent double execution
+        hasTriggeredPhase1Gen.current = true;
 
         // Check if generation is needed (at least one player exhausted default questions)
         const players = Object.values(room.players);
@@ -338,6 +348,7 @@ export default function GameRoom() {
             console.error("❌ Échec:", err);
             setGenerationError("Impossible de charger les questions. Réessayez.");
             setIsGenerating(false);
+            hasTriggeredPhase1Gen.current = false; // Reset to allow retry
             return;
         }
 

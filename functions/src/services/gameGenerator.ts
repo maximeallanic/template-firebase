@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { ai, genAI, MODEL_CONFIG, MODEL_CONFIG_FACTUAL } from '../config/genkit';
+import { ai, genAI, MODEL_CONFIG, MODEL_CONFIG_FACTUAL, MODEL_CONFIG_FACT_CHECK } from '../config/genkit';
 import {
     GAME_GENERATION_SYSTEM_PROMPT,
     GENERATE_TOPIC_PROMPT,
@@ -14,7 +14,9 @@ import {
     PHASE2_TARGETED_REGENERATION_PROMPT,
     PHASE1_GENERATOR_PROMPT,
     PHASE1_DIALOGUE_REVIEWER_PROMPT,
-    PHASE1_TARGETED_REGENERATION_PROMPT
+    PHASE1_TARGETED_REGENERATION_PROMPT,
+    FACT_CHECK_BATCH_PROMPT,
+    FACT_CHECK_PHASE2_PROMPT
 } from '../prompts';
 import { calculateCost, formatCost } from '../utils/costCalculator';
 import {
@@ -115,6 +117,42 @@ interface Phase1DialogueReview {
     suggestions: string[];
 }
 
+// --- FACT-CHECK TYPES ---
+
+interface FactCheckResult {
+    index: number;
+    question: string;
+    proposedAnswer: string;
+    isCorrect: boolean;
+    confidence: number;
+    source?: string;
+    reasoning: string;
+    correction?: string | null;
+    ambiguity?: string | null;
+}
+
+interface FactCheckBatchResponse {
+    results: FactCheckResult[];
+    summary: {
+        total: number;
+        correct: number;
+        incorrect: number;
+        ambiguous: number;
+    };
+}
+
+interface Phase2FactCheckResult {
+    isCorrectlyAssigned: boolean;
+    confidence: number;
+    shouldBe: 'A' | 'B' | 'Both';
+    source?: string;
+    reasoning: string;
+    factualIssue?: string | null;
+}
+
+// Minimum confidence threshold for fact-check (85%)
+const FACT_CHECK_CONFIDENCE_THRESHOLD = 85;
+
 // --- SCHEMAS ---
 
 export const GameGenerationInputSchema = z.object({
@@ -183,6 +221,249 @@ function parseJsonFromText(text: string): unknown {
     const jsonMatch = text.match(/\{[\s\S]*\}|\[[\s\S]*\]/);
     if (!jsonMatch) throw new Error('No JSON found in response');
     return JSON.parse(jsonMatch[0]);
+}
+
+/**
+ * Extract text from a Gemini API response
+ * Handles both standard responses and thinking model responses (gemini-3-pro-preview)
+ * which may have text split across multiple parts or candidates
+ */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function extractTextFromResponse(response: any): string {
+    // Try direct .text property first (standard SDK behavior)
+    if (response.text && typeof response.text === 'string' && response.text.trim()) {
+        return response.text;
+    }
+
+    // For thinking models, extract text from candidates/parts
+    try {
+        const candidates = response.candidates || [];
+        const textParts: string[] = [];
+
+        for (const candidate of candidates) {
+            const content = candidate.content || {};
+            const parts = content.parts || [];
+
+            for (const part of parts) {
+                // Skip thought parts, only get actual text output
+                if (part.text && typeof part.text === 'string') {
+                    // Skip if it looks like internal thinking (usually marked differently)
+                    if (!part.thought) {
+                        textParts.push(part.text);
+                    }
+                }
+            }
+        }
+
+        if (textParts.length > 0) {
+            return textParts.join('').trim();
+        }
+    } catch (err) {
+        console.warn('⚠️ Error extracting text from response candidates:', err);
+    }
+
+    // Fallback: try to call .text() if it's a function
+    if (typeof response.text === 'function') {
+        try {
+            const text = response.text();
+            if (text && typeof text === 'string') {
+                return text;
+            }
+        } catch (err) {
+            console.warn('⚠️ Error calling response.text():', err);
+        }
+    }
+
+    return '';
+}
+
+// --- FACT-CHECK FUNCTIONS ---
+
+/**
+ * Call Gemini with fact-check config (very low temperature)
+ * Uses Google Search grounding when available
+ */
+async function callGeminiForFactCheck(prompt: string): Promise<string> {
+    const useGoogleSearch = !process.env.GEMINI_API_KEY;
+
+    console.log(`🔍 Fact-check call (temp: ${MODEL_CONFIG_FACT_CHECK.config.temperature}, search: ${useGoogleSearch})`);
+
+    const response = await genAI.models.generateContent({
+        model: MODEL_CONFIG_FACT_CHECK.model,
+        config: {
+            ...MODEL_CONFIG_FACT_CHECK.config,
+            ...(useGoogleSearch ? { tools: [{ googleSearch: {} }] } : {}),
+        },
+        contents: [{ role: 'user', parts: [{ text: prompt }] }]
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    } as any);
+
+    return response.text || '';
+}
+
+/**
+ * Verify factual accuracy of Phase 1 questions in batch
+ * Returns questions that passed fact-check with high confidence
+ */
+async function factCheckPhase1Questions(
+    questions: Phase1Question[]
+): Promise<{ passed: Phase1Question[]; failed: { question: Phase1Question; reason: string }[] }> {
+    console.log(`🔍 Fact-checking ${questions.length} Phase 1 questions...`);
+
+    // Format questions for batch verification
+    const questionsForCheck = questions.map((q, idx) => ({
+        index: idx,
+        question: q.text,
+        proposedAnswer: q.options[q.correctIndex]
+    }));
+
+    const prompt = FACT_CHECK_BATCH_PROMPT.replace(
+        '{QUESTIONS_JSON}',
+        JSON.stringify(questionsForCheck, null, 2)
+    );
+
+    try {
+        const responseText = await callGeminiForFactCheck(prompt);
+        const response = parseJsonFromText(responseText) as FactCheckBatchResponse;
+
+        console.log(`📊 Fact-check summary: ${response.summary.correct}/${response.summary.total} correct, ${response.summary.incorrect} incorrect, ${response.summary.ambiguous} ambiguous`);
+
+        const passed: Phase1Question[] = [];
+        const failed: { question: Phase1Question; reason: string }[] = [];
+
+        for (const result of response.results) {
+            const question = questions[result.index];
+
+            if (result.isCorrect && result.confidence >= FACT_CHECK_CONFIDENCE_THRESHOLD) {
+                passed.push(question);
+                console.log(`  ✅ Q${result.index + 1}: "${question.text.slice(0, 40)}..." (${result.confidence}%)`);
+            } else {
+                const reason = result.isCorrect
+                    ? `Confiance trop basse (${result.confidence}%): ${result.reasoning}`
+                    : `Erreur factuelle: ${result.reasoning}${result.correction ? ` (correction: ${result.correction})` : ''}`;
+                failed.push({ question, reason });
+                console.log(`  ❌ Q${result.index + 1}: "${question.text.slice(0, 40)}..." - ${reason}`);
+            }
+        }
+
+        return { passed, failed };
+    } catch (err) {
+        console.error('❌ Fact-check failed:', err);
+        // If fact-check fails, return all questions (fallback to reviewer validation)
+        return { passed: questions, failed: [] };
+    }
+}
+
+/**
+ * Verify factual accuracy of Phase 2 items
+ * Checks if items are correctly categorized
+ */
+async function factCheckPhase2Items(
+    set: Phase2Set
+): Promise<{ passed: typeof set.items; failed: { item: typeof set.items[0]; reason: string }[] }> {
+    console.log(`🔍 Fact-checking ${set.items.length} Phase 2 items...`);
+
+    const passed: typeof set.items = [];
+    const failed: { item: typeof set.items[0]; reason: string }[] = [];
+
+    // Check items in parallel (batches of 4 to avoid rate limits)
+    const batchSize = 4;
+    for (let i = 0; i < set.items.length; i += batchSize) {
+        const batch = set.items.slice(i, i + batchSize);
+
+        const checks = batch.map(async (item) => {
+            const prompt = FACT_CHECK_PHASE2_PROMPT
+                .replace('{OPTION_A}', set.optionA)
+                .replace('{OPTION_B}', set.optionB)
+                .replace('{ITEM_TEXT}', item.text)
+                .replace('{ASSIGNED_CATEGORY}', item.answer)
+                .replace('{JUSTIFICATION}', item.justification || 'Non fournie');
+
+            try {
+                const responseText = await callGeminiForFactCheck(prompt);
+                const result = parseJsonFromText(responseText) as Phase2FactCheckResult;
+
+                if (result.isCorrectlyAssigned && result.confidence >= FACT_CHECK_CONFIDENCE_THRESHOLD) {
+                    return { item, passed: true, reason: '' };
+                } else {
+                    const reason = !result.isCorrectlyAssigned
+                        ? `Mauvaise catégorie: devrait être ${result.shouldBe} - ${result.reasoning}`
+                        : `Confiance trop basse (${result.confidence}%): ${result.reasoning}`;
+                    return { item, passed: false, reason };
+                }
+            } catch (err) {
+                console.warn(`⚠️ Fact-check failed for item "${item.text}":`, err);
+                // If check fails, assume it passed (fallback to reviewer)
+                return { item, passed: true, reason: '' };
+            }
+        });
+
+        const results = await Promise.all(checks);
+
+        for (const result of results) {
+            if (result.passed) {
+                passed.push(result.item);
+                console.log(`  ✅ "${result.item.text}" → ${result.item.answer}`);
+            } else {
+                failed.push({ item: result.item, reason: result.reason });
+                console.log(`  ❌ "${result.item.text}" → ${result.item.answer} - ${result.reason}`);
+            }
+        }
+    }
+
+    console.log(`📊 Phase 2 fact-check: ${passed.length}/${set.items.length} passed`);
+    return { passed, failed };
+}
+
+/**
+ * Verify factual accuracy of Phase 3/4/5 questions (simple Q&A format)
+ * These phases don't have the Generator/Reviewer system, so this is their main verification
+ */
+async function factCheckSimpleQuestions(
+    questions: Array<{ question: string; answer: string }>
+): Promise<{ passed: typeof questions; failed: { question: typeof questions[0]; reason: string }[] }> {
+    console.log(`🔍 Fact-checking ${questions.length} simple Q&A questions...`);
+
+    // Format for batch verification
+    const questionsForCheck = questions.map((q, idx) => ({
+        index: idx,
+        question: q.question,
+        proposedAnswer: q.answer
+    }));
+
+    const prompt = FACT_CHECK_BATCH_PROMPT.replace(
+        '{QUESTIONS_JSON}',
+        JSON.stringify(questionsForCheck, null, 2)
+    );
+
+    try {
+        const responseText = await callGeminiForFactCheck(prompt);
+        const response = parseJsonFromText(responseText) as FactCheckBatchResponse;
+
+        console.log(`📊 Fact-check summary: ${response.summary.correct}/${response.summary.total} correct`);
+
+        const passed: typeof questions = [];
+        const failed: { question: typeof questions[0]; reason: string }[] = [];
+
+        for (const result of response.results) {
+            const question = questions[result.index];
+
+            if (result.isCorrect && result.confidence >= FACT_CHECK_CONFIDENCE_THRESHOLD) {
+                passed.push(question);
+            } else {
+                const reason = result.isCorrect
+                    ? `Confiance trop basse (${result.confidence}%)`
+                    : `Erreur: ${result.reasoning}`;
+                failed.push({ question, reason });
+                console.log(`  ❌ "${question.question.slice(0, 40)}..." - ${reason}`);
+            }
+        }
+
+        return { passed, failed };
+    } catch (err) {
+        console.error('❌ Fact-check failed:', err);
+        return { passed: questions, failed: [] };
+    }
 }
 
 // List of banned generic topics that we want to avoid
@@ -261,8 +542,18 @@ async function generateCreativeTopic(phase?: string): Promise<string> {
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
             } as any);
 
+            // Extract text from response (handles thinking models like gemini-3-pro-preview)
+            const rawTopic = extractTextFromResponse(response);
+
+            // Debug logging for topic generation issues
+            if (!rawTopic) {
+                console.warn(`⚠️ Attempt ${attempt}: Empty response from model. Response keys:`, Object.keys(response || {}));
+                if (response?.candidates) {
+                    console.warn('   Candidates:', JSON.stringify(response.candidates, null, 2).slice(0, 500));
+                }
+            }
+
             // Clean up the response - remove quotes, extra spaces, etc.
-            const rawTopic = response.text || '';
             const topic = rawTopic
                 .trim()
                 .replace(/^["']|["']$/g, '') // Remove surrounding quotes
@@ -275,7 +566,7 @@ async function generateCreativeTopic(phase?: string): Promise<string> {
                 return topic;
             }
 
-            console.warn(`⚠️ Attempt ${attempt}: Topic "${topic}" is too generic, retrying...`);
+            console.warn(`⚠️ Attempt ${attempt}: Topic "${topic}" is too generic or empty, retrying...`);
         } catch (err) {
             console.warn(`⚠️ Attempt ${attempt} failed:`, err);
         }
@@ -439,9 +730,44 @@ Tu dois REMPLACER au moins 4-5 items par des PIÈGES contre-intuitifs.
             continue;
         }
 
-        // Check overall score (>= 6 is considered acceptable when phonetic is good)
-        if (review.overall_score >= 6) {
-            console.log(`✅ Set validated after ${i + 1} iteration(s)! (score: ${review.overall_score}/10, approved: ${review.approved})`);
+        // Check overall score (>= 7 is considered acceptable - increased from 6)
+        if (review.overall_score >= 7) {
+            console.log(`✅ Set validated by reviewer after ${i + 1} iteration(s)! (score: ${review.overall_score}/10, approved: ${review.approved})`);
+
+            // === FACT-CHECK STEP ===
+            // Run dedicated fact-checking on Phase 2 items
+            const factCheckResult = await factCheckPhase2Items(lastSet);
+
+            if (factCheckResult.failed.length > 0) {
+                console.log(`⚠️ Fact-check rejected ${factCheckResult.failed.length}/${lastSet.items.length} items`);
+
+                // If more than 3 items failed, regenerate the set
+                if (factCheckResult.failed.length > 3) {
+                    const failedFeedback = factCheckResult.failed
+                        .map(f => `- "${f.item.text}" (${f.item.answer}): ${f.reason}`)
+                        .join('\n');
+
+                    previousFeedback = `
+⚠️ VÉRIFICATION FACTUELLE ÉCHOUÉE
+
+Le fact-checker externe a détecté des erreurs dans ces items :
+${failedFeedback}
+
+CRITIQUE : Les items doivent être CORRECTEMENT CATÉGORISÉS.
+Vérifie que chaque item appartient VRAIMENT à la catégorie assignée (A, B, ou Both).
+`;
+                    continue; // Regenerate with feedback
+                }
+
+                // Otherwise, update set to only include passed items
+                lastSet = {
+                    ...lastSet,
+                    items: factCheckResult.passed
+                };
+                console.log(`📋 Continuing with ${lastSet.items.length} fact-checked items`);
+            } else {
+                console.log(`✅ All ${lastSet.items.length} items passed fact-check!`);
+            }
 
             // Run semantic deduplication on the approved set
             const itemsAsQuestions = lastSet.items.map(item => ({ text: item.text }));
@@ -693,8 +1019,8 @@ async function generatePhase1WithDialogue(
         console.log(`   Overall: ${review.overall_score}/10`);
 
         // 3. Check critical criteria
-        // CRITICAL: Factual accuracy must be >= 7
-        if (review.scores.factual_accuracy < 7) {
+        // CRITICAL: Factual accuracy must be >= 8 (increased from 7)
+        if (review.scores.factual_accuracy < 8) {
             console.log(`❌ Factual accuracy too low (${review.scores.factual_accuracy}/10). Questions have errors!`);
 
             const problematicQuestions = review.questions_feedback
@@ -715,8 +1041,8 @@ NE RÉUTILISE PAS les questions rejetées.
             continue;
         }
 
-        // CRITICAL: Clarity must be >= 6
-        if (review.scores.clarity < 6) {
+        // CRITICAL: Clarity must be >= 7 (increased from 6)
+        if (review.scores.clarity < 7) {
             console.log(`❌ Clarity too low (${review.scores.clarity}/10). Questions are ambiguous!`);
 
             const ambiguousQuestions = review.questions_feedback
@@ -743,9 +1069,41 @@ Si plusieurs réponses pourraient être valides → reformule la question.
             console.log(`📈 New best questions! Score: ${bestScore}/10`);
         }
 
-        // Check overall score (>= 6 is considered acceptable)
-        if (review.overall_score >= 6) {
-            console.log(`✅ Questions validated after ${i + 1} iteration(s)! (score: ${review.overall_score}/10)`);
+        // Check overall score (>= 7 is considered acceptable - increased from 6)
+        if (review.overall_score >= 7) {
+            console.log(`✅ Questions validated by reviewer after ${i + 1} iteration(s)! (score: ${review.overall_score}/10)`);
+
+            // === FACT-CHECK STEP ===
+            // Run dedicated fact-checking with low temperature and Google Search
+            const factCheckResult = await factCheckPhase1Questions(lastQuestions);
+
+            if (factCheckResult.failed.length > 0) {
+                console.log(`⚠️ Fact-check rejected ${factCheckResult.failed.length}/${lastQuestions.length} questions`);
+
+                // If more than 2 questions failed fact-check, regenerate
+                if (factCheckResult.failed.length > 2) {
+                    const failedFeedback = factCheckResult.failed
+                        .map(f => `- "${f.question.text.slice(0, 50)}...": ${f.reason}`)
+                        .join('\n');
+
+                    previousFeedback = `
+⚠️ VÉRIFICATION FACTUELLE ÉCHOUÉE
+
+Le fact-checker externe a détecté des erreurs dans ces questions :
+${failedFeedback}
+
+CRITIQUE : Génère de NOUVELLES questions avec des FAITS VÉRIFIABLES.
+Chaque réponse doit être 100% correcte et vérifiable avec une recherche Google.
+`;
+                    continue; // Regenerate with feedback
+                }
+
+                // Otherwise, just use the questions that passed
+                lastQuestions = factCheckResult.passed;
+                console.log(`📋 Continuing with ${lastQuestions.length} fact-checked questions`);
+            } else {
+                console.log(`✅ All ${lastQuestions.length} questions passed fact-check!`);
+            }
 
             // Run semantic deduplication
             const questionsAsItems = lastQuestions.map(q => ({ text: q.text }));
@@ -966,7 +1324,7 @@ export const generateGameQuestionsFlow = ai.defineFlow(
             embeddings = result.embeddings;
 
         } else {
-            // Phase 3, 4, 5: Direct generation (no review agent yet)
+            // Phase 3, 4, 5: Direct generation with fact-checking
             const userPrompt = getPromptForPhase(phase, topic, difficulty);
 
             if (!userPrompt) {
@@ -1000,6 +1358,41 @@ export const generateGameQuestionsFlow = ai.defineFlow(
             } catch {
                 console.error('Failed to parse GenAI response:', text);
                 throw new Error('AI Generation failed to produce valid JSON');
+            }
+
+            // === FACT-CHECK STEP FOR PHASES 3, 4, 5 ===
+            console.log(`🔍 Running fact-check for ${phase}...`);
+
+            if (phase === 'phase3') {
+                // Phase 3: Array of menus with questions
+                type Phase3Menu = { title: string; description: string; questions: Array<{ question: string; answer: string }> };
+                const menus = jsonData as Phase3Menu[];
+
+                for (const menu of menus) {
+                    const factCheckResult = await factCheckSimpleQuestions(menu.questions);
+                    if (factCheckResult.failed.length > 0) {
+                        console.warn(`⚠️ Menu "${menu.title}": ${factCheckResult.failed.length} questions failed fact-check`);
+                        // Keep only passed questions
+                        menu.questions = factCheckResult.passed;
+                    }
+                }
+
+                console.log(`✅ Phase 3 fact-check complete`);
+
+            } else if (phase === 'phase4' || phase === 'phase5') {
+                // Phase 4 & 5: Array of { question, answer }
+                type SimpleQuestion = { question: string; answer: string };
+                const questions = jsonData as SimpleQuestion[];
+
+                const factCheckResult = await factCheckSimpleQuestions(questions);
+
+                if (factCheckResult.failed.length > 0) {
+                    console.warn(`⚠️ ${phase}: ${factCheckResult.failed.length}/${questions.length} questions failed fact-check`);
+                    // Keep only passed questions
+                    jsonData = factCheckResult.passed;
+                } else {
+                    console.log(`✅ All ${questions.length} ${phase} questions passed fact-check!`);
+                }
             }
         }
 
