@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useTranslation } from 'react-i18next';
 import { UserBar } from '../components/UserBar';
 import { Logo } from '../components/Logo';
 import { AvatarIcon } from '../components/AvatarIcon';
@@ -24,6 +25,7 @@ const floatingMascots = [
 ] as const;
 
 export default function HomePage() {
+  const { t } = useTranslation(['home', 'common']);
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const [isCreatingRoom, setIsCreatingRoom] = useState(false);
@@ -57,7 +59,7 @@ export default function HomePage() {
       }).catch(err => {
         console.error('Auto-join failed:', err);
         hasAutoJoined.current = false;
-        setJoinError('Room introuvable');
+        setJoinError(t('common:errors.roomNotFound'));
       });
     } else if (!auth.currentUser) {
       // Not logged in - save code and redirect to login page
@@ -166,7 +168,7 @@ export default function HomePage() {
               className={`w-16 h-16 border-4 rounded-full mb-4 ${isJoiningRoom ? 'border-pink-500/30 border-t-pink-500' : 'border-red-500/30 border-t-red-500'}`}
             />
             <p className="text-white font-bold text-lg">
-              {isJoiningRoom ? 'Connexion à la partie...' : 'Ouverture de la cuisine...'}
+              {isJoiningRoom ? t('loading.joining') : t('loading.creating')}
             </p>
           </motion.div>
         )}
@@ -222,14 +224,16 @@ export default function HomePage() {
             className="space-y-2 mt-4"
           >
             <p className="text-2xl md:text-3xl text-white font-bold">
-              Le jeu de quiz culinaire entre amis !
+              {t('hero.tagline')}
             </p>
             <p className="text-lg text-indigo-300/80 max-w-2xl mx-auto">
-              Affrontez-vous en équipes
-              <span className="text-red-400 font-bold"> Spicy </span>
-              vs
-              <span className="text-pink-400 font-bold"> Sweet </span>
-              dans des épreuves délirantes !
+              {t('hero.description', {
+                replace: { spicy: t('common:teams.spicy'), sweet: t('common:teams.sweet') }
+              }).split(/<spicy>|<\/spicy>|<sweet>|<\/sweet>/).map((part, i) => {
+                if (i === 1) return <span key={i} className="text-spicy-400 font-bold"> {part} </span>;
+                if (i === 3) return <span key={i} className="text-sweet-400 font-bold"> {part} </span>;
+                return part;
+              })}
             </p>
           </motion.div>
         </motion.div>
@@ -245,19 +249,19 @@ export default function HomePage() {
             <div className="w-10 h-10 rounded-full bg-indigo-500/20 flex items-center justify-center">
               <Users className="w-5 h-5 text-indigo-400" />
             </div>
-            <span className="text-sm font-medium">2-20 joueurs</span>
+            <span className="text-sm font-medium">{t('features.players')}</span>
           </div>
           <div className="flex items-center gap-2 text-indigo-200">
             <div className="w-10 h-10 rounded-full bg-yellow-500/20 flex items-center justify-center">
               <Zap className="w-5 h-5 text-yellow-400" />
             </div>
-            <span className="text-sm font-medium">5 épreuves fun</span>
+            <span className="text-sm font-medium">{t('features.challenges')}</span>
           </div>
           <div className="flex items-center gap-2 text-indigo-200">
             <div className="w-10 h-10 rounded-full bg-emerald-500/20 flex items-center justify-center">
               <Trophy className="w-5 h-5 text-emerald-400" />
             </div>
-            <span className="text-sm font-medium">1 équipe gagnante</span>
+            <span className="text-sm font-medium">{t('features.winner')}</span>
           </div>
         </motion.div>
 
@@ -292,13 +296,13 @@ export default function HomePage() {
                 </motion.div>
               </div>
 
-              <h2 className="text-2xl md:text-3xl font-black text-white mb-2">CRÉER UNE PARTIE</h2>
+              <h2 className="text-2xl md:text-3xl font-black text-white mb-2">{t('create.title')}</h2>
               <p className="text-red-200/80 text-sm mb-4">
-                Ouvre ta cuisine et invite tes amis !
+                {t('create.subtitle')}
               </p>
 
               <div className="px-6 py-2.5 rounded-full bg-gradient-to-r from-red-500 to-orange-500 text-white font-bold text-sm tracking-wide shadow-lg opacity-80 group-hover:opacity-100 transform translate-y-2 group-hover:translate-y-0 transition-all">
-                Devenir le Chef
+                {t('create.button')}
               </div>
             </motion.div>
           </button>
@@ -326,9 +330,9 @@ export default function HomePage() {
                 </motion.div>
               </div>
 
-              <h2 className="text-2xl md:text-3xl font-black text-white mb-2">REJOINDRE</h2>
+              <h2 className="text-2xl md:text-3xl font-black text-white mb-2">{t('join.title')}</h2>
               <p className="text-pink-200/80 text-sm mb-4">
-                Entre le code et choisis ton équipe !
+                {t('join.subtitle')}
               </p>
 
               {/* Input + Button grouped */}
@@ -337,7 +341,7 @@ export default function HomePage() {
                   type="text"
                   value={joinCode}
                   onChange={(e) => { setJoinCode(e.target.value.toUpperCase()); setJoinError(null); }}
-                  placeholder="CODE"
+                  placeholder={t('join.placeholder')}
                   maxLength={4}
                   className="w-24 h-11 px-3 rounded-l-full bg-white/10 border border-r-0 border-pink-500/30 text-white text-center font-bold text-lg tracking-widest uppercase placeholder:text-pink-300/50 focus:outline-none focus:border-pink-500 focus:ring-2 focus:ring-pink-500/30 focus:z-10"
                 />
@@ -346,7 +350,7 @@ export default function HomePage() {
                   disabled={joinCode.length !== 4 || isJoiningRoom}
                   className="h-11 px-6 rounded-r-full bg-gradient-to-r from-pink-500 to-purple-500 text-white font-bold text-sm tracking-wide shadow-lg disabled:opacity-50 disabled:cursor-not-allowed hover:shadow-pink-500/30 transition-all"
                 >
-                  {isJoiningRoom ? '...' : 'Rejoindre'}
+                  {isJoiningRoom ? '...' : t('join.button')}
                 </button>
               </div>
               {joinError && (
@@ -364,18 +368,18 @@ export default function HomePage() {
           className="w-full max-w-4xl mb-16"
         >
           <h3 className="text-center text-lg font-bold text-indigo-300 mb-6 uppercase tracking-wider">
-            5 Épreuves Délirantes
+            {t('phases.title')}
           </h3>
           <div className="flex flex-col sm:flex-row sm:flex-wrap justify-center gap-4 sm:gap-2 md:gap-4">
             {[
-              { name: 'Tenders', icon: 'nuggets' as const, color: 'from-amber-500 to-orange-500', description: "Sois le plus rapide à buzzer !" },
-              { name: 'Sucré Salé', icon: 'sweetysalty' as const, color: 'from-pink-400 to-amber-500', description: "Plutôt A ou plutôt B ?" },
-              { name: 'La Carte', icon: 'menus' as const, color: 'from-emerald-500 to-teal-500', description: "Retiens un max de plats !" },
-              { name: 'La Note', icon: 'addition' as const, color: 'from-blue-500 to-indigo-500', description: "Questions de culture G !" },
-              { name: 'Burger Ultime', icon: 'burger' as const, color: 'from-red-500 to-pink-500', description: "Le défi final pour la victoire !" },
+              { key: 'tenders', icon: 'nuggets' as const, color: 'from-amber-500 to-orange-500' },
+              { key: 'sucreSale', icon: 'sweetysalty' as const, color: 'from-pink-400 to-amber-500' },
+              { key: 'laCarte', icon: 'menus' as const, color: 'from-emerald-500 to-teal-500' },
+              { key: 'laNote', icon: 'addition' as const, color: 'from-blue-500 to-indigo-500' },
+              { key: 'burgerUltime', icon: 'burger' as const, color: 'from-red-500 to-pink-500' },
             ].map((phase, i) => (
               <motion.div
-                key={phase.name}
+                key={phase.key}
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 1.2 + i * 0.1, duration: 0.4 }}
@@ -385,8 +389,8 @@ export default function HomePage() {
                   <PhaseIcon phase={phase.icon} size={64} className="md:hidden drop-shadow-lg" />
                   <PhaseIcon phase={phase.icon} size={80} className="hidden md:block drop-shadow-xl" />
                 </div>
-                <p className="text-xs md:text-sm text-indigo-100 font-bold truncate tracking-wide mb-1">{phase.name}</p>
-                <p className="text-[10px] md:text-xs text-indigo-300/80 leading-tight max-w-[100px] md:max-w-full mx-auto">{phase.description}</p>
+                <p className="text-xs md:text-sm text-indigo-100 font-bold truncate tracking-wide mb-1">{t(`phases.${phase.key}.name`)}</p>
+                <p className="text-[10px] md:text-xs text-indigo-300/80 leading-tight max-w-[100px] md:max-w-full mx-auto">{t(`phases.${phase.key}.description`)}</p>
               </motion.div>
             ))}
           </div>
@@ -395,12 +399,12 @@ export default function HomePage() {
         {/* Footer */}
         <footer className="mt-auto pt-8 pb-4 text-center text-sm font-mono tracking-widest uppercase text-white/20">
           <div className="mb-4">
-            Spicy VS Sweet • {new Date().getFullYear()} • 25g de Sel
+            Spicy VS Sweet • {new Date().getFullYear()} • {t('common:footer.copyright')}
           </div>
           <div className="flex justify-center gap-4">
-            <Link to="/terms" className="hover:text-white/50 transition-colors">CGU</Link>
+            <Link to="/terms" className="hover:text-white/50 transition-colors">{t('common:footer.terms')}</Link>
             <span>•</span>
-            <Link to="/privacy" className="hover:text-white/50 transition-colors">Confidentialité</Link>
+            <Link to="/privacy" className="hover:text-white/50 transition-colors">{t('common:footer.privacy')}</Link>
           </div>
         </footer>
 

@@ -20,5 +20,5 @@ export const SUPPORTED_LANGUAGES: LanguageOption[] = [
   { code: 'pt', name: 'Portuguese', nativeName: 'Português', flag: '🇵🇹' },
 ];
 
-export const DEFAULT_LANGUAGE: SupportedLanguage = 'en';
+export const DEFAULT_LANGUAGE: SupportedLanguage = 'fr';
 export const LANGUAGE_STORAGE_KEY = 'spicyvssweet_language';

@@ -31,8 +31,8 @@ i18n
     supportedLngs: SUPPORTED_LANGUAGES.map(lang => lang.code),
 
     // Namespace configuration
-    ns: ['translation', 'common', 'analysis', 'errors'],
-    defaultNS: 'translation',
+    ns: ['common', 'home', 'lobby', 'game-ui', 'game-phases', 'game-loading', 'game-content'],
+    defaultNS: 'common',
 
     // Debug mode (disabled in production)
     debug: import.meta.env.DEV,

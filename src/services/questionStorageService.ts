@@ -1,6 +1,7 @@
 import { collection, query, where, getDocs, orderBy, limit, Timestamp, updateDoc, doc, increment } from 'firebase/firestore';
 import { db } from './firebase';
 import type { Question } from '../data/questions';
+import { generateQuestionHash } from '../utils/hash';
 
 /**
  * Service for fetching AI-generated questions from Firestore.
@@ -204,21 +205,6 @@ export async function getAvailableQuestionSets(
     if (!set) return [];
     // For backward compat, return single set in array
     return [set];
-}
-
-/**
- * Generates a consistent hash from question text.
- * Used to check if a player has seen this question before.
- */
-export function generateQuestionHash(text: string): string {
-    let hash = 0;
-    if (!text || text.length === 0) return hash.toString();
-    for (let i = 0; i < text.length; i++) {
-        const char = text.charCodeAt(i);
-        hash = ((hash << 5) - hash) + char;
-        hash = hash & hash; // Convert to 32bit integer
-    }
-    return Math.abs(hash).toString(16);
 }
 
 /**

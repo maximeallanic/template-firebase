@@ -1,5 +1,5 @@
-import React, { useId } from 'react';
-import type { Avatar } from '../services/gameService';
+import { useId } from 'react';
+import type { Avatar } from '../types/gameTypes';
 
 interface AvatarIconProps {
     avatar: Avatar | string;
@@ -578,5 +578,3 @@ export const AvatarIcon: React.FC<AvatarIconProps> = ({ avatar, className = '', 
             );
     }
 };
-
-export default AvatarIcon;

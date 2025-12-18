@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { createRoom, joinRoom, type Avatar, AVATAR_LIST } from '../services/gameService';
 import { Flame, ChefHat, Lock, Users } from 'lucide-react';
 import { AvatarIcon } from '../components/AvatarIcon';
@@ -9,6 +10,7 @@ import { safeStorage } from '../utils/storage';
 import { getLocalProfile, saveProfile } from '../services/profileService';
 
 export default function HostLobby() {
+    const { t } = useTranslation(['lobby', 'common']);
     const navigate = useNavigate();
     const [hostName, setHostName] = useState('');
     const [hostAvatar, setHostAvatar] = useState<Avatar>('chili');
@@ -134,7 +136,7 @@ export default function HostLobby() {
             }
         } catch (err) {
             console.error(err);
-            alert(pendingJoinCode ? 'Room introuvable' : 'Échec de la création de la room');
+            alert(pendingJoinCode ? t('common:errors.roomNotFound') : t('common:errors.createFailed'));
         } finally {
             setIsCreating(false);
         }
@@ -160,20 +162,20 @@ export default function HostLobby() {
                     {pendingCode ? (
                         <>
                             <h2 className="text-pink-500 font-bold uppercase tracking-widest text-sm mb-2 flex items-center justify-center gap-2">
-                                <Users className="w-4 h-4" /> Rejoindre la partie
+                                <Users className="w-4 h-4" /> {t('create.joinGame')}
                             </h2>
                             <h1 className="text-2xl font-black bg-gradient-to-r from-pink-500 to-purple-500 bg-clip-text text-transparent">
-                                Créer ton profil
+                                {t('create.createProfile')}
                             </h1>
-                            <p className="text-gray-400 text-sm mt-2">Code: <span className="font-mono font-bold text-white">{pendingCode}</span></p>
+                            <p className="text-gray-400 text-sm mt-2">{t('room.code')}: <span className="font-mono font-bold text-white">{pendingCode}</span></p>
                         </>
                     ) : (
                         <>
                             <h2 className="text-red-500 font-bold uppercase tracking-widest text-sm mb-2 flex items-center justify-center gap-2">
-                                <Lock className="w-4 h-4" /> Accès Hôte
+                                <Lock className="w-4 h-4" /> {t('create.hostAccess')}
                             </h2>
                             <h1 className="text-2xl font-black bg-gradient-to-r from-red-500 to-pink-500 bg-clip-text text-transparent flex items-center justify-center gap-3">
-                                Ouvrir la Cuisine <ChefHat className="w-8 h-8 text-red-500" />
+                                {t('create.title')} <ChefHat className="w-8 h-8 text-red-500" />
                             </h1>
                         </>
                     )}
@@ -181,19 +183,19 @@ export default function HostLobby() {
 
                 <form onSubmit={handleCreateRoom} className="space-y-6">
                     <div>
-                        <label className="block text-gray-300 font-bold mb-2 ml-1 text-sm">NOM DU CHEF</label>
+                        <label className="block text-gray-300 font-bold mb-2 ml-1 text-sm">{t('create.chefName')}</label>
                         <input
                             type="text"
                             value={hostName}
                             onChange={(e) => setHostName(e.target.value)}
                             className="w-full bg-slate-950/50 border-2 border-slate-700/50 rounded-xl p-4 text-xl font-bold text-white focus:outline-none focus:border-red-500 focus:ring-1 focus:ring-red-500 transition-all placeholder:text-gray-600"
-                            placeholder="Gordon R."
+                            placeholder={t('create.chefNamePlaceholder')}
                             maxLength={12}
                         />
                     </div>
 
                     <div>
-                        <label className="block text-gray-300 font-bold mb-2 ml-1 text-sm">CHOISIR UN AVATAR</label>
+                        <label className="block text-gray-300 font-bold mb-2 ml-1 text-sm">{t('create.chooseAvatar')}</label>
                         <div className="grid grid-cols-5 gap-2">
                             {AVATAR_LIST.map(av => (
                                 <button
@@ -224,10 +226,10 @@ export default function HostLobby() {
                         }`}
                     >
                         {isCreating
-                            ? (pendingCode ? 'Connexion...' : 'Création...')
+                            ? (pendingCode ? t('create.connecting') : t('create.creating'))
                             : pendingCode
-                                ? <>Rejoindre la partie <Users className="w-6 h-6" /></>
-                                : <>À vos fourneaux ! <Flame className="w-6 h-6 fill-current" /></>
+                                ? <>{t('create.joinButton')} <Users className="w-6 h-6" /></>
+                                : <>{t('create.createButton')} <Flame className="w-6 h-6 fill-current" /></>
                         }
                     </button>
                 </form>

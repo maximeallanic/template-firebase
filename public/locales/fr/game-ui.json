@@ -1,0 +1,125 @@
+{
+  "player": {
+    "waitingForHost": "En attente de l'hôte...",
+    "waitingForOthers": "En attente des autres...",
+    "yourTurn": "C'est ton tour !",
+    "teamBlocked": "Équipe bloquée - Attendez !",
+    "answerNow": "RÉPONDEZ !",
+    "getReady": "Préparez-vous...",
+    "reading": "Lecture...",
+    "thinking": "réflexion...",
+    "phaseComplete": "Phase terminée !"
+  },
+  "host": {
+    "startReading": "Commencer la lecture",
+    "nextQuestion": "Question suivante",
+    "skipQuestion": "Passer la question",
+    "skipNextQuestion": "Passer / Question suivante",
+    "correct": "CORRECT (+{{points}})",
+    "wrong": "MAUVAIS",
+    "markCorrect": "Marquer comme correct",
+    "markWrong": "Marquer comme incorrect",
+    "markCorrectPoints": "Marquer comme correct, plus {{points}} points",
+    "startPhase5": "Lancer Phase 5 (Burger Ultime)",
+    "startSnacks": "Lancer les Snacks !",
+    "readyToStart": "Prêt à lancer le quiz ? Voir Question 1."
+  },
+  "results": {
+    "bravo": "BRAVO ! +1 POINT",
+    "teamWins": "L'équipe {{team}} gagne !",
+    "yourTeamWins": "Ton équipe a gagné !",
+    "nobodyFound": "Personne n'a trouvé !",
+    "wrongAnswer": "Mauvaise réponse !",
+    "roundOver": "Manche terminée",
+    "correctAnswer": "Bonne réponse :",
+    "winner": "Gagnant :",
+    "noWinner": "Pas de gagnant pour cette manche.",
+    "yum": "Miam"
+  },
+  "status": {
+    "reading": "Temps de lecture... ⏳",
+    "answering": "Les joueurs répondent ! ⚡",
+    "endPhase1": "Fin de la Phase 1 !"
+  },
+  "buzzer": {
+    "buzz": "BUZZ!",
+    "locked": "VERROUILLÉ",
+    "teamBuzzed": "L'équipe {{team}} a buzzé !",
+    "opponentAnswering": "L'adversaire répond...",
+    "pressToBuzz": "Appuyez pour buzzer",
+    "yourTeamBuzzed": "Votre équipe a buzzé, répondez maintenant",
+    "buzzerLocked": "Buzzer verrouillé, l'adversaire répond",
+    "answerValidation": "Validation de la réponse"
+  },
+  "scores": {
+    "points_one": "{{count}} point",
+    "points_other": "{{count}} points",
+    "finalScores": "Scores finaux",
+    "miam": "Miam"
+  },
+  "phase2": {
+    "optionBoth": "Les Deux",
+    "swipeHint": "Swipe pour classer chaque élément dans la bonne catégorie.",
+    "homophoneHint": "Ces deux expressions se prononcent pareil !",
+    "classify": "Classez \"{{item}}\" : flèche gauche pour {{optionA}}, flèche droite pour {{optionB}}, flèche haut pour les deux.",
+    "itWas": "C'était",
+    "optionOr": "ou",
+    "orBoth": "ou les deux ?",
+    "team": "Équipe :",
+    "correct": "Correct !",
+    "wrongAnswer": "Mauvaise réponse"
+  },
+  "phase3": {
+    "chooseMenu": "Choisis un menu",
+    "teamPlaying": "L'équipe {{team}} joue",
+    "taken": "PRIS",
+    "waitingForSelect": "En attente de la sélection de l'hôte...",
+    "menuComplete": "Menu terminé !",
+    "backToMenu": "Retour à la sélection du menu",
+    "waitingForJudge": "En attente du juge...",
+    "correct": "Correct (+1 Miam)",
+    "wrongSkip": "Faux / Passer",
+    "answer": "Réponse",
+    "question": "Question",
+    "errorLoading": "Erreur lors du chargement du menu"
+  },
+  "phase4": {
+    "phaseComplete": "PHASE 4 TERMINÉE !",
+    "laNote": "La Note est servie.",
+    "question": "Question",
+    "answer": "Réponse :",
+    "waitingForBuzzer": "En attente du buzzer..."
+  },
+  "phase5": {
+    "title": "Burger\nUltime",
+    "petitBurger": "Petit Burger",
+    "grandBurger": "GRAND BURGER!",
+    "tryAgain": "Retente ta chance !",
+    "seeResults": "Voir les résultats finaux",
+    "waitingResults": "En attente des résultats finaux...",
+    "memorizationPhase": "Phase de mémorisation",
+    "listenCarefully": "Écoutez bien...",
+    "startAnswering": "Commencer à répondre",
+    "startReading": "Commencer la lecture",
+    "nextQuestion": "Question suivante",
+    "recallQuestion": "Question de rappel",
+    "expectedAnswer": "Réponse attendue",
+    "intro": "{{count}} Questions. <highlight>Mémorisez seulement.</highlight><br/>Répondez-y toutes <underline>dans l'ordre</underline> seulement après les avoir toutes entendues.",
+    "introQuestions": "{{count}} Questions.",
+    "introMemorize": "Mémorisez seulement.",
+    "introAnswer": "Répondez-y toutes dans l'ordre seulement après les avoir toutes entendues.",
+    "finalScore": "Score final",
+    "answer": "Réponse",
+    "question": "Question",
+    "remindQuestion": "Question (rappelez-la si besoin)",
+    "whatWasAnswer": "Quelle était la réponse ?"
+  },
+  "victory": {
+    "tie": "Égalité !",
+    "winner": "Vainqueur"
+  },
+  "options": {
+    "answerOptions": "Options de réponse",
+    "answerLetter": "Réponse {{letter}}: {{label}}"
+  }
+}

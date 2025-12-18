@@ -1,40 +1,36 @@
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
+import { useTranslation } from 'react-i18next';
 import { motion, useAnimation, AnimatePresence } from 'framer-motion';
 import type { PanInfo } from 'framer-motion';
 import { submitPhase2Answer } from '../services/gameService';
-import type { Player, PhaseState, Room } from '../services/gameService';
+import type { Player, Room } from '../services/gameService';
 import { PHASE2_SETS } from '../data/phase2';
 import { audioService } from '../services/audioService';
 import { SimpleConfetti } from './SimpleConfetti';
 import { ArrowLeft, ArrowRight, ArrowUp, Check, X, Info, Utensils } from 'lucide-react';
 import { AvatarIcon } from './AvatarIcon';
 import { markQuestionAsSeen } from '../services/historyService';
+import { organicEase } from '../animations';
 
 interface Phase2PlayerProps {
-    roomId: string;
+    room: Room;
     playerId: string;
-    players: Record<string, Player>;
-    setIndex: number;
-    itemIndex: number;
-    phaseState: PhaseState;
-    phase2Answers?: Record<string, boolean>;
-    roundWinner?: { playerId: string; name: string; team: string } | null;
-    isHost?: boolean;
-    customQuestions?: Room['customQuestions'];
+    isHost: boolean;
 }
 
-export const Phase2Player: React.FC<Phase2PlayerProps> = ({
-    roomId,
-    playerId,
-    setIndex,
-    itemIndex,
-    isHost,
-    phaseState,
-    phase2Answers,
-    players,
-    // roundWinner - unused for now in binary phase
-    customQuestions,
-}) => {
+export function Phase2Player({ room, playerId, isHost }: Phase2PlayerProps) {
+    const { t } = useTranslation(['game-ui', 'game-phases', 'common']);
+    // Extract values from room (aligned with other phase components)
+    const roomId = room.code;
+    const { players, customQuestions } = room;
+    const {
+        currentPhase2Set: setIndex = 0,
+        currentPhase2Item: itemIndex = 0,
+        phaseState = 'idle',
+        phase2Answers,
+        // roundWinner - unused for now in binary phase
+    } = room.state;
+
     // Prefer custom questions if available
     const currentSet = customQuestions?.phase2?.[setIndex] || PHASE2_SETS[setIndex];
     const currentItem = currentSet?.items[itemIndex];
@@ -92,7 +88,7 @@ export const Phase2Player: React.FC<Phase2PlayerProps> = ({
                 opacity: 1,
                 transition: {
                     duration: 0.6,
-                    ease: [0.25, 0.46, 0.45, 0.94],
+                    ease: organicEase,
                     delay: 0.2
                 }
             });
@@ -125,7 +121,7 @@ export const Phase2Player: React.FC<Phase2PlayerProps> = ({
         controls.start({
             x: swipeX,
             y: swipeY,
-            transition: { duration: 0.3, ease: [0.25, 0.46, 0.45, 0.94] }
+            transition: { duration: 0.3, ease: organicEase }
         });
 
         // Update local state (card remains visible, will animate to correct position on result)
@@ -173,12 +169,12 @@ export const Phase2Player: React.FC<Phase2PlayerProps> = ({
         if (isHost) {
             return (
                 <div className="flex flex-col items-center justify-center h-full text-white space-y-8">
-                    <h2 className="text-4xl font-bold">End of Phase 2!</h2>
+                    <h2 className="text-4xl font-bold">{t('game-phases:endPhase.phase2Complete')}</h2>
                     <button
                         onClick={() => import('../services/gameService').then(mod => mod.setGameStatus(roomId, 'phase3'))}
                         className="bg-yellow-500 hover:bg-yellow-400 text-black text-2xl font-bold px-12 py-6 rounded-full shadow-lg transform transition-transform hover:scale-105 flex items-center gap-3"
                     >
-                        <Utensils className="w-8 h-8" /> START PHASE 3: MENUS
+                        <Utensils className="w-8 h-8" /> {t('game-phases:navigation.startPhase3')}
                     </button>
                 </div>
             );
@@ -186,9 +182,9 @@ export const Phase2Player: React.FC<Phase2PlayerProps> = ({
         return (
             <div className="flex flex-col items-center justify-center h-full text-white">
                 <div className="text-2xl font-bold animate-pulse flex items-center gap-2">
-                    <Info className="w-8 h-8" /> Waiting for the Host...
+                    <Info className="w-8 h-8" /> {t('player.waitingForHost')}
                 </div>
-                <div className="text-slate-400 mt-2">Getting the menus ready</div>
+                <div className="text-slate-400 mt-2">{t('game-phases:endPhase.gettingMenusReady')}</div>
             </div>
         );
     }
@@ -206,7 +202,7 @@ export const Phase2Player: React.FC<Phase2PlayerProps> = ({
             {/* Teammates Answer Status - Top Bar */}
             {teammates.length > 0 && (
                 <div className="absolute top-4 left-1/2 -translate-x-1/2 z-50 bg-slate-900/80 backdrop-blur px-4 py-2 rounded-full border border-white/10 flex items-center gap-2">
-                    <span className="text-xs text-slate-400 mr-2">Team:</span>
+                    <span className="text-xs text-slate-400 mr-2">{t('phase2.team')}</span>
                     {teammates.slice(0, 5).map((p: Player) => {
                         const hasAnswered = phase2Answers && p.id in phase2Answers;
                         const wasCorrect = phase2Answers?.[p.id];
@@ -218,7 +214,7 @@ export const Phase2Player: React.FC<Phase2PlayerProps> = ({
                                         ? (wasCorrect ? 'bg-green-500 border-green-400' : 'bg-red-500 border-red-400')
                                         : 'bg-slate-700 border-slate-600 animate-pulse'}
                                 `}
-                                title={`${p.name}${hasAnswered ? (wasCorrect ? ' ✓' : ' ✗') : ' (thinking...)'}`}
+                                title={`${p.name}${hasAnswered ? (wasCorrect ? ' ✓' : ' ✗') : ` (${t('player.thinking')})`}`}
                             >
                                 <AvatarIcon avatar={p.avatar} size={16} />
                                 {hasAnswered && (
@@ -240,8 +236,13 @@ export const Phase2Player: React.FC<Phase2PlayerProps> = ({
             {/* Confetti if Won */}
             {didIWin && <SimpleConfetti />}
 
+            {/* Screen reader instructions */}
+            <div className="sr-only" aria-live="polite">
+                {t('phase2.classify', { item: currentItem.text, optionA: currentSet.optionA, optionB: currentSet.optionB })}
+            </div>
+
             {/* LEFT ZONE (Option A) */}
-            <div className="w-1/2 h-full bg-red-600/20 border-r border-white/10 flex items-center justify-start pl-8 relative group">
+            <div className="w-1/2 h-full bg-red-600/20 border-r border-white/10 flex items-center justify-start pl-8 relative group" aria-hidden="true">
                 <div className="absolute inset-0 bg-red-900/10 group-hover:bg-red-900/20 transition-colors" />
                 <div className="text-4xl md:text-6xl font-black text-red-500 opacity-30 select-none uppercase tracking-tighter transform -rotate-90 md:rotate-0 origin-left">
                     {currentSet.optionA}
@@ -253,7 +254,7 @@ export const Phase2Player: React.FC<Phase2PlayerProps> = ({
             </div>
 
             {/* RIGHT ZONE (Option B) */}
-            <div className="w-1/2 h-full bg-pink-600/20 flex items-center justify-end pr-8 relative group">
+            <div className="w-1/2 h-full bg-pink-600/20 flex items-center justify-end pr-8 relative group" aria-hidden="true">
                 <div className="absolute inset-0 bg-pink-900/10 group-hover:bg-pink-900/20 transition-colors" />
                 <div className="text-4xl md:text-6xl font-black text-pink-500 opacity-30 select-none uppercase tracking-tighter transform rotate-90 md:rotate-0 origin-right">
                     {currentSet.optionB}
@@ -265,9 +266,9 @@ export const Phase2Player: React.FC<Phase2PlayerProps> = ({
             </div>
 
             {/* UP ZONE HINT (Both) */}
-            <div className="absolute top-0 left-0 right-0 h-32 bg-gradient-to-b from-purple-500/10 to-transparent pointer-events-none flex justify-center pt-8">
+            <div className="absolute top-0 left-0 right-0 h-32 bg-gradient-to-b from-purple-500/10 to-transparent pointer-events-none flex justify-center pt-8" aria-hidden="true">
                 <div className="text-purple-400 font-bold tracking-widest uppercase opacity-20 text-xl flex flex-col items-center">
-                    <ArrowUp className="w-8 h-8 mb-1" /> Les Deux
+                    <ArrowUp className="w-8 h-8 mb-1" /> {t('phase2.optionBoth')}
                 </div>
             </div>
 
@@ -281,7 +282,9 @@ export const Phase2Player: React.FC<Phase2PlayerProps> = ({
                             initial={{ opacity: 0 }}
                             animate={{ opacity: 1 }}
                             exit={{ opacity: 0 }}
-                            transition={{ duration: 0.4, ease: [0.25, 0.46, 0.45, 0.94] }}
+                            transition={{ duration: 0.4, ease: organicEase }}
+                            role="alert"
+                            aria-live="assertive"
                             className="absolute inset-0 z-40 flex flex-col items-center justify-center bg-black/60 backdrop-blur-sm"
                         >
                             {/* Result Badge - moved up, no ghost card (card is reused below) */}
@@ -297,49 +300,49 @@ export const Phase2Player: React.FC<Phase2PlayerProps> = ({
                                         ? 'bg-gradient-to-br from-green-500 to-emerald-600 border-white text-white'
                                         : 'bg-white border-red-500 text-red-500'
                                         }`}>
-                                        <div className="text-4xl mb-2 flex justify-center">
+                                        <div className="text-4xl mb-2 flex justify-center" aria-hidden="true">
                                             {didIWin ? <Check className="w-16 h-16" /> : <X className="w-16 h-16" />}
                                         </div>
                                         <div className="text-2xl font-black tracking-wider uppercase">
-                                            {didIWin ? "Correct!" : "Mauvaise réponse"}
+                                            {didIWin ? t('phase2.correct') : t('phase2.wrongAnswer')}
                                         </div>
                                         {!didIWin && currentItem && (
                                             <div className="text-sm mt-2 text-red-400">
-                                                C'était <span className="font-bold text-red-600">
+                                                {t('phase2.itWas')} <span className="font-bold text-red-600">
                                                     {currentItem.answer === 'A' ? currentSet.optionA :
                                                      currentItem.answer === 'B' ? currentSet.optionB :
-                                                     'Les Deux'}
+                                                     t('phase2.optionBoth')}
                                                 </span>
                                             </div>
                                         )}
                                         {/* Justification explaining why */}
                                         {currentItem?.justification && (
                                             <p className={`text-sm mt-3 pt-3 border-t ${didIWin ? 'border-white/20 text-white/90' : 'border-red-200 text-red-600'} italic max-w-xs text-center`}>
-                                                📝 {currentItem.justification}
+                                                <span aria-hidden="true">📝</span> {currentItem.justification}
                                             </p>
                                         )}
                                         {/* Anecdote display */}
                                         {currentItem?.anecdote && (
                                             <p className={`text-xs mt-2 ${didIWin ? 'text-white/70' : 'text-red-400'} italic max-w-xs text-center`}>
-                                                💡 {currentItem.anecdote}
+                                                <span aria-hidden="true">💡</span> {currentItem.anecdote}
                                             </p>
                                         )}
                                     </div>
                                 ) : (
                                     <div className="bg-white text-black p-6 rounded-2xl shadow-2xl border-4 border-indigo-600">
                                         <div className="text-2xl font-black tracking-wider uppercase">
-                                            Round Over
+                                            {t('results.roundOver')}
                                         </div>
                                         {/* Justification display for spectators */}
                                         {currentItem?.justification && (
                                             <p className="text-sm mt-3 pt-3 border-t border-slate-200 italic max-w-xs text-center text-slate-600">
-                                                📝 {currentItem.justification}
+                                                <span aria-hidden="true">📝</span> {currentItem.justification}
                                             </p>
                                         )}
                                         {/* Anecdote display for spectators */}
                                         {currentItem?.anecdote && (
                                             <p className="text-xs mt-2 italic max-w-xs text-center text-slate-500">
-                                                💡 {currentItem.anecdote}
+                                                <span aria-hidden="true">💡</span> {currentItem.anecdote}
                                             </p>
                                         )}
                                     </div>
@@ -356,15 +359,15 @@ export const Phase2Player: React.FC<Phase2PlayerProps> = ({
                             <span className="text-red-400">{currentSet.optionA}</span>
                             <span className="text-white/50">, </span>
                             <span className="text-pink-400">{currentSet.optionB}</span>
-                            <span className="text-white/50">, ou </span>
-                            <span className="text-purple-400">les deux</span>
+                            <span className="text-white/50">, {t('phase2.optionOr')} </span>
+                            <span className="text-purple-400">{t('phase2.optionBoth').toLowerCase()}</span>
                             <span className="text-white/50"> ?</span>
                         </p>
                         {/* Hint explaining the wordplay */}
                         <p className="text-white/40 text-xs md:text-sm mt-2 max-w-md mx-auto px-4">
-                            🎭 Ces deux expressions se prononcent pareil !
+                            🎭 {t('phase2.homophoneHint')}
                             <br className="hidden md:block" />
-                            <span className="hidden md:inline">Swipe pour classer chaque élément dans la bonne catégorie.</span>
+                            <span className="hidden md:inline">{t('phase2.swipeHint')}</span>
                         </p>
                     </div>
                 )}
@@ -406,7 +409,7 @@ export const Phase2Player: React.FC<Phase2PlayerProps> = ({
                         >
                             {currentItem.answer === 'A' ? currentSet.optionA :
                              currentItem.answer === 'B' ? currentSet.optionB :
-                             'Les Deux'}
+                             t('phase2.optionBoth')}
                         </motion.div>
                     )}
 
@@ -429,7 +432,7 @@ export const Phase2Player: React.FC<Phase2PlayerProps> = ({
 
                     {/* Swipe hint at bottom (only when not answered) */}
                     {!hasAnswered && (
-                        <div className="text-xs text-slate-400 mt-6 flex items-center gap-2">
+                        <div className="text-xs text-slate-400 mt-6 flex items-center gap-2" aria-hidden="true">
                             <ArrowLeft className="w-4 h-4" />
                             <ArrowUp className="w-4 h-4" />
                             <ArrowRight className="w-4 h-4" />
@@ -442,6 +445,7 @@ export const Phase2Player: React.FC<Phase2PlayerProps> = ({
                             initial={{ opacity: 0 }}
                             animate={{ opacity: 1 }}
                             transition={{ delay: 0.4 }}
+                            aria-hidden="true"
                             className={`absolute bottom-3 right-3 w-10 h-10 rounded-full flex items-center justify-center ${
                                 didIWin ? 'bg-green-500 text-white' : 'bg-red-500 text-white'
                             }`}
@@ -456,10 +460,10 @@ export const Phase2Player: React.FC<Phase2PlayerProps> = ({
                     <motion.div
                         initial={{ opacity: 0 }}
                         animate={{ opacity: 1 }}
-                        transition={{ duration: 0.3, ease: [0.25, 0.46, 0.45, 0.94] }}
+                        transition={{ duration: 0.3, ease: organicEase }}
                         className="absolute bottom-20 bg-slate-800/80 backdrop-blur text-white px-8 py-4 rounded-full font-bold text-xl flex items-center gap-2"
                     >
-                        <span className="animate-pulse">En attente des autres...</span>
+                        <span className="animate-pulse">{t('player.waitingForOthers')}</span>
                     </motion.div>
                 )}
             </div >

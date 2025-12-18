@@ -30,8 +30,8 @@ export function GameHeader({
     return (
         <div className="absolute top-4 left-4 right-4 z-[100] flex items-center justify-between gap-2">
             {/* Left: Spicy Score */}
-            <div className="flex items-center gap-1.5 bg-slate-800/80 backdrop-blur-sm px-3 py-2 rounded-full border border-red-500/30">
-                <Flame className="w-4 h-4 text-red-400" />
+            <div className="flex items-center gap-1.5 bg-slate-800/80 backdrop-blur-sm px-3 py-2 rounded-full border border-spicy-500/30">
+                <Flame className="w-4 h-4 text-spicy-400" />
                 <span className="text-lg font-black text-white min-w-[1.5rem] text-center">
                     {spicyScore}
                 </span>
@@ -47,11 +47,11 @@ export function GameHeader({
             {/* Right: Sweet Score + User */}
             <div className="flex items-center gap-2">
                 {/* Sweet Score */}
-                <div className="flex items-center gap-1.5 bg-slate-800/80 backdrop-blur-sm px-3 py-2 rounded-full border border-pink-500/30">
+                <div className="flex items-center gap-1.5 bg-slate-800/80 backdrop-blur-sm px-3 py-2 rounded-full border border-sweet-500/30">
                     <span className="text-lg font-black text-white min-w-[1.5rem] text-center">
                         {sweetScore}
                     </span>
-                    <Candy className="w-4 h-4 text-pink-400" />
+                    <Candy className="w-4 h-4 text-sweet-400" />
                 </div>
 
                 {/* User Bar */}

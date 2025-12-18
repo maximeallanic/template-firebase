@@ -13,11 +13,37 @@
         "players": {
           "$playerId": {
             ".validate": "newData.hasChildren(['id', 'name', 'avatar', 'isHost', 'score', 'joinedAt', 'isOnline'])",
-            // Players can only modify their own data (except host can modify anyone)
-            ".write": "auth != null && (
-              $playerId == auth.uid ||
-              data.parent().parent().child('hostId').val() == auth.uid
-            )"
+            // Default write rule: host can write anything, player can write their own non-score fields
+            ".write": "auth != null && data.parent().parent().child('hostId').val() == auth.uid",
+            // Individual field rules for players (not host)
+            "name": {
+              ".write": "auth != null && $playerId == auth.uid"
+            },
+            "avatar": {
+              ".write": "auth != null && $playerId == auth.uid"
+            },
+            "isOnline": {
+              ".write": "auth != null && $playerId == auth.uid"
+            },
+            "team": {
+              // Only host can assign teams
+              ".write": "auth != null && data.parent().parent().parent().child('hostId').val() == auth.uid"
+            },
+            "score": {
+              // SECURITY: Only host can modify scores - prevents cheating
+              ".write": "auth != null && data.parent().parent().parent().child('hostId').val() == auth.uid"
+            },
+            "id": {
+              ".write": "auth != null && $playerId == auth.uid"
+            },
+            "isHost": {
+              // Only set once during room creation
+              ".write": "auth != null && !data.exists()"
+            },
+            "joinedAt": {
+              // Only set once when joining
+              ".write": "auth != null && !data.exists()"
+            }
           }
         },
         "state": {

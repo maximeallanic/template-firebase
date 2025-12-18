@@ -5,12 +5,14 @@ export interface GameGenerationInput {
     phase: 'phase1' | 'phase2' | 'phase3' | 'phase4' | 'phase5';
     topic?: string;
     difficulty?: 'easy' | 'normal' | 'hard' | 'wtf';
+    roomCode?: string; // For server-side idempotency check
 }
 
 export interface GameGenerationOutput {
     success: boolean;
     data: Record<string, unknown> | unknown[];
     topic: string; // The topic used (may be AI-generated)
+    skipped?: boolean; // True if server returned cached questions (idempotency)
     usage: {
         totalTokens: number;
         estimatedCost: number;

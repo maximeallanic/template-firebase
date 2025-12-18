@@ -2,7 +2,10 @@ import React, { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { PhaseIcon } from './PhaseIcon';
 import { Flame, Candy, Trophy } from 'lucide-react';
-import { PHASE_NAMES, type PhaseStatus } from '../services/gameService';
+import { type PhaseStatus } from '../services/gameService';
+import { organicEase } from '../animations';
+import { usePhaseTranslation } from '../hooks/useGameTranslation';
+import { useTranslation } from 'react-i18next';
 
 interface PhaseTransitionProps {
     phase: PhaseStatus;
@@ -140,7 +143,9 @@ const Scanlines: React.FC = () => (
 export const PhaseTransition: React.FC<PhaseTransitionProps> = ({ phase, isVisible, onComplete }) => {
     const [showContent, setShowContent] = useState(false);
     const info = PHASE_INFO[phase];
-    const phaseNames = PHASE_NAMES[phase];
+    const { getPhaseInfo } = usePhaseTranslation();
+    const { t } = useTranslation('common');
+    const phaseNames = getPhaseInfo(phase);
 
     useEffect(() => {
         if (isVisible) {
@@ -336,7 +341,7 @@ export const PhaseTransition: React.FC<PhaseTransitionProps> = ({ phase, isVisib
                                         transition={{ duration: 1, repeat: Infinity }}
                                     >
                                         <Flame className="w-8 h-8" />
-                                        <span className="font-bold text-lg">SPICY</span>
+                                        <span className="font-bold text-lg">{t('teams.spicy').toUpperCase()}</span>
                                     </motion.div>
 
                                     <Trophy className="w-10 h-10 text-yellow-400" />
@@ -346,7 +351,7 @@ export const PhaseTransition: React.FC<PhaseTransitionProps> = ({ phase, isVisib
                                         animate={{ x: [5, -5, 5] }}
                                         transition={{ duration: 1, repeat: Infinity }}
                                     >
-                                        <span className="font-bold text-lg">SWEET</span>
+                                        <span className="font-bold text-lg">{t('teams.sweet').toUpperCase()}</span>
                                         <Candy className="w-8 h-8" />
                                     </motion.div>
                                 </motion.div>
@@ -359,7 +364,7 @@ export const PhaseTransition: React.FC<PhaseTransitionProps> = ({ phase, isVisib
                         className="absolute bottom-0 left-0 right-0 h-2 bg-gradient-to-r from-red-500 via-yellow-500 to-pink-500"
                         initial={{ opacity: 0 }}
                         animate={{ opacity: 1 }}
-                        transition={{ delay: 0.3, duration: 0.6, ease: [0.25, 0.46, 0.45, 0.94] }}
+                        transition={{ delay: 0.3, duration: 0.6, ease: organicEase }}
                     />
 
                     {/* Top decorative bar - OPACITY ONLY (no scaleX) */}
@@ -367,7 +372,7 @@ export const PhaseTransition: React.FC<PhaseTransitionProps> = ({ phase, isVisib
                         className="absolute top-0 left-0 right-0 h-2 bg-gradient-to-r from-pink-500 via-yellow-500 to-red-500"
                         initial={{ opacity: 0 }}
                         animate={{ opacity: 1 }}
-                        transition={{ delay: 0.3, duration: 0.6, ease: [0.25, 0.46, 0.45, 0.94] }}
+                        transition={{ delay: 0.3, duration: 0.6, ease: organicEase }}
                     />
                 </motion.div>
             )

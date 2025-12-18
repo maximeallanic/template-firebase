@@ -1,5 +1,6 @@
 import React from 'react';
 import { motion } from 'framer-motion';
+import { organicEase } from '../animations';
 
 export type BackgroundVariant = 'home' | 'lobby' | 'game' | 'legal';
 
@@ -123,8 +124,6 @@ const circleConfigs: Record<BackgroundVariant, Array<{
     ],
 };
 
-// Organic easing curve (as tuple for Framer Motion)
-const organicEase = [0.25, 0.46, 0.45, 0.94] as const;
 
 export const SharedBackground: React.FC<SharedBackgroundProps> = ({ variant }) => {
     const circles = circleConfigs[variant];

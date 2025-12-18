@@ -1,5 +1,6 @@
 
 import React, { useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import { motion } from 'framer-motion';
 import { selectMenu, nextMenuQuestion, endMenuTurn, addTeamPoints, setGameStatus } from '../services/gameService';
 import type { Room, Phase3Menu } from '../services/gameService';
@@ -13,6 +14,7 @@ interface Phase3PlayerProps {
 }
 
 export const Phase3Player: React.FC<Phase3PlayerProps> = ({ room, isHost }) => {
+    const { t } = useTranslation(['game-ui', 'game-phases', 'common']);
     const { phaseState, phase3MenuSelection, currentMenuTeam, currentMenuQuestionIndex } = room.state;
 
     // Use custom AI-generated menus if available, fallback to default PHASE3_DATA
@@ -56,14 +58,14 @@ export const Phase3Player: React.FC<Phase3PlayerProps> = ({ room, isHost }) => {
     if (phaseState === 'menu_selection') {
         const availableMenus = getAvailableMenus();
         const TeamIcon = !phase3MenuSelection?.spicy ? Flame : Candy;
-        const teamName = !phase3MenuSelection?.spicy ? 'Spicy' : 'Sweet';
+        const teamKey = !phase3MenuSelection?.spicy ? 'spicy' : 'sweet';
         const teamColor = !phase3MenuSelection?.spicy ? 'text-red-500' : 'text-pink-500';
 
         return (
             <div className="flex flex-col items-center justify-center p-6 space-y-8 w-full max-w-4xl mx-auto h-[80vh]">
                 <h2 className="text-4xl font-bold text-white mb-8 flex items-center gap-3">
-                    Choose a Menu <span className={`${teamColor} flex items-center gap-2`}>
-                        {teamName} <TeamIcon className="w-10 h-10" />
+                    {t('phase3.chooseMenu')} <span className={`${teamColor} flex items-center gap-2`}>
+                        {t(`common:teams.${teamKey}`)} <TeamIcon className="w-10 h-10" />
                     </span>
                 </h2>
 
@@ -85,11 +87,11 @@ export const Phase3Player: React.FC<Phase3PlayerProps> = ({ room, isHost }) => {
                                 {menu.title}
                             </h3>
                             <p className="text-sm text-gray-600">{menu.description}</p>
-                            {menu.taken && <span className="mt-2 text-xs font-bold text-red-500 uppercase flex items-center gap-1"><ChefHat className="w-4 h-4" /> TAKEN</span>}
+                            {menu.taken && <span className="mt-2 text-xs font-bold text-red-500 uppercase flex items-center gap-1"><ChefHat className="w-4 h-4" /> {t('phase3.taken')}</span>}
                         </motion.button>
                     ))}
                 </div>
-                {!isHost && <p className="text-white opacity-70 animate-pulse flex items-center gap-2"><Info className="w-5 h-5" /> Waiting for host to select...</p>}
+                {!isHost && <p className="text-white opacity-70 animate-pulse flex items-center gap-2"><Info className="w-5 h-5" /> {t('phase3.waitingForSelect')}</p>}
 
                 {isHost && availableMenus.every(m => m.taken) && (
                     <div className="mt-8 animate-bounce">
@@ -97,7 +99,7 @@ export const Phase3Player: React.FC<Phase3PlayerProps> = ({ room, isHost }) => {
                             onClick={() => setGameStatus(room.code, 'phase4')}
                             className="bg-gradient-to-r from-yellow-400 to-orange-500 text-brand-dark px-12 py-4 rounded-full font-black text-2xl shadow-xl hover:scale-105 transition-transform"
                         >
-                            START PHASE 4: L'ADDITION 🧾
+                            {t('game-phases:navigation.startPhase4')} 🧾
                         </button>
                     </div>
                 )}
@@ -107,7 +109,7 @@ export const Phase3Player: React.FC<Phase3PlayerProps> = ({ room, isHost }) => {
 
     if (phaseState === 'questioning' && currentMenuTeam && phase3MenuSelection) {
         const menuIndex = phase3MenuSelection[currentMenuTeam];
-        if (menuIndex === undefined) return <div>Error loading menu</div>;
+        if (menuIndex === undefined) return <div>{t('phase3.errorLoading')}</div>;
 
         const menu = menuData[menuIndex];
         const questionData = menu?.questions[currentMenuQuestionIndex || 0];
@@ -116,13 +118,13 @@ export const Phase3Player: React.FC<Phase3PlayerProps> = ({ room, isHost }) => {
         if (!questionData) {
             return (
                 <div className="flex flex-col items-center justify-center h-full text-white">
-                    <h2 className="text-4xl font-black mb-4">Menu Complete!</h2>
+                    <h2 className="text-4xl font-black mb-4">{t('phase3.menuComplete')}</h2>
                     {isHost && (
                         <button
                             onClick={() => endMenuTurn(room.code)}
                             className="bg-yellow-400 text-brand-dark px-8 py-3 rounded-full font-bold text-xl hover:bg-yellow-300 transition-colors"
                         >
-                            Back to Menu Selection
+                            {t('phase3.backToMenu')}
                         </button>
                     )}
                     {/* Host Controls */}
@@ -134,7 +136,7 @@ export const Phase3Player: React.FC<Phase3PlayerProps> = ({ room, isHost }) => {
                                     onClick={() => setGameStatus(room.code, 'phase4')}
                                     className="bg-yellow-400 hover:bg-yellow-300 text-black px-8 py-3 rounded-full font-bold shadow-lg animate-pulse flex items-center gap-2"
                                 >
-                                    <Zap className="w-5 h-5" /> Start Phase 4: La Note
+                                    <Zap className="w-5 h-5" /> {t('game-phases:navigation.startPhase4LaNote')}
                                 </button>
                             )}
                         </div>
@@ -149,7 +151,7 @@ export const Phase3Player: React.FC<Phase3PlayerProps> = ({ room, isHost }) => {
                     ${currentMenuTeam === 'spicy' ? 'bg-red-100 text-red-600' : 'bg-pink-100 text-pink-600'}
                  `}>
                     {currentMenuTeam === 'spicy' ? <Flame className="w-4 h-4" /> : <Candy className="w-4 h-4" />}
-                    Team {currentMenuTeam} is Playing
+                    {t('phase3.teamPlaying', { team: t(`common:teams.${currentMenuTeam}`) })}
                 </div>
 
                 <motion.div
@@ -163,7 +165,7 @@ export const Phase3Player: React.FC<Phase3PlayerProps> = ({ room, isHost }) => {
                     {isHost ? (
                         <div className="space-y-6">
                             <div className="bg-yellow-100 p-4 rounded-xl">
-                                <span className="text-sm text-yellow-800 font-bold uppercase block mb-1">Answer</span>
+                                <span className="text-sm text-yellow-800 font-bold uppercase block mb-1">{t('phase3.answer')}</span>
                                 <p className="text-2xl font-black text-brand-dark">{questionData.answer}</p>
                             </div>
 
@@ -172,7 +174,7 @@ export const Phase3Player: React.FC<Phase3PlayerProps> = ({ room, isHost }) => {
                                     onClick={() => nextMenuQuestion(room.code, currentMenuQuestionIndex!)}
                                     className="bg-gray-200 text-gray-700 px-6 py-3 rounded-xl font-bold hover:bg-gray-300 flex items-center gap-2"
                                 >
-                                    <X className="w-5 h-5" /> Wrong / Skip
+                                    <X className="w-5 h-5" /> {t('phase3.wrongSkip')}
                                 </button>
                                 <button
                                     onClick={() => {
@@ -181,7 +183,7 @@ export const Phase3Player: React.FC<Phase3PlayerProps> = ({ room, isHost }) => {
                                     }}
                                     className="bg-green-500 text-white px-6 py-3 rounded-xl font-bold hover:bg-green-400 shadow-lg flex items-center gap-2"
                                 >
-                                    <Check className="w-5 h-5" /> Correct (+1 Miam)
+                                    <Check className="w-5 h-5" /> {t('phase3.correct')}
                                 </button>
                             </div>
                         </div>
@@ -191,14 +193,14 @@ export const Phase3Player: React.FC<Phase3PlayerProps> = ({ room, isHost }) => {
                             <h3 className="text-2xl font-bold text-gray-800 mb-6">{questionData.question}</h3>
                             <div className="bg-slate-100 p-4 rounded-xl inline-block flex items-center gap-2 mx-auto">
                                 <Info className="w-5 h-5 text-gray-400" />
-                                <span className="text-gray-400 italic animate-pulse">Waiting for the judge...</span>
+                                <span className="text-gray-400 italic animate-pulse">{t('phase3.waitingForJudge')}</span>
                             </div>
                         </div>
                     )}
                 </motion.div>
 
                 <div className="mt-8 text-white opacity-60 font-mono">
-                    Question {currentMenuQuestionIndex! + 1} / {menu.questions.length}
+                    {t('phase3.question')} {currentMenuQuestionIndex! + 1} / {menu.questions.length}
                 </div>
             </div>
         );

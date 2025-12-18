@@ -1,0 +1,50 @@
+{
+  "hero": {
+    "tagline": "Le jeu de quiz culinaire entre amis !",
+    "description": "Affrontez-vous en équipes <spicy>Spicy</spicy> vs <sweet>Sweet</sweet> dans des épreuves délirantes !"
+  },
+  "features": {
+    "players": "2-20 joueurs",
+    "challenges": "5 épreuves fun",
+    "winner": "1 équipe gagnante"
+  },
+  "create": {
+    "title": "CRÉER UNE PARTIE",
+    "subtitle": "Ouvre ta cuisine et invite tes amis !",
+    "button": "Devenir le Chef"
+  },
+  "join": {
+    "title": "REJOINDRE",
+    "subtitle": "Entre le code et choisis ton équipe !",
+    "placeholder": "CODE",
+    "button": "Rejoindre",
+    "invalidCode": "Code invalide"
+  },
+  "phases": {
+    "title": "5 Épreuves Délirantes",
+    "tenders": {
+      "name": "Tenders",
+      "description": "Sois le plus rapide à buzzer !"
+    },
+    "sucreSale": {
+      "name": "Sucré Salé",
+      "description": "Plutôt A ou plutôt B ?"
+    },
+    "laCarte": {
+      "name": "La Carte",
+      "description": "Retiens un max de plats !"
+    },
+    "laNote": {
+      "name": "La Note",
+      "description": "Questions de culture G !"
+    },
+    "burgerUltime": {
+      "name": "Burger Ultime",
+      "description": "Le défi final pour la victoire !"
+    }
+  },
+  "loading": {
+    "joining": "Connexion à la partie...",
+    "creating": "Ouverture de la cuisine..."
+  }
+}

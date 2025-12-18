@@ -1,24 +1,48 @@
 {
   "buttons": {
+    "start": "Commencer",
     "continue": "Continuer",
+    "next": "Suivant",
+    "retry": "Réessayer",
+    "back": "Retour",
+    "confirm": "Confirmer",
     "cancel": "Annuler",
+    "skip": "Passer",
+    "join": "Rejoindre",
+    "create": "Créer",
+    "playAgain": "Rejouer",
     "save": "Enregistrer",
     "close": "Fermer",
     "delete": "Supprimer",
     "edit": "Modifier",
-    "submit": "Soumettre",
-    "back": "Retour",
-    "next": "Suivant",
-    "confirm": "Confirmer",
-    "retry": "Réessayer",
-    "upgrade": "Mettre à niveau"
+    "submit": "Soumettre"
   },
   "labels": {
+    "loading": "Chargement...",
+    "connecting": "Connexion...",
+    "waiting": "En attente...",
+    "score": "Score",
+    "round": "Manche",
+    "question": "Question",
+    "answer": "Réponse",
+    "correctAnswer": "Bonne réponse",
+    "player": "Joueur",
+    "players": "Joueurs",
+    "host": "Hôte",
+    "spectator": "Spectateur",
     "email": "Email",
     "password": "Mot de passe",
     "name": "Nom",
     "optional": "Optionnel",
     "required": "Requis"
+  },
+  "errors": {
+    "generic": "Une erreur est survenue",
+    "roomNotFound": "Room introuvable",
+    "connectionLost": "Connexion perdue",
+    "gameAlreadyStarted": "La partie a déjà commencé",
+    "roomFull": "La room est pleine",
+    "createFailed": "Échec de la création de la room"
   },
   "messages": {
     "success": "Succès !",
@@ -28,26 +52,22 @@
     "loading": "Chargement...",
     "saving": "Enregistrement...",
     "processing": "Traitement...",
-    "noData": "Aucune donnée disponible",
-    "comingSoon": "Bientôt disponible"
+    "noData": "Aucune donnée disponible"
+  },
+  "teams": {
+    "spicy": "Spicy",
+    "sweet": "Sweet",
+    "neutral": "Neutre"
   },
   "time": {
     "seconds": "secondes",
     "minutes": "minutes",
     "hours": "heures",
-    "days": "jours",
-    "weeks": "semaines",
-    "months": "mois",
-    "years": "ans",
-    "ago": "il y a",
-    "remaining": "restant"
+    "days": "jours"
   },
-  "plans": {
-    "free": "Forfait Gratuit",
-    "pro": "Forfait Pro",
-    "active": "Actif",
-    "inactive": "Inactif",
-    "expired": "Expiré",
-    "canceled": "Annulé"
+  "footer": {
+    "terms": "CGU",
+    "privacy": "Confidentialité",
+    "copyright": "25g de Sel"
   }
 }

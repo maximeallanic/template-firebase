@@ -129,6 +129,7 @@ interface FactCheckResult {
     reasoning: string;
     correction?: string | null;
     ambiguity?: string | null;
+    synonymIssue?: string | null; // Detected synonym/equivalent in wrong options
 }
 
 interface FactCheckBatchResponse {
@@ -138,6 +139,7 @@ interface FactCheckBatchResponse {
         correct: number;
         incorrect: number;
         ambiguous: number;
+        synonymIssues?: number; // Count of questions with synonym issues
     };
 }
 
@@ -304,17 +306,20 @@ async function callGeminiForFactCheck(prompt: string): Promise<string> {
 /**
  * Verify factual accuracy of Phase 1 questions in batch
  * Returns questions that passed fact-check with high confidence
+ * Also checks for synonyms/equivalents in wrong options
  */
 async function factCheckPhase1Questions(
     questions: Phase1Question[]
 ): Promise<{ passed: Phase1Question[]; failed: { question: Phase1Question; reason: string }[] }> {
     console.log(`🔍 Fact-checking ${questions.length} Phase 1 questions...`);
 
-    // Format questions for batch verification
+    // Format questions for batch verification - include ALL options for synonym detection
     const questionsForCheck = questions.map((q, idx) => ({
         index: idx,
         question: q.text,
-        proposedAnswer: q.options[q.correctIndex]
+        proposedAnswer: q.options[q.correctIndex],
+        allOptions: q.options, // Send all options so fact-checker can detect synonyms
+        correctIndex: q.correctIndex
     }));
 
     const prompt = FACT_CHECK_BATCH_PROMPT.replace(
@@ -326,13 +331,22 @@ async function factCheckPhase1Questions(
         const responseText = await callGeminiForFactCheck(prompt);
         const response = parseJsonFromText(responseText) as FactCheckBatchResponse;
 
-        console.log(`📊 Fact-check summary: ${response.summary.correct}/${response.summary.total} correct, ${response.summary.incorrect} incorrect, ${response.summary.ambiguous} ambiguous`);
+        const synonymCount = response.summary.synonymIssues || 0;
+        console.log(`📊 Fact-check summary: ${response.summary.correct}/${response.summary.total} correct, ${response.summary.incorrect} incorrect, ${response.summary.ambiguous} ambiguous, ${synonymCount} synonymes`);
 
         const passed: Phase1Question[] = [];
         const failed: { question: Phase1Question; reason: string }[] = [];
 
         for (const result of response.results) {
             const question = questions[result.index];
+
+            // Check for synonym issues (even if answer is correct)
+            if (result.synonymIssue) {
+                const reason = `Synonyme détecté: ${result.synonymIssue}`;
+                failed.push({ question, reason });
+                console.log(`  ⚠️ Q${result.index + 1}: "${question.text.slice(0, 40)}..." - ${reason}`);
+                continue;
+            }
 
             if (result.isCorrect && result.confidence >= FACT_CHECK_CONFIDENCE_THRESHOLD) {
                 passed.push(question);

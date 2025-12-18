@@ -1,6 +1,7 @@
 import { motion } from 'framer-motion';
 import { ChefHat, AlertTriangle, RotateCcw } from 'lucide-react';
 import { LoadingMessages } from './LoadingMessages';
+import { useLoadingMessages } from '../hooks/useGameTranslation';
 
 interface GenerationLoadingCardProps {
     error?: string | null;
@@ -11,13 +12,15 @@ export function GenerationLoadingCard({
     error,
     onRetry,
 }: GenerationLoadingCardProps) {
+    const { generationTitle, errorTitle, retryButton } = useLoadingMessages();
+
     if (error) {
         return (
             <div className="text-center space-y-4 py-6">
                 <div className="bg-red-500/20 border border-red-500/50 rounded-xl p-4">
                     <div className="flex items-center justify-center gap-2 text-red-400 mb-2">
                         <AlertTriangle className="w-5 h-5" />
-                        <span className="font-bold">Oups !</span>
+                        <span className="font-bold">{errorTitle}</span>
                     </div>
                     <p className="text-red-300 text-sm">{error}</p>
                 </div>
@@ -26,7 +29,7 @@ export function GenerationLoadingCard({
                         onClick={onRetry}
                         className="bg-slate-700 hover:bg-slate-600 text-white px-6 py-3 rounded-xl font-bold flex items-center gap-2 mx-auto transition-colors"
                     >
-                        <RotateCcw className="w-5 h-5" /> Réessayer
+                        <RotateCcw className="w-5 h-5" /> {retryButton}
                     </button>
                 )}
             </div>
@@ -52,7 +55,7 @@ export function GenerationLoadingCard({
 
             {/* Title */}
             <h2 className="text-xl font-black text-white">
-                Préparation en cuisine...
+                {generationTitle}
             </h2>
 
             {/* Rotating Messages */}

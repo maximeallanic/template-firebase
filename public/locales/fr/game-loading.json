@@ -1,0 +1,33 @@
+{
+  "generation": {
+    "title": "Préparation en cuisine...",
+    "error": {
+      "title": "Oups !",
+      "retry": "Réessayer"
+    }
+  },
+  "messages": [
+    "Le chef prépare les questions...",
+    "Cuisson en cours...",
+    "On ajoute les épices...",
+    "Mélange des ingrédients...",
+    "Préchauffage du four...",
+    "Découpe des légumes...",
+    "Dressage des assiettes...",
+    "Le soufflé ne doit pas retomber...",
+    "Vérification de la fraîcheur...",
+    "Marinade en cours...",
+    "Flambée imminente...",
+    "Ça mijote doucement...",
+    "Ajout d'une pincée de sel...",
+    "Le minuteur tourne...",
+    "Surveillance du four...",
+    "On goûte la sauce...",
+    "Les pâtisseries prennent forme...",
+    "Battage des blancs en neige..."
+  ],
+  "connection": {
+    "connectingToKitchen": "Connexion à la Cuisine...",
+    "connectingToGame": "Connexion à la partie..."
+  }
+}

@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { type Room, startNextQuestion } from '../services/gameService';
 import { QUESTIONS } from '../data/questions';
 
@@ -5,7 +6,8 @@ interface Phase1HostProps {
     room: Room;
 }
 
-export default function Phase1Host({ room }: Phase1HostProps) {
+export function Phase1Host({ room }: Phase1HostProps) {
+    const { t } = useTranslation(['game-ui', 'game-phases']);
     const { state } = room;
     const currentQIndex = state.currentQuestionIndex ?? -1;
     const currentQuestion = currentQIndex >= 0 ? QUESTIONS[currentQIndex] : null;
@@ -28,9 +30,9 @@ export default function Phase1Host({ room }: Phase1HostProps) {
             {/* Header / Context */}
             <div className="text-center space-y-2">
                 <h2 className="text-3xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-spicy-400 to-sweet-400">
-                    Phase 1: The Snacks 🍿
+                    {t('game-phases:phases.phase1.name')} 🍿
                 </h2>
-                <p className="text-slate-400">Question {currentQIndex + 1} / {QUESTIONS.length}</p>
+                <p className="text-slate-400">{t('phase4.question')} {currentQIndex + 1} / {QUESTIONS.length}</p>
             </div>
 
             {/* Current Question Status Card */}
@@ -56,17 +58,17 @@ export default function Phase1Host({ room }: Phase1HostProps) {
 
                         {/* Status Indicator */}
                         <div className="flex justify-center mt-6">
-                            {isReading && <span className="text-yellow-400 font-bold animate-pulse">Reading Time... ⏳</span>}
-                            {isAnswering && <span className="text-blue-400 font-bold animate-bounce">Players Answering! ⚡</span>}
+                            {isReading && <span className="text-yellow-400 font-bold animate-pulse">{t('status.reading')}</span>}
+                            {isAnswering && <span className="text-blue-400 font-bold animate-bounce">{t('status.answering')}</span>}
                             {isResult && (
                                 <div className="text-center">
-                                    <span className="text-green-400 font-bold text-xl block mb-2">Round Over! 🎉</span>
+                                    <span className="text-green-400 font-bold text-xl block mb-2">{t('results.roundOver')} 🎉</span>
                                     {state.roundWinner ? (
                                         <div className="text-white">
-                                            Winner: <span className="font-bold text-yellow-300">{state.roundWinner.name}</span> (+1 Yum)
+                                            {t('results.winner')} <span className="font-bold text-yellow-300">{state.roundWinner.name}</span> (+1 {t('results.yum')})
                                         </div>
                                     ) : (
-                                        <span className="text-slate-400">No winner this round.</span>
+                                        <span className="text-slate-400">{t('results.noWinner')}</span>
                                     )}
                                 </div>
                             )}
@@ -74,7 +76,7 @@ export default function Phase1Host({ room }: Phase1HostProps) {
                     </div>
                 ) : (
                     <div className="text-center text-slate-400 py-12">
-                        <p>Ready to start the quiz? Check Question 1.</p>
+                        <p>{t('host.readyToStart')}</p>
                     </div>
                 )}
             </div>
@@ -93,11 +95,11 @@ export default function Phase1Host({ room }: Phase1HostProps) {
                             }
                         `}
                     >
-                        {currentQIndex === -1 ? "Start The Snacks! 🚀" : "Next Question ➡️"}
+                        {currentQIndex === -1 ? `${t('host.startSnacks')} 🚀` : `${t('host.nextQuestion')} ➡️`}
                     </button>
                 ) : (
                     <div className="text-2xl font-bold text-white">
-                        End of Phase 1! 🏁
+                        {t('status.endPhase1')} 🏁
                     </div>
                 )}
             </div>

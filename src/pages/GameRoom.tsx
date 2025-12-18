@@ -1,133 +1,60 @@
 import { useEffect, useLayoutEffect, useState, useRef, useCallback } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
-import { subscribeToRoom, type Room, type Player, type Avatar, setGameStatus, updatePlayerTeam, markPlayerOnline, overwriteGameQuestions } from '../services/gameService';
-import { generateWithRetry } from '../services/aiClient';
-import { checkPhase1Exhaustion, filterUnseenQuestions } from '../services/historyService';
-import { QUESTIONS } from '../data/questions';
-import { PHASE4_QUESTIONS } from '../data/phase4';
-import { PHASE5_QUESTIONS } from '../data/phase5';
-import { getRandomQuestionSet } from '../services/questionStorageService';
-import { ref, get, child } from 'firebase/database';
-import { rtdb } from '../services/firebase';
-import { Phase1Player } from '../components/Phase1Player';
-import { Phase2Player } from '../components/Phase2Player';
-import { Phase3Player } from '../components/Phase3Player';
-import Phase4Player from '../components/Phase4Player';
-import { Phase5Player } from '../components/Phase5Player';
+import { useParams } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
+import { type Player, setGameStatus, updatePlayerTeam } from '../services/gameService';
+import { useGameRoom } from '../hooks/useGameRoom';
+import { useQuestionGeneration } from '../hooks/useQuestionGeneration';
+import { PhaseRouter } from '../components/game/PhaseRouter';
+import { GameErrorBoundary } from '../components/game/GameErrorBoundary';
 import { GenerationLoadingCard } from '../components/GenerationLoadingCard';
 import { motion, AnimatePresence } from 'framer-motion';
 import { durations, organicEase } from '../animations';
 import { UserBar } from '../components/UserBar';
 import { PhaseTransition } from '../components/PhaseTransition';
-import { GameHeader } from '../components/GameHeader';
 import { DebugPanel } from '../components/DebugPanel';
 import {
     Flame, Candy, Link, Eye, Clapperboard, Loader, Check
 } from 'lucide-react';
 import { AvatarIcon } from '../components/AvatarIcon';
-
-import { safeStorage } from '../utils/storage';
 import { audioService } from '../services/audioService';
 
 type GameStatus = 'lobby' | 'phase1' | 'phase2' | 'phase3' | 'phase4' | 'phase5' | 'victory';
 
 export default function GameRoom() {
-    // Fix: App.tsx defines route as /room/:id, so we must destructure 'id', not 'roomId'
-    // We alias it to 'roomId' for consistency with the rest of this file.
+    const { t } = useTranslation(['lobby', 'game-ui', 'common']);
     const { id: roomId } = useParams<{ id: string }>();
-    const navigate = useNavigate();
-    const [room, setRoom] = useState<Room | null>(null);
-    const [myId, setMyId] = useState<string | null>(null);
-    const [linkCopied, setLinkCopied] = useState(false);
-    const [showTransition, setShowTransition] = useState(false);
-    const [transitionPhase, setTransitionPhase] = useState<GameStatus>('lobby');
-    const [isGenerating, setIsGenerating] = useState(false);
-    const [generationError, setGenerationError] = useState<string | null>(null);
-    const [isGeneratingPhase2, setIsGeneratingPhase2] = useState(false);
-    const hasCheckedExhaustion = useRef(false);
-    const hasMarkedOnline = useRef(false);
-    const isFirstRender = useRef(true);
-    const hasTriggeredPhase1Gen = useRef(false);
-    const hasTriggeredPhase2Gen = useRef(false);
-
-    // Safe boolean check for host
-    const isHost = !!(room?.hostId && myId && room.hostId === myId);
-
-    // Debug / E2E Override
     const query = new URLSearchParams(window.location.search);
     const debugPlayerId = query.get('debugPlayerId');
 
-    useEffect(() => {
-        // Try to get player ID from storage or Debug Param
-        const storedId = debugPlayerId || safeStorage.getItem('spicy_player_id');
-        setMyId(storedId);
+    // Custom hooks for room and question generation
+    const { room, myId, isHost, currentPlayer, isLoading, isSpectator, handleProfileUpdate } = useGameRoom({
+        roomId,
+        debugPlayerId
+    });
 
-        if (roomId) {
-            const unsubscribe = subscribeToRoom(roomId, (data) => {
-                setRoom(data);
+    const { isGenerating, isGeneratingPhase2, generationError, handleStartGame } = useQuestionGeneration({
+        room,
+        isHost,
+        myId
+    });
 
-                // Deep Linking / Auth Logic
-                if (data) {
-                    const localId = debugPlayerId || safeStorage.getItem('spicy_player_id');
-                    const isPlayerInRoom = localId && data.players && data.players[localId];
+    // UI State
+    const [linkCopied, setLinkCopied] = useState(false);
+    const [showTransition, setShowTransition] = useState(false);
+    const [transitionPhase, setTransitionPhase] = useState<GameStatus>('lobby');
 
-                    if (isPlayerInRoom) {
-                        // Player is in the room - mark them as online (handles reconnection)
-                        if (!hasMarkedOnline.current && localId) {
-                            hasMarkedOnline.current = true;
-                            markPlayerOnline(data.code, localId);
-                        }
-                    } else {
-                        // User is NOT a recognized player
-
-                        // Case A: Game is in Lobby -> Redirect to Join
-                        if (data.state.status === 'lobby') {
-                            setTimeout(() => {
-                                const currentId = debugPlayerId || safeStorage.getItem('spicy_player_id');
-                                if (!currentId || !data.players[currentId]) {
-                                    // Navigate to join, preserving debug param if present
-                                    const debugSuffix = debugPlayerId ? `&debugPlayerId=${debugPlayerId}` : '';
-                                    navigate(`/?code=${data.code}${debugSuffix ? `&${debugSuffix.slice(1)}` : ''}`);
-                                }
-                            }, 500);
-                        }
-                        // Case B: Game Started -> Stay as Spectator (Don't redirect, just don't set myId)
-                        // User stays on this page, but 'myId' remains null.
-                    }
-                }
-            });
-            return () => unsubscribe();
-        }
-    }, [roomId, navigate, debugPlayerId]);
-
-    // Auto-Generation Check (Smart Logic) - Just log for now, generation happens on Start Game click
-    useEffect(() => {
-        const checkSmartGeneration = async () => {
-            if (room && room.state.status === 'lobby' && isHost && !hasCheckedExhaustion.current && room.players) {
-                hasCheckedExhaustion.current = true;
-                // Only check if we are using default questions (no custom phase 1)
-                if (!room.customQuestions?.phase1) {
-                    const isExhausted = await checkPhase1Exhaustion(Object.values(room.players));
-                    if (isExhausted) {
-                        console.log("Static pool exhausted! Generation will happen when host clicks Start.");
-                        // Generation is handled inline when host clicks "Start Game"
-                    }
-                }
-            }
-        };
-        checkSmartGeneration();
-    }, [room, isHost]);
+    // Refs for tracking previous values
+    const prevStatus = useRef<string>('');
+    const prevPlayerCount = useRef(0);
+    const prevAudioStatus = useRef<string>('');
+    const isFirstRender = useRef(true);
 
     // Phase Transition - useLayoutEffect for SYNCHRONOUS execution before paint
-    const prevStatus = useRef<string>('');
-
     useLayoutEffect(() => {
         if (!room) return;
 
         if (room.state.status !== prevStatus.current) {
-            // Phase Transition Animation (skip on first render)
             if (prevStatus.current && !isFirstRender.current) {
-                // Trigger TV-style transition animation for phase changes (not lobby)
                 if (room.state.status !== 'lobby') {
                     setTransitionPhase(room.state.status as GameStatus);
                     setShowTransition(true);
@@ -136,117 +63,33 @@ export default function GameRoom() {
             isFirstRender.current = false;
             prevStatus.current = room.state.status;
         }
-        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [room?.state.status]);
 
-    // Automatic Phase 2 Generation - triggers when entering Phase 2 without custom questions
-    useEffect(() => {
-        const generatePhase2Questions = async () => {
-            if (!room || room.state.status !== 'phase2') return;
-            if (hasTriggeredPhase2Gen.current) return;
-            if (room.customQuestions?.phase2) {
-                console.log("✅ Phase 2: Questions personnalisées déjà présentes");
-                return;
-            }
-            if (!isHost) return; // Only host generates
-
-            hasTriggeredPhase2Gen.current = true;
-            setIsGeneratingPhase2(true);
-            console.log("🍔 Phase 2: Génération automatique des questions...");
-
-            try {
-                const result = await generateWithRetry({ phase: 'phase2' });
-                await overwriteGameQuestions(room.code, 'phase2', result.data as unknown[]);
-                console.log("✅ Phase 2: Questions générées avec succès !");
-            } catch (err) {
-                console.error("❌ Phase 2: Échec génération:", err);
-                // Continue with default questions if generation fails
-            }
-
-            setIsGeneratingPhase2(false);
-        };
-
-        generatePhase2Questions();
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [room?.state.status, room?.customQuestions?.phase2, room?.code, isHost]);
-
-    // Automatic Phase 4 Filtering - filter unseen questions when entering Phase 4
-    const hasFilteredPhase4 = useRef(false);
-    useEffect(() => {
-        const filterPhase4Questions = async () => {
-            if (!room || room.state.status !== 'phase4') return;
-            if (hasFilteredPhase4.current) return;
-            if (room.customQuestions?.phase4) return; // Already has custom questions
-            if (!isHost) return; // Only host filters
-
-            hasFilteredPhase4.current = true;
-            console.log("🔍 Phase 4: Filtrage des questions déjà vues...");
-
-            const filtered = await filterUnseenQuestions(PHASE4_QUESTIONS, q => q.question);
-            if (filtered.length < PHASE4_QUESTIONS.length) {
-                console.log(`✅ Phase 4: ${filtered.length}/${PHASE4_QUESTIONS.length} questions non vues`);
-                await overwriteGameQuestions(room.code, 'phase4', filtered);
-            }
-        };
-        filterPhase4Questions();
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [room?.state.status, room?.customQuestions?.phase4, room?.code, isHost]);
-
-    // Automatic Phase 5 Filtering - filter unseen questions when entering Phase 5
-    const hasFilteredPhase5 = useRef(false);
-    useEffect(() => {
-        const filterPhase5Questions = async () => {
-            if (!room || room.state.status !== 'phase5') return;
-            if (hasFilteredPhase5.current) return;
-            if (room.customQuestions?.phase5) return; // Already has custom questions
-            if (!isHost) return; // Only host filters
-
-            hasFilteredPhase5.current = true;
-            console.log("🔍 Phase 5: Filtrage des questions déjà vues...");
-
-            const filtered = await filterUnseenQuestions(PHASE5_QUESTIONS, q => q.question);
-            if (filtered.length < PHASE5_QUESTIONS.length) {
-                console.log(`✅ Phase 5: ${filtered.length}/${PHASE5_QUESTIONS.length} questions non vues`);
-                await overwriteGameQuestions(room.code, 'phase5', filtered);
-            }
-        };
-        filterPhase5Questions();
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [room?.state.status, room?.customQuestions?.phase5, room?.code, isHost]);
-
-    // Audio Effects: Player Joined & Ambience (can use regular useEffect)
-    const prevPlayerCount = useRef(0);
-    const prevAudioStatus = useRef<string>('');
-
+    // Audio Effects: Player Joined & Ambience
     useEffect(() => {
         if (!room) return;
 
-        // 1. Join Sound
+        // Join Sound
         const count = Object.keys(room.players || {}).length;
         if (count > prevPlayerCount.current && prevPlayerCount.current > 0) {
             audioService.playJoin();
         }
         prevPlayerCount.current = count;
 
-        // 2. Ambient Loops & Transitions Sound
+        // Ambient Loops & Transitions Sound
         if (room.state.status !== prevAudioStatus.current) {
-            // Phase Transition Sound
             if (prevAudioStatus.current) {
                 audioService.playTransition();
             }
 
-            // Ambience Logic
             if (room.state.status === 'lobby') {
                 audioService.playAmbient('lobby');
-            } else if (room.state.status === 'phase5') {
-                audioService.playAmbient('tension');
             } else {
                 audioService.playAmbient('tension');
             }
 
             prevAudioStatus.current = room.state.status;
         }
-        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [room?.players, room?.state.status]);
 
     // Handle transition completion
@@ -254,119 +97,29 @@ export default function GameRoom() {
         setShowTransition(false);
     }, []);
 
-    // Get current player info
-    const currentPlayer = room?.players && myId ? room.players[myId] : null;
-
-    // Handler for profile update
-    const handleProfileUpdate = useCallback((newName: string, newAvatar: Avatar) => {
-        // Storage is already updated in UserBar, this is just for any additional actions
-        console.log(`Profile updated: ${newName}, ${newAvatar}`);
-    }, []);
-
-    // Handler for starting the game with automatic AI generation if needed
-    const handleStartGame = useCallback(async () => {
+    // Handle link copy
+    const handleCopyLink = useCallback(() => {
         if (!room) return;
-
-        // Prevent double execution
-        if (hasTriggeredPhase1Gen.current) {
-            console.log("⚠️ Phase 1 generation already triggered, skipping");
-            return;
-        }
-
-        setGenerationError(null);
-
-        // Check if custom questions already exist
-        if (room.customQuestions?.phase1) {
-            console.log("✅ Questions personnalisées déjà présentes, lancement direct");
-            setGameStatus(room.code, 'phase1');
-            return;
-        }
-
-        // Mark as triggered to prevent double execution
-        hasTriggeredPhase1Gen.current = true;
-
-        // Check if generation is needed (at least one player exhausted default questions)
-        const players = Object.values(room.players);
-        console.log("🔍 Vérification exhaustion pour", players.length, "joueurs...");
-        const isExhausted = await checkPhase1Exhaustion(players);
-        console.log("📊 Résultat exhaustion:", isExhausted);
-
-        if (!isExhausted) {
-            // Default questions available - filter to prioritize unseen questions
-            console.log("🔍 Filtrage des questions déjà vues...");
-            const filteredQuestions = await filterUnseenQuestions(QUESTIONS, q => q.text);
-
-            if (filteredQuestions.length < QUESTIONS.length) {
-                // Some questions were filtered - store filtered list as custom questions
-                console.log(`✅ ${filteredQuestions.length}/${QUESTIONS.length} questions non vues, stockage...`);
-                await overwriteGameQuestions(room.code, 'phase1', filteredQuestions);
-            } else {
-                console.log("✅ Toutes les questions sont nouvelles, lancement direct");
-            }
-
-            setGameStatus(room.code, 'phase1');
-            return;
-        }
-
-        // Need new questions - first check Firestore for stored sets
-        setIsGenerating(true);
-
-        try {
-            // Build set of seen question IDs from all players
-            const seenIds = new Set<string>();
-            for (const player of players) {
-                try {
-                    const historySnap = await get(child(ref(rtdb), `userHistory/${player.id}`));
-                    if (historySnap.exists()) {
-                        Object.keys(historySnap.val()).forEach(id => seenIds.add(id));
-                    }
-                } catch (e) {
-                    console.warn(`Failed to get history for player ${player.id}:`, e);
-                }
-            }
-
-            console.log(`📋 ${seenIds.size} questions déjà vues par les joueurs`);
-
-            // Try to get a stored question set from Firestore
-            console.log("🔍 Recherche de questions stockées dans Firestore...");
-            const storedSet = await getRandomQuestionSet('phase1', seenIds);
-
-            if (storedSet) {
-                console.log(`📦 Questions trouvées dans Firestore ! (Set ${storedSet.id}, ${storedSet.questions.length} questions)`);
-                await overwriteGameQuestions(room.code, 'phase1', storedSet.questions);
-                setIsGenerating(false);
-                setGameStatus(room.code, 'phase1');
-                return;
-            }
-
-            // No suitable stored set found - generate new ones
-            console.log("🍔 Aucune question stockée disponible, génération IA en cours...");
-            const result = await generateWithRetry({ phase: 'phase1' });
-            await overwriteGameQuestions(room.code, 'phase1', result.data as unknown[]);
-            console.log("✅ Questions générées avec succès !");
-        } catch (err) {
-            console.error("❌ Échec:", err);
-            setGenerationError("Impossible de charger les questions. Réessayez.");
-            setIsGenerating(false);
-            hasTriggeredPhase1Gen.current = false; // Reset to allow retry
-            return;
-        }
-
-        setIsGenerating(false);
-        setGameStatus(room.code, 'phase1');
+        const url = `${window.location.protocol}//${window.location.host}/?code=${room.code}`;
+        navigator.clipboard.writeText(url);
+        setLinkCopied(true);
+        setTimeout(() => setLinkCopied(false), 2000);
     }, [room]);
 
-    if (!room) {
+    // Loading State
+    if (isLoading) {
         return (
             <div className="min-h-screen bg-slate-900 flex items-center justify-center text-white">
                 <div className="animate-pulse text-2xl font-bold flex items-center gap-3">
-                    <Loader className="w-8 h-8 animate-spin" /> Connexion à la Cuisine...
+                    <Loader className="w-8 h-8 animate-spin" /> {t('common:labels.connecting')}
                 </div>
             </div>
-        )
+        );
     }
 
-    // Render the phase transition overlay
+    if (!room) return null;
+
+    // Render phase transition overlay
     const renderTransition = () => (
         <PhaseTransition
             phase={transitionPhase}
@@ -383,445 +136,332 @@ export default function GameRoom() {
         const unassigned = players.filter(p => !p.team);
 
         return (
-            <div className="min-h-screen bg-brand-dark overflow-hidden flex flex-col md:flex-row relative">
-                {/* TOP RIGHT CONTROLS */}
-                <div className="absolute top-4 right-4 z-[100] flex items-center gap-3">
-                    {/* UserBar */}
-                    {currentPlayer && (
-                        <UserBar
-                            playerName={currentPlayer.name}
-                            avatar={currentPlayer.avatar}
-                            roomCode={room.code}
-                            playerId={myId || undefined}
-                            onProfileUpdate={handleProfileUpdate}
-                        />
-                    )}
-                </div>
-
-                {/* Spicy Side (Left/Top) */}
-                <div className="flex-1 bg-red-900/20 border-b-4 md:border-b-0 md:border-r-4 border-red-600/30 flex flex-col items-center justify-center p-8 relative overflow-hidden group">
-                    {/* Decorative bg */}
-                    <div className="absolute inset-0 bg-gradient-to-br from-red-900/0 via-red-600/5 to-red-500/10 pointer-events-none" />
-
-                    <h2 className="text-3xl md:text-5xl font-black text-red-500 uppercase tracking-tighter mb-8 drop-shadow-xl z-0 opacity-80 flex items-center gap-3">
-                        Team Spicy <Flame className="w-10 h-10 md:w-16 md:h-16" />
-                    </h2>
-                    <div className="grid grid-cols-2 gap-4 w-full max-w-md z-10">
-                        {spicyTeam.map(p => <PlayerCard key={p.id} player={p} theme="spicy" />)}
-                        {spicyTeam.length === 0 && <p className="col-span-2 text-center text-red-300/50 font-medium italic">En attente de braves...</p>}
+            <GameErrorBoundary>
+                <div className="min-h-screen bg-brand-dark overflow-hidden flex flex-col md:flex-row relative">
+                    {/* TOP RIGHT CONTROLS */}
+                    <div className="absolute top-4 right-4 z-[100] flex items-center gap-3">
+                        {currentPlayer && (
+                            <UserBar
+                                playerName={currentPlayer.name}
+                                avatar={currentPlayer.avatar}
+                                roomCode={room.code}
+                                playerId={myId || undefined}
+                                onProfileUpdate={handleProfileUpdate}
+                            />
+                        )}
                     </div>
-                </div>
 
-                {/* Sweet Side (Right/Bottom) */}
-                <div className="flex-1 bg-pink-900/20 flex flex-col items-center justify-center p-8 relative overflow-hidden">
-                    <div className="absolute inset-0 bg-gradient-to-tl from-pink-900/0 via-pink-600/5 to-pink-500/10 pointer-events-none" />
+                    {/* Spicy Side */}
+                    <TeamSide team="spicy" players={spicyTeam} />
 
-                    <h2 className="text-3xl md:text-5xl font-black text-pink-500 uppercase tracking-tighter mb-8 drop-shadow-xl z-0 opacity-80 flex items-center gap-3">
-                        Team Sweet <Candy className="w-10 h-10 md:w-16 md:h-16" />
-                    </h2>
-                    <div className="grid grid-cols-2 gap-4 w-full max-w-md z-10">
-                        {sweetTeam.map(p => <PlayerCard key={p.id} player={p} theme="sweet" />)}
-                        {sweetTeam.length === 0 && <p className="col-span-2 text-center text-sweet-300/50 font-medium italic">En attente de gourmands...</p>}
-                    </div>
-                </div>
+                    {/* Sweet Side */}
+                    <TeamSide team="sweet" players={sweetTeam} />
 
-                {/* Center / Unassigned Overlay */}
-                <div className="absolute inset-0 pointer-events-none flex items-center justify-center z-50">
-                    <div className="bg-slate-900/95 backdrop-blur-xl border border-white/10 rounded-3xl p-6 shadow-2xl pointer-events-auto max-w-md w-full mx-4">
-                        <AnimatePresence mode="wait">
-                            {isGenerating ? (
-                                <motion.div
-                                    key="loading"
-                                    initial={{ opacity: 0 }}
-                                    animate={{ opacity: 1 }}
-                                    exit={{ opacity: 0 }}
-                                    transition={{ duration: durations.fast, ease: organicEase }}
-                                >
-                                    <GenerationLoadingCard
-                                        error={generationError}
-                                        onRetry={handleStartGame}
-                                    />
-                                </motion.div>
-                            ) : (
-                                <motion.div
-                                    key="content"
-                                    initial={{ opacity: 0 }}
-                                    animate={{ opacity: 1 }}
-                                    exit={{ opacity: 0 }}
-                                    transition={{ duration: durations.fast, ease: organicEase }}
-                                    className="flex flex-col items-center"
-                                >
-                                    <header className="mb-6 text-center">
-                                        <span className="block text-xs font-bold text-gray-500 uppercase tracking-widest mb-1">Code de la Room</span>
-                                        <div className="flex items-center justify-center gap-2 mt-2">
-                                            <span className="text-5xl font-black tracking-widest text-transparent bg-clip-text bg-gradient-to-r from-red-400 to-pink-400" style={{ backgroundImage: 'linear-gradient(to right, #f87171, #f472b6)', WebkitBackgroundClip: 'text', color: 'transparent' }}>
-                                                {room.code}
-                                            </span>
-                                            <button
-                                                onClick={() => {
-                                                    const url = `${window.location.protocol}//${window.location.host}/?code=${room.code}`;
-                                                    navigator.clipboard.writeText(url);
-                                                    setLinkCopied(true);
-                                                    setTimeout(() => setLinkCopied(false), 2000);
-                                                }}
-                                                className={`p-2 rounded-lg transition-colors ${linkCopied ? 'bg-green-600 text-white' : 'bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white'}`}
-                                                title="Copier le lien"
-                                            >
-                                                {linkCopied ? <Check className="w-5 h-5" /> : <Link className="w-5 h-5" />}
-                                            </button>
-                                        </div>
-                                    </header>
-
-                                    {/* Unassigned List */}
-                                    <div className="w-full space-y-3 mb-6 max-h-64 overflow-y-auto custom-scrollbar">
-                                        {unassigned.length > 0 ? (
-                                            unassigned.map(player => {
-                                                return (
-                                                    <div key={player.id} className="bg-slate-800 p-3 rounded-xl flex items-center justify-between border border-slate-700 shadow-sm animate-fade-in">
-                                                        <div className="flex items-center gap-3">
-                                                            <AvatarIcon avatar={player.avatar} size={24} />
-                                                            <span className="font-bold text-white max-w-[120px] truncate">{player.name}</span>
-                                                        </div>
-                                                        {isHost && (
-                                                            <div className="flex gap-2">
-                                                                <button onClick={() => updatePlayerTeam(room.code, player.id, 'spicy')} className="w-9 h-9 rounded-lg bg-spicy-600 text-white flex items-center justify-center hover:bg-spicy-500 transition-colors shadow-lg"><Flame className="w-4 h-4" /></button>
-                                                                <button onClick={() => updatePlayerTeam(room.code, player.id, 'sweet')} className="w-9 h-9 rounded-lg bg-sweet-600 text-white flex items-center justify-center hover:bg-sweet-500 transition-colors shadow-lg"><Candy className="w-4 h-4" /></button>
-                                                            </div>
-                                                        )}
-                                                    </div>
-                                                );
-                                            })
-                                        ) : (
-                                            <p className="text-gray-500 text-center text-sm py-4">Tous les chefs sont assignés !</p>
-                                        )}
-                                    </div>
-
-                                    {/* Start Button */}
-                                    {isHost ? (
-                                        <div className="w-full space-y-3">
-                                            <button
-                                                onClick={handleStartGame}
-                                                disabled={players.length < 2 || unassigned.length > 0}
-                                                className="w-full bg-gradient-to-r from-yellow-400 to-orange-500 text-brand-darker text-xl font-black py-4 px-8 rounded-xl shadow-lg hover:shadow-yellow-500/20 hover:scale-105 active:scale-95 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-                                            >
-                                                LANCER LA PARTIE <Clapperboard className="w-6 h-6" />
-                                            </button>
-                                        </div>
-                                    ) : (
-                                        <div className="text-center animate-pulse">
-                                            <p className="text-gray-400 font-medium">En attente que l'hôte lance la partie...</p>
-                                        </div>
-                                    )}
-                                </motion.div>
-                            )}
-                        </AnimatePresence>
-                    </div>
-                </div>
-
-                {/* Spectator Overlay */}
-                {!myId && room.state.status !== 'lobby' && (
-                    <div className="fixed bottom-0 left-0 right-0 bg-black/80 backdrop-blur text-white p-2 text-center z-50 flex items-center justify-center gap-2">
-                        <span className="font-bold text-yellow-400 flex items-center gap-1"><Eye className="w-4 h-4" /> MODE SPECTATEUR</span> - Partie en cours.
-                    </div>
-                )}
-
-                {/* Phase Transition Overlay */}
-                {renderTransition()}
-
-                {/* Debug Panel (dev only) */}
-                <DebugPanel room={room} />
-            </div>
-        );
-    }
-
-    // ----- PHASE 1: THE SNACKS (MCQ) -----
-    if (room.state.status === 'phase1') {
-        return (
-            <div className="min-h-screen bg-slate-900 flex flex-col relative">
-                {/* Game Header: Scores + User + Mute */}
-                <GameHeader
-                    players={room.players}
-                    currentPlayer={currentPlayer}
-                    roomCode={room.code}
-                    playerId={myId || undefined}
-                    onProfileUpdate={handleProfileUpdate}
-                />
-                <div className="flex-1 w-full max-w-7xl mx-auto flex flex-col items-center justify-center p-4 pt-20">
-                    {/* Unified View: Phase 1 */}
-                    <Phase1Player
-                        room={room}
-                        playerId={myId || ''}
-                        isHost={isHost}
-                    />
-                </div>
-
-                {/* Phase Transition Overlay */}
-                {renderTransition()}
-
-                {/* Debug Panel (dev only) */}
-                <DebugPanel room={room} />
-            </div>
-        );
-    }
-
-    // ----- PHASE 2: THE ENTREE (BINARY) -----
-    if (room.state.status === 'phase2') {
-        return (
-            <div className="min-h-screen bg-slate-900 flex flex-col relative">
-                {/* Game Header: Scores + User + Mute */}
-                <GameHeader
-                    players={room.players}
-                    currentPlayer={currentPlayer}
-                    roomCode={room.code}
-                    playerId={myId || undefined}
-                    onProfileUpdate={handleProfileUpdate}
-                />
-                <div className="flex-1 w-full max-w-7xl mx-auto flex flex-col items-center justify-center p-4 pt-20">
-                    {/* Unified View: Phase 2 */}
-                    <Phase2Player
-                        roomId={roomId!}
-                        playerId={myId || ''}
-                        players={room.players}
-                        setIndex={room.state.currentPhase2Set || 0}
-                        itemIndex={room.state.currentPhase2Item || 0}
-                        phaseState={room.state.phaseState || 'idle'}
-                        phase2Answers={room.state.phase2Answers}
-                        roundWinner={room.state.roundWinner}
-                        isHost={!!isHost}
-                        customQuestions={room.customQuestions}
-                    />
-                </div>
-
-                {/* Phase 2 Generation Loading Overlay */}
-                {isGeneratingPhase2 && (
-                    <div className="fixed inset-0 bg-black/90 backdrop-blur-md flex items-center justify-center z-[200]">
-                        <div className="text-center space-y-4">
-                            <div className="relative">
-                                <Loader className="w-16 h-16 text-purple-400 animate-spin mx-auto" />
-                                <div className="absolute inset-0 animate-ping">
-                                    <Loader className="w-16 h-16 text-purple-400/30 mx-auto" />
-                                </div>
-                            </div>
-                            <h2 className="text-2xl font-black text-white">Préparation de Sucré Salé...</h2>
-                            <p className="text-slate-400 text-sm max-w-xs mx-auto">
-                                L'IA génère des questions binaires sur mesure 🧂🌶️
-                            </p>
+                    {/* Center / Unassigned Overlay */}
+                    <div className="absolute inset-0 pointer-events-none flex items-center justify-center z-50">
+                        <div className="bg-slate-900/95 backdrop-blur-xl border border-white/10 rounded-3xl p-6 shadow-2xl pointer-events-auto max-w-md w-full mx-4">
+                            <AnimatePresence mode="wait">
+                                {isGenerating ? (
+                                    <motion.div
+                                        key="loading"
+                                        initial={{ opacity: 0 }}
+                                        animate={{ opacity: 1 }}
+                                        exit={{ opacity: 0 }}
+                                        transition={{ duration: durations.fast, ease: organicEase }}
+                                    >
+                                        <GenerationLoadingCard
+                                            error={generationError}
+                                            onRetry={handleStartGame}
+                                        />
+                                    </motion.div>
+                                ) : (
+                                    <motion.div
+                                        key="content"
+                                        initial={{ opacity: 0 }}
+                                        animate={{ opacity: 1 }}
+                                        exit={{ opacity: 0 }}
+                                        transition={{ duration: durations.fast, ease: organicEase }}
+                                        className="flex flex-col items-center"
+                                    >
+                                        <LobbyHeader roomCode={room.code} linkCopied={linkCopied} onCopyLink={handleCopyLink} />
+                                        <UnassignedPlayersList
+                                            players={unassigned}
+                                            roomCode={room.code}
+                                            isHost={isHost}
+                                        />
+                                        <StartGameButton
+                                            isHost={isHost}
+                                            canStart={players.length >= 2 && unassigned.length === 0}
+                                            onStart={handleStartGame}
+                                        />
+                                    </motion.div>
+                                )}
+                            </AnimatePresence>
                         </div>
                     </div>
-                )}
 
-                {/* Phase Transition Overlay */}
-                {renderTransition()}
+                    {/* Spectator Overlay */}
+                    {isSpectator && (
+                        <div className="fixed bottom-0 left-0 right-0 bg-black/80 backdrop-blur text-white p-2 text-center z-50 flex items-center justify-center gap-2">
+                            <span className="font-bold text-yellow-400 flex items-center gap-1">
+                                <Eye className="w-4 h-4" /> {t('lobby:game.spectatorMode')}
+                            </span> - {t('lobby:room.gameInProgress')}
+                        </div>
+                    )}
 
-                {/* Debug Panel (dev only) */}
-                <DebugPanel room={room} />
-            </div>
-        );
-    }
-    // ----- PHASE 3: THE MENUS -----
-    if (room.state.status === 'phase3') {
-        return (
-            <div className="min-h-screen bg-slate-900 flex flex-col relative">
-                {/* Game Header: Scores + User */}
-                <GameHeader
-                    players={room.players}
-                    currentPlayer={currentPlayer}
-                    roomCode={room.code}
-                    playerId={myId || undefined}
-                    onProfileUpdate={handleProfileUpdate}
-                />
-                <div className="flex-1 w-full max-w-7xl mx-auto flex flex-col items-center justify-center p-4 pt-20">
-                    <Phase3Player
-                        room={room}
-                        isHost={!!isHost}
-                    />
+                    {renderTransition()}
+                    <DebugPanel room={room} />
                 </div>
-
-                {/* Phase Transition Overlay */}
-                {renderTransition()}
-
-                {/* Debug Panel (dev only) */}
-                <DebugPanel room={room} />
-            </div>
-        );
-    }
-    // ----- PHASE 4: L'ADDITION -----
-    if (room.state.status === 'phase4') {
-        return (
-            <div className="min-h-screen bg-slate-900 flex flex-col relative">
-                {/* Game Header: Scores + User */}
-                <GameHeader
-                    players={room.players}
-                    currentPlayer={currentPlayer}
-                    roomCode={room.code}
-                    playerId={myId || undefined}
-                    onProfileUpdate={handleProfileUpdate}
-                />
-                <div className="flex-1 w-full max-w-7xl mx-auto flex flex-col items-center justify-center p-4 pt-20">
-                    <Phase4Player
-                        playerId={myId || ''}
-                        room={room}
-                        isHost={!!isHost}
-                    />
-                </div>
-
-                {/* Phase Transition Overlay */}
-                {renderTransition()}
-
-                {/* Debug Panel (dev only) */}
-                <DebugPanel room={room} />
-            </div>
-        );
-    }
-
-    // ----- PHASE 5: BURGER DE LA MORT -----
-    if (room.state.status === 'phase5') {
-        return (
-            <div className="min-h-screen bg-slate-900 flex flex-col relative">
-                {/* Game Header: Scores + User */}
-                <GameHeader
-                    players={room.players}
-                    currentPlayer={currentPlayer}
-                    roomCode={room.code}
-                    playerId={myId || undefined}
-                    onProfileUpdate={handleProfileUpdate}
-                />
-                <div className="flex-1 w-full max-w-7xl mx-auto flex flex-col items-center justify-center p-4 pt-20">
-                    <Phase5Player
-                        room={room}
-                        isHost={!!isHost}
-                    />
-                </div>
-
-                {/* Phase Transition Overlay */}
-                {renderTransition()}
-
-                {/* Debug Panel (dev only) */}
-                <DebugPanel room={room} />
-            </div>
+            </GameErrorBoundary>
         );
     }
 
     // ----- VICTORY SCREEN -----
     if (room.state.status === 'victory') {
-        const players = Object.values(room.players);
-        const spicyScore = players.filter(p => p.team === 'spicy').reduce((sum, p) => sum + (p.score || 0), 0);
-        const sweetScore = players.filter(p => p.team === 'sweet').reduce((sum, p) => sum + (p.score || 0), 0);
-        const winnerTeam = room.state.winnerTeam;
-
         return (
-            <div className="min-h-screen bg-gradient-to-b from-slate-900 via-slate-800 to-black flex flex-col items-center justify-center p-8 relative overflow-hidden">
-                {/* Animated Background */}
-                <div className="absolute inset-0 overflow-hidden pointer-events-none">
-                    <div className={`absolute top-0 left-0 w-96 h-96 rounded-full blur-3xl opacity-30 animate-pulse ${winnerTeam === 'spicy' ? 'bg-red-500' : winnerTeam === 'sweet' ? 'bg-pink-500' : 'bg-yellow-500'}`} />
-                    <div className={`absolute bottom-0 right-0 w-96 h-96 rounded-full blur-3xl opacity-30 animate-pulse delay-500 ${winnerTeam === 'spicy' ? 'bg-orange-500' : winnerTeam === 'sweet' ? 'bg-purple-500' : 'bg-amber-500'}`} />
-                </div>
-
-                <motion.div
-                    initial={{ opacity: 0, scale: 0.8 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    transition={{ duration: 0.8, ease: [0.25, 0.46, 0.45, 0.94] }}
-                    className="text-center z-10"
-                >
-                    {/* Winner Announcement */}
-                    <motion.div
-                        initial={{ y: -50, opacity: 0 }}
-                        animate={{ y: 0, opacity: 1 }}
-                        transition={{ delay: 0.3, duration: 0.6 }}
-                    >
-                        {winnerTeam === 'tie' ? (
-                            <h1 className="text-6xl md:text-8xl font-black text-yellow-400 uppercase tracking-tighter mb-4">
-                                Égalité !
-                            </h1>
-                        ) : (
-                            <>
-                                <h2 className="text-2xl md:text-3xl font-bold text-slate-400 uppercase tracking-widest mb-2">
-                                    Vainqueur
-                                </h2>
-                                <h1 className={`text-6xl md:text-8xl font-black uppercase tracking-tighter mb-4 flex items-center justify-center gap-4 ${winnerTeam === 'spicy' ? 'text-red-500' : 'text-pink-500'}`}>
-                                    {winnerTeam === 'spicy' ? (
-                                        <>Team Spicy <Flame className="w-16 h-16 md:w-24 md:h-24" /></>
-                                    ) : (
-                                        <>Team Sweet <Candy className="w-16 h-16 md:w-24 md:h-24" /></>
-                                    )}
-                                </h1>
-                            </>
-                        )}
-                    </motion.div>
-
-                    {/* Score Display */}
-                    <motion.div
-                        initial={{ y: 50, opacity: 0 }}
-                        animate={{ y: 0, opacity: 1 }}
-                        transition={{ delay: 0.6, duration: 0.6 }}
-                        className="flex items-center justify-center gap-8 md:gap-16 my-12"
-                    >
-                        {/* Spicy Score */}
-                        <div className={`text-center p-6 rounded-2xl ${winnerTeam === 'spicy' ? 'bg-red-500/20 ring-4 ring-red-500' : 'bg-slate-800/50'}`}>
-                            <Flame className={`w-12 h-12 mx-auto mb-2 ${winnerTeam === 'spicy' ? 'text-red-400' : 'text-slate-500'}`} />
-                            <div className="text-lg font-bold text-slate-400 uppercase">Spicy</div>
-                            <div className={`text-6xl md:text-8xl font-black ${winnerTeam === 'spicy' ? 'text-red-400' : 'text-slate-500'}`}>
-                                {spicyScore}
-                            </div>
-                        </div>
-
-                        <div className="text-4xl font-black text-slate-600">VS</div>
-
-                        {/* Sweet Score */}
-                        <div className={`text-center p-6 rounded-2xl ${winnerTeam === 'sweet' ? 'bg-pink-500/20 ring-4 ring-pink-500' : 'bg-slate-800/50'}`}>
-                            <Candy className={`w-12 h-12 mx-auto mb-2 ${winnerTeam === 'sweet' ? 'text-pink-400' : 'text-slate-500'}`} />
-                            <div className="text-lg font-bold text-slate-400 uppercase">Sweet</div>
-                            <div className={`text-6xl md:text-8xl font-black ${winnerTeam === 'sweet' ? 'text-pink-400' : 'text-slate-500'}`}>
-                                {sweetScore}
-                            </div>
-                        </div>
-                    </motion.div>
-
-                    {/* Play Again Button */}
-                    {isHost && (
-                        <motion.button
-                            initial={{ opacity: 0 }}
-                            animate={{ opacity: 1 }}
-                            transition={{ delay: 1.2 }}
-                            whileHover={{ scale: 1.05 }}
-                            whileTap={{ scale: 0.95 }}
-                            onClick={() => setGameStatus(room.code, 'lobby')}
-                            className="mt-8 bg-gradient-to-r from-yellow-400 to-orange-500 text-black px-12 py-4 rounded-xl text-xl font-black shadow-lg hover:shadow-yellow-500/30"
-                        >
-                            Rejouer
-                        </motion.button>
-                    )}
-                </motion.div>
-
-                {/* Debug Panel (dev only) */}
-                <DebugPanel room={room} />
-            </div>
+            <GameErrorBoundary>
+                <VictoryScreen room={room} isHost={isHost} />
+            </GameErrorBoundary>
         );
     }
 
-    // Default Fallback
+    // ----- GAME PHASES (1-5) -----
     return (
-        <>
-            <div className="min-h-screen bg-slate-900 text-white flex items-center justify-center">
-                Phase inconnue : {room.state.status}
-            </div>
-            {/* Phase Transition Overlay */}
-            {renderTransition()}
-
-            {/* Debug Panel (dev only) */}
-            <DebugPanel room={room} />
-        </>
+        <GameErrorBoundary>
+            <PhaseRouter
+                room={room}
+                myId={myId}
+                isHost={isHost}
+                currentPlayer={currentPlayer}
+                onProfileUpdate={handleProfileUpdate}
+                showTransition={showTransition}
+                transitionPhase={transitionPhase}
+                onTransitionComplete={handleTransitionComplete}
+                isGeneratingPhase2={isGeneratingPhase2}
+            />
+        </GameErrorBoundary>
     );
 }
 
-function PlayerCard({ player, theme }: { player: Player, theme: 'spicy' | 'sweet' }) {
-    const borderColor = theme === 'spicy' ? 'border-spicy-500/50' : theme === 'sweet' ? 'border-sweet-500/50' : 'border-white/5';
-    const bgColor = theme === 'spicy' ? 'bg-spicy-900/40' : theme === 'sweet' ? 'bg-sweet-900/40' : 'bg-white/10';
+// --- Sub-components ---
+
+function TeamSide({ team, players }: { team: 'spicy' | 'sweet'; players: Player[] }) {
+    const { t } = useTranslation(['lobby', 'common']);
+    const isSpicy = team === 'spicy';
+
+    return (
+        <div className={`flex-1 ${isSpicy ? 'bg-red-900/20 border-b-4 md:border-b-0 md:border-r-4 border-red-600/30' : 'bg-pink-900/20'} flex flex-col items-center justify-center p-8 relative overflow-hidden group`}>
+            <div className={`absolute inset-0 bg-gradient-to-${isSpicy ? 'br' : 'tl'} from-${isSpicy ? 'red' : 'pink'}-900/0 via-${isSpicy ? 'red' : 'pink'}-600/5 to-${isSpicy ? 'red' : 'pink'}-500/10 pointer-events-none`} />
+
+            <h2 className={`text-3xl md:text-5xl font-black ${isSpicy ? 'text-red-500' : 'text-pink-500'} uppercase tracking-tighter mb-8 drop-shadow-xl z-0 opacity-80 flex items-center gap-3`}>
+                Team {t(`common:teams.${team}`)} {isSpicy ? <Flame className="w-10 h-10 md:w-16 md:h-16" /> : <Candy className="w-10 h-10 md:w-16 md:h-16" />}
+            </h2>
+
+            <div className="grid grid-cols-2 gap-4 w-full max-w-md z-10">
+                {players.map(p => <PlayerCard key={p.id} player={p} theme={team} />)}
+                {players.length === 0 && (
+                    <p className={`col-span-2 text-center ${isSpicy ? 'text-red-300/50' : 'text-sweet-300/50'} font-medium italic`}>
+                        {isSpicy ? t('lobby:teams.waitingSpicy') : t('lobby:teams.waitingSweet')}
+                    </p>
+                )}
+            </div>
+        </div>
+    );
+}
+
+function PlayerCard({ player, theme }: { player: Player; theme: 'spicy' | 'sweet' }) {
+    const borderColor = theme === 'spicy' ? 'border-spicy-500/50' : 'border-sweet-500/50';
+    const bgColor = theme === 'spicy' ? 'bg-spicy-900/40' : 'bg-sweet-900/40';
 
     return (
         <div className={`${bgColor} backdrop-blur-md p-3 rounded-xl flex items-center space-x-3 border ${borderColor} shadow-sm transition-all hover:scale-105`}>
             <AvatarIcon avatar={player.avatar} size={32} />
             <span className="font-bold text-white tracking-wide">{player.name}</span>
         </div>
-    )
+    );
+}
+
+function LobbyHeader({ roomCode, linkCopied, onCopyLink }: { roomCode: string; linkCopied: boolean; onCopyLink: () => void }) {
+    const { t } = useTranslation('lobby');
+    return (
+        <header className="mb-6 text-center">
+            <span className="block text-xs font-bold text-gray-500 uppercase tracking-widest mb-1">{t('room.roomCode')}</span>
+            <div className="flex items-center justify-center gap-2 mt-2">
+                <span className="text-5xl font-black tracking-widest text-transparent bg-clip-text bg-gradient-to-r from-red-400 to-pink-400" style={{ backgroundImage: 'linear-gradient(to right, #f87171, #f472b6)', WebkitBackgroundClip: 'text', color: 'transparent' }}>
+                    {roomCode}
+                </span>
+                <button
+                    onClick={onCopyLink}
+                    className={`p-2 rounded-lg transition-colors ${linkCopied ? 'bg-green-600 text-white' : 'bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white'}`}
+                    title={t('room.copyLink')}
+                    aria-label={linkCopied ? t('room.linkCopied') : t('room.copyInviteLink')}
+                >
+                    {linkCopied ? <Check className="w-5 h-5" /> : <Link className="w-5 h-5" />}
+                </button>
+            </div>
+        </header>
+    );
+}
+
+function UnassignedPlayersList({ players, roomCode, isHost }: { players: Player[]; roomCode: string; isHost: boolean }) {
+    const { t } = useTranslation('lobby');
+    return (
+        <div className="w-full space-y-3 mb-6 max-h-64 overflow-y-auto custom-scrollbar" role="list" aria-label={t('teams.unassigned')}>
+            {players.length > 0 ? (
+                players.map(player => (
+                    <div key={player.id} className="bg-slate-800 p-3 rounded-xl flex items-center justify-between border border-slate-700 shadow-sm animate-fade-in" role="listitem">
+                        <div className="flex items-center gap-3">
+                            <AvatarIcon avatar={player.avatar} size={24} />
+                            <span className="font-bold text-white max-w-[120px] truncate">{player.name}</span>
+                        </div>
+                        {isHost && (
+                            <div className="flex gap-2" role="group" aria-label={t('teams.assignPlayer', { name: player.name })}>
+                                <button
+                                    onClick={() => updatePlayerTeam(roomCode, player.id, 'spicy')}
+                                    className="w-9 h-9 rounded-lg bg-spicy-600 text-white flex items-center justify-center hover:bg-spicy-500 transition-colors shadow-lg"
+                                    aria-label={t('teams.assignToSpicy', { name: player.name })}
+                                >
+                                    <Flame className="w-4 h-4" />
+                                </button>
+                                <button
+                                    onClick={() => updatePlayerTeam(roomCode, player.id, 'sweet')}
+                                    className="w-9 h-9 rounded-lg bg-sweet-600 text-white flex items-center justify-center hover:bg-sweet-500 transition-colors shadow-lg"
+                                    aria-label={t('teams.assignToSweet', { name: player.name })}
+                                >
+                                    <Candy className="w-4 h-4" />
+                                </button>
+                            </div>
+                        )}
+                    </div>
+                ))
+            ) : (
+                <p className="text-gray-500 text-center text-sm py-4">{t('teams.allAssigned')}</p>
+            )}
+        </div>
+    );
+}
+
+function StartGameButton({ isHost, canStart, onStart }: { isHost: boolean; canStart: boolean; onStart: () => void }) {
+    const { t } = useTranslation('lobby');
+    if (!isHost) {
+        return (
+            <div className="text-center animate-pulse">
+                <p className="text-gray-400 font-medium">{t('game.waitingForHost')}</p>
+            </div>
+        );
+    }
+
+    return (
+        <div className="w-full space-y-3">
+            <button
+                onClick={onStart}
+                disabled={!canStart}
+                className="w-full bg-gradient-to-r from-yellow-400 to-orange-500 text-brand-darker text-xl font-black py-4 px-8 rounded-xl shadow-lg hover:shadow-yellow-500/20 hover:scale-105 active:scale-95 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                aria-disabled={!canStart}
+            >
+                {t('game.startGame')} <Clapperboard className="w-6 h-6" />
+            </button>
+        </div>
+    );
+}
+
+function VictoryScreen({ room, isHost }: { room: NonNullable<ReturnType<typeof useGameRoom>['room']>; isHost: boolean }) {
+    const { t } = useTranslation(['game-ui', 'common']);
+    const players = Object.values(room.players);
+    const spicyScore = players.filter(p => p.team === 'spicy').reduce((sum, p) => sum + (p.score || 0), 0);
+    const sweetScore = players.filter(p => p.team === 'sweet').reduce((sum, p) => sum + (p.score || 0), 0);
+    const winnerTeam = room.state.winnerTeam;
+
+    return (
+        <div className="min-h-screen bg-gradient-to-b from-slate-900 via-slate-800 to-black flex flex-col items-center justify-center p-8 relative overflow-hidden">
+            {/* Animated Background */}
+            <div className="absolute inset-0 overflow-hidden pointer-events-none">
+                <div className={`absolute top-0 left-0 w-96 h-96 rounded-full blur-3xl opacity-30 animate-pulse ${winnerTeam === 'spicy' ? 'bg-spicy-500' : winnerTeam === 'sweet' ? 'bg-sweet-500' : 'bg-yellow-500'}`} />
+                <div className={`absolute bottom-0 right-0 w-96 h-96 rounded-full blur-3xl opacity-30 animate-pulse delay-500 ${winnerTeam === 'spicy' ? 'bg-orange-500' : winnerTeam === 'sweet' ? 'bg-purple-500' : 'bg-amber-500'}`} />
+            </div>
+
+            <motion.div
+                initial={{ opacity: 0, scale: 0.8 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ duration: 0.8, ease: organicEase }}
+                className="text-center z-10"
+            >
+                {/* Winner Announcement */}
+                <motion.div
+                    initial={{ y: -50, opacity: 0 }}
+                    animate={{ y: 0, opacity: 1 }}
+                    transition={{ delay: 0.3, duration: 0.6 }}
+                >
+                    {winnerTeam === 'tie' ? (
+                        <h1 className="text-6xl md:text-8xl font-black text-yellow-400 uppercase tracking-tighter mb-4">
+                            {t('victory.tie')}
+                        </h1>
+                    ) : (
+                        <>
+                            <h2 className="text-2xl md:text-3xl font-bold text-slate-400 uppercase tracking-widest mb-2">
+                                {t('victory.winner')}
+                            </h2>
+                            <h1 className={`text-6xl md:text-8xl font-black uppercase tracking-tighter mb-4 flex items-center justify-center gap-4 ${winnerTeam === 'spicy' ? 'text-spicy-500' : 'text-sweet-500'}`}>
+                                {winnerTeam === 'spicy' ? (
+                                    <>Team {t('common:teams.spicy')} <Flame className="w-16 h-16 md:w-24 md:h-24" /></>
+                                ) : (
+                                    <>Team {t('common:teams.sweet')} <Candy className="w-16 h-16 md:w-24 md:h-24" /></>
+                                )}
+                            </h1>
+                        </>
+                    )}
+                </motion.div>
+
+                {/* Score Display */}
+                <motion.div
+                    initial={{ y: 50, opacity: 0 }}
+                    animate={{ y: 0, opacity: 1 }}
+                    transition={{ delay: 0.6, duration: 0.6 }}
+                    className="flex items-center justify-center gap-8 md:gap-16 my-12"
+                    role="region"
+                    aria-label={t('scores.finalScores')}
+                >
+                    <ScoreCard team="spicy" score={spicyScore} isWinner={winnerTeam === 'spicy'} />
+                    <div className="text-4xl font-black text-slate-600" aria-hidden="true">VS</div>
+                    <ScoreCard team="sweet" score={sweetScore} isWinner={winnerTeam === 'sweet'} />
+                </motion.div>
+
+                {/* Play Again Button */}
+                {isHost && (
+                    <motion.button
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        transition={{ delay: 1.2 }}
+                        whileHover={{ scale: 1.05 }}
+                        whileTap={{ scale: 0.95 }}
+                        onClick={() => setGameStatus(room.code, 'lobby')}
+                        className="mt-8 bg-gradient-to-r from-yellow-400 to-orange-500 text-black px-12 py-4 rounded-xl text-xl font-black shadow-lg hover:shadow-yellow-500/30"
+                    >
+                        {t('common:buttons.playAgain')}
+                    </motion.button>
+                )}
+            </motion.div>
+
+            <DebugPanel room={room} />
+        </div>
+    );
+}
+
+function ScoreCard({ team, score, isWinner }: { team: 'spicy' | 'sweet'; score: number; isWinner: boolean }) {
+    const { t } = useTranslation(['common', 'game-ui']);
+    const isSpicy = team === 'spicy';
+
+    return (
+        <div className={`text-center p-6 rounded-2xl ${isWinner ? (isSpicy ? 'bg-spicy-500/20 ring-4 ring-spicy-500' : 'bg-sweet-500/20 ring-4 ring-sweet-500') : 'bg-slate-800/50'}`}>
+            {isSpicy ? (
+                <Flame className={`w-12 h-12 mx-auto mb-2 ${isWinner ? 'text-spicy-400' : 'text-slate-500'}`} aria-hidden="true" />
+            ) : (
+                <Candy className={`w-12 h-12 mx-auto mb-2 ${isWinner ? 'text-sweet-400' : 'text-slate-500'}`} aria-hidden="true" />
+            )}
+            <div className="text-lg font-bold text-slate-400 uppercase">{t(`common:teams.${team}`)}</div>
+            <div className={`text-6xl md:text-8xl font-black ${isWinner ? (isSpicy ? 'text-spicy-400' : 'text-sweet-400') : 'text-slate-500'}`} aria-label={t('game-ui:scores.points', { count: score })}>
+                {score}
+            </div>
+        </div>
+    );
 }

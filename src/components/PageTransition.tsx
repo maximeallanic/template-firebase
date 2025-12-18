@@ -1,12 +1,10 @@
 import React from 'react';
 import { motion } from 'framer-motion';
+import { organicEase } from '../animations';
 
 interface PageTransitionProps {
     children: React.ReactNode;
 }
-
-// Organic easing curve (cubic-bezier)
-const organicEase = [0.25, 0.46, 0.45, 0.94] as const;
 
 /**
  * PageTransition - Wraps page content with smooth opacity transitions.

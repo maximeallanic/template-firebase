@@ -1,0 +1,51 @@
+{
+  "phases": {
+    "lobby": {
+      "name": "Lobby",
+      "subtitle": "En attente...",
+      "shortName": "Lobby"
+    },
+    "phase1": {
+      "name": "Tenders",
+      "subtitle": "Sois le plus rapide à buzzer !",
+      "shortName": "Tenders"
+    },
+    "phase2": {
+      "name": "Sucré Salé",
+      "subtitle": "Plutôt A ou plutôt B ?",
+      "shortName": "Sucré Salé"
+    },
+    "phase3": {
+      "name": "La Carte",
+      "subtitle": "Retiens un max de plats !",
+      "shortName": "La Carte"
+    },
+    "phase4": {
+      "name": "La Note",
+      "subtitle": "Questions de culture G !",
+      "shortName": "La Note"
+    },
+    "phase5": {
+      "name": "Burger Ultime",
+      "subtitle": "Le défi final pour la victoire !",
+      "shortName": "Burger Ultime"
+    },
+    "victory": {
+      "name": "Victoire",
+      "subtitle": "Le gagnant est...",
+      "shortName": "Victoire"
+    }
+  },
+  "transitions": {
+    "phaseNumber": "Phase {{number}}"
+  },
+  "navigation": {
+    "startPhase3": "DÉMARRER PHASE 3: LA CARTE",
+    "startPhase4": "DÉMARRER PHASE 4: L'ADDITION",
+    "startPhase4LaNote": "Démarrer Phase 4: La Note"
+  },
+  "endPhase": {
+    "phase2Complete": "Fin de la Phase 2 !",
+    "gettingMenusReady": "Préparation des menus..."
+  }
+}

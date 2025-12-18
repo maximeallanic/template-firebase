@@ -1,22 +1,8 @@
 import { ref, get, update, child } from 'firebase/database';
 import { rtdb, auth } from './firebase';
-import type { Player } from './gameService';
+import type { Player } from '../types/gameTypes';
 import { QUESTIONS } from '../data/questions';
-
-/**
- * Generates a consistent hash ID from a question string.
- * Used to track "seen" questions without modifying the static data files.
- */
-export function generateQuestionId(text: string): string {
-    let hash = 0;
-    if (text.length === 0) return hash.toString();
-    for (let i = 0; i < text.length; i++) {
-        const char = text.charCodeAt(i);
-        hash = ((hash << 5) - hash) + char;
-        hash = hash & hash; // Convert to 32bit integer
-    }
-    return Math.abs(hash).toString(16);
-}
+import { generateQuestionHash } from '../utils/hash';
 
 /**
  * Marks a question as seen by the current authenticated user in the RTDB.
@@ -34,7 +20,7 @@ export async function markQuestionAsSeen(_playerId: string, questionText: string
     }
 
     try {
-        const qId = generateQuestionId(questionText);
+        const qId = generateQuestionHash(questionText);
         console.log('📝 Marking question as seen:', { qId, userId });
         const historyRef = ref(rtdb, `userHistory/${userId}`);
         await update(historyRef, {
@@ -53,7 +39,7 @@ export async function hasUserSeenQuestion(playerId: string, questionText: string
     if (!playerId || !questionText) return false;
 
     try {
-        const qId = generateQuestionId(questionText);
+        const qId = generateQuestionHash(questionText);
         const snapshot = await get(child(ref(rtdb), `userHistory/${playerId}/${qId}`));
         return snapshot.exists();
     } catch (error) {
@@ -101,7 +87,7 @@ export async function filterUnseenQuestions<T>(
     const unseen = questions.filter(q => {
         const text = getTextFn(q);
         if (!text) return true; // Keep items without text
-        const hash = generateQuestionId(text);
+        const hash = generateQuestionHash(text);
         return !seenHashes.has(hash);
     });
 
@@ -159,7 +145,7 @@ export async function checkPhase1Exhaustion(players: Player[]): Promise<boolean>
             const seenSet = playerSeenIds[i];
             let seenCount = 0;
             for (const q of QUESTIONS) {
-                const qId = generateQuestionId(q.text);
+                const qId = generateQuestionHash(q.text);
                 if (seenSet.has(qId)) {
                     seenCount++;
                 }

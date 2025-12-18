@@ -1,0 +1,58 @@
+{
+  "phase4": {
+    "questions": [
+      { "question": "Quel est le prénom de Mr. Bean ?", "answer": "Mr." },
+      { "question": "De quelle couleur sont les petits pois ?", "answer": "Verts" },
+      { "question": "Comment appelle-t-on un chat qui tombe dans l'eau ?", "answer": "Un chat mouillé" },
+      { "question": "Quelle est la couleur du cheval blanc d'Henri IV ?", "answer": "Blanc" },
+      { "question": "Combien font 2+2 ?", "answer": "4" },
+      { "question": "Quel animal fait 'Miaou' ?", "answer": "Le chat" },
+      { "question": "Quelle est la capitale de la France ?", "answer": "Paris" },
+      { "question": "Quel fruit est jaune et courbé ?", "answer": "Banane" },
+      { "question": "Combien de pattes a une araignée ?", "answer": "8" },
+      { "question": "Quel est le contraire de 'chaud' ?", "answer": "Froid" },
+      { "question": "Comment s'appelle le roi des animaux ?", "answer": "Le lion" },
+      { "question": "Combien de jours y a-t-il dans une semaine ?", "answer": "7" },
+      { "question": "Quelle planète est surnommée la planète rouge ?", "answer": "Mars" },
+      { "question": "Quel super-héros porte une cape rouge ?", "answer": "Superman" },
+      { "question": "En quelle année sommes-nous ?", "answer": "2025" }
+    ]
+  },
+  "phase5": {
+    "questions": [
+      { "question": "Qui est le meilleur ami de Harry Potter ?", "answer": "Ron Weasley" },
+      { "question": "Quelle est la capitale de la France ?", "answer": "Paris" },
+      { "question": "Combien font 7 x 8 ?", "answer": "56" },
+      { "question": "Quel est le plus grand océan du monde ?", "answer": "Pacifique" },
+      { "question": "Qui a chanté 'Thriller' ?", "answer": "Michael Jackson" },
+      { "question": "Quelle est la couleur du ciel ?", "answer": "Bleu" },
+      { "question": "Quel animal est le plus grand sur terre ?", "answer": "L'éléphant" },
+      { "question": "Combien de continents y a-t-il ?", "answer": "7" },
+      { "question": "Qui a peint la Joconde ?", "answer": "Léonard de Vinci" },
+      { "question": "Quel est le symbole chimique de l'eau ?", "answer": "H2O" }
+    ]
+  },
+  "phase2": {
+    "defaultSets": [
+      {
+        "title": "McDonald's vs Burger King",
+        "optionA": "McDonald's",
+        "optionB": "Burger King",
+        "items": [
+          { "text": "Les meilleures frites", "answer": "A" },
+          { "text": "Le Whopper", "answer": "B" },
+          { "text": "Ronald le clown", "answer": "A" },
+          { "text": "Le Big Mac", "answer": "A" },
+          { "text": "Flame-grilled burgers", "answer": "B" },
+          { "text": "Happy Meal", "answer": "A" },
+          { "text": "Have it your way", "answer": "B" },
+          { "text": "Les arches dorées", "answer": "A" },
+          { "text": "Le King", "answer": "B" },
+          { "text": "McFlurry", "answer": "A" },
+          { "text": "Steakhouse burger", "answer": "B" },
+          { "text": "Je suis lovin' it", "answer": "A" }
+        ]
+      }
+    ]
+  }
+}

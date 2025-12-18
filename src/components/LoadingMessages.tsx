@@ -1,50 +1,35 @@
 import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { organicEase, durations } from '../animations';
-
-const LOADING_MESSAGES = [
-    "Le chef prépare les questions...",
-    "Cuisson en cours...",
-    "On ajoute les épices...",
-    "Mélange des ingrédients...",
-    "Préchauffage du four...",
-    "Découpe des légumes...",
-    "Dressage des assiettes...",
-    "Le soufflé ne doit pas retomber...",
-    "Vérification de la fraîcheur...",
-    "Marinade en cours...",
-    "Flambée imminente...",
-    "Ça mijote doucement...",
-    "Ajout d'une pincée de sel...",
-    "Le minuteur tourne...",
-    "Surveillance du four...",
-    "On goûte la sauce...",
-    "Les pâtisseries prennent forme...",
-    "Battage des blancs en neige...",
-];
+import { useLoadingMessages } from '../hooks/useGameTranslation';
 
 interface LoadingMessagesProps {
     className?: string;
 }
 
 export function LoadingMessages({ className = '' }: LoadingMessagesProps) {
+    const { getMessages } = useLoadingMessages();
+    const messages = getMessages();
+
     const [messageIndex, setMessageIndex] = useState(() =>
-        Math.floor(Math.random() * LOADING_MESSAGES.length)
+        Math.floor(Math.random() * messages.length)
     );
     const usedIndices = useRef<Set<number>>(new Set([messageIndex]));
 
     useEffect(() => {
+        if (messages.length === 0) return;
+
         const interval = setInterval(() => {
             setMessageIndex(prev => {
                 // Reset if we've used most messages
-                if (usedIndices.current.size >= LOADING_MESSAGES.length - 1) {
+                if (usedIndices.current.size >= messages.length - 1) {
                     usedIndices.current = new Set();
                 }
 
                 // Find next unused index (different from current)
                 let nextIndex: number;
                 do {
-                    nextIndex = Math.floor(Math.random() * LOADING_MESSAGES.length);
+                    nextIndex = Math.floor(Math.random() * messages.length);
                 } while (nextIndex === prev || usedIndices.current.has(nextIndex));
 
                 usedIndices.current.add(nextIndex);
@@ -53,7 +38,11 @@ export function LoadingMessages({ className = '' }: LoadingMessagesProps) {
         }, 2500);
 
         return () => clearInterval(interval);
-    }, []);
+    }, [messages.length]);
+
+    if (messages.length === 0) {
+        return null;
+    }
 
     return (
         <div className={`h-8 flex items-center justify-center ${className}`}>
@@ -66,7 +55,7 @@ export function LoadingMessages({ className = '' }: LoadingMessagesProps) {
                     transition={{ duration: durations.fast, ease: organicEase }}
                     className="text-slate-300 text-sm font-medium"
                 >
-                    {LOADING_MESSAGES[messageIndex]}
+                    {messages[messageIndex]}
                 </motion.p>
             </AnimatePresence>
         </div>

@@ -20,11 +20,11 @@ export function TeamScores({ players }: TeamScoresProps) {
         <div className="flex items-center justify-center gap-6 bg-slate-800/50 backdrop-blur-sm px-6 py-3 rounded-2xl border border-white/10">
             {/* Spicy Team */}
             <div className="flex items-center gap-2">
-                <div className="flex items-center gap-1 text-red-400">
+                <div className="flex items-center gap-1 text-spicy-400">
                     <Flame className="w-5 h-5" />
                     <span className="font-bold text-sm uppercase tracking-wide">Spicy</span>
                 </div>
-                <span className="text-2xl font-black text-white bg-red-500/20 px-3 py-1 rounded-lg min-w-[3rem] text-center">
+                <span className="text-2xl font-black text-white bg-spicy-500/20 px-3 py-1 rounded-lg min-w-[3rem] text-center">
                     {spicyScore}
                 </span>
             </div>
@@ -34,10 +34,10 @@ export function TeamScores({ players }: TeamScoresProps) {
 
             {/* Sweet Team */}
             <div className="flex items-center gap-2">
-                <span className="text-2xl font-black text-white bg-pink-500/20 px-3 py-1 rounded-lg min-w-[3rem] text-center">
+                <span className="text-2xl font-black text-white bg-sweet-500/20 px-3 py-1 rounded-lg min-w-[3rem] text-center">
                     {sweetScore}
                 </span>
-                <div className="flex items-center gap-1 text-pink-400">
+                <div className="flex items-center gap-1 text-sweet-400">
                     <span className="font-bold text-sm uppercase tracking-wide">Sweet</span>
                     <Candy className="w-5 h-5" />
                 </div>

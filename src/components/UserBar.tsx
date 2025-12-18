@@ -35,7 +35,7 @@ export const UserBar: React.FC<UserBarProps> = ({
     const playerName = propPlayerName || localProfile?.profileName || '';
     const avatar = propAvatar || localProfile?.profileAvatar || 'burger';
 
-    // Close dropdown when clicking outside
+    // Close dropdown when clicking outside or pressing Escape
     useEffect(() => {
         const handleClickOutside = (event: MouseEvent) => {
             if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
@@ -43,9 +43,19 @@ export const UserBar: React.FC<UserBarProps> = ({
             }
         };
 
+        const handleKeyDown = (event: KeyboardEvent) => {
+            if (event.key === 'Escape' && isDropdownOpen) {
+                setIsDropdownOpen(false);
+            }
+        };
+
         document.addEventListener('mousedown', handleClickOutside);
-        return () => document.removeEventListener('mousedown', handleClickOutside);
-    }, []);
+        document.addEventListener('keydown', handleKeyDown);
+        return () => {
+            document.removeEventListener('mousedown', handleClickOutside);
+            document.removeEventListener('keydown', handleKeyDown);
+        };
+    }, [isDropdownOpen]);
 
     // Don't render if no user identity
     if (!playerName) {
@@ -120,6 +130,9 @@ export const UserBar: React.FC<UserBarProps> = ({
             <div ref={dropdownRef} className="relative">
                 <button
                     onClick={() => setIsDropdownOpen(!isDropdownOpen)}
+                    aria-expanded={isDropdownOpen}
+                    aria-haspopup="menu"
+                    aria-label={`Menu utilisateur pour ${playerName}`}
                     className={`flex items-center gap-2 bg-slate-800/80 backdrop-blur-sm border border-slate-700/50 hover:border-indigo-500/50 px-3 py-2 transition-all hover:bg-slate-700/80 ${
                         attachedToEdge ? 'rounded-l-full border-r-0' : 'rounded-full'
                     }`}
@@ -130,7 +143,7 @@ export const UserBar: React.FC<UserBarProps> = ({
                     <span className="text-sm font-semibold text-white max-w-[100px] truncate">
                         {playerName}
                     </span>
-                    <ChevronDown className={`w-4 h-4 text-slate-400 transition-transform ${isDropdownOpen ? 'rotate-180' : ''}`} />
+                    <ChevronDown className={`w-4 h-4 text-slate-400 transition-transform ${isDropdownOpen ? 'rotate-180' : ''}`} aria-hidden="true" />
                 </button>
 
                 <AnimatePresence>
@@ -154,28 +167,31 @@ export const UserBar: React.FC<UserBarProps> = ({
                                 </div>
                             </div>
 
-                            <div className="py-1">
+                            <div className="py-1" role="menu" aria-label="Actions utilisateur">
                                 <button
                                     onClick={handleEditProfile}
+                                    role="menuitem"
                                     className="w-full px-4 py-2 text-left text-sm text-slate-300 hover:bg-slate-700/50 hover:text-white transition-colors flex items-center gap-2"
                                 >
-                                    <Settings className="w-4 h-4" />
+                                    <Settings className="w-4 h-4" aria-hidden="true" />
                                     Modifier le Profil
                                 </button>
                                 {roomCode && (
                                     <button
                                         onClick={handleLeaveGame}
+                                        role="menuitem"
                                         className="w-full px-4 py-2 text-left text-sm text-red-400 hover:bg-red-500/10 hover:text-red-300 transition-colors flex items-center gap-2"
                                     >
-                                        <LogOut className="w-4 h-4" />
+                                        <LogOut className="w-4 h-4" aria-hidden="true" />
                                         Quitter la Partie
                                     </button>
                                 )}
                                 <button
                                     onClick={handleLogout}
+                                    role="menuitem"
                                     className="w-full px-4 py-2 text-left text-sm text-slate-400 hover:bg-slate-700/50 hover:text-slate-200 transition-colors flex items-center gap-2"
                                 >
-                                    <Power className="w-4 h-4" />
+                                    <Power className="w-4 h-4" aria-hidden="true" />
                                     Se déconnecter
                                 </button>
                             </div>

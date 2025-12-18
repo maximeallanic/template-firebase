@@ -1,4 +1,5 @@
 import { useRef, useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import { motion, AnimatePresence } from 'framer-motion';
 import { submitAnswer, startNextQuestion, setGameStatus, type Room } from '../services/gameService';
 import { QUESTIONS } from '../data/questions';
@@ -27,6 +28,7 @@ const COLORS = [
 const ICONS = [Triangle, Diamond, Circle, Square]; // Shapes corresponding to colors
 
 export function Phase1Player({ room, playerId, isHost }: Phase1PlayerProps) {
+    const { t } = useTranslation(['game-ui', 'common']);
     const { state, players } = room;
     const { phaseState, currentQuestionIndex, phase1Answers, phase1BlockedTeams } = state;
 
@@ -87,7 +89,7 @@ export function Phase1Player({ room, playerId, isHost }: Phase1PlayerProps) {
     }, [isReading]);
 
     // Determining feedback if result is shown
-    let resultMessage = "En attente...";
+    let resultMessage = t('common:labels.waiting');
     let resultIcon = <Clock className="w-8 h-8" />;
     let resultColor = "text-slate-400";
 
@@ -96,27 +98,27 @@ export function Phase1Player({ room, playerId, isHost }: Phase1PlayerProps) {
         const didMyTeamWin = winnerTeam && winnerTeam === myTeam;
 
         if (state.roundWinner?.playerId === playerId) {
-            resultMessage = "BRAVO ! +1 POINT";
+            resultMessage = t('results.bravo');
             resultIcon = <Trophy className="w-8 h-8" />;
             resultColor = "text-green-400";
         } else if (didMyTeamWin) {
-            resultMessage = "Ton équipe a gagné !";
+            resultMessage = t('results.yourTeamWins');
             resultIcon = <Trophy className="w-8 h-8" />;
             resultColor = "text-green-400";
         } else if (winnerTeam && winnerTeam !== 'neutral') {
-            resultMessage = `L'équipe ${winnerTeam === 'spicy' ? 'Spicy' : 'Sweet'} gagne !`;
+            resultMessage = t('results.teamWins', { team: t(`common:teams.${winnerTeam}`) });
             resultIcon = <XCircle className="w-8 h-8" />;
             resultColor = "text-red-400";
         } else if (!state.roundWinner) {
-            resultMessage = "Personne n'a trouvé !";
+            resultMessage = t('results.nobodyFound');
             resultIcon = <XCircle className="w-8 h-8" />;
             resultColor = "text-slate-400";
         } else if (myAnswer !== null) {
-            resultMessage = "Mauvaise réponse !";
+            resultMessage = t('results.wrongAnswer');
             resultIcon = <XCircle className="w-8 h-8" />;
             resultColor = "text-red-400";
         } else {
-            resultMessage = "Manche terminée";
+            resultMessage = t('results.roundOver');
             resultIcon = <Clock className="w-8 h-8" />;
             resultColor = "text-slate-400";
         }
@@ -187,7 +189,7 @@ export function Phase1Player({ room, playerId, isHost }: Phase1PlayerProps) {
             {/* Top Bar: Progress & Roster */}
             <div className="w-full flex items-center justify-between bg-slate-800/50 p-2 rounded-xl border border-white/5 mb-2">
                 <div className="flex items-center gap-2">
-                    <span className="text-xs font-bold uppercase text-slate-400 tracking-wider">Manche</span>
+                    <span className="text-xs font-bold uppercase text-slate-400 tracking-wider">{t('common:labels.round')}</span>
                     <span className="text-white font-black bg-slate-700 px-2 py-0.5 rounded text-sm">
                         {(currentQuestionIndex ?? -1) + 1} / {questionsList.length}
                     </span>
@@ -211,7 +213,7 @@ export function Phase1Player({ room, playerId, isHost }: Phase1PlayerProps) {
                                             : 'bg-slate-700 border-slate-600'}
                                         ${hasAnswered ? 'scale-110 z-10' : ''}
                                     `}
-                                    title={`${p.name}${hasAnswered ? (wasCorrect ? ' ✓' : ' ✗') : ' (en attente...)'}`}
+                                    title={`${p.name}${hasAnswered ? (wasCorrect ? ' ✓' : ' ✗') : ` (${t('common:labels.waiting')})`}`}
                                 >
                                     <AvatarIcon className="w-4 h-4" />
                                     {hasAnswered && (
@@ -241,22 +243,32 @@ export function Phase1Player({ room, playerId, isHost }: Phase1PlayerProps) {
                     </div>
                 )}
 
-                <h3 className="text-xl font-bold text-white opacity-80 flex items-center justify-center gap-2">
-                    {isReading && <><Clock className="w-6 h-6 animate-pulse" /> Lecture... {countdown}s</>}
-                    {isAnswering && !isMyTeamBlocked && <><Play className="w-6 h-6" /> RÉPONDEZ !</>}
-                    {isAnswering && isMyTeamBlocked && <><XCircle className="w-6 h-6 text-red-400" /> <span className="text-red-400">Équipe bloquée - Attendez !</span></>}
-                    {isResult && "Manche terminée"}
-                    {phaseState === 'idle' && "Préparez-vous..."}
+                <h3 className="text-xl font-bold text-white opacity-80 flex items-center justify-center gap-2" aria-live="polite">
+                    {isReading && <><Clock className="w-6 h-6 animate-pulse" aria-hidden="true" /> {t('player.reading')} {countdown}s</>}
+                    {isAnswering && !isMyTeamBlocked && <><Play className="w-6 h-6" aria-hidden="true" /> {t('player.answerNow')}</>}
+                    {isAnswering && isMyTeamBlocked && <><XCircle className="w-6 h-6 text-red-400" aria-hidden="true" /> <span className="text-red-400">{t('player.teamBlocked')}</span></>}
+                    {isResult && t('results.roundOver')}
+                    {phaseState === 'idle' && t('player.getReady')}
                 </h3>
             </div>
 
             {/* Answer Grid */}
-            <div className={`grid grid-cols-1 gap-3 w-full max-h-[50vh] overflow-y-auto ${isHost ? 'mb-16' : ''}`}>
+            <div
+                role="radiogroup"
+                aria-label={t('options.answerOptions')}
+                className={`grid grid-cols-1 gap-3 w-full max-h-[50vh] overflow-y-auto ${isHost ? 'mb-16' : ''}`}
+            >
                 {[0, 1, 2, 3].map((idx) => {
                     const ShapeIcon = ICONS[idx];
+                    const isDisabled = !isAnswering || myAnswer !== null || isMyTeamBlocked;
+                    const optionLabel = currentQuestion ? currentQuestion.options[idx] : `Option ${['A', 'B', 'C', 'D'][idx]}`;
                     return (
                         <motion.button
                             key={idx}
+                            role="radio"
+                            aria-checked={myAnswer === idx}
+                            aria-disabled={isDisabled}
+                            aria-label={t('options.answerLetter', { letter: ['A', 'B', 'C', 'D'][idx], label: optionLabel })}
                             whileTap={{ scale: 0.98 }}
                             animate={
                                 isResult && myAnswer === idx && idx !== currentQuestion?.correctIndex
@@ -265,7 +277,7 @@ export function Phase1Player({ room, playerId, isHost }: Phase1PlayerProps) {
                             }
                             transition={{ duration: 0.4 }}
                             onClick={() => handleAnswer(idx)}
-                            disabled={!isAnswering || myAnswer !== null || isMyTeamBlocked}
+                            disabled={isDisabled}
                             className={`
                                 relative w-full p-4 rounded-xl flex items-center space-x-4 shadow-lg border-b-4 transition-all
                                 ${COLORS[idx]}
@@ -276,7 +288,7 @@ export function Phase1Player({ room, playerId, isHost }: Phase1PlayerProps) {
                             `}
                         >
                             <div className="flex-shrink-0 w-12 h-12 flex items-center justify-center bg-black/20 rounded-full text-2xl text-white">
-                                <ShapeIcon fill="currentColor" className="w-6 h-6" />
+                                <ShapeIcon fill="currentColor" className="w-6 h-6" aria-hidden="true" />
                             </div>
                             <div className="flex-1">
                                 {/* Option Text */}
@@ -300,28 +312,30 @@ export function Phase1Player({ room, playerId, isHost }: Phase1PlayerProps) {
                         initial={{ opacity: 0, y: 20 }}
                         animate={{ opacity: 1, y: 0 }}
                         exit={{ opacity: 0 }}
+                        role="alert"
+                        aria-live="assertive"
                         className={`absolute bottom-24 left-0 right-0 mx-auto w-max max-w-[90%] bg-slate-900/95 backdrop-blur px-6 py-4 rounded-xl border border-slate-700 shadow-2xl ${resultColor} z-20 text-center flex flex-col items-center gap-2`}
                     >
                         <div className="flex items-center gap-2">
-                            {resultIcon}
+                            <span aria-hidden="true">{resultIcon}</span>
                             <span className="text-xl md:text-2xl font-black">{resultMessage}</span>
                         </div>
                         {state.roundWinner && (
                             <div className="text-sm text-white mt-1 flex items-center gap-1">
-                                Gagnant : <Trophy className="w-4 h-4 text-yellow-400" /> <span className="text-yellow-400 font-bold">{state.roundWinner.name}</span>
+                                {t('results.winner')} <Trophy className="w-4 h-4 text-yellow-400" aria-hidden="true" /> <span className="text-yellow-400 font-bold">{state.roundWinner.name}</span>
                             </div>
                         )}
                         {/* Show correct answer when nobody found it */}
                         {!state.roundWinner && currentQuestion && (
                             <div className="text-sm text-white mt-2 bg-green-600/30 border border-green-500/50 px-4 py-2 rounded-lg">
-                                <span className="text-green-400 font-bold">Bonne réponse :</span>{' '}
+                                <span className="text-green-400 font-bold">{t('results.correctAnswer')}</span>{' '}
                                 <span className="text-white font-semibold">{currentQuestion.options[currentQuestion.correctIndex]}</span>
                             </div>
                         )}
                         {/* Anecdote display for AI-generated questions */}
                         {currentQuestion?.anecdote && (
                             <p className="text-sm text-slate-300 italic mt-3 max-w-md text-center border-t border-slate-700 pt-3">
-                                💡 {currentQuestion.anecdote}
+                                <span aria-hidden="true">💡</span> {currentQuestion.anecdote}
                             </p>
                         )}
                     </motion.div>
@@ -337,9 +351,10 @@ export function Phase1Player({ room, playerId, isHost }: Phase1PlayerProps) {
                 <div className="fixed bottom-0 left-0 right-0 p-4 bg-slate-950/80 backdrop-blur border-t border-slate-800 flex justify-center z-50">
                     <button
                         onClick={handleNextQuestion}
+                        aria-label={t('host.startReading')}
                         className="px-8 py-3 rounded-full text-lg font-bold text-white shadow-lg transition-all w-full max-w-sm flex items-center justify-center gap-2 bg-gradient-to-r from-spicy-500 to-sweet-500 hover:scale-105 active:scale-95"
                     >
-                        <Play className="w-5 h-5" /> Commencer
+                        <Play className="w-5 h-5" aria-hidden="true" /> {t('common:buttons.start')}
                     </button>
                 </div>
             )}

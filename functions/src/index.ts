@@ -1,7 +1,7 @@
 import { onCall, onRequest, HttpsError } from 'firebase-functions/v2/https';
 import { defineSecret } from 'firebase-functions/params';
 import { FieldValue, Timestamp } from 'firebase-admin/firestore';
-import { db } from './config/firebase';
+import { db, admin } from './config/firebase';
 import Stripe from 'stripe';
 
 // Define secrets (automatically loaded from .env.local in emulator, from Secret Manager in production)
@@ -277,20 +277,38 @@ export const generateGameQuestions = onCall(
     }
 
     // 2. Data Validation
-    const { phase, topic, difficulty } = data;
+    const { phase, topic, difficulty, roomCode } = data;
     if (!phase || !['phase1', 'phase2', 'phase3', 'phase4', 'phase5'].includes(phase)) {
       throw new HttpsError('invalid-argument', 'Invalid phase provided.');
     }
 
+    // 3. Idempotency Check: If room already has questions for this phase, return them
+    if (roomCode) {
+      const roomSnap = await admin.database()
+        .ref(`rooms/${roomCode.toUpperCase()}/customQuestions/${phase}`)
+        .once('value');
+
+      if (roomSnap.exists()) {
+        console.log(`⏭️ Room ${roomCode} already has ${phase} questions, skipping generation`);
+        return {
+          success: true,
+          data: roomSnap.val(),
+          skipped: true,
+          topic: topic || 'cached',
+          usage: { totalTokens: 0, estimatedCost: 0 }
+        };
+      }
+    }
+
     try {
-      // 3. Call Genkit Flow
+      // 4. Call Genkit Flow
       const result = await generateGameQuestionsFlow({
         phase,
         topic: topic || 'General Knowledge',
         difficulty: difficulty || 'normal',
       });
 
-      // 4. Shuffle options for MCQ questions (phase1) to randomize correct answer position
+      // 5. Shuffle options for MCQ questions (phase1) to randomize correct answer position
       let processedData = result.data;
       if (phase === 'phase1' && Array.isArray(result.data)) {
         processedData = result.data.map((q: { text: string; options: string[]; correctIndex: number; anecdote?: string }) => {
@@ -315,7 +333,7 @@ export const generateGameQuestions = onCall(
         });
       }
 
-      // 5. Save to Firestore for reuse (different structure per phase)
+      // 6. Save to Firestore for reuse (different structure per phase)
       // Include embeddings for semantic deduplication
       const embeddings = result.embeddings || [];
       try {
