@@ -6,7 +6,13 @@
     "shell": "npm run build && firebase functions:shell",
     "start": "npm run shell",
     "deploy": "firebase deploy --only functions",
-    "logs": "firebase functions:log"
+    "logs": "firebase functions:log",
+    "fetch-questions": "npx ts-node scripts/fetch-questions.ts",
+    "fetch-questions:stats": "npx ts-node scripts/fetch-questions.ts --stats",
+    "fetch-questions:prod": "npx ts-node scripts/fetch-questions.ts --production",
+    "delete-questions": "npx ts-node scripts/delete-questions.ts",
+    "delete-questions:prod": "npx ts-node scripts/delete-questions.ts --production",
+    "delete-questions:prod:force": "npx ts-node scripts/delete-questions.ts --production --force"
   },
   "engines": {
     "node": "22"
@@ -27,6 +33,7 @@
     "@types/html-to-text": "^9.0.4",
     "@types/needle": "^3.3.0",
     "@types/node": "^20.0.0",
+    "ts-node": "^10.9.2",
     "typescript": "^5.0.0"
   }
 }

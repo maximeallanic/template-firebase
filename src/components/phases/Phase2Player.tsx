@@ -343,19 +343,34 @@ export function Phase2Player({ room, playerId, isHost }: Phase2PlayerProps) {
                 {!hasAnswered && (
                     <div className="absolute top-24 md:top-20 left-0 right-0 text-center pointer-events-none z-30">
                         <p className="text-white/80 text-lg md:text-xl font-medium">
-                            <span className="text-red-400">
-                                {currentSet.optionA}
-                                {currentSet.optionADescription && (
-                                    <span className="text-red-300/70 text-sm"> ({currentSet.optionADescription})</span>
-                                )}
-                            </span>
-                            <span className="text-white/50">, </span>
-                            <span className="text-pink-400">
-                                {currentSet.optionB}
-                                {currentSet.optionBDescription && (
-                                    <span className="text-pink-300/70 text-sm"> ({currentSet.optionBDescription})</span>
-                                )}
-                            </span>
+                            {/* Only show descriptions when words are spelled identically (true homonyms) */}
+                            {(() => {
+                                const areIdentical = currentSet.optionA.toLowerCase() === currentSet.optionB.toLowerCase();
+                                // Lowercase first letter of optionB if it starts with an article or common word
+                                // Keep uppercase for proper nouns (single capitalized word without article)
+                                const lowercaseStarters = ['le ', 'la ', 'les ', 'un ', 'une ', 'l\'', 'du ', 'des ', 'au ', 'aux '];
+                                const startsWithArticle = lowercaseStarters.some(art => currentSet.optionB.toLowerCase().startsWith(art));
+                                const optionBDisplay = startsWithArticle
+                                    ? currentSet.optionB.charAt(0).toLowerCase() + currentSet.optionB.slice(1)
+                                    : currentSet.optionB;
+                                return (
+                                    <>
+                                        <span className="text-red-400">
+                                            {currentSet.optionA}
+                                            {areIdentical && currentSet.optionADescription && (
+                                                <span className="text-red-300/70 text-sm"> ({currentSet.optionADescription})</span>
+                                            )}
+                                        </span>
+                                        <span className="text-white/50">, </span>
+                                        <span className="text-pink-400">
+                                            {optionBDisplay}
+                                            {areIdentical && currentSet.optionBDescription && (
+                                                <span className="text-pink-300/70 text-sm"> ({currentSet.optionBDescription})</span>
+                                            )}
+                                        </span>
+                                    </>
+                                );
+                            })()}
                             <span className="text-white/50">, {t('phase2.optionOr')} </span>
                             <span className="text-purple-400">{t('phase2.optionBoth').toLowerCase()}</span>
                             <span className="text-white/50"> ?</span>

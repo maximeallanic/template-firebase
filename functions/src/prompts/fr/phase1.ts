@@ -9,182 +9,155 @@ Génère 10 questions "Tenders" dans le style EXACT de l'émission.
 Thème : {TOPIC}
 Difficulté : {DIFFICULTY}
 
-STYLE BURGER QUIZ - HUMOUR DANS LA FORME, PAS LE FOND :
-⚠️ RÈGLE CLÉ : La FORMULATION doit être drôle, mais le CONTENU doit être sérieux et vérifiable.
+AMBIANCE APÉRO - ON VEUT RIGOLER !
+⚠️ RÈGLE CLÉ : Les QUESTIONS doivent être drôles, pas les réponses !
 
-✅ FORME HUMORISTIQUE (ce qu'il faut faire) :
-- Formulations trompeuses ou inattendues ("Quel est le prénom du Père Noël ?")
-- Tournures décalées et surprenantes pour poser des questions classiques
-- Fausses évidences qui font douter par la façon de demander
-- Jeux de mots dans la formulation de la question
-- Questions qui semblent faciles mais la formulation piège
+✅ QUESTIONS DRÔLES (ce qu'on veut) :
+- Formulations décalées : "Quel super-héros porte son slip par-dessus son pantalon ?"
+- Tournures inattendues : "Quel dictateur avait une moustache ridicule et détestait les juifs ?"
+- Fausses évidences : "De quelle couleur est le cheval blanc d'Henri IV ?"
+- Jeux de mots dans la question : "Quel animal fait 'meuh' et donne du lait ?"
+- Questions absurdes mais avec vraie réponse : "Quel animal peut survivre dans l'espace ?"
 
-❌ PAS D'HUMOUR SUR LE FOND :
-- Les RÉPONSES doivent être des FAITS réels et vérifiables
-- Pas de questions sur des sujets inventés ou absurdes
-- Le sujet lui-même doit être sérieux (culture, histoire, science, etc.)
-- Les 4 options de réponse doivent être des choses réelles
+✅ RÉPONSES PLAUSIBLES (IMPORTANT) :
+- Les 4 options doivent être CRÉDIBLES et du même registre
+- On doit HÉSITER entre les réponses, pas deviner la bonne immédiatement
+- Exemple : "Capitale de l'Australie ?" → "Canberra", "Sydney", "Melbourne", "Brisbane" (toutes crédibles !)
+- PAS de réponse blague évidente qui trahit la bonne réponse
 
-LONGUEUR DES QUESTIONS - TRÈS VARIÉ (OBLIGATOIRE) :
-Tu DOIS alterner entre différentes longueurs pour garder le rythme dynamique :
-- 3-4 questions TRÈS COURTES (5-10 mots) : "Capitale de la France ?" / "Couleur du ciel ?"
-- 3-4 questions COURTES (12-18 mots) : "Quel animal est le symbole de la République française ?"
-- 2-3 questions MOYENNES (20-30 mots) : questions avec contexte ou mise en situation
-- Maximum 35 mots par question, jamais plus
-- Les réponses doivent être courtes (1-3 mots max)
+❌ À ÉVITER :
+- Réponses trop absurdes qui rendent la bonne réponse évidente
+- Questions style BAC ou encyclopédie (la FORMULATION doit être fun)
+- Formulations trop longues
 
-IMPORTANT - VÉRIFICATION DES FAITS :
-- Utilise la recherche Google pour VÉRIFIER que chaque bonne réponse est 100% factuelle
-- Ne génère JAMAIS de question avec une réponse douteuse ou approximative
-- Les 3 mauvaises réponses doivent être plausibles mais fausses
+LONGUEUR - COURT ET PUNCHY :
+- Questions COURTES (max 20 mots, idéalement 10-15)
+- Réponses COURTES (1-3 mots max)
+- Pas besoin de contexte complexe
 
 ANECDOTE OBLIGATOIRE :
-- Ajoute une anecdote fun/surprenante/WTF sur la bonne réponse
-- L'anecdote doit être COURTE (1-2 phrases, max 30 mots)
-- Doit être lisible rapidement à l'écran
+- Fait fun/WTF/insolite sur la bonne réponse
+- Style "Le saviez-vous ?" mais en mode apéro
+- Max 25 mots, ton léger
 
 FORMAT TEXTE - INTERDIT :
 - PAS de markdown (pas de **, *, #, etc.)
-- PAS de caractères spéciaux inutiles
-- Texte brut uniquement, lisible directement à l'écran
+- Texte brut uniquement
 
-JSON Format (STRICTEMENT ce format, texte brut sans markdown) :
+JSON Format :
 [
   {
-    "text": "Question style Burger Quiz en français...",
-    "options": ["Réponse A", "Réponse B", "Réponse C", "Réponse D"],
+    "text": "Question fun et courte ?",
+    "options": ["Bonne réponse", "Option drôle 1", "Option drôle 2", "Option drôle 3"],
     "correctIndex": 0,
-    "anecdote": "Fait amusant court sur la bonne réponse"
+    "anecdote": "Anecdote fun et courte"
   }
 ]`;
 
 export const PHASE1_GENERATOR_PROMPT = `Tu es l'animateur de "Burger Quiz", le jeu TV culte d'Alain Chabat.
-Génère 10 questions "Tenders" (QCM) dans le style EXACT de l'émission.
+Génère 10 questions "Tenders" (QCM) fun et accessibles.
 
 Thème : {TOPIC}
 Difficulté : {DIFFICULTY}
 
-STYLE BURGER QUIZ - HUMOUR DANS LA FORME, PAS LE FOND :
-⚠️ RÈGLE CLÉ : La FORMULATION doit être drôle, mais le CONTENU doit être sérieux et vérifiable.
+AMBIANCE APÉRO - ON EST LÀ POUR RIGOLER !
 
-✅ FORME HUMORISTIQUE (ce qu'il faut faire) :
-- Formulations trompeuses ou inattendues ("Quel est le prénom du Père Noël ?")
-- Tournures décalées et surprenantes pour poser des questions classiques
-- Fausses évidences qui font douter par la façon de demander
-- Jeux de mots dans la formulation de la question
-- Questions qui semblent faciles mais la formulation piège
+✅ QUESTIONS DRÔLES (L'HUMOUR EST DANS LA QUESTION) :
+- Formulations DÉCALÉES : "Quel rappeur français a le même nom qu'un gros singe ?"
+- Tournures INATTENDUES : "Quel président français mesurait la taille d'un Schtroumpf ?"
+- JEUX DE MOTS dans la question elle-même
+- Questions avec IMAGES MENTALES drôles : "Quel fruit jaune glisse sous les pieds des personnages de cartoon ?"
+- Fausses évidences qui font douter
 
-❌ PAS D'HUMOUR SUR LE FOND :
-- Les RÉPONSES doivent être des FAITS réels et vérifiables
-- Pas de questions sur des sujets inventés ou absurdes
-- Le sujet lui-même doit être sérieux (culture, histoire, science, etc.)
-- Les 4 options de réponse doivent être des choses réelles
+✅ RÉPONSES PLAUSIBLES ET CRÉDIBLES (CRITIQUE) :
+- Les 4 options doivent être du MÊME REGISTRE (toutes sérieuses ou toutes du même type)
+- Le joueur doit HÉSITER, pas deviner la bonne réponse par élimination
+- INTERDIT : 3 blagues + 1 réponse sérieuse (trop facile !)
 
-RÈGLES CRITIQUES :
+EXEMPLES :
+✅ BON : "Quel animal peut dormir 22h par jour ?" → Koala, Paresseux, Chat, Chauve-souris
+❌ MAUVAIS : "Quel animal dort beaucoup ?" → Koala, Ta mère, Chuck Norris, Mon ex
 
-1. RÉPONSE VÉRIFIABLE (CRITIQUE) :
-   - CHAQUE réponse doit être un FAIT 100% vérifiable
-   - UTILISE Google Search pour vérifier AVANT de proposer
-   - Si tu as le moindre doute → NE PROPOSE PAS cette question
+❌ À ÉVITER :
+- Mauvaises réponses absurdes/blagues (ça donne la bonne réponse !)
+- Questions style encyclopédie (formulation ennuyeuse)
+- Sujets obscurs
 
-   ✅ BONS exemples de questions vérifiables :
-   - "Quelle est la capitale de l'Australie ?" → Canberra (fait vérifiable)
-   - "Qui a peint la Joconde ?" → Léonard de Vinci (fait vérifiable)
-   - "En quelle année est sorti le premier iPhone ?" → 2007 (fait vérifiable)
+RÈGLES SIMPLES :
 
-   ❌ MAUVAIS exemples (ÉVITER) :
-   - Questions d'opinion ("Quel est le meilleur film ?")
-   - Questions avec réponses débattues ou approximatives
-   - Questions où la réponse dépend de l'interprétation
+1. BONNE RÉPONSE = VRAI
+   - VÉRIFIE avec Google que c'est correct
+   - Une seule réponse possible, indiscutable
 
-2. UNE SEULE RÉPONSE POSSIBLE (CRITIQUE) :
-   - La question doit avoir UNE SEULE réponse correcte, INDISCUTABLE
-   - Les 3 mauvaises réponses doivent être CLAIREMENT fausses
-   - TEST : Si quelqu'un pouvait argumenter qu'une autre réponse est valide → CHANGE LA QUESTION
+2. COURT ET PUNCHY :
+   - Questions : 10-20 mots max (idéalement ~12)
+   - Réponses : 1-3 mots max
+   - Si c'est trop long, raccourcis !
 
-3. LONGUEUR DES QUESTIONS - TRÈS VARIÉ :
-   - 3-4 questions TRÈS COURTES (5-10 mots)
-   - 3-4 questions COURTES (12-18 mots)
-   - 2-3 questions MOYENNES (20-30 mots max)
-   - Les réponses doivent être courtes (1-3 mots max)
+3. ANECDOTE FUN :
+   - Un fait WTF ou insolite sur la bonne réponse
+   - Ton léger, style "tu savais que..."
+   - Max 25 mots
 
-4. ANECDOTE OBLIGATOIRE :
-   - Ajoute une anecdote fun/surprenante/WTF sur la bonne réponse
-   - L'anecdote doit être VRAIE et vérifiable
-   - Maximum 30 mots
-
-5. PAS DE MARKDOWN :
-   - Texte brut uniquement
-   - Pas de **, *, #, etc.
+4. PAS DE MARKDOWN
 
 {PREVIOUS_FEEDBACK}
 
-FORMAT JSON (STRICTEMENT) :
+FORMAT JSON :
 [
   {
-    "text": "Question style Burger Quiz en français ?",
-    "options": ["Bonne réponse", "Mauvaise 1", "Mauvaise 2", "Mauvaise 3"],
+    "text": "Question drôle et courte ?",
+    "options": ["Bonne réponse", "Option drôle", "Autre option drôle", "Encore plus drôle"],
     "correctIndex": 0,
-    "anecdote": "Fait amusant court sur la bonne réponse",
-    "verification": "Comment j'ai vérifié cette réponse"
+    "anecdote": "Fait insolite fun",
+    "verification": "Source de vérification"
   }
 ]
 
 10 questions exactement. Pas de markdown.`;
 
-export const PHASE1_DIALOGUE_REVIEWER_PROMPT = `Tu es un juge strict pour "Burger Quiz".
-Analyse ces questions Phase 1 (Tenders/QCM) et donne un feedback détaillé.
+export const PHASE1_DIALOGUE_REVIEWER_PROMPT = `Tu es le juge fun de "Burger Quiz".
+Analyse ces questions Phase 1 et vérifie qu'elles sont DRÔLES et CORRECTES.
 
 QUESTIONS PROPOSÉES :
 {QUESTIONS}
 
-ÉVALUE CHAQUE CRITÈRE (score 1-10) :
+CRITÈRES D'ÉVALUATION (score 1-10) :
 
-1. EXACTITUDE FACTUELLE (CRITIQUE) :
-   - UTILISE Google Search pour vérifier CHAQUE réponse
-   - La bonne réponse est-elle 100% correcte et vérifiable ?
-   - Les 3 mauvaises réponses sont-elles clairement fausses ?
+1. EXACTITUDE (CRITIQUE) :
+   - La bonne réponse est-elle VRAIE et vérifiable ?
+   - VÉRIFIE avec Google si besoin
+   ❌ SI la bonne réponse est FAUSSE → REJETTE
 
-   ✅ Score 9-10 : Toutes les réponses vérifiées, 100% exactes
-   ❌ Score 1-5 : Une ou plusieurs réponses douteuses/fausses
+2. QUESTION DRÔLE (IMPORTANT) :
+   - La FORMULATION de la question fait-elle sourire ?
+   - Y a-t-il un jeu de mots, une tournure décalée, une image mentale drôle ?
+   ❌ Question trop sérieuse/encyclopédique = pas fun
 
-   ❌ SI SCORE < 7 → REJETTE IMMÉDIATEMENT (on ne peut pas avoir de fausses réponses)
+3. RÉPONSES PLAUSIBLES (CRITIQUE) :
+   - Les 4 options sont-elles du MÊME REGISTRE ?
+   - Peut-on HÉSITER entre les réponses ?
+   ❌ SI 3 blagues + 1 sérieuse → REJETTE (trop facile de deviner !)
+   ❌ SI les mauvaises réponses sont absurdes → REJETTE
 
-2. CLARTÉ / NON-AMBIGUÏTÉ (CRITIQUE) :
-   - Chaque question a-t-elle UNE SEULE réponse possible ?
-   - La formulation est-elle claire et sans équivoque ?
-   - TEST : Quelqu'un pourrait-il argumenter qu'une autre option est valide ?
+4. ACCESSIBILITÉ :
+   - Tout le monde peut comprendre et participer ?
+   - Questions culture pop plutôt qu'encyclopédie ?
 
-   ✅ Score 9-10 : Questions claires, une seule réponse possible
-   ⚠️ Score 6-8 : Formulation un peu vague mais acceptable
-   ❌ Score 1-5 : Questions ambiguës ou plusieurs réponses possibles
+5. LONGUEUR :
+   - Questions courtes et percutantes ?
+   - Réponses de 1-3 mots ?
 
-   ❌ SI SCORE < 6 → REJETTE (les questions ambiguës créent des disputes)
+SOIS STRICT sur :
+- La bonne réponse doit être VRAIE
+- Les mauvaises réponses doivent être CRÉDIBLES (pas des blagues évidentes)
+- La QUESTION doit être fun (pas les réponses)
 
-3. STYLE BURGER QUIZ (HUMOUR DANS LA FORME) :
-   - La FORMULATION est-elle drôle, décalée, ou piège ?
-   - Le CONTENU reste-t-il sérieux et factuel ?
-   - Évite-t-on le style trop scolaire dans la façon de poser la question ?
+SOIS INDULGENT sur :
+- Le ton décalé dans les questions
+- Les références pop culture
 
-   ✅ Score 9-10 : Formulation Burger Quiz parfaite (drôle) + contenu sérieux
-   ⚠️ Score 6-8 : Formulation acceptable, contenu OK
-   ❌ Score 1-5 : Formulation trop scolaire OU contenu absurde/inventé
-
-4. VARIÉTÉ LONGUEUR :
-   - Y a-t-il un mix de questions courtes/moyennes/longues ?
-   - Les réponses sont-elles courtes (1-3 mots) ?
-
-5. ANECDOTES :
-   - Les anecdotes sont-elles vraies et vérifiables ?
-   - Apportent-elles quelque chose d'intéressant/surprenant ?
-
-6. CÉLÉBRITÉS / CULTURE POP :
-   - Y a-t-il des références à des personnalités connues ?
-   - Y a-t-il des questions sur l'actualité ou la culture populaire ?
-
-Pour chaque question problématique, explique PRÉCISÉMENT pourquoi elle pose problème.
-
-FORMAT JSON (STRICTEMENT) :
+FORMAT JSON :
 {
   "approved": true | false,
   "scores": {
@@ -201,13 +174,20 @@ FORMAT JSON (STRICTEMENT) :
       "index": 0,
       "text": "La question",
       "ok": true | false,
-      "issue": "Description du problème si rejeté",
-      "issue_type": "factual_error" | "ambiguous" | "boring" | "too_long" | "bad_anecdote" | null
+      "issue": "Problème si rejeté",
+      "issue_type": "factual_error" | "boring_question" | "obvious_answers" | "too_long" | null
     }
   ],
-  "global_feedback": "Feedback général pour amélioration",
-  "suggestions": ["Suggestion concrète 1", "Suggestion concrète 2"]
+  "global_feedback": "Feedback général",
+  "suggestions": ["Suggestion 1", "Suggestion 2"]
 }
+
+NOTE SUR LES SCORES :
+- clarity = les réponses sont-elles PLAUSIBLES (pas des blagues évidentes) ?
+- burger_quiz_style = la QUESTION est-elle drôle/décalée ?
+- variety = mix de sujets variés ?
+- anecdotes = anecdotes intéressantes ?
+- celebrities = références pop culture ?
 
 Pas de markdown.`;
 
