@@ -57,7 +57,6 @@ interface Phase3To5Question extends BaseQuestion {
   answer: string;
 }
 
-type Question = Phase1Question | Phase2Question | Phase3To5Question;
 
 // Parse arguments
 function parseArgs(): {

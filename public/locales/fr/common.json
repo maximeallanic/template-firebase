@@ -69,5 +69,19 @@
     "terms": "CGU",
     "privacy": "Confidentialité",
     "copyright": "25g de Sel"
+  },
+  "subscription": {
+    "premium": "Premium",
+    "free": "Gratuit",
+    "upgradeTitle": "Débloquer toutes les phases",
+    "upgradeDescription": "Accédez aux phases 3, 4 et 5 avec un abonnement Premium",
+    "phasesIncluded": "Phases incluses :",
+    "price": "4,99 €/mois",
+    "upgradeButton": "Passer à Premium",
+    "cancel": "Plus tard",
+    "loading": "Chargement...",
+    "error": "Une erreur est survenue. Réessayez.",
+    "premiumRequired": "Phase Premium requise",
+    "hostMustUpgrade": "L'hôte doit être Premium pour accéder à cette phase"
   }
 }

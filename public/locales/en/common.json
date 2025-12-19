@@ -49,5 +49,24 @@
     "inactive": "Inactive",
     "expired": "Expired",
     "canceled": "Canceled"
+  },
+  "teams": {
+    "spicy": "Spicy",
+    "sweet": "Sweet",
+    "neutral": "Neutral"
+  },
+  "subscription": {
+    "premium": "Premium",
+    "free": "Free",
+    "upgradeTitle": "Unlock All Phases",
+    "upgradeDescription": "Get access to phases 3, 4 and 5 with a Premium subscription",
+    "phasesIncluded": "Phases included:",
+    "price": "€4.99/month",
+    "upgradeButton": "Upgrade to Premium",
+    "cancel": "Maybe Later",
+    "loading": "Loading...",
+    "error": "An error occurred. Please try again.",
+    "premiumRequired": "Premium Phase Required",
+    "hostMustUpgrade": "The host needs Premium to access this phase"
   }
 }

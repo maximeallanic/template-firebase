@@ -383,3 +383,6 @@ export const phaseColors = {
         purple: 0.15,
     },
 } as const;
+
+// Note: Phase-specific transitions are in ./phaseTransitions.ts
+// Import directly from there to avoid circular dependency

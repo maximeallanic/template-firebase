@@ -46,5 +46,18 @@
   "loading": {
     "joining": "Connexion à la partie...",
     "creating": "Ouverture de la cuisine..."
+  },
+  "premium": {
+    "badge": "PREMIUM",
+    "title": "Débloquez toutes les phases",
+    "description": "Passez à Premium pour accéder aux phases 3, 4 et 5 avec votre équipe !",
+    "features": {
+      "laCarte": "La Carte",
+      "laNote": "La Note",
+      "burgerUltime": "Burger Ultime"
+    },
+    "price": "4,99 €/mois",
+    "cta": "Devenir Premium",
+    "hostOnly": "Seul l'hôte a besoin de l'abonnement"
   }
 }

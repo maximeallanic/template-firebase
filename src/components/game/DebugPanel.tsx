@@ -13,6 +13,8 @@ import {
     resetAllScores
 } from '../../services/debugService';
 import { PHASE_NAMES, type Room, type PhaseStatus } from '../../services/gameService';
+import { useMockPlayerOptional } from '../../contexts/MockPlayerContext';
+import { formatAnswerForDisplay } from '../../services/mockAnswerService';
 
 interface DebugPanelProps {
     room: Room;
@@ -30,11 +32,17 @@ export function DebugPanel({ room }: DebugPanelProps) {
     const [isCollapsed, setIsCollapsed] = useState(false);
     const [isLoading, setIsLoading] = useState(false);
 
+    // Mock player context (may be null if not wrapped in provider)
+    const mockPlayer = useMockPlayerOptional();
+
     // Only render in dev mode
     if (!import.meta.env.DEV) return null;
 
     const mockCounts = countMockPlayers(room);
     const currentPhase = room.state.status;
+
+    // Check if we're in a phase that supports mock answers
+    const supportsMockAnswers = ['phase1', 'phase2', 'phase4'].includes(currentPhase);
 
     const handleAddBot = async (team: 'spicy' | 'sweet') => {
         setIsLoading(true);
@@ -146,6 +154,64 @@ export function DebugPanel({ room }: DebugPanelProps) {
                                     )}
                                 </div>
                             </div>
+
+                            {/* Mock Answers Section - Only show when context is available and in supported phase */}
+                            {mockPlayer && supportsMockAnswers && mockCounts.total > 0 && (
+                                <div className="p-3 border-b border-gray-700">
+                                    <div className="text-gray-400 mb-2 flex items-center justify-between">
+                                        <span>Réponses Mock</span>
+                                        <label className="flex items-center gap-1.5 cursor-pointer">
+                                            <input
+                                                type="checkbox"
+                                                checked={mockPlayer.isAutoAnswerEnabled}
+                                                onChange={(e) => mockPlayer.setAutoAnswerEnabled(e.target.checked)}
+                                                className="w-3 h-3 rounded border-gray-600 bg-gray-700 text-green-500 focus:ring-0 focus:ring-offset-0"
+                                            />
+                                            <span className="text-gray-500 text-[10px]">Auto</span>
+                                        </label>
+                                    </div>
+
+                                    {/* Pending answers list */}
+                                    {mockPlayer.pendingAnswers.length > 0 ? (
+                                        <>
+                                            <div className="mb-2 max-h-24 overflow-y-auto space-y-1">
+                                                {mockPlayer.pendingAnswers.map((answer, idx) => (
+                                                    <div
+                                                        key={`${answer.mockPlayerId}-${idx}`}
+                                                        className="flex items-center justify-between text-[10px] py-0.5"
+                                                    >
+                                                        <span className={answer.playerTeam === 'spicy' ? 'text-red-400' : 'text-pink-400'}>
+                                                            {answer.playerName}
+                                                        </span>
+                                                        <span className="text-gray-500">
+                                                            {formatAnswerForDisplay(answer.phase, answer.answer)}
+                                                        </span>
+                                                    </div>
+                                                ))}
+                                            </div>
+
+                                            <button
+                                                onClick={() => mockPlayer.validateAllAnswers()}
+                                                disabled={mockPlayer.isValidating}
+                                                className="w-full px-2 py-1.5 bg-green-600/80 hover:bg-green-600 disabled:opacity-50 rounded text-white transition-colors flex items-center justify-center gap-2"
+                                            >
+                                                {mockPlayer.isValidating ? (
+                                                    <>
+                                                        <div className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                                                        <span>Envoi...</span>
+                                                    </>
+                                                ) : (
+                                                    <span>Valider tout ({mockPlayer.pendingAnswers.length})</span>
+                                                )}
+                                            </button>
+                                        </>
+                                    ) : (
+                                        <div className="text-gray-600 text-center py-2">
+                                            Aucune réponse en attente
+                                        </div>
+                                    )}
+                                </div>
+                            )}
 
                             {/* Phase Skip Section */}
                             <div className="p-3 border-b border-gray-700">

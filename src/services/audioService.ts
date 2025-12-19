@@ -4,7 +4,7 @@
 
 class AudioService {
     private ctx: AudioContext | null = null;
-    private enabled: boolean = true;
+    private enabled: boolean = false; // TEMP: Sons désactivés temporairement
     private ambientOscillators: OscillatorNode[] = [];
     private ambientGain: GainNode | null = null;
     private currentAmbience: 'lobby' | 'tension' | 'none' = 'none';
@@ -66,10 +66,8 @@ class AudioService {
     // --- AMBIENT LOOPS ---
 
     public playAmbient(type: 'lobby' | 'tension') {
-        if (!this.ctx || !this.enabled || this.currentAmbience === type) {
-            if (this.currentAmbience === type) return; // Already playing
-            // logic to start if ctx ready
-        }
+        if (!this.enabled) return; // Sons désactivés
+        if (this.currentAmbience === type) return; // Already playing
         this.init();
         this.stopAmbient(); // Clear previous
         this.currentAmbience = type;

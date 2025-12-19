@@ -71,6 +71,26 @@ RÈGLES ITEMS :
 - "Both" = l'item fonctionne pour les DEUX sens (rare, max 2)
 - Répartition STRICTE : exactement 5 A, exactement 5 B, exactement 2 Both
 
+⚠️ RÈGLES "BOTH" STRICTES ⚠️
+Un item "Both" doit avoir un lien ÉVIDENT et VÉRIFIABLE avec les DEUX catégories.
+
+TEST DE VALIDATION "BOTH" :
+1. Écris la justification pour A (max 10 mots)
+2. Écris la justification pour B (max 10 mots)
+3. Si une des deux justifications est tirée par les cheveux → ce n'est PAS "Both"
+
+✅ BON "BOTH" :
+- "L'huile" pour "Graisse vs Grèce"
+  - A (Graisse) : "L'huile est un corps gras" ✅ évident
+  - B (Grèce) : "L'huile d'olive grecque est célèbre" ✅ évident
+
+❌ MAUVAIS "BOTH" :
+- "Le régime" pour "Graisse vs Grèce"
+  - A (Graisse) : "Régime alimentaire pour perdre du gras" ✅ ok
+  - B (Grèce) : "Régime politique des colonels grecs" ❌ trop tiré par les cheveux
+
+RÈGLE : Si tu dois réfléchir plus de 5 secondes pour justifier le lien → ce n'est PAS "Both"
+
 JUSTIFICATION OBLIGATOIRE :
 Pour chaque item, ajoute une "justification" courte (max 15 mots) expliquant POURQUOI cet item appartient à sa catégorie.
 - Pour A : explique le lien avec le sens littéral de optionA
@@ -122,6 +142,22 @@ Les deux phrases doivent SE PRONONCER EXACTEMENT PAREIL à l'oral !
 - Des syllabes similaires ne suffisent pas - les SONS doivent être IDENTIQUES
 - Écris la transcription phonétique (IPA) pour vérifier AVANT de proposer
 
+⚠️ HOMOPHONES FRANCO-FRANÇAIS UNIQUEMENT ⚠️
+L'homophone doit fonctionner ENTIÈREMENT en français.
+
+❌ INTERDIT - Jeux de mots franco-anglais :
+- "Grease" (film) pour "graisse" → INTERDIT car /griːs/ ≠ /gʁɛs/
+- "Beach" pour "bitch" → INTERDIT (anglais)
+- Toute référence nécessitant de connaître l'anglais
+
+✅ AUTORISÉ - Homophones 100% français :
+- "Ver/Verre/Vers/Vert" → tous /vɛʁ/
+- "Mer/Mère/Maire" → tous /mɛʁ/
+- "Graisse/Grèce" → /gʁɛs/ = /gʁɛs/ ✅
+
+TEST : Un francophone qui ne parle pas anglais comprend-il le jeu de mots ?
+- Si NON → CHANGE L'HOMOPHONE ou l'item
+
 RÈGLES SUPPLÉMENTAIRES :
 - Catégorie A = sens sérieux/littéral (toujours concret)
 - Catégorie B = calembour/sens absurde ou humoristique
@@ -159,6 +195,31 @@ Au moins 5-6 items sur 12 doivent être des PIÈGES où la réponse est CONTRE-I
 
 Un bon piège = l'item SEMBLE appartenir à une catégorie mais appartient en fait à L'AUTRE (ou Both).
 
+📋 CHECKLIST OBLIGATOIRE - À FAIRE POUR CHAQUE ITEM 📋
+Avant d'inclure un item, réponds à ces 4 questions :
+
+□ TEST 2 SECONDES : "Est-ce qu'un joueur lambda répond en moins de 2 secondes ?"
+  → Si OUI : REJETER IMMÉDIATEMENT cet item
+
+□ TEST MOT-CLÉ : "L'item contient-il un mot de la même famille que A ou B ?"
+  → Si OUI : REJETER (ex: "Strasbourg" pour "Rhin", "haricot" pour "Rein")
+
+□ TEST COURS DE SVT : "Est-ce qu'on apprendrait ça en cours de géo/bio/histoire ?"
+  → Si OUI : REJETER (descriptions physiques, faits géographiques de base)
+
+□ TEST PIÈGE : "Est-ce que l'item SEMBLE appartenir à l'autre catégorie ?"
+  → Si NON : Essayer de trouver un meilleur item (on veut des pièges !)
+
+⚠️ SI UN ITEM ÉCHOUE À UN SEUL DE CES TESTS → NE PAS L'INCLURE ⚠️
+
+🎯 DISTRIBUTION OBLIGATOIRE DES 12 ITEMS 🎯
+- 2-3 items "faciles" (réponse logique, pour ne pas frustrer)
+- 5-6 items "PIÈGES" (réponse contre-intuitive, cœur du jeu !)
+- 2-3 items "subtils" (nécessite réflexion, pas évident)
+- 2 items "Both" (fonctionnent pour les deux sens)
+
+⚠️ SI MOINS DE 5 PIÈGES SUR 12 → RÉGÉNÉRER LE SET ⚠️
+
 ✅ EXEMPLES DE BONS PIÈGES (réponse SURPRENANTE) :
 - "Mer" vs "Mère" :
   • "Jacques Cousteau" → On pense MÈRE (papa de 2 enfants)... MAIS c'est MER (explorateur des océans) = PIÈGE!
@@ -173,6 +234,135 @@ Un bon piège = l'item SEMBLE appartenir à une catégorie mais appartient en fa
 "Est-ce que le joueur va HÉSITER avant de répondre ?"
 - Si NON (réponse évidente) → REMPLACE PAR UN PIÈGE
 - Si OUI (il y a doute) → BON ITEM
+
+⚠️ RÈGLE ANTI-ÉVIDENCE (CRITIQUE) ⚠️
+Un item est INTERDIT s'il remplit UN de ces critères :
+
+1. MOTS-CLÉS DIRECTS :
+   - L'item contient un mot directement lié à une seule catégorie
+   - ❌ "Athènes" → interdit car synonyme de "Grèce"
+   - ❌ "Liposuccion" → interdit car 100% lié à "graisse"
+   - ❌ "Sirtaki" → interdit car danse grecque ultra-connue
+
+2. TEST DES 2 SECONDES :
+   - Si un joueur moyen répond en moins de 2 secondes → REJETER
+   - Demande-toi : "Est-ce que ma mère hésiterait ?"
+   - Si NON → REMPLACER par un piège
+
+3. ASSOCIATIONS IMMÉDIATES :
+   - ❌ Capitales, symboles nationaux, plats typiques évidents
+   - ❌ Définitions littérales ("océan" pour "mer")
+   - ❌ Mots de la même famille ("maternel" pour "mère")
+
+4. DESCRIPTIONS PHYSIQUES/GÉOGRAPHIQUES LITTÉRALES :
+   - ❌ "A une forme de haricot" pour "rein" → trop scolaire, tout le monde le sait
+   - ❌ "Traverse Strasbourg" pour "Rhin" → trop évident géographiquement
+   - ❌ "Sépare la France de l'Allemagne" pour "Rhin" → même problème
+   - ✅ Préférer des PIÈGES ou des références CULTURELLES moins évidentes
+
+5. RÈGLE DU JOUEUR LAMBDA :
+   - Imagine un joueur qui n'a pas révisé, légèrement alcoolisé, en soirée
+   - Si ce joueur répond correctement à 80%+ → l'item est TROP ÉVIDENT
+   - On veut des items où même les gens cultivés hésitent 2-3 secondes
+
+EXEMPLES INTERDITS vs AUTORISÉS :
+
+❌ ITEMS SCOLAIRES/ÉVIDENTS (INTERDIT) :
+- "Mer vs Mère" → "L'océan Pacifique" (évident = MER, définition)
+- "Graisse vs Grèce" → "Le Parthénon" (évident = GRÈCE, monument)
+- "Rhin vs Rein" → "Traverse Strasbourg" (évident = RHIN, géographie basique)
+- "Rhin vs Rein" → "A une forme de haricot" (évident = REIN, cours de SVT)
+- "Rhin vs Rein" → "Sépare la France de l'Allemagne" (évident = RHIN, géographie)
+
+✅ ITEMS PIÈGES/CULTURELS (CE QU'ON VEUT) :
+- "Mer vs Mère" → "Jacques Cousteau" (piège : père de famille MAIS explorateur des mers)
+- "Graisse vs Grèce" → "Le canard" (piège : la graisse de canard, pas évident)
+- "Rhin vs Rein" → "Les calculs" (piège : on pense maths MAIS calculs rénaux)
+- "Rhin vs Rein" → "Victor Hugo" (piège : a écrit "Le Rhin", peu connu)
+- "Rhin vs Rein" → "Le coup" (expression : coup de rein)
+- "Rhin vs Rein" → "Le don" (don d'organe, subtil)
+
+🔴 EXEMPLE DÉTAILLÉ : "RHIN vs REIN" 🔴
+
+❌ ITEMS INTERDITS (réponse en <2 sec) :
+─────────────────────────────────────────────────────────────────────────
+| Item                              | Pourquoi INTERDIT                    |
+|-----------------------------------|--------------------------------------|
+| "Traverse Strasbourg"             | Géographie de CM2                    |
+| "A une forme de haricot"          | Cours de SVT, tout le monde sait     |
+| "Sépare la France de l'Allemagne" | Géographie basique                   |
+| "Prend sa source en Suisse"       | Géographie basique                   |
+| "Se jette dans la mer du Nord"    | Géographie basique                   |
+| "Organe filtrant le sang"         | Définition de dictionnaire           |
+| "La dialyse"                      | Mot-clé direct = REIN                |
+| "Affluent du Rhin"                | Contient "Rhin" = SPOILER            |
+─────────────────────────────────────────────────────────────────────────
+
+✅ ITEMS ACCEPTÉS (avec justification) :
+─────────────────────────────────────────────────────────────────────────
+| Item            | Réponse | Pourquoi c'est BON                       |
+|-----------------|---------|------------------------------------------|
+| "Les calculs"   | B       | PIÈGE! On pense maths, mais rénaux       |
+| "Victor Hugo"   | A       | PIÈGE! A écrit "Le Rhin", peu connu      |
+| "Le coup"       | B       | Expression "coup de rein" (sexuel/sport) |
+| "Le don"        | B       | Don d'organe, subtil                     |
+| "La Lorelei"    | A       | Rocher légendaire, culture allemande     |
+| "Le bassin"     | Both    | Bassin versant ET bassin rénal           |
+| "La chute"      | Both    | Chutes du Rhin ET insuffisance rénale    |
+| "La greffe"     | B       | Greffe de rein                           |
+| "Chabrol"       | A       | PIÈGE! Film tourné sur le Rhin           |
+| "Le tour"       | A       | Tour du Rhin (croisière), peu évident    |
+| "L'épuration"   | Both    | Station d'épuration ET fonction rénale   |
+| "Le greffier"   | B       | PIÈGE! Son greffier, comme le chat       |
+─────────────────────────────────────────────────────────────────────────
+
+ANALYSE :
+- 6 pièges sur 12 (50%) → BON RATIO ✅
+- 0 item de géographie basique → PARFAIT ✅
+- 3 items "Both" bien justifiés → OK ✅
+
+🔴 EXEMPLE DÉTAILLÉ : "BIÈRE vs BIÈRE" (boisson vs cercueil) 🔴
+
+⚠️ CAS SPÉCIAL : HOMONYMES IDENTIQUES
+Quand les deux mots sont IDENTIQUES, tu DOIS fournir optionADescription et optionBDescription !
+Exemple : optionA: "Bière", optionADescription: "la boisson", optionB: "Bière", optionBDescription: "le cercueil"
+
+❌ ITEMS INTERDITS (réponse en <2 sec) :
+─────────────────────────────────────────────────────────────────────────
+| Item                    | Pourquoi INTERDIT                          |
+|-------------------------|---------------------------------------------|
+| "Le houblon"            | Ingrédient de bière = MOT-CLÉ DIRECT        |
+| "Est souvent blonde"    | Définition littérale de la bière            |
+| "L'Abbaye"              | Type de bière trop connu                    |
+| "La pression"           | Bière pression = évident                    |
+| "Le cercueil"           | Synonyme de bière (cercueil) = SPOILER      |
+| "Les funérailles"       | Mot-clé direct = cercueil                   |
+| "Le malt"               | Ingrédient de bière = évident               |
+| "La fermentation"       | Processus de brassage = évident             |
+─────────────────────────────────────────────────────────────────────────
+
+✅ ITEMS ACCEPTÉS (avec justification) :
+─────────────────────────────────────────────────────────────────────────
+| Item                    | Réponse | Pourquoi c'est BON                   |
+|-------------------------|---------|--------------------------------------|
+| "Sent le sapin"         | B       | PIÈGE! Expression = mort imminente   |
+| "La mise en..."         | B       | "Mise en bière" = mettre au cercueil |
+| "La Mort Subite"        | Both    | Bière belge ET mort soudaine!        |
+| "On la descend"         | Both    | Boire une bière ET descendre cercueil|
+| "Le faux col"           | A       | Mousse de bière, moins évident       |
+| "Le capitaine Haddock"  | A       | PIÈGE! Perso Tintin alcoolique       |
+| "Homer Simpson"         | A       | PIÈGE! Pop culture, buveur de Duff   |
+| "Les pompes"            | Both    | Pompes funèbres ET pompe à bière!    |
+| "Le chêne"              | Both    | Tonneaux ET cercueils en chêne       |
+| "Le zinc"               | A       | Comptoir de bar, moins direct        |
+| "La veillée"            | B       | Veillée funèbre (mais on y boit!)    |
+| "Le demi"               | A       | Verre de bière, peut sembler autre   |
+─────────────────────────────────────────────────────────────────────────
+
+ANALYSE :
+- 4 pièges culturels (Haddock, Homer, sapin, mise en) → BON ✅
+- 4 items "Both" bien justifiés → EXCELLENT ✅
+- 0 ingrédient/définition de bière → PARFAIT ✅
 
 INTERDIT :
 - Catégories opposées (oui/non, vrai/faux, chaud/froid)
@@ -302,6 +492,74 @@ SET PROPOSÉ :
 
 9. QUALITÉ DES PIÈGES (CRITIQUE) : Y a-t-il assez d'items CONTRE-INTUITIFS ?
    - Compte combien d'items ont une réponse SURPRENANTE
+   - Compte combien d'items sont TROP ÉVIDENTS (réponse en moins de 2 secondes)
+
+   CRITÈRES DE REJET AUTOMATIQUE :
+   - Si 3+ items sont trop évidents → score < 5 → REJETER le set
+   - Si un item contient un mot-clé direct de sa catégorie → REJETER l'item
+
+   LISTE DE MOTS-CLÉS INTERDITS (exemples) :
+   - Pour "Mer" : océan, plage, poisson, marin, nautique, naval
+   - Pour "Mère" : maternel, maman, enfant, accouchement
+   - Pour "Graisse" : gras, liposuccion, obèse, calories
+   - Pour "Grèce" : grec, Athènes, Zeus, Olympe, Parthénon, sirtaki
+   - Pour "Rhin" : Strasbourg, Allemagne, fleuve, affluent
+   - Pour "Rein" : haricot, organe, dialyse, urine
+   - Pour "Bière" (boisson) : houblon, malt, blonde, pression, mousse, alcool
+   - Pour "Bière" (cercueil) : funérailles, enterrement, mort, décès, cercueil
+
+   TYPES D'ITEMS À REJETER AUTOMATIQUEMENT :
+   - Descriptions physiques scolaires : "A une forme de X", "Est de couleur X"
+   - Faits géographiques basiques : "Traverse X", "Sépare X de Y", "Se jette dans X"
+   - Définitions de dictionnaire : tout ce qu'on apprendrait en cours de SVT/géo
+
+   ✅ PRÉFÉRER :
+   - Références culturelles (films, livres, chansons, célébrités)
+   - Expressions idiomatiques détournées
+   - Pièges où l'item SEMBLE appartenir à l'autre catégorie
+
+   ❌ SI SCORE < 6 → REJETTE ET DEMANDE RÉGÉNÉRATION DES ITEMS ÉVIDENTS
+
+⚠️ RÈGLES DE REJET AUTOMATIQUE ⚠️
+
+COMPTAGE OBLIGATOIRE DES ITEMS ÉVIDENTS :
+Pour chaque item, applique le TEST 2 SECONDES :
+"Un joueur lambda (pas expert) répond-il en moins de 2 secondes ?"
+
+Compte le nombre d'items TROP ÉVIDENTS :
+- 0-2 items évidents → ACCEPTÉ (score trap_quality >= 7)
+- 3-4 items évidents → REJETÉ (score trap_quality < 5)
+- 5+ items évidents → REJETÉ IMMÉDIAT (score trap_quality = 1)
+
+EXEMPLE DE COMPTAGE pour "Rhin vs Rein" :
+─────────────────────────────────────────────────────────────────────────
+| Item                              | Évident ? | Temps réponse |
+|-----------------------------------|-----------|---------------|
+| "Les calculs"                     | NON       | 5+ sec (piège)|
+| "Traverse Strasbourg"             | OUI ❌    | <1 sec        |
+| "A une forme de haricot"          | OUI ❌    | <1 sec        |
+| "Victor Hugo"                     | NON       | 5+ sec (piège)|
+| "Prend sa source en Suisse"       | OUI ❌    | <1 sec        |
+| "Le coup"                         | NON       | 3+ sec        |
+| "La Lorelei"                      | MOYEN     | 2-3 sec       |
+| "Sépare la France de l'Allemagne" | OUI ❌    | <1 sec        |
+| ...                               |           |               |
+─────────────────────────────────────────────────────────────────────────
+TOTAL ÉVIDENTS : 4 → SCORE < 5 → REJETÉ
+
+⚠️ SEUILS DE SCORE STRICTS ⚠️
+
+| Score          | Seuil | Action si en dessous           |
+|----------------|-------|--------------------------------|
+| phonetic       | < 7   | REJETER TOUT LE SET            |
+| trap_quality   | < 6   | REJETER ET RÉGÉNÉRER           |
+| b_concrete     | < 5   | REJETER (catégorie B inutile)  |
+| clarity        | < 6   | REJETER items ambigus          |
+
+DANS LE FEEDBACK items_feedback, AJOUTE POUR CHAQUE ITEM :
+- "response_time": "instant" | "2sec" | "5sec+" (temps de réponse estimé)
+- "is_too_obvious": true | false
+- "obvious_reason": "géographie basique" | "définition" | "mot-clé direct" | null
 
 FORMAT JSON (STRICTEMENT) :
 {

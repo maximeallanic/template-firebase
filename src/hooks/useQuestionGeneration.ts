@@ -3,9 +3,8 @@ import { ref, get, child } from 'firebase/database';
 import { rtdb } from '../services/firebase';
 import { type Room, setGameStatus, overwriteGameQuestions, setGeneratingState, setPhase2GeneratingState, getPhase2GeneratingState } from '../services/gameService';
 import { generateWithRetry } from '../services/aiClient';
-import { checkPhase1Exhaustion, filterUnseenQuestions } from '../services/historyService';
+import { filterUnseenQuestions } from '../services/historyService';
 import { getRandomQuestionSet } from '../services/questionStorageService';
-import { QUESTIONS } from '../data/questions';
 import { PHASE4_QUESTIONS } from '../data/phase4';
 import { PHASE5_QUESTIONS } from '../data/phase5';
 
@@ -44,27 +43,16 @@ export function useQuestionGeneration({
     const hasFilteredPhase4 = useRef(false);
     const hasFilteredPhase5 = useRef(false);
 
-    // Auto-Generation Check for Phase 1 (in lobby)
+    // Phase 1 now always uses AI generation (no static questions)
     useEffect(() => {
-        const checkSmartGeneration = async () => {
-            if (room && room.state.status === 'lobby' && isHost && !hasCheckedExhaustion.current && room.players) {
-                hasCheckedExhaustion.current = true;
-                console.log('[QUESTION-GEN] 🔍 Checking Phase 1 exhaustion in lobby...', {
-                    roomCode: room.code,
-                    playerCount: Object.keys(room.players).length,
-                    hasCustomPhase1: !!room.customQuestions?.phase1
-                });
-
-                if (!room.customQuestions?.phase1) {
-                    const isExhausted = await checkPhase1Exhaustion(Object.values(room.players));
-                    console.log('[QUESTION-GEN] 📊 Phase 1 exhaustion check result:', isExhausted);
-                    if (isExhausted) {
-                        console.log('[QUESTION-GEN] ⚠️ Static pool exhausted! AI generation will happen on Start.');
-                    }
-                }
-            }
-        };
-        checkSmartGeneration();
+        if (room && room.state.status === 'lobby' && isHost && !hasCheckedExhaustion.current && room.players) {
+            hasCheckedExhaustion.current = true;
+            console.log('[QUESTION-GEN] 🔍 Phase 1 ready for AI generation', {
+                roomCode: room.code,
+                playerCount: Object.keys(room.players).length,
+                hasCustomPhase1: !!room.customQuestions?.phase1
+            });
+        }
     }, [room, isHost]);
 
     // NOTE: Phase 2 pre-generation is now triggered in handleStartGame (after game starts)
@@ -135,38 +123,71 @@ export function useQuestionGeneration({
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [room?.state.status]);
 
-    // Automatic Phase 4 Filtering
+    // Automatic Phase 4 Generation (AI or fallback to static questions)
     useEffect(() => {
-        const filterPhase4Questions = async () => {
-            if (!room || room.state.status !== 'phase4') return;
+        if (room?.state.status !== 'phase4') return;
+
+        const generatePhase4Questions = async () => {
+            if (!room) return;
             if (hasFilteredPhase4.current) return;
+
+            console.log('[QUESTION-GEN] 📍 Phase 4 entered, checking generation needs...', {
+                roomCode: room.code,
+                hasCustomQuestions: !!room.customQuestions?.phase4,
+                isHost: room.hostId === myId
+            });
+
             if (room.customQuestions?.phase4) {
-                console.log('[QUESTION-GEN] Phase 4: Using existing custom questions');
+                console.log('[QUESTION-GEN] Phase 4: Using existing custom questions', {
+                    questionCount: Array.isArray(room.customQuestions.phase4) ? room.customQuestions.phase4.length : 'N/A'
+                });
                 return;
             }
-            if (!isHost) return;
+
+            const currentIsHost = room.hostId === myId;
+            if (!currentIsHost) {
+                console.log('[QUESTION-GEN] Phase 4: Not host, waiting for host to generate...');
+                return;
+            }
 
             hasFilteredPhase4.current = true;
-            console.log('[QUESTION-GEN] 🔍 Phase 4: Filtering seen questions...', {
+
+            // Set visible generation state for loading UI
+            await setGeneratingState(room.code, true);
+            console.log('[QUESTION-GEN] 🎯 Phase 4: Starting AI generation...', {
                 roomCode: room.code,
-                totalQuestions: PHASE4_QUESTIONS.length
+                timestamp: new Date().toISOString()
             });
 
-            const filtered = await filterUnseenQuestions(PHASE4_QUESTIONS, q => q.question);
-            console.log('[QUESTION-GEN] Phase 4: Filter result', {
-                original: PHASE4_QUESTIONS.length,
-                filtered: filtered.length,
-                removed: PHASE4_QUESTIONS.length - filtered.length
-            });
+            try {
+                const result = await generateWithRetry({ phase: 'phase4', roomCode: room.code });
+                console.log('[QUESTION-GEN] Phase 4: Saving generated questions to Firebase...');
+                await overwriteGameQuestions(room.code, 'phase4', result.data as unknown[]);
+                console.log('[QUESTION-GEN] ✅ Phase 4: AI generation complete!');
+            } catch (err) {
+                console.error('[QUESTION-GEN] ❌ Phase 4: AI generation failed, using fallback:', {
+                    error: (err as Error).message,
+                    errorCode: (err as { code?: string })?.code
+                });
+                setGenerationError("Échec de la génération Phase 4. Questions par défaut utilisées.");
 
-            if (filtered.length < PHASE4_QUESTIONS.length) {
+                // Fallback to filtered static questions
+                console.log('[QUESTION-GEN] 🔍 Phase 4: Filtering static fallback questions...');
+                const filtered = await filterUnseenQuestions(PHASE4_QUESTIONS, q => q.question);
+                console.log('[QUESTION-GEN] Phase 4: Fallback filter result', {
+                    original: PHASE4_QUESTIONS.length,
+                    filtered: filtered.length
+                });
                 await overwriteGameQuestions(room.code, 'phase4', filtered);
-                console.log('[QUESTION-GEN] ✅ Phase 4: Filtered questions saved to Firebase');
+                console.log('[QUESTION-GEN] ✅ Phase 4: Fallback questions saved');
+            } finally {
+                await setGeneratingState(room.code, false);
             }
         };
-        filterPhase4Questions();
+
+        generatePhase4Questions();
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [room?.state.status, room?.customQuestions?.phase4, room?.code, isHost]);
+    }, [room?.state.status]);
 
     // Automatic Phase 5 Filtering
     useEffect(() => {
@@ -277,49 +298,11 @@ export function useQuestionGeneration({
                 return;
             }
 
-            // Check if generation is needed
+            // Always use AI generation for Phase 1 (no static questions)
             const players = Object.values(room.players);
-            console.log('[QUESTION-GEN] 🔍 Checking static pool exhaustion...', { playerCount: players.length });
-            const isExhausted = await checkPhase1Exhaustion(players);
-            console.log('[QUESTION-GEN] 📊 Exhaustion check result:', { isExhausted, totalStaticQuestions: QUESTIONS.length });
+            console.log('[QUESTION-GEN] 🤖 Starting AI generation for Phase 1...', { playerCount: players.length });
 
-            const PHASE1_QUESTION_COUNT = 10;
-
-            if (!isExhausted) {
-                // Default questions available - filter to prioritize unseen questions
-                console.log('[QUESTION-GEN] 🔍 Filtering unseen questions from static pool...');
-                const filteredQuestions = await filterUnseenQuestions(QUESTIONS, q => q.text);
-                console.log('[QUESTION-GEN] Filter result:', {
-                    original: QUESTIONS.length,
-                    afterFilter: filteredQuestions.length,
-                    needed: PHASE1_QUESTION_COUNT
-                });
-
-                // If we have enough questions, shuffle and select 10
-                if (filteredQuestions.length >= PHASE1_QUESTION_COUNT) {
-                    const shuffled = [...filteredQuestions].sort(() => Math.random() - 0.5);
-                    const selectedQuestions = shuffled.slice(0, PHASE1_QUESTION_COUNT);
-
-                    console.log('[QUESTION-GEN] ✅ Using filtered static questions', {
-                        selected: selectedQuestions.length,
-                        available: filteredQuestions.length
-                    });
-                    await overwriteGameQuestions(room.code, 'phase1', selectedQuestions);
-
-                    await setGameStatus(room.code, 'phase1');
-                    triggerPhase2Pregen(room.code);
-                    console.log(`[QUESTION-GEN] 🎮 Game started in ${Math.round(performance.now() - startTime)}ms (static questions)`);
-                    return;
-                }
-
-                // Not enough unseen questions, need AI generation
-                console.log('[QUESTION-GEN] ⚠️ Not enough unseen static questions, need AI generation', {
-                    available: filteredQuestions.length,
-                    needed: PHASE1_QUESTION_COUNT
-                });
-            }
-
-            // Need new questions - show loading state in Firebase (visible to all)
+            // Show loading state in Firebase (visible to all)
             console.log('[QUESTION-GEN] 📡 Setting generation state to true (visible to all players)...');
             await setGeneratingState(room.code, true);
 

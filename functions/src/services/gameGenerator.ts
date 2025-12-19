@@ -32,12 +32,16 @@ import {
 } from '../prompts';
 import { calculateCost, formatCost } from '../utils/costCalculator';
 import {
-    findSemanticDuplicates,
+    findSemanticDuplicatesWithEmbeddings,
     findInternalDuplicates,
-    generateEmbeddings,
     storeQuestionsWithEmbeddings,
     type SemanticDuplicate
 } from '../utils/embeddingService';
+
+// --- CONSTANTS ---
+
+// Maximum percentage of questions that can be regenerated using targeted regen (60%)
+const TARGETED_REGEN_MAX_PERCENTAGE = 0.6;
 
 // --- TYPES ---
 
@@ -180,33 +184,38 @@ interface Phase3DialogueReview {
     suggestions: string[];
 }
 
-// --- PHASE 4 DIALOGUE TYPES ---
+// --- PHASE 4 DIALOGUE TYPES (MCQ Culture Générale) ---
 
 interface Phase4Question {
     question: string;
-    answer: string;
+    options: string[];      // 4 options MCQ
+    correctIndex: number;   // Index de la bonne réponse (0-3)
+    anecdote?: string;      // Fait amusant optionnel
 }
 
 interface Phase4DialogueReview {
     approved: boolean;
     scores: {
-        speed_friendly: number;
-        trap_quality: number;
-        thematic_variety: number;
         factual_accuracy: number;
-        answer_length: number;
-        burger_style: number;
+        option_plausibility: number;
+        difficulty_balance: number;
+        thematic_variety: number;
+        clarity: number;
+        anecdote_quality: number;
     };
     overall_score: number;
-    trap_count: number;
+    difficulty_distribution: {
+        easy: number[];
+        medium: number[];
+        hard: number[];
+    };
     questions_feedback: Array<{
         index: number;
         question: string;
-        answer: string;
+        correct_option: string;
         ok: boolean;
-        is_trap: boolean;
+        difficulty: 'easy' | 'medium' | 'hard';
         issues: string[];
-        word_count: number;
         correction?: string;
     }>;
     global_feedback: string;
@@ -425,6 +434,30 @@ function parseJsonFromText(text: string): unknown {
     }
 
     return JSON.parse(jsonMatch);
+}
+
+/**
+ * Shuffle MCQ options to prevent AI positional bias
+ * Returns a new question with shuffled options and updated correctIndex
+ */
+function shuffleMCQOptions(question: Phase4Question): Phase4Question {
+    const correctAnswer = question.options[question.correctIndex];
+
+    // Fisher-Yates shuffle
+    const shuffled = [...question.options];
+    for (let i = shuffled.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+    }
+
+    // Find new index of correct answer
+    const newCorrectIndex = shuffled.indexOf(correctAnswer);
+
+    return {
+        ...question,
+        options: shuffled,
+        correctIndex: newCorrectIndex
+    };
 }
 
 // --- FACT-CHECK FUNCTIONS ---
@@ -905,8 +938,91 @@ Tu dois changer COMPLÈTEMENT de jeu de mots pour avoir un B CONCRET.
             console.log(`❌ Trap quality too low (${trapQualityScore}/10). Items are too obvious!`);
 
             // Find obvious items from feedback
-            const obviousItems = (review.items_feedback as Array<{ index: number; text: string; is_too_obvious?: boolean }>)
-                .filter(item => item.is_too_obvious)
+            const obviousItemsFeedback = (review.items_feedback as Array<{ index: number; text: string; is_too_obvious?: boolean; ok: boolean }>)
+                .filter(item => item.is_too_obvious || !item.ok);
+            const obviousIndices = obviousItemsFeedback.map(item => item.index);
+
+            // If homophone is valid AND we have <= 60% obvious items → targeted regen
+            const homophoneValid = review.scores.phonetic >= 7 && bConcreteScore >= 6;
+            if (homophoneValid && shouldUseTargetedRegen(obviousIndices.length, proposal.items.length)) {
+                console.log(`🔧 Trap quality targeted regen: homophone valid, replacing ${obviousIndices.length} obvious items`);
+
+                const goodItems = proposal.items.filter((_, idx) => !obviousIndices.includes(idx));
+                const badItems = proposal.items.filter((_, idx) => obviousIndices.includes(idx));
+
+                // Calculate distribution needed for replacement items
+                const currentGoodA = goodItems.filter(item => item.answer === 'A').length;
+                const currentGoodB = goodItems.filter(item => item.answer === 'B').length;
+                const currentGoodBoth = goodItems.filter(item => item.answer === 'Both').length;
+                const neededA = Math.max(0, 5 - currentGoodA);
+                const neededB = Math.max(0, 5 - currentGoodB);
+                const neededBoth = Math.max(0, 2 - currentGoodBoth);
+
+                const goodItemsText = goodItems.map((item, idx) =>
+                    `${idx + 1}. "${item.text}" → ${item.answer}`
+                ).join('\n');
+                const badItemsText = badItems.map((item, idx) =>
+                    `${idx + 1}. "${item.text}" → ${item.answer} (TROP ÉVIDENT)`
+                ).join('\n');
+                const rejectionReasons = obviousItemsFeedback
+                    .map(item => `- "${item.text}": trop évident/prévisible`)
+                    .join('\n');
+
+                const targetedPrompt = PHASE2_TARGETED_REGENERATION_PROMPT
+                    .replace('{OPTION_A}', proposal.optionA)
+                    .replace('{OPTION_B}', proposal.optionB)
+                    .replace('{GOOD_ITEMS}', goodItemsText)
+                    .replace('{BAD_INDICES}', obviousIndices.map(i => i + 1).join(', '))
+                    .replace('{BAD_ITEMS}', badItemsText)
+                    .replace('{REJECTION_REASONS}', rejectionReasons)
+                    .replace(/{COUNT}/g, String(obviousIndices.length))
+                    .replace('{NEEDED_A}', String(neededA))
+                    .replace('{NEEDED_B}', String(neededB))
+                    .replace('{NEEDED_BOTH}', String(neededBoth));
+
+                try {
+                    const regenText = await callGemini(targetedPrompt, 'creative');
+                    const newItems = parseJsonFromText(regenText) as Array<{
+                        text: string;
+                        answer: 'A' | 'B' | 'Both';
+                        acceptedAnswers?: ('A' | 'B' | 'Both')[];
+                        justification: string;
+                    }>;
+
+                    const mergedItems = [
+                        ...goodItems.map(item => ({
+                            text: item.text,
+                            answer: item.answer,
+                            acceptedAnswers: item.acceptedAnswers,
+                            justification: item.justification
+                        })),
+                        ...newItems
+                    ];
+
+                    lastSet = {
+                        optionA: proposal.optionA,
+                        optionB: proposal.optionB,
+                        optionADescription: proposal.optionADescription,
+                        optionBDescription: proposal.optionBDescription,
+                        items: mergedItems.slice(0, 12)
+                    };
+
+                    console.log(`✅ Trap quality targeted regen: merged ${goodItems.length} good + ${newItems.length} new items`);
+                    previousFeedback = `
+⚠️ RÉGÉNÉRATION CIBLÉE (pièges trop évidents)
+
+Homophone conservé : "${proposal.optionA}" vs "${proposal.optionB}"
+${obviousIndices.length} items évidents remplacés par des pièges.
+Le reviewer va maintenant re-valider.
+`;
+                    continue;
+                } catch (err) {
+                    console.warn('⚠️ Trap quality targeted regen failed:', err);
+                }
+            }
+
+            // Full regen fallback
+            const obviousItemsText = obviousItemsFeedback
                 .map(item => `- "${item.text}"`)
                 .join('\n');
 
@@ -916,7 +1032,7 @@ Tu dois changer COMPLÈTEMENT de jeu de mots pour avoir un B CONCRET.
 Le set est ENNUYEUX car les réponses sont trop prévisibles.
 
 Items trop évidents à remplacer :
-${obviousItems || '(la plupart des items)'}
+${obviousItemsText || '(la plupart des items)'}
 
 🎯 RAPPEL - Un bon piège :
 - L'item SEMBLE appartenir à une catégorie mais appartient à l'AUTRE
@@ -938,13 +1054,99 @@ Tu dois REMPLACER au moins 4-5 items par des PIÈGES contre-intuitifs.
 
             // === FACT-CHECK STEP ===
             // Run dedicated fact-checking on Phase 2 items
-            const factCheckResult = await factCheckPhase2Items(lastSet);
+            if (!lastSet) {
+                throw new Error('lastSet is null after successful review');
+            }
+            // Create local const for TypeScript narrowing inside callbacks
+            const validSet = lastSet;
+            const factCheckResult = await factCheckPhase2Items(validSet);
 
             if (factCheckResult.failed.length > 0) {
-                console.log(`⚠️ Fact-check rejected ${factCheckResult.failed.length}/${lastSet.items.length} items`);
+                console.log(`⚠️ Fact-check rejected ${factCheckResult.failed.length}/${validSet.items.length} items`);
 
-                // If more than 3 items failed, regenerate the set
-                if (factCheckResult.failed.length > 3) {
+                // Try targeted regen for failed fact-checks (up to 60%)
+                if (shouldUseTargetedRegen(factCheckResult.failed.length, validSet.items.length)) {
+                    const failedIndices = factCheckResult.failed.map(f =>
+                        validSet.items.findIndex(item => item.text === f.item.text)
+                    ).filter(idx => idx !== -1);
+
+                    if (failedIndices.length > 0) {
+                        console.log(`🔧 Phase 2 fact-check targeted regen: replacing ${failedIndices.length} items`);
+
+                        const goodItems = validSet.items.filter((_, idx) => !failedIndices.includes(idx));
+                        const badItems = validSet.items.filter((_, idx) => failedIndices.includes(idx));
+
+                        // Calculate distribution needed
+                        const currentGoodA = goodItems.filter(item => item.answer === 'A').length;
+                        const currentGoodB = goodItems.filter(item => item.answer === 'B').length;
+                        const currentGoodBoth = goodItems.filter(item => item.answer === 'Both').length;
+                        const neededA = Math.max(0, 5 - currentGoodA);
+                        const neededB = Math.max(0, 5 - currentGoodB);
+                        const neededBoth = Math.max(0, 2 - currentGoodBoth);
+
+                        const goodItemsText = goodItems.map((item, idx) =>
+                            `${idx + 1}. "${item.text}" → ${item.answer}`
+                        ).join('\n');
+                        const badItemsText = badItems.map((item, idx) =>
+                            `${idx + 1}. "${item.text}" → ${item.answer} (FACT-CHECK ÉCHOUÉ)`
+                        ).join('\n');
+                        const rejectionReasons = factCheckResult.failed
+                            .map(f => `- "${f.item.text}": ${f.reason}`)
+                            .join('\n');
+
+                        const targetedPrompt = PHASE2_TARGETED_REGENERATION_PROMPT
+                            .replace('{OPTION_A}', validSet.optionA)
+                            .replace('{OPTION_B}', validSet.optionB)
+                            .replace('{GOOD_ITEMS}', goodItemsText)
+                            .replace('{BAD_INDICES}', failedIndices.map(i => i + 1).join(', '))
+                            .replace('{BAD_ITEMS}', badItemsText)
+                            .replace('{REJECTION_REASONS}', rejectionReasons)
+                            .replace(/{COUNT}/g, String(failedIndices.length))
+                            .replace('{NEEDED_A}', String(neededA))
+                            .replace('{NEEDED_B}', String(neededB))
+                            .replace('{NEEDED_BOTH}', String(neededBoth));
+
+                        try {
+                            const regenText = await callGemini(targetedPrompt, 'creative');
+                            const newItems = parseJsonFromText(regenText) as Array<{
+                                text: string;
+                                answer: 'A' | 'B' | 'Both';
+                                acceptedAnswers?: ('A' | 'B' | 'Both')[];
+                                justification: string;
+                            }>;
+
+                            const mergedItems = [
+                                ...goodItems.map(item => ({
+                                    text: item.text,
+                                    answer: item.answer,
+                                    acceptedAnswers: item.acceptedAnswers,
+                                    justification: item.justification
+                                })),
+                                ...newItems
+                            ];
+
+                            lastSet = {
+                                ...validSet,
+                                items: mergedItems.slice(0, 12)
+                            };
+
+                            console.log(`✅ Phase 2 fact-check targeted regen: merged ${goodItems.length} good + ${newItems.length} new items`);
+                            previousFeedback = `
+⚠️ RÉGÉNÉRATION CIBLÉE (fact-check)
+
+Homophone conservé : "${lastSet.optionA}" vs "${lastSet.optionB}"
+${failedIndices.length} items incorrects remplacés.
+Le reviewer va maintenant re-valider.
+`;
+                            continue;
+                        } catch (err) {
+                            console.warn('⚠️ Phase 2 fact-check targeted regen failed:', err);
+                        }
+                    }
+                }
+
+                // Full regen if too many failures or targeted regen failed
+                if (factCheckResult.failed.length > Math.floor(lastSet.items.length * TARGETED_REGEN_MAX_PERCENTAGE)) {
                     const failedFeedback = factCheckResult.failed
                         .map(f => `- "${f.item.text}" (${f.item.answer}): ${f.reason}`)
                         .join('\n');
@@ -972,14 +1174,18 @@ Vérifie que chaque item appartient VRAIMENT à la catégorie assignée (A, B, o
             }
 
             // Run semantic deduplication on the approved set
+            // Use findSemanticDuplicatesWithEmbeddings to generate embeddings once and reuse
             const itemsAsQuestions = lastSet.items.map(item => ({ text: item.text }));
             let semanticDuplicates: SemanticDuplicate[] = [];
             let internalDuplicates: SemanticDuplicate[] = [];
+            let finalEmbeddings: number[][] = [];
 
             try {
-                semanticDuplicates = await findSemanticDuplicates(itemsAsQuestions, 'phase2');
-                const embeddings = await generateEmbeddings(lastSet.items.map(item => item.text));
-                internalDuplicates = findInternalDuplicates(embeddings, itemsAsQuestions);
+                // Generate embeddings once and reuse for both dedup checks and storage
+                const dedupResult = await findSemanticDuplicatesWithEmbeddings(itemsAsQuestions, 'phase2');
+                semanticDuplicates = dedupResult.duplicates;
+                finalEmbeddings = dedupResult.embeddings;
+                internalDuplicates = findInternalDuplicates(finalEmbeddings, itemsAsQuestions);
             } catch (err) {
                 console.warn('⚠️ Duplicate check failed, skipping:', err);
             }
@@ -992,15 +1198,14 @@ Vérifie que chaque item appartient VRAIMENT à la catégorie assignée (A, B, o
                 }
             }
 
-            // Generate final embeddings for storage
-            const finalEmbeddings = await generateEmbeddings(lastSet.items.map(item => item.text));
-
-            // Store questions with embeddings for future deduplication
-            await storeQuestionsWithEmbeddings(
-                lastSet.items.map(item => ({ text: item.text })),
-                finalEmbeddings,
-                'phase2'
-            );
+            // Store questions with embeddings for future deduplication (reusing already-generated embeddings)
+            if (finalEmbeddings.length > 0) {
+                await storeQuestionsWithEmbeddings(
+                    itemsAsQuestions,
+                    finalEmbeddings,
+                    'phase2'
+                );
+            }
 
             return { set: lastSet, embeddings: finalEmbeddings };
         }
@@ -1017,8 +1222,8 @@ Vérifie que chaque item appartient VRAIMENT à la catégorie assignée (A, B, o
         const goodItems = proposal.items.filter((_, idx) => !badItemIndices.includes(idx));
         const badItems = proposal.items.filter((_, idx) => badItemIndices.includes(idx));
 
-        // If homophone is good and we have some bad items, do TARGETED regeneration
-        if (canDoTargetedRegen && badItemIndices.length > 0 && badItemIndices.length <= 6) {
+        // If homophone is good and we have <= 60% bad items, do TARGETED regeneration
+        if (canDoTargetedRegen && shouldUseTargetedRegen(badItemIndices.length, proposal.items.length)) {
             console.log(`🔧 Targeted regeneration: keeping homophone, replacing ${badItemIndices.length} items`);
 
             // Calculate distribution needed for replacement items
@@ -1151,20 +1356,161 @@ ${review.global_feedback}
         } else {
             console.warn(`⚠️ Max iterations (${maxIterations}) reached. No valid phonetic found, using last set.`);
         }
-        const finalEmbeddings = await generateEmbeddings(fallbackSet.items.map(item => item.text));
-
-        // Store questions with embeddings for future deduplication (even fallback)
-        await storeQuestionsWithEmbeddings(
-            fallbackSet.items.map(item => ({ text: item.text })),
-            finalEmbeddings,
-            'phase2'
-        );
+        // Generate embeddings and store for future deduplication (even fallback)
+        const fallbackItems = fallbackSet.items.map(item => ({ text: item.text }));
+        const { embeddings: finalEmbeddings } = await findSemanticDuplicatesWithEmbeddings(fallbackItems, 'phase2');
+        await storeQuestionsWithEmbeddings(fallbackItems, finalEmbeddings, 'phase2');
 
         return { set: fallbackSet, embeddings: finalEmbeddings };
     }
 
     // Fallback: this shouldn't happen, but just in case
     throw new Error('Failed to generate Phase 2 set after all iterations');
+}
+
+/**
+ * Helper function to determine if targeted regeneration should be used
+ * @param badCount Number of problematic items
+ * @param totalCount Total number of items
+ * @param minOverallScore Minimum overall score to allow targeted regen (optional)
+ * @param overallScore Current overall score (optional)
+ */
+function shouldUseTargetedRegen(
+    badCount: number,
+    totalCount: number,
+    minOverallScore?: number,
+    overallScore?: number
+): boolean {
+    if (badCount === 0) return false;
+    const maxBad = Math.floor(totalCount * TARGETED_REGEN_MAX_PERCENTAGE);
+    const thresholdOk = badCount <= maxBad;
+    const scoreOk = minOverallScore === undefined || overallScore === undefined || overallScore >= minOverallScore;
+    return thresholdOk && scoreOk;
+}
+
+/**
+ * Perform targeted regeneration for Phase 1 questions
+ * Keeps good questions and regenerates only the bad ones
+ */
+async function performPhase1TargetedRegen(
+    lastQuestions: Phase1Question[],
+    badIndices: number[],
+    topic: string,
+    difficulty: string,
+    rejectionReasons: string
+): Promise<Phase1Question[] | null> {
+    const goodQuestions = lastQuestions.filter((_, idx) => !badIndices.includes(idx));
+    const badQuestionsData = lastQuestions.filter((_, idx) => badIndices.includes(idx));
+
+    const goodQuestionsText = goodQuestions.map((q, idx) =>
+        `${idx + 1}. "${q.text}" → ${q.options[q.correctIndex]}`
+    ).join('\n');
+
+    const badQuestionsText = badQuestionsData.map((q, idx) =>
+        `${idx + 1}. "${q.text}" (REJETÉ)`
+    ).join('\n');
+
+    const targetedPrompt = PHASE1_TARGETED_REGENERATION_PROMPT
+        .replace('{TOPIC}', topic)
+        .replace('{DIFFICULTY}', difficulty)
+        .replace('{GOOD_QUESTIONS}', goodQuestionsText || '(aucune)')
+        .replace('{BAD_INDICES}', badIndices.map(i => i + 1).join(', '))
+        .replace('{BAD_QUESTIONS}', badQuestionsText)
+        .replace('{REJECTION_REASONS}', rejectionReasons)
+        .replace(/{COUNT}/g, String(badIndices.length));
+
+    try {
+        console.log(`🔧 Targeted regeneration: replacing ${badIndices.length} questions (indices: ${badIndices.map(i => i + 1).join(', ')})`);
+        const regenText = await callGemini(targetedPrompt, 'factual');
+        const newQuestions = parseJsonFromText(regenText) as Phase1GeneratorQuestion[];
+
+        // Merge: keep good questions + add new questions
+        const mergedQuestions = [
+            ...goodQuestions,
+            ...newQuestions.map(q => ({
+                text: q.text,
+                options: q.options,
+                correctIndex: q.correctIndex,
+                anecdote: q.anecdote
+            }))
+        ];
+
+        console.log(`✅ Targeted regen: merged ${goodQuestions.length} good + ${newQuestions.length} new questions`);
+        return mergedQuestions.slice(0, 10); // Ensure max 10 questions
+    } catch (err) {
+        console.warn('⚠️ Targeted regeneration failed:', err);
+        return null;
+    }
+}
+
+/**
+ * Perform targeted regeneration for Phase 4 questions
+ * Keeps good questions and regenerates only the bad ones
+ */
+async function performPhase4TargetedRegen(
+    lastQuestions: Phase4Question[],
+    badIndices: number[],
+    rejectionReasons: string
+): Promise<Phase4Question[] | null> {
+    const goodQuestions = lastQuestions.filter((_, idx) => !badIndices.includes(idx));
+    const badQuestionsText = badIndices.map(idx =>
+        `- Q${idx + 1}: "${lastQuestions[idx].question}" (REJETÉ)`
+    ).join('\n');
+
+    const targetedPrompt = PHASE4_TARGETED_REGENERATION_PROMPT
+        .replace('{GOOD_QUESTIONS}', JSON.stringify(goodQuestions, null, 2))
+        .replace('{BAD_INDICES}', badIndices.map(i => i + 1).join(', '))
+        .replace('{BAD_QUESTIONS}', badQuestionsText)
+        .replace('{REJECTION_REASONS}', rejectionReasons)
+        .replace(/{COUNT}/g, String(badIndices.length));
+
+    try {
+        console.log(`🔧 Targeted regeneration: replacing ${badIndices.length} questions (indices: ${badIndices.map(i => i + 1).join(', ')})`);
+        const regenText = await callGemini(targetedPrompt, 'creative');
+        const newQuestions = parseJsonFromText(regenText) as Phase4Question[];
+
+        const mergedQuestions = [...goodQuestions, ...newQuestions];
+        console.log(`✅ Targeted regen: merged ${goodQuestions.length} good + ${newQuestions.length} new questions`);
+        return mergedQuestions.slice(0, 10); // Ensure max 10 questions (MCQ format)
+    } catch (err) {
+        console.warn('⚠️ Targeted regeneration failed:', err);
+        return null;
+    }
+}
+
+/**
+ * Perform targeted regeneration for Phase 5 questions
+ * Keeps good questions and regenerates only the bad ones
+ */
+async function performPhase5TargetedRegen(
+    lastQuestions: Phase5Question[],
+    badIndices: number[],
+    rejectionReasons: string
+): Promise<Phase5Question[] | null> {
+    const goodQuestions = lastQuestions.filter((_, idx) => !badIndices.includes(idx));
+    const badQuestionsText = badIndices.map(idx =>
+        `- Q${idx + 1}: "${lastQuestions[idx].question}" (REJETÉ)`
+    ).join('\n');
+
+    const targetedPrompt = PHASE5_TARGETED_REGENERATION_PROMPT
+        .replace('{GOOD_QUESTIONS}', JSON.stringify(goodQuestions, null, 2))
+        .replace('{BAD_INDICES}', badIndices.map(i => i + 1).join(', '))
+        .replace('{BAD_QUESTIONS}', badQuestionsText)
+        .replace('{REJECTION_REASONS}', rejectionReasons)
+        .replace(/{COUNT}/g, String(badIndices.length));
+
+    try {
+        console.log(`🔧 Targeted regeneration: replacing ${badIndices.length} questions (indices: ${badIndices.map(i => i + 1).join(', ')})`);
+        const regenText = await callGemini(targetedPrompt, 'creative');
+        const newQuestions = parseJsonFromText(regenText) as Phase5Question[];
+
+        const mergedQuestions = [...goodQuestions, ...newQuestions];
+        console.log(`✅ Targeted regen: merged ${goodQuestions.length} good + ${newQuestions.length} new questions`);
+        return mergedQuestions.slice(0, 10); // Ensure max 10 questions
+    } catch (err) {
+        console.warn('⚠️ Targeted regeneration failed:', err);
+        return null;
+    }
 }
 
 /**
@@ -1242,11 +1588,47 @@ async function generatePhase1WithDialogue(
         if (review.scores.factual_accuracy < 8) {
             console.log(`❌ Factual accuracy too low (${review.scores.factual_accuracy}/10). Questions have errors!`);
 
+            // Identify questions with factual errors
+            const factualErrorIndices = review.questions_feedback
+                .filter(q => !q.ok && q.issue_type === 'factual_error')
+                .map(q => q.index);
+
             const problematicQuestions = review.questions_feedback
                 .filter(q => !q.ok && q.issue_type === 'factual_error')
                 .map(q => `- Q${q.index + 1}: "${q.text}" → ${q.issue}`)
                 .join('\n');
 
+            // Try targeted regeneration if <= 60% have errors
+            if (factualErrorIndices.length > 0 && shouldUseTargetedRegen(factualErrorIndices.length, lastQuestions.length)) {
+                console.log(`🎯 Attempting targeted regen for ${factualErrorIndices.length} factual errors`);
+                const rejectionReasons = review.questions_feedback
+                    .filter(q => !q.ok && q.issue_type === 'factual_error')
+                    .map(q => `- Q${q.index + 1}: ${q.issue} (erreur factuelle)`)
+                    .join('\n');
+
+                const newQuestions = await performPhase1TargetedRegen(
+                    lastQuestions,
+                    factualErrorIndices,
+                    topic,
+                    difficulty,
+                    rejectionReasons
+                );
+
+                if (newQuestions) {
+                    lastQuestions = newQuestions;
+                    previousFeedback = `
+⚠️ RÉGÉNÉRATION CIBLÉE EFFECTUÉE (erreurs factuelles)
+
+${factualErrorIndices.length} questions remplacées pour erreurs factuelles.
+Le reviewer va maintenant re-valider le set complet.
+`;
+                    continue;
+                }
+                // If targeted regen failed, fall through to full regen
+                console.log('⚠️ Targeted regen failed, falling back to full regen');
+            }
+
+            // Full regeneration
             previousFeedback = `
 ⚠️ QUESTIONS REJETÉES - ERREURS FACTUELLES (score: ${review.scores.factual_accuracy}/10)
 
@@ -1264,11 +1646,46 @@ NE RÉUTILISE PAS les questions rejetées.
         if (review.scores.clarity < 7) {
             console.log(`❌ Clarity too low (${review.scores.clarity}/10). Questions are ambiguous!`);
 
+            // Identify ambiguous questions
+            const ambiguousIndices = review.questions_feedback
+                .filter(q => !q.ok && q.issue_type === 'ambiguous')
+                .map(q => q.index);
+
             const ambiguousQuestions = review.questions_feedback
                 .filter(q => !q.ok && q.issue_type === 'ambiguous')
                 .map(q => `- Q${q.index + 1}: "${q.text}" → ${q.issue}`)
                 .join('\n');
 
+            // Try targeted regeneration if <= 60% are ambiguous
+            if (ambiguousIndices.length > 0 && shouldUseTargetedRegen(ambiguousIndices.length, lastQuestions.length)) {
+                console.log(`🎯 Attempting targeted regen for ${ambiguousIndices.length} ambiguous questions`);
+                const rejectionReasons = review.questions_feedback
+                    .filter(q => !q.ok && q.issue_type === 'ambiguous')
+                    .map(q => `- Q${q.index + 1}: ${q.issue} (ambiguë)`)
+                    .join('\n');
+
+                const newQuestions = await performPhase1TargetedRegen(
+                    lastQuestions,
+                    ambiguousIndices,
+                    topic,
+                    difficulty,
+                    rejectionReasons
+                );
+
+                if (newQuestions) {
+                    lastQuestions = newQuestions;
+                    previousFeedback = `
+⚠️ RÉGÉNÉRATION CIBLÉE EFFECTUÉE (questions ambiguës)
+
+${ambiguousIndices.length} questions remplacées car ambiguës.
+Le reviewer va maintenant re-valider le set complet.
+`;
+                    continue;
+                }
+                console.log('⚠️ Targeted regen failed, falling back to full regen');
+            }
+
+            // Full regeneration
             previousFeedback = `
 ⚠️ QUESTIONS REJETÉES - AMBIGUÏTÉ (score clarté: ${review.scores.clarity}/10)
 
@@ -1299,12 +1716,47 @@ Si plusieurs réponses pourraient être valides → reformule la question.
             if (factCheckResult.failed.length > 0) {
                 console.log(`⚠️ Fact-check rejected ${factCheckResult.failed.length}/${lastQuestions.length} questions`);
 
-                // If more than 2 questions failed fact-check, regenerate
-                if (factCheckResult.failed.length > 2) {
-                    const failedFeedback = factCheckResult.failed
-                        .map(f => `- "${f.question.text.slice(0, 50)}...": ${f.reason}`)
-                        .join('\n');
+                const failedFeedback = factCheckResult.failed
+                    .map(f => `- "${f.question.text.slice(0, 50)}...": ${f.reason}`)
+                    .join('\n');
 
+                // Try targeted regeneration if <= 60% failed
+                if (shouldUseTargetedRegen(factCheckResult.failed.length, lastQuestions.length)) {
+                    // Find indices of failed questions
+                    const failedIndices = factCheckResult.failed.map(f =>
+                        lastQuestions.findIndex(q => q.text === f.question.text)
+                    ).filter(idx => idx !== -1);
+
+                    if (failedIndices.length > 0) {
+                        console.log(`🎯 Attempting targeted regen for ${failedIndices.length} fact-check failures`);
+                        const rejectionReasons = factCheckResult.failed
+                            .map(f => `- "${f.question.text.slice(0, 40)}...": ${f.reason}`)
+                            .join('\n');
+
+                        const newQuestions = await performPhase1TargetedRegen(
+                            lastQuestions,
+                            failedIndices,
+                            topic,
+                            difficulty,
+                            rejectionReasons
+                        );
+
+                        if (newQuestions) {
+                            lastQuestions = newQuestions;
+                            previousFeedback = `
+⚠️ RÉGÉNÉRATION CIBLÉE EFFECTUÉE (échec fact-check)
+
+${failedIndices.length} questions remplacées après échec de vérification factuelle.
+Le reviewer va maintenant re-valider le set complet.
+`;
+                            continue;
+                        }
+                        console.log('⚠️ Targeted regen failed, falling back to full regen');
+                    }
+                }
+
+                // Full regeneration if too many failed or targeted regen failed
+                if (factCheckResult.failed.length > Math.floor(lastQuestions.length * TARGETED_REGEN_MAX_PERCENTAGE)) {
                     previousFeedback = `
 ⚠️ VÉRIFICATION FACTUELLE ÉCHOUÉE
 
@@ -1325,14 +1777,18 @@ Chaque réponse doit être 100% correcte et vérifiable avec une recherche Googl
             }
 
             // Run semantic deduplication
+            // Use findSemanticDuplicatesWithEmbeddings to generate embeddings once and reuse
             const questionsAsItems = lastQuestions.map(q => ({ text: q.text }));
             let semanticDuplicates: SemanticDuplicate[] = [];
             let internalDuplicates: SemanticDuplicate[] = [];
+            let allEmbeddings: number[][] = [];
 
             try {
-                semanticDuplicates = await findSemanticDuplicates(questionsAsItems, 'phase1');
-                const embeddings = await generateEmbeddings(lastQuestions.map(q => q.text));
-                internalDuplicates = findInternalDuplicates(embeddings, questionsAsItems);
+                // Generate embeddings once and reuse for both dedup checks and storage
+                const dedupResult = await findSemanticDuplicatesWithEmbeddings(questionsAsItems, 'phase1');
+                semanticDuplicates = dedupResult.duplicates;
+                allEmbeddings = dedupResult.embeddings;
+                internalDuplicates = findInternalDuplicates(allEmbeddings, questionsAsItems);
             } catch (err) {
                 console.warn('⚠️ Duplicate check failed, skipping:', err);
             }
@@ -1349,8 +1805,19 @@ Chaque réponse doit être 100% correcte et vérifiable avec une recherche Googl
                     console.log(`   - "${lastQuestions[dup.index].text.slice(0, 40)}..." ≈ "${dup.similarTo.slice(0, 30)}..." (${(dup.score * 100).toFixed(0)}%)`);
                 }
 
-                // Filter out duplicates
-                lastQuestions = lastQuestions.filter((_, idx) => !duplicateIndices.has(idx));
+                // Filter out duplicates from questions AND embeddings
+                const filteredQuestions: typeof lastQuestions = [];
+                const filteredEmbeddings: number[][] = [];
+                for (let idx = 0; idx < lastQuestions.length; idx++) {
+                    if (!duplicateIndices.has(idx)) {
+                        filteredQuestions.push(lastQuestions[idx]);
+                        if (allEmbeddings[idx]) {
+                            filteredEmbeddings.push(allEmbeddings[idx]);
+                        }
+                    }
+                }
+                lastQuestions = filteredQuestions;
+                allEmbeddings = filteredEmbeddings;
 
                 // If too many filtered, iterate with feedback to get new questions
                 if (lastQuestions.length < 8) {
@@ -1363,84 +1830,49 @@ NE RÉPÈTE PAS des questions déjà posées.
                 }
             }
 
-            // Generate final embeddings
-            const finalEmbeddings = await generateEmbeddings(lastQuestions.map(q => q.text));
+            // Store questions with embeddings for future deduplication (reusing already-generated embeddings)
+            if (allEmbeddings.length > 0) {
+                await storeQuestionsWithEmbeddings(
+                    lastQuestions.map(q => ({ text: q.text })),
+                    allEmbeddings,
+                    'phase1'
+                );
+            }
 
-            // Store questions with embeddings for future deduplication
-            await storeQuestionsWithEmbeddings(
-                lastQuestions.map(q => ({ text: q.text })),
-                finalEmbeddings,
-                'phase1'
-            );
-
-            return { questions: lastQuestions, embeddings: finalEmbeddings };
+            return { questions: lastQuestions, embeddings: allEmbeddings };
         }
 
-        // 4. Try targeted regeneration if only a few questions are bad
+        // 4. Try targeted regeneration if <= 60% of questions are bad
         const badQuestionIndices = review.questions_feedback
             .filter(q => !q.ok)
             .map(q => q.index);
 
-        // If only 1-4 questions are bad and overall score is decent, do targeted regeneration
-        if (badQuestionIndices.length > 0 && badQuestionIndices.length <= 4 && review.overall_score >= 5) {
-            console.log(`🔧 Targeted regeneration: replacing ${badQuestionIndices.length} questions`);
-
-            const goodQuestions = lastQuestions.filter((_, idx) => !badQuestionIndices.includes(idx));
-            const badQuestionsData = lastQuestions.filter((_, idx) => badQuestionIndices.includes(idx));
-
-            const goodQuestionsText = goodQuestions.map((q, idx) =>
-                `${idx + 1}. "${q.text}" → ${q.options[q.correctIndex]}`
-            ).join('\n');
-
-            const badQuestionsText = badQuestionsData.map((q, idx) =>
-                `${idx + 1}. "${q.text}" (REJETÉ)`
-            ).join('\n');
-
+        // Use helper to check if targeted regen is appropriate (60% threshold, min score 4)
+        if (shouldUseTargetedRegen(badQuestionIndices.length, lastQuestions.length, 4, review.overall_score)) {
             const rejectionReasons = review.questions_feedback
                 .filter(q => !q.ok)
                 .map(q => `- Q${q.index + 1}: ${q.issue} (${q.issue_type})`)
                 .join('\n');
 
-            const targetedPrompt = PHASE1_TARGETED_REGENERATION_PROMPT
-                .replace('{TOPIC}', topic)
-                .replace('{DIFFICULTY}', difficulty)
-                .replace('{GOOD_QUESTIONS}', goodQuestionsText)
-                .replace('{BAD_INDICES}', badQuestionIndices.map(i => i + 1).join(', '))
-                .replace('{BAD_QUESTIONS}', badQuestionsText)
-                .replace('{REJECTION_REASONS}', rejectionReasons)
-                .replace(/{COUNT}/g, String(badQuestionIndices.length));
+            const newQuestions = await performPhase1TargetedRegen(
+                lastQuestions,
+                badQuestionIndices,
+                topic,
+                difficulty,
+                rejectionReasons
+            );
 
-            try {
-                const regenText = await callGemini(targetedPrompt, 'factual'); // Use factual config for Phase 1
-                const newQuestions = parseJsonFromText(regenText) as Phase1GeneratorQuestion[];
-
-                // Merge: keep good questions + add new questions
-                const mergedQuestions = [
-                    ...goodQuestions,
-                    ...newQuestions.map(q => ({
-                        text: q.text,
-                        options: q.options,
-                        correctIndex: q.correctIndex,
-                        anecdote: q.anecdote
-                    }))
-                ];
-
-                lastQuestions = mergedQuestions.slice(0, 10); // Ensure max 10 questions
-                console.log(`✅ Targeted regen: merged ${goodQuestions.length} good + ${newQuestions.length} new questions`);
-
-                // Continue to next iteration to re-validate
+            if (newQuestions) {
+                lastQuestions = newQuestions;
                 previousFeedback = `
 ⚠️ RÉGÉNÉRATION CIBLÉE EFFECTUÉE
 
-Questions gardées : ${goodQuestions.length}
-Nouvelles questions : ${newQuestions.length}
-
+${badQuestionIndices.length} questions remplacées.
 Le reviewer va maintenant re-valider le set complet.
 `;
                 continue;
-            } catch (err) {
-                console.warn('⚠️ Targeted regeneration failed, falling back to full regen:', err);
             }
+            // If targeted regen failed, fall through to full regen
         }
 
         // 5. Full regeneration - build feedback for next iteration
@@ -1485,14 +1917,10 @@ ${review.global_feedback}
         } else {
             console.warn(`⚠️ Max iterations (${maxIterations}) reached. No valid set found, using last questions.`);
         }
-        const finalEmbeddings = await generateEmbeddings(fallbackQuestions.map(q => q.text));
-
-        // Store questions with embeddings for future deduplication (even fallback)
-        await storeQuestionsWithEmbeddings(
-            fallbackQuestions.map(q => ({ text: q.text })),
-            finalEmbeddings,
-            'phase1'
-        );
+        // Generate embeddings and store for future deduplication (even fallback)
+        const fallbackItems = fallbackQuestions.map(q => ({ text: q.text }));
+        const { embeddings: finalEmbeddings } = await findSemanticDuplicatesWithEmbeddings(fallbackItems, 'phase1');
+        await storeQuestionsWithEmbeddings(fallbackItems, finalEmbeddings, 'phase1');
 
         return { questions: fallbackQuestions, embeddings: finalEmbeddings };
     }
@@ -1630,16 +2058,39 @@ Exemples de bons titres : "Menu Catastrophes Culinaires", "Menu Scandales Royaux
                 }
             }
 
-            // Generate embeddings
+            // Run semantic deduplication and generate embeddings in one pass
             const allQuestions = lastMenus.flatMap(m => m.questions.map(q => q.question));
-            const finalEmbeddings = await generateEmbeddings(allQuestions);
+            const questionsAsItems = allQuestions.map(q => ({ text: q }));
 
-            // Store for deduplication
-            await storeQuestionsWithEmbeddings(
-                allQuestions.map(q => ({ text: q })),
-                finalEmbeddings,
-                'phase3'
-            );
+            let semanticDuplicates: SemanticDuplicate[] = [];
+            let internalDuplicates: SemanticDuplicate[] = [];
+            let finalEmbeddings: number[][] = [];
+
+            try {
+                const dedupResult = await findSemanticDuplicatesWithEmbeddings(questionsAsItems, 'phase3');
+                semanticDuplicates = dedupResult.duplicates;
+                finalEmbeddings = dedupResult.embeddings;
+                internalDuplicates = findInternalDuplicates(finalEmbeddings, questionsAsItems);
+            } catch (err) {
+                console.warn('⚠️ Phase 3 duplicate check failed, skipping:', err);
+            }
+
+            // Log duplicates if found (Phase 3 doesn't filter, just logs)
+            if (semanticDuplicates.length > 0 || internalDuplicates.length > 0) {
+                console.warn(`⚠️ Phase 3: Found ${semanticDuplicates.length} semantic + ${internalDuplicates.length} internal duplicates`);
+                for (const dup of [...semanticDuplicates, ...internalDuplicates]) {
+                    console.log(`   - "${questionsAsItems[dup.index]?.text?.slice(0, 40)}..." ≈ "${dup.similarTo.slice(0, 30)}..." (${(dup.score * 100).toFixed(0)}%)`);
+                }
+            }
+
+            // Store for deduplication (reusing already-generated embeddings)
+            if (finalEmbeddings.length > 0) {
+                await storeQuestionsWithEmbeddings(
+                    questionsAsItems,
+                    finalEmbeddings,
+                    'phase3'
+                );
+            }
 
             return { menus: lastMenus, embeddings: finalEmbeddings };
         }
@@ -1658,7 +2109,10 @@ Exemples de bons titres : "Menu Catastrophes Culinaires", "Menu Scandales Royaux
             }
         }
 
-        if (badQuestions.length > 0 && badQuestions.length <= 6 && review.overall_score >= 5) {
+        // Calculate total questions across all menus
+        const totalQuestions = lastMenus.reduce((sum, menu) => sum + menu.questions.length, 0);
+
+        if (shouldUseTargetedRegen(badQuestions.length, totalQuestions, 5, review.overall_score)) {
             console.log(`🔧 Targeted regeneration: replacing ${badQuestions.length} questions`);
 
             const menusStructure = lastMenus.map(m => ({
@@ -1731,13 +2185,28 @@ ${review.suggestions.map((s, idx) => `${idx + 1}. ${s}`).join('\n')}
     if (fallbackMenus.length > 0) {
         console.warn(`⚠️ Max iterations reached. Using best menus (score: ${bestScore}/10).`);
         const allQuestions = fallbackMenus.flatMap(m => m.questions.map(q => q.question));
-        const finalEmbeddings = await generateEmbeddings(allQuestions);
+        const questionsAsItems = allQuestions.map(q => ({ text: q }));
 
-        await storeQuestionsWithEmbeddings(
-            allQuestions.map(q => ({ text: q })),
-            finalEmbeddings,
-            'phase3'
-        );
+        // Run deduplication and generate embeddings
+        let finalEmbeddings: number[][] = [];
+        try {
+            const dedupResult = await findSemanticDuplicatesWithEmbeddings(questionsAsItems, 'phase3');
+            finalEmbeddings = dedupResult.embeddings;
+
+            if (dedupResult.duplicates.length > 0) {
+                console.warn(`⚠️ Phase 3 fallback: Found ${dedupResult.duplicates.length} duplicates`);
+            }
+        } catch (err) {
+            console.warn('⚠️ Phase 3 fallback dedup failed:', err);
+        }
+
+        if (finalEmbeddings.length > 0) {
+            await storeQuestionsWithEmbeddings(
+                questionsAsItems,
+                finalEmbeddings,
+                'phase3'
+            );
+        }
 
         return { menus: fallbackMenus, embeddings: finalEmbeddings };
     }
@@ -1746,15 +2215,15 @@ ${review.suggestions.map((s, idx) => `${idx + 1}. ${s}`).join('\n')}
 }
 
 /**
- * Generate Phase 4 buzzer questions using dialogue between Generator and Reviewer agents
- * Creates 15 fast questions with traps
+ * Generate Phase 4 MCQ culture générale questions using dialogue between Generator and Reviewer agents
+ * Creates 10 MCQ questions with 4 options each
  */
 async function generatePhase4WithDialogue(
     topic: string,
     difficulty: string,
     maxIterations: number = 4
 ): Promise<{ questions: Phase4Question[]; embeddings: number[][] }> {
-    console.log('🎭 Starting Generator/Reviewer dialogue for Phase 4...');
+    console.log('🎭 Starting Generator/Reviewer dialogue for Phase 4 MCQ...');
 
     let previousFeedback = '';
     let lastQuestions: Phase4Question[] = [];
@@ -1770,26 +2239,38 @@ async function generatePhase4WithDialogue(
             .replace('{DIFFICULTY}', difficulty)
             .replace('{PREVIOUS_FEEDBACK}', previousFeedback);
 
-        console.log('🤖 Generator creating buzzer questions...');
+        console.log('🤖 Generator creating MCQ questions...');
         const proposalText = await callGemini(generatorPrompt, 'creative');
         let proposal: Phase4Question[];
 
         try {
             proposal = parseJsonFromText(proposalText) as Phase4Question[];
+            // Validate MCQ format
+            proposal = proposal.filter(q =>
+                q.question &&
+                Array.isArray(q.options) &&
+                q.options.length === 4 &&
+                typeof q.correctIndex === 'number' &&
+                q.correctIndex >= 0 &&
+                q.correctIndex <= 3
+            );
+
+            // Shuffle options to prevent AI bias (correct answer not always in same position)
+            proposal = proposal.map(q => shuffleMCQOptions(q));
         } catch (err) {
             console.error('❌ Failed to parse generator response:', err);
             console.log('Raw response:', proposalText.slice(0, 500));
             continue;
         }
 
-        console.log(`📝 Generated ${proposal.length} questions`);
+        console.log(`📝 Generated ${proposal.length} valid MCQ questions`);
         lastQuestions = proposal;
 
         // 2. Reviewer evaluates the questions
         const reviewerPrompt = PHASE4_DIALOGUE_REVIEWER_PROMPT
             .replace('{QUESTIONS}', JSON.stringify(proposal, null, 2));
 
-        console.log('👨‍⚖️ Reviewer evaluating questions...');
+        console.log('👨‍⚖️ Reviewer evaluating MCQ questions...');
         const reviewText = await callGeminiForReview(reviewerPrompt, 'creative');
         let review: Phase4DialogueReview;
 
@@ -1802,54 +2283,49 @@ async function generatePhase4WithDialogue(
         }
 
         // Log scores
-        console.log(`📊 Scores: speed=${review.scores.speed_friendly}, traps=${review.scores.trap_quality}, variety=${review.scores.thematic_variety}`);
-        console.log(`          factual=${review.scores.factual_accuracy}, answers=${review.scores.answer_length}, style=${review.scores.burger_style}`);
-        console.log(`   Trap count: ${review.trap_count}/15, Overall: ${review.overall_score}/10`);
+        console.log(`📊 Scores: factual=${review.scores.factual_accuracy}, options=${review.scores.option_plausibility}, difficulty=${review.scores.difficulty_balance}`);
+        console.log(`          variety=${review.scores.thematic_variety}, clarity=${review.scores.clarity}, anecdotes=${review.scores.anecdote_quality}`);
+        console.log(`   Overall: ${review.overall_score}/10`);
 
         // 3. Check critical criteria
-        if (review.scores.speed_friendly < 6) {
-            console.log(`❌ Questions too long (speed score: ${review.scores.speed_friendly}/10).`);
-
-            const longQuestions = review.questions_feedback
-                .filter(q => q.word_count > 15)
-                .map(q => `- Q${q.index + 1} (${q.word_count} mots): "${q.question.slice(0, 50)}..."`)
-                .join('\n');
-
-            previousFeedback = `
-⚠️ QUESTIONS TROP LONGUES (score vitesse: ${review.scores.speed_friendly}/10)
-
-Questions à raccourcir (max 15 mots) :
-${longQuestions || '(Toutes les questions)'}
-
-RAPPEL : Phase buzzer = RAPIDITÉ. Questions COURTES et DIRECTES.
-`;
-            continue;
-        }
-
-        if (review.trap_count < 4) {
-            console.log(`❌ Not enough traps (${review.trap_count}/15, need at least 5).`);
-
-            previousFeedback = `
-⚠️ PAS ASSEZ DE PIÈGES (${review.trap_count}/15, minimum 5)
-
-Les questions sont trop évidentes. Ajoute des PIÈGES de formulation :
-- Réponse dans la question ("prénom du Père Noël" → "Père")
-- Évidence trompeuse ("couleur des M&M's bleus" → "Bleus")
-- Piège logique ("mois avec 28 jours" → "12")
-
-Au moins 5-6 questions sur 15 doivent être des pièges.
-`;
-            continue;
-        }
-
         if (review.scores.factual_accuracy < 7) {
             console.log(`❌ Factual accuracy too low (${review.scores.factual_accuracy}/10).`);
 
+            // Identify questions with factual errors
+            const wrongIndices = review.questions_feedback
+                .filter(q => q.issues.includes('factual_error'))
+                .map(q => q.index);
+
             const wrongQuestions = review.questions_feedback
-                .filter(q => q.issues.includes('reponse_incorrecte'))
+                .filter(q => q.issues.includes('factual_error'))
                 .map(q => `- Q${q.index + 1}: "${q.question}" → ${q.correction || '?'}`)
                 .join('\n');
 
+            // Try targeted regeneration if <= 60% have errors
+            if (wrongIndices.length > 0 && shouldUseTargetedRegen(wrongIndices.length, lastQuestions.length)) {
+                console.log(`🎯 Attempting targeted regen for ${wrongIndices.length} factual errors`);
+                const rejectionReasons = `Erreurs factuelles:\n${wrongQuestions}`;
+
+                const newQuestions = await performPhase4TargetedRegen(
+                    lastQuestions,
+                    wrongIndices,
+                    rejectionReasons
+                );
+
+                if (newQuestions) {
+                    lastQuestions = newQuestions.map(q => shuffleMCQOptions(q));
+                    previousFeedback = `
+⚠️ RÉGÉNÉRATION CIBLÉE EFFECTUÉE (erreurs factuelles)
+
+${wrongIndices.length} questions remplacées pour erreurs factuelles.
+Le reviewer va maintenant re-valider le set complet.
+`;
+                    continue;
+                }
+                console.log('⚠️ Targeted regen failed, falling back to full regen');
+            }
+
+            // Full regeneration
             previousFeedback = `
 ⚠️ ERREURS FACTUELLES (score: ${review.scores.factual_accuracy}/10)
 
@@ -1857,6 +2333,54 @@ Questions incorrectes :
 ${wrongQuestions || '(Vérifier toutes les réponses)'}
 
 CRITIQUE : Utilise Google Search pour vérifier CHAQUE réponse.
+`;
+            continue;
+        }
+
+        if (review.scores.option_plausibility < 6) {
+            console.log(`❌ Options not plausible enough (${review.scores.option_plausibility}/10).`);
+
+            // Identify questions with implausible options
+            const badIndices = review.questions_feedback
+                .filter(q => q.issues.includes('implausible_options'))
+                .map(q => q.index);
+
+            const badQuestions = review.questions_feedback
+                .filter(q => q.issues.includes('implausible_options'))
+                .map(q => `- Q${q.index + 1}: "${q.question.slice(0, 40)}..."`)
+                .join('\n');
+
+            // Try targeted regeneration
+            if (badIndices.length > 0 && shouldUseTargetedRegen(badIndices.length, lastQuestions.length)) {
+                console.log(`🎯 Attempting targeted regen for ${badIndices.length} bad options`);
+                const rejectionReasons = `Options non plausibles:\n${badQuestions}`;
+
+                const newQuestions = await performPhase4TargetedRegen(
+                    lastQuestions,
+                    badIndices,
+                    rejectionReasons
+                );
+
+                if (newQuestions) {
+                    lastQuestions = newQuestions.map(q => shuffleMCQOptions(q));
+                    previousFeedback = `
+⚠️ RÉGÉNÉRATION CIBLÉE EFFECTUÉE (options non plausibles)
+
+${badIndices.length} questions remplacées car options trop évidentes.
+Le reviewer va maintenant re-valider.
+`;
+                    continue;
+                }
+            }
+
+            // Full regeneration
+            previousFeedback = `
+⚠️ OPTIONS NON PLAUSIBLES (score: ${review.scores.option_plausibility}/10)
+
+Questions avec options évidentes :
+${badQuestions || '(Toutes les questions)'}
+
+RAPPEL : Les 4 options doivent être du MÊME REGISTRE et faire hésiter.
 `;
             continue;
         }
@@ -1870,76 +2394,69 @@ CRITIQUE : Utilise Google Search pour vérifier CHAQUE réponse.
 
         // Check overall score
         if (review.overall_score >= 7) {
-            console.log(`✅ Questions validated after ${i + 1} iteration(s)! (score: ${review.overall_score}/10)`);
+            console.log(`✅ MCQ Questions validated after ${i + 1} iteration(s)! (score: ${review.overall_score}/10)`);
 
-            // Fact-check
-            const factCheckResult = await factCheckSimpleQuestions(lastQuestions);
-            if (factCheckResult.failed.length > 0) {
-                console.warn(`⚠️ ${factCheckResult.failed.length}/${lastQuestions.length} questions failed fact-check`);
+            // Run semantic deduplication and generate embeddings in one pass
+            const questionsAsItems = lastQuestions.map(q => ({ text: q.question }));
+            let semanticDuplicates: SemanticDuplicate[] = [];
+            let internalDuplicates: SemanticDuplicate[] = [];
+            let finalEmbeddings: number[][] = [];
 
-                if (factCheckResult.failed.length > 3) {
-                    previousFeedback = `
-⚠️ VÉRIFICATION FACTUELLE ÉCHOUÉE
-
-${factCheckResult.failed.length} questions incorrectes. Régénère avec des FAITS VÉRIFIABLES.
-`;
-                    continue;
-                }
-                lastQuestions = factCheckResult.passed;
+            try {
+                const dedupResult = await findSemanticDuplicatesWithEmbeddings(questionsAsItems, 'phase4');
+                semanticDuplicates = dedupResult.duplicates;
+                finalEmbeddings = dedupResult.embeddings;
+                internalDuplicates = findInternalDuplicates(finalEmbeddings, questionsAsItems);
+            } catch (err) {
+                console.warn('⚠️ Phase 4 duplicate check failed, skipping:', err);
             }
 
-            // Generate embeddings
-            const finalEmbeddings = await generateEmbeddings(lastQuestions.map(q => q.question));
+            // Log duplicates if found
+            if (semanticDuplicates.length > 0 || internalDuplicates.length > 0) {
+                console.warn(`⚠️ Phase 4: Found ${semanticDuplicates.length} semantic + ${internalDuplicates.length} internal duplicates`);
+                for (const dup of [...semanticDuplicates, ...internalDuplicates]) {
+                    console.log(`   - "${questionsAsItems[dup.index]?.text?.slice(0, 40)}..." ≈ "${dup.similarTo.slice(0, 30)}..." (${(dup.score * 100).toFixed(0)}%)`);
+                }
+            }
 
-            await storeQuestionsWithEmbeddings(
-                lastQuestions.map(q => ({ text: q.question })),
-                finalEmbeddings,
-                'phase4'
-            );
+            if (finalEmbeddings.length > 0) {
+                await storeQuestionsWithEmbeddings(
+                    questionsAsItems,
+                    finalEmbeddings,
+                    'phase4'
+                );
+            }
 
             return { questions: lastQuestions, embeddings: finalEmbeddings };
         }
 
-        // 4. Try targeted regeneration
+        // 4. Try targeted regeneration (up to 60% of questions)
         const badIndices = review.questions_feedback
             .filter(q => !q.ok)
             .map(q => q.index);
 
-        if (badIndices.length > 0 && badIndices.length <= 5 && review.overall_score >= 5) {
-            console.log(`🔧 Targeted regeneration: replacing ${badIndices.length} questions`);
-
-            const goodQuestions = lastQuestions.filter((_, idx) => !badIndices.includes(idx));
-            const badQuestionsText = badIndices.map(idx =>
-                `- Q${idx + 1}: "${lastQuestions[idx].question}" (${review.questions_feedback[idx]?.issues?.join(', ') || 'problème'})`
-            ).join('\n');
+        if (shouldUseTargetedRegen(badIndices.length, lastQuestions.length, 4, review.overall_score)) {
+            console.log(`🔧 Phase 4 targeted regeneration: replacing ${badIndices.length}/${lastQuestions.length} questions`);
 
             const rejectionReasons = badIndices.map(idx =>
                 review.questions_feedback.find(q => q.index === idx)?.issues?.join(', ') || ''
             ).join('; ');
 
-            const targetedPrompt = PHASE4_TARGETED_REGENERATION_PROMPT
-                .replace('{GOOD_QUESTIONS}', JSON.stringify(goodQuestions, null, 2))
-                .replace('{BAD_INDICES}', badIndices.map(i => i + 1).join(', '))
-                .replace('{BAD_QUESTIONS}', badQuestionsText)
-                .replace('{REJECTION_REASONS}', rejectionReasons)
-                .replace(/{COUNT}/g, String(badIndices.length));
+            const regenResult = await performPhase4TargetedRegen(
+                lastQuestions,
+                badIndices,
+                rejectionReasons
+            );
 
-            try {
-                const regenText = await callGemini(targetedPrompt, 'creative');
-                const newQuestions = parseJsonFromText(regenText) as Phase4Question[];
-
-                lastQuestions = [...goodQuestions, ...newQuestions].slice(0, 15);
-                console.log(`✅ Merged ${goodQuestions.length} good + ${newQuestions.length} new questions`);
-
+            if (regenResult) {
+                lastQuestions = regenResult.map(q => shuffleMCQOptions(q));
                 previousFeedback = `
 ⚠️ RÉGÉNÉRATION CIBLÉE EFFECTUÉE
 
-${newQuestions.length} nouvelles questions ajoutées.
+${badIndices.length} questions remplacées.
 Le reviewer va maintenant re-valider.
 `;
                 continue;
-            } catch (err) {
-                console.warn('⚠️ Targeted regeneration failed:', err);
             }
         }
 
@@ -1960,13 +2477,28 @@ ${review.suggestions.map((s, idx) => `${idx + 1}. ${s}`).join('\n')}
     const fallbackQuestions = bestQuestions.length > 0 ? bestQuestions : lastQuestions;
     if (fallbackQuestions.length > 0) {
         console.warn(`⚠️ Max iterations reached. Using best questions (score: ${bestScore}/10).`);
-        const finalEmbeddings = await generateEmbeddings(fallbackQuestions.map(q => q.question));
+        const questionsAsItems = fallbackQuestions.map(q => ({ text: q.question }));
 
-        await storeQuestionsWithEmbeddings(
-            fallbackQuestions.map(q => ({ text: q.question })),
-            finalEmbeddings,
-            'phase4'
-        );
+        // Run deduplication and generate embeddings
+        let finalEmbeddings: number[][] = [];
+        try {
+            const dedupResult = await findSemanticDuplicatesWithEmbeddings(questionsAsItems, 'phase4');
+            finalEmbeddings = dedupResult.embeddings;
+
+            if (dedupResult.duplicates.length > 0) {
+                console.warn(`⚠️ Phase 4 fallback: Found ${dedupResult.duplicates.length} duplicates`);
+            }
+        } catch (err) {
+            console.warn('⚠️ Phase 4 fallback dedup failed:', err);
+        }
+
+        if (finalEmbeddings.length > 0) {
+            await storeQuestionsWithEmbeddings(
+                questionsAsItems,
+                finalEmbeddings,
+                'phase4'
+            );
+        }
 
         return { questions: fallbackQuestions, embeddings: finalEmbeddings };
     }
@@ -2079,7 +2611,37 @@ Q3: "Si Elizabeth avait été française, elle aurait été Elizabeth combien ?"
             console.log(`❌ Factual accuracy too low (${review.scores.factual_accuracy}/10).`);
 
             const wrongQuestions = review.questions_feedback
-                .filter(q => !q.ok && q.issues.includes('reponse_incorrecte'))
+                .filter(q => !q.ok && q.issues.includes('reponse_incorrecte'));
+            const wrongIndices = wrongQuestions.map(q => q.index);
+
+            // Try targeted regen if <= 60% have factual errors
+            if (shouldUseTargetedRegen(wrongIndices.length, lastQuestions.length) && wrongIndices.length > 0) {
+                console.log(`🔧 Phase 5 factual targeted regen: replacing ${wrongIndices.length} questions`);
+
+                const rejectionReasons = wrongQuestions
+                    .map(q => `Q${q.index + 1}: "${q.question}" - erreur factuelle: ${q.correction || 'correction inconnue'}`)
+                    .join('\n');
+
+                const regenResult = await performPhase5TargetedRegen(
+                    lastQuestions,
+                    wrongIndices,
+                    `Erreurs factuelles:\n${rejectionReasons}`
+                );
+
+                if (regenResult) {
+                    lastQuestions = regenResult;
+                    previousFeedback = `
+⚠️ RÉGÉNÉRATION CIBLÉE (erreurs factuelles)
+
+${wrongIndices.length} questions incorrectes remplacées.
+Le reviewer va maintenant re-valider.
+`;
+                    continue;
+                }
+            }
+
+            // Full regen fallback
+            const wrongQuestionsText = wrongQuestions
                 .map(q => `- Q${q.index + 1}: "${q.question}" → ${q.correction || '?'}`)
                 .join('\n');
 
@@ -2087,7 +2649,7 @@ Q3: "Si Elizabeth avait été française, elle aurait été Elizabeth combien ?"
 ⚠️ ERREURS FACTUELLES (score: ${review.scores.factual_accuracy}/10)
 
 Questions incorrectes :
-${wrongQuestions || '(Vérifier toutes les réponses)'}
+${wrongQuestionsText || '(Vérifier toutes les réponses)'}
 
 CRITIQUE : Utilise Google Search pour vérifier CHAQUE réponse.
 `;
@@ -2126,7 +2688,39 @@ Réorganise ou remplace les questions pour respecter cette courbe.
             if (factCheckResult.failed.length > 0) {
                 console.warn(`⚠️ ${factCheckResult.failed.length}/${lastQuestions.length} questions failed fact-check`);
 
-                if (factCheckResult.failed.length > 2) {
+                // Try targeted regen for failed fact-checks (up to 60%)
+                if (shouldUseTargetedRegen(factCheckResult.failed.length, lastQuestions.length)) {
+                    const failedIndices = factCheckResult.failed.map(f =>
+                        lastQuestions.findIndex(q => q.question === f.question.question)
+                    ).filter(idx => idx !== -1);
+
+                    if (failedIndices.length > 0) {
+                        const failedReasons = factCheckResult.failed.map(f =>
+                            `"${f.question.question.slice(0, 50)}...": ${f.reason}`
+                        ).join('\n');
+
+                        const regenResult = await performPhase5TargetedRegen(
+                            lastQuestions,
+                            failedIndices,
+                            `Fact-check failed:\n${failedReasons}`
+                        );
+
+                        if (regenResult) {
+                            lastQuestions = regenResult;
+                            console.log(`✅ Phase 5 fact-check targeted regen: replaced ${failedIndices.length} questions`);
+                            previousFeedback = `
+⚠️ RÉGÉNÉRATION CIBLÉE (fact-check)
+
+${failedIndices.length} questions incorrectes remplacées.
+Le reviewer va maintenant re-valider.
+`;
+                            continue;
+                        }
+                    }
+                }
+
+                // Full regen if too many failures or targeted regen failed
+                if (factCheckResult.failed.length > Math.floor(lastQuestions.length * TARGETED_REGEN_MAX_PERCENTAGE)) {
                     previousFeedback = `
 ⚠️ VÉRIFICATION FACTUELLE ÉCHOUÉE
 
@@ -2137,80 +2731,70 @@ ${factCheckResult.failed.length} questions incorrectes. Régénère avec des FAI
                 lastQuestions = factCheckResult.passed;
             }
 
-            // Generate embeddings
-            const finalEmbeddings = await generateEmbeddings(lastQuestions.map(q => q.question));
+            // Run semantic deduplication and generate embeddings in one pass
+            const questionsAsItems = lastQuestions.map(q => ({ text: q.question }));
+            let semanticDuplicates: SemanticDuplicate[] = [];
+            let internalDuplicates: SemanticDuplicate[] = [];
+            let finalEmbeddings: number[][] = [];
 
-            await storeQuestionsWithEmbeddings(
-                lastQuestions.map(q => ({ text: q.question })),
-                finalEmbeddings,
-                'phase5'
-            );
+            try {
+                const dedupResult = await findSemanticDuplicatesWithEmbeddings(questionsAsItems, 'phase5');
+                semanticDuplicates = dedupResult.duplicates;
+                finalEmbeddings = dedupResult.embeddings;
+                internalDuplicates = findInternalDuplicates(finalEmbeddings, questionsAsItems);
+            } catch (err) {
+                console.warn('⚠️ Phase 5 duplicate check failed, skipping:', err);
+            }
+
+            // Log duplicates if found
+            if (semanticDuplicates.length > 0 || internalDuplicates.length > 0) {
+                console.warn(`⚠️ Phase 5: Found ${semanticDuplicates.length} semantic + ${internalDuplicates.length} internal duplicates`);
+                for (const dup of [...semanticDuplicates, ...internalDuplicates]) {
+                    console.log(`   - "${questionsAsItems[dup.index]?.text?.slice(0, 40)}..." ≈ "${dup.similarTo.slice(0, 30)}..." (${(dup.score * 100).toFixed(0)}%)`);
+                }
+            }
+
+            if (finalEmbeddings.length > 0) {
+                await storeQuestionsWithEmbeddings(
+                    questionsAsItems,
+                    finalEmbeddings,
+                    'phase5'
+                );
+            }
 
             return { questions: lastQuestions, embeddings: finalEmbeddings };
         }
 
-        // 4. Try targeted regeneration
+        // 4. Try targeted regeneration (up to 60% of questions)
         const badIndices = review.questions_feedback
             .filter(q => !q.ok)
             .map(q => q.index);
 
-        if (badIndices.length > 0 && badIndices.length <= 4 && review.overall_score >= 5) {
-            console.log(`🔧 Targeted regeneration: replacing ${badIndices.length} questions`);
+        if (shouldUseTargetedRegen(badIndices.length, lastQuestions.length, 4, review.overall_score)) {
+            console.log(`🔧 Phase 5 targeted regeneration: replacing ${badIndices.length}/${lastQuestions.length} questions`);
 
-            // Prepare callback context
-            const callbackContext = review.identified_callbacks.map(cb =>
-                `Q${cb.question_index + 1} référence Q${cb.references_question + 1}: ${cb.description}`
-            ).join('\n');
+            const rejectionReasons = review.questions_feedback
+                .filter(q => badIndices.includes(q.index))
+                .map(q => q.issues.join(', '))
+                .join('; ');
 
-            const currentSequence = lastQuestions.map((q, idx) =>
-                `${idx + 1}. "${q.question}" → "${q.answer}"`
-            ).join('\n');
+            const regenResult = await performPhase5TargetedRegen(
+                lastQuestions,
+                badIndices,
+                rejectionReasons
+            );
 
-            const badQuestionsText = badIndices.map(idx =>
-                `- Q${idx + 1}: "${lastQuestions[idx].question}" (${review.questions_feedback[idx]?.issues?.join(', ') || 'problème'})`
-            ).join('\n');
-
-            const targetedPrompt = PHASE5_TARGETED_REGENERATION_PROMPT
-                .replace('{CURRENT_SEQUENCE}', currentSequence)
-                .replace('{BAD_INDICES}', badIndices.map(i => i + 1).join(', '))
-                .replace('{BAD_QUESTIONS}', badQuestionsText)
-                .replace('{REJECTION_REASONS}', review.questions_feedback
-                    .filter(q => badIndices.includes(q.index))
-                    .map(q => q.issues.join(', '))
-                    .join('; '))
-                .replace('{CALLBACK_CONTEXT}', callbackContext || 'Aucun callback identifié')
-                .replace(/{COUNT}/g, String(badIndices.length));
-
-            try {
-                const regenText = await callGemini(targetedPrompt, 'creative');
-                interface ReplacementItem {
-                    replaces_index: number;
-                    new_question: string;
-                    new_answer: string;
-                }
-                const newQuestions = parseJsonFromText(regenText) as ReplacementItem[];
-
-                // Apply replacements
-                for (const repl of newQuestions) {
-                    if (lastQuestions[repl.replaces_index]) {
-                        lastQuestions[repl.replaces_index] = {
-                            question: repl.new_question,
-                            answer: repl.new_answer
-                        };
-                    }
-                }
-
-                console.log(`✅ Applied ${newQuestions.length} replacements`);
+            if (regenResult) {
+                lastQuestions = regenResult;
+                console.log(`✅ Phase 5 targeted regen: replaced ${badIndices.length} questions`);
 
                 previousFeedback = `
 ⚠️ RÉGÉNÉRATION CIBLÉE EFFECTUÉE
 
-${newQuestions.length} questions remplacées.
+${badIndices.length} questions remplacées.
 Le reviewer va maintenant re-valider la séquence.
 `;
                 continue;
-            } catch (err) {
-                console.warn('⚠️ Targeted regeneration failed:', err);
             }
         }
 
@@ -2231,13 +2815,28 @@ ${review.suggestions.map((s, idx) => `${idx + 1}. ${s}`).join('\n')}
     const fallbackQuestions = bestQuestions.length > 0 ? bestQuestions : lastQuestions;
     if (fallbackQuestions.length > 0) {
         console.warn(`⚠️ Max iterations reached. Using best sequence (score: ${bestScore}/10).`);
-        const finalEmbeddings = await generateEmbeddings(fallbackQuestions.map(q => q.question));
+        const questionsAsItems = fallbackQuestions.map(q => ({ text: q.question }));
 
-        await storeQuestionsWithEmbeddings(
-            fallbackQuestions.map(q => ({ text: q.question })),
-            finalEmbeddings,
-            'phase5'
-        );
+        // Run deduplication and generate embeddings
+        let finalEmbeddings: number[][] = [];
+        try {
+            const dedupResult = await findSemanticDuplicatesWithEmbeddings(questionsAsItems, 'phase5');
+            finalEmbeddings = dedupResult.embeddings;
+
+            if (dedupResult.duplicates.length > 0) {
+                console.warn(`⚠️ Phase 5 fallback: Found ${dedupResult.duplicates.length} duplicates`);
+            }
+        } catch (err) {
+            console.warn('⚠️ Phase 5 fallback dedup failed:', err);
+        }
+
+        if (finalEmbeddings.length > 0) {
+            await storeQuestionsWithEmbeddings(
+                questionsAsItems,
+                finalEmbeddings,
+                'phase5'
+            );
+        }
 
         return { questions: fallbackQuestions, embeddings: finalEmbeddings };
     }

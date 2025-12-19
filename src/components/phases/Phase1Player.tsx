@@ -1,8 +1,7 @@
 import { useRef, useState, useEffect, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import { motion, AnimatePresence, LayoutGroup, type Variants } from 'framer-motion';
-import { submitAnswer, startNextQuestion, setGameStatus, type Room } from '../../services/gameService';
-import { QUESTIONS } from '../../data/questions';
+import { submitAnswer, startNextQuestion, showPhaseResults, type Room } from '../../services/gameService';
 import { audioService } from '../../services/audioService';
 import { markQuestionAsSeen } from '../../services/historyService';
 import { SimpleConfetti } from '../ui/SimpleConfetti';
@@ -88,11 +87,14 @@ export function Phase1Player({ room, playerId, isHost }: Phase1PlayerProps) {
     const { t } = useTranslation(['game-ui', 'common']);
     const prefersReducedMotion = useReducedMotion();
     const { state, players } = room;
-    const { phaseState, currentQuestionIndex, phase1Answers, phase1BlockedTeams } = state;
+    const { phaseState, currentQuestionIndex, phase1Answers, phase1BlockedTeams, phase1TriedWrongOptions } = state;
 
-    // Use custom AI-generated questions if available, fallback to default QUESTIONS
-    const questionsList = room.customQuestions?.phase1 || QUESTIONS;
-    const currentQuestion = (currentQuestionIndex !== undefined && currentQuestionIndex >= 0)
+    // Rebond: track tried wrong options
+    const triedWrongOptions = phase1TriedWrongOptions || [];
+
+    // Use custom questions from database (no fallback - questions must be generated/saved first)
+    const questionsList = room.customQuestions?.phase1 || [];
+    const currentQuestion = (currentQuestionIndex !== undefined && currentQuestionIndex >= 0 && questionsList.length > 0)
         ? questionsList[currentQuestionIndex]
         : null;
 
@@ -149,7 +151,8 @@ export function Phase1Player({ room, playerId, isHost }: Phase1PlayerProps) {
     }, [showQuestionTransition]);
 
     const handleAnswer = async (index: number) => {
-        if (phaseState === 'answering' && myAnswer === null && !isMyTeamBlocked) {
+        // Also check if this option was already tried and wrong (rebond system)
+        if (phaseState === 'answering' && myAnswer === null && !isMyTeamBlocked && !triedWrongOptions.includes(index)) {
             audioService.playClick();
             setMyAnswer(index);
             setSubmitError(false);
@@ -273,7 +276,7 @@ export function Phase1Player({ room, playerId, isHost }: Phase1PlayerProps) {
                 // All players trigger this, but Firebase operations are idempotent
                 // The first one to succeed advances the game, others will be no-ops
                 if (isFinished) {
-                    setGameStatus(room.code, 'phase2');
+                    showPhaseResults(room.code);
                 } else {
                     startNextQuestion(room.code, nextQIndex);
                 }
@@ -371,7 +374,8 @@ export function Phase1Player({ room, playerId, isHost }: Phase1PlayerProps) {
                             </AnimatePresence>
                         </>
                     )}
-                    {isAnswering && !isMyTeamBlocked && !submitError && <><Play className="w-6 h-6" aria-hidden="true" /> {t('player.answerNow')}</>}
+                    {isAnswering && !isMyTeamBlocked && !submitError && triedWrongOptions.length === 0 && <><Play className="w-6 h-6" aria-hidden="true" /> {t('player.answerNow')}</>}
+                    {isAnswering && !isMyTeamBlocked && !submitError && triedWrongOptions.length > 0 && <><Play className="w-6 h-6 text-green-400" aria-hidden="true" /> <span className="text-green-400 font-bold">{t('player.rebond', 'REBOND ! À vous !')}</span></>}
                     {isAnswering && !isMyTeamBlocked && submitError && <><XCircle className="w-6 h-6 text-orange-400" aria-hidden="true" /> <span className="text-orange-400">{t('player.submitError', 'Erreur, réessayez')}</span></>}
                     {isAnswering && isMyTeamBlocked && <><XCircle className="w-6 h-6 text-red-400" aria-hidden="true" /> <span className="text-red-400">{t('player.teamBlocked')}</span></>}
                     {isResult && t('results.roundOver')}
@@ -400,13 +404,15 @@ export function Phase1Player({ room, playerId, isHost }: Phase1PlayerProps) {
                         >
                         {[0, 1, 2, 3].map((idx) => {
                             const ShapeIcon = ICONS[idx];
-                            const isDisabled = !isAnswering || myAnswer !== null || isMyTeamBlocked;
+                            // Rebond: check if this option was already tried and wrong
+                            const isTriedWrong = triedWrongOptions.includes(idx);
+                            const isDisabled = !isAnswering || myAnswer !== null || isMyTeamBlocked || isTriedWrong;
                             const optionLabel = currentQuestion ? currentQuestion.options[idx] : `Option ${['A', 'B', 'C', 'D'][idx]}`;
                             // Only animate shake for wrong answers during result phase (disabled for reduced motion)
                             const shouldShake = !prefersReducedMotion && isResult && myAnswer === idx && idx !== currentQuestion?.correctIndex;
                             // Pulse animation when buttons become clickable (staggered by index)
-                            const shouldPulse = !prefersReducedMotion && justBecameAnswering && !isMyTeamBlocked;
-                            const isGrayed = (!isAnswering && !isResult) || isMyTeamBlocked;
+                            const shouldPulse = !prefersReducedMotion && justBecameAnswering && !isMyTeamBlocked && !isTriedWrong;
+                            const isGrayed = (!isAnswering && !isResult) || isMyTeamBlocked || isTriedWrong;
                             const isSelected = myAnswer === idx;
                             const isFaded = myAnswer !== null && !isSelected;
 
@@ -431,6 +437,7 @@ export function Phase1Player({ room, playerId, isHost }: Phase1PlayerProps) {
                                 return (
                                     <motion.div
                                         key={idx}
+                                        data-cursor-target={`phase1:answer:${idx}`}
                                         layoutId="correct-answer-card"
                                         layout
                                         role="alert"
@@ -502,6 +509,7 @@ export function Phase1Player({ room, playerId, isHost }: Phase1PlayerProps) {
                             return (
                                 <motion.button
                                     key={idx}
+                                    data-cursor-target={`phase1:answer:${idx}`}
                                     layoutId={isCorrectAnswer ? "correct-answer-card" : undefined}
                                     layout={isCorrectAnswer}
                                     role="radio"
@@ -520,15 +528,26 @@ export function Phase1Player({ room, playerId, isHost }: Phase1PlayerProps) {
                                     disabled={isDisabled || shouldFadeOut}
                                     className={`
                                         w-full p-4 rounded-xl flex items-center space-x-4 shadow-lg border-b-4
-                                        transition-[filter] duration-300 ease-out
+                                        transition-[filter] duration-300 ease-out relative
                                         ${COLORS[idx]}
                                         ${(isResult && isSelected) ? 'ring-4 ring-white' : ''}
                                         ${isGrayed ? 'grayscale brightness-50' : ''}
                                         ${isFaded ? 'opacity-40' : ''}
                                         ${shouldFadeOut ? 'pointer-events-none' : ''}
+                                        ${isTriedWrong ? 'opacity-30' : ''}
                                         border-black/20 text-left
                                     `}
                                 >
+                                    {/* Rebond: X overlay for eliminated options */}
+                                    {isTriedWrong && (
+                                        <motion.div
+                                            initial={{ opacity: 0, scale: 0.5 }}
+                                            animate={{ opacity: 1, scale: 1 }}
+                                            className="absolute inset-0 flex items-center justify-center bg-black/50 rounded-xl z-10"
+                                        >
+                                            <XCircle className="w-12 h-12 text-red-500" aria-label={t('player.optionEliminated', 'Option éliminée')} />
+                                        </motion.div>
+                                    )}
                                     <div className="flex-shrink-0 w-12 h-12 flex items-center justify-center bg-black/20 rounded-full text-2xl text-white">
                                         <ShapeIcon fill="currentColor" className="w-6 h-6" aria-hidden="true" />
                                     </div>

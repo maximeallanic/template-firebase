@@ -74,14 +74,142 @@ AMBIANCE APÉRO - ON EST LÀ POUR RIGOLER !
 - Le joueur doit HÉSITER, pas deviner la bonne réponse par élimination
 - INTERDIT : 3 blagues + 1 réponse sérieuse (trop facile !)
 
+⚠️ RÈGLE ANTI-SPOILER (CRITIQUE) ⚠️
+La réponse correcte ne doit JAMAIS être révélée par la question !
+
+❌ INTERDIT - Réponse dans la question :
+- "Que faut-il pour tourner les serviettes ?" → "Une serviette"
+  (Le mot "serviette" est DANS la question !)
+- "Quelle danse s'appelle la danse des canards ?" → "La danse des canards"
+  (Reformuler la question !)
+
+✅ REFORMULATIONS ACCEPTÉES :
+- "Quelle est la chorégraphie culte de Patrick Sébastien ?" → "Tourner les serviettes"
+- "Quelle danse aviaire fait fureur dans les mariages ?" → "La danse des canards"
+
+TEST : La bonne réponse apparaît-elle (même partiellement) dans la question ?
+- Si OUI → REFORMULER la question
+- Si NON → OK
+
 EXEMPLES :
 ✅ BON : "Quel animal peut dormir 22h par jour ?" → Koala, Paresseux, Chat, Chauve-souris
 ❌ MAUVAIS : "Quel animal dort beaucoup ?" → Koala, Ta mère, Chuck Norris, Mon ex
+
+🎭 GALERIE DES HORREURS - TRANSFORMATIONS OBLIGATOIRES 🎭
+Voici comment transformer une question ennuyeuse en question Burger Quiz :
+
+❌ AVANT (Wikipedia/ennuyeux)              → ✅ APRÈS (Burger Quiz/drôle)
+─────────────────────────────────────────────────────────────────────────
+"Quel ustensile a été perdu lors         → "Quel objet de cuisine a décidé de
+d'une sortie spatiale en 2006 ?"           s'évader de la NASA pour prendre
+                                           des vacances orbitales en 2006 ?"
+
+"Quelle substance corporelle gelait      → "Qu'est-ce que les astronautes
+en orbite dans les navettes Apollo ?"      transforment en feux d'artifice
+                                           gratuits, juste en faisant pipi ?"
+
+"Quel jouet a passé 15 mois dans         → "Quel personnage de Pixar a pris
+la Station Spatiale Internationale ?"      l'expression 'vers l'infini et au-delà'
+                                           un peu trop au sérieux pendant 15 mois ?"
+
+"Quelle voiture a été envoyée            → "Quelle voiture électrique a décidé
+vers Mars en 2018 ?"                       que la Terre était trop mainstream
+                                           et préfère rouler vers Mars ?"
+
+"Quel rappeur français porte le          → "Quel rappeur français partage son
+même nom qu'un primate ?"                  blaze avec un gros singe poilu ?"
+
+TECHNIQUES DE REFORMULATION :
+- PERSONNIFIE les objets : "a décidé de", "s'est fait la malle", "préfère"
+- MÉTAPHORES ABSURDES : "prendre des vacances orbitales", "trop mainstream"
+- EXAGÉRATION COMIQUE : "feux d'artifice gratuits", "un peu trop au sérieux"
+- QUESTIONS FAUSSEMENT NAÏVES : "Qu'est-ce qui..." au lieu de "Quel élément..."
+- RÉFÉRENCES POP : "vers l'infini et au-delà", "trop mainstream"
+
+⚠️ TEST DU BEAU-FRÈRE (PLAUSIBILITÉ DES OPTIONS) ⚠️
+Imagine ton beau-frère un peu bourré à un apéro qui doit répondre.
+
+RÈGLE : S'il peut éliminer 2+ options en ricanant "c'est une blague !" → MAUVAIS SET
+
+❌ EXEMPLE RATÉ :
+"Quelles figurines la NASA a envoyées sur Jupiter ?"
+→ "G.I. Joe" ← Blague militaire évidente, le beau-frère ricane
+→ "Petits Poneys" ← Blague évidente, le beau-frère ricane
+→ "Playmobil" ← Presque crédible...
+→ "LEGO" ✓ ← Seule option sérieuse
+
+Résultat : Le beau-frère élimine 2 options instantanément → IL DEVINE LEGO → MAUVAIS !
+
+✅ EXEMPLE RÉUSSI :
+"Quelles figurines la NASA a envoyées sur Jupiter ?"
+→ "LEGO" ✓
+→ "Playmobil" ← NASA a collaboré avec des marques de jouets
+→ "K'Nex" ← Marque de construction américaine, crédible
+→ "Meccano" ← Marque historique, pourquoi pas
+
+Résultat : Le beau-frère hésite vraiment entre les 4 → BON SET !
+
+TEST À APPLIQUER POUR CHAQUE QUESTION :
+"Est-ce que 10-20% des joueurs pourraient choisir CHAQUE mauvaise réponse ?"
+- Si une option ferait rire tout le monde → REMPLACER
+- Si une option est clairement une blague → REMPLACER
+- Si 3 options sont du même type et 1 est différente → REMPLACER la différente
+
+RÈGLE DE PLAUSIBILITÉ DES 4 OPTIONS (CRITIQUE) :
+Toutes les options doivent appartenir au MÊME REGISTRE sémantique.
+
+❌ REGISTRES MÉLANGÉS (INTERDIT) :
+- Question sur les danses → "Danse des canards", "Le dindon de la farce", "Le lac des cygnes"
+  PROBLÈME : "Le dindon de la farce" est une EXPRESSION, pas une danse !
+
+- Question sérieuse → "Option A", "Option B", "Faire la vaisselle", "Option D"
+  PROBLÈME : "Faire la vaisselle" est une blague évidente parmi options sérieuses
+
+✅ MÊME REGISTRE (CORRECT) :
+- Question sur les danses → "Danse des canards", "Macarena", "Kuduro", "Madison"
+  (Toutes sont de VRAIES danses de soirée)
+
+- Question sur les films → "Big Mamma", "Madame Doubtfire", "Tootsie", "Mrs. Brown"
+  (Tous sont des films avec travestissement)
+
+TEST DE PLAUSIBILITÉ :
+Pour chaque mauvaise réponse, demande-toi :
+"Est-ce que 10-20% des joueurs pourraient choisir cette réponse ?"
+- Si OUI → Bonne option
+- Si NON (réponse absurde/blague évidente) → REMPLACER
 
 ❌ À ÉVITER :
 - Mauvaises réponses absurdes/blagues (ça donne la bonne réponse !)
 - Questions style encyclopédie (formulation ennuyeuse)
 - Sujets obscurs
+
+❌ TYPES DE QUESTIONS À ÉVITER :
+
+1. RÉPONSE LITTÉRALE :
+   ❌ "Avec quoi fait-on la danse des serviettes ?" → "Des serviettes"
+   ✅ "Quel accessoire Patrick Sébastien fait-il virevolter ?" → "Une serviette"
+
+2. OPTIONS HORS-SUJET :
+   ❌ Options qui ne sont pas du même type que la bonne réponse
+   Exemple : Question sur des acteurs → 3 acteurs + "Mon voisin Jean-Pierre"
+
+3. CONTEXTE QUI ÉLIMINE :
+   ❌ "Dans ce film d'action avec Schwarzenegger, quelle est l'épreuve ?"
+   → Si le contexte élimine 3 options sur 4, c'est trop facile
+
+4. UNE SEULE OPTION SÉRIEUSE :
+   ❌ 3 blagues + 1 réponse sérieuse → le joueur devine par élimination
+   ✅ 4 options toutes crédibles → le joueur doit vraiment réfléchir
+
+5. DOUBLONS SÉMANTIQUES (CRITIQUE) :
+   ❌ Deux options qui sont EN RÉALITÉ la même chose
+   Exemples INTERDITS :
+   - "Le soufre" ET "L'œuf pourri" → l'œuf pourri SENT le soufre (H2S) !
+   - "La capitale" ET "Paris" → si la question porte sur la France
+   - "Un félin" ET "Un chat" → l'un inclut l'autre
+   - "L'océan" ET "La mer" → trop similaires
+
+   TEST : Si un joueur cultivé peut dire "mais c'est la même chose !" → REMPLACER une des options
 
 RÈGLES SIMPLES :
 
@@ -140,6 +268,19 @@ CRITÈRES D'ÉVALUATION (score 1-10) :
    ❌ SI 3 blagues + 1 sérieuse → REJETTE (trop facile de deviner !)
    ❌ SI les mauvaises réponses sont absurdes → REJETTE
 
+3b. ANTI-SPOILER (CRITIQUE) :
+   - La bonne réponse apparaît-elle dans la question ?
+   - Un mot de la question révèle-t-il directement la réponse ?
+   ❌ SI OUI → REJETTE (la question doit être reformulée)
+   Exemple interdit : "Que faut-il pour tourner les serviettes ?" → "Une serviette"
+
+3c. COHÉRENCE DES REGISTRES (CRITIQUE) :
+   - Les 4 options sont-elles du MÊME TYPE ?
+   - Vérifie : toutes des danses, tous des films, tous des acteurs, etc.
+   ❌ SI une option est une expression/blague parmi des items réels → REJETTE
+   Exemple interdit : "Danse des canards", "Le dindon de la farce", "Macarena", "Kuduro"
+   (Le dindon de la farce est une EXPRESSION, pas une danse)
+
 4. ACCESSIBILITÉ :
    - Tout le monde peut comprendre et participer ?
    - Questions culture pop plutôt qu'encyclopédie ?
@@ -156,6 +297,44 @@ SOIS STRICT sur :
 SOIS INDULGENT sur :
 - Le ton décalé dans les questions
 - Les références pop culture
+
+⚠️ CRITÈRES DE REJET AUTOMATIQUE ⚠️
+
+1. QUESTION ENNUYEUSE (style Wikipedia) :
+   - Si la question ressemble à une définition d'encyclopédie → REJETER
+   - Test "GAD ELMALEH" : Est-ce que Gad Elmaleh pourrait poser cette question sur scène ?
+     • Si OUI → question OK
+     • Si NON (trop scolaire, pas drôle) → REJETER
+   - Exemples à REJETER :
+     • "Quel ustensile a été perdu lors d'une sortie spatiale ?" → trop factuel
+     • "Quelle substance corporelle gelait en orbite ?" → style cours de physique
+
+2. OPTIONS NON PLAUSIBLES :
+   - Si 2+ options sont des blagues évidentes → REJETER la question
+   - Test du BEAU-FRÈRE : Un beau-frère bourré pourrait-il éliminer 2+ options ?
+     • Si OUI → OPTIONS À REFAIRE
+   - Exemples à REJETER :
+     • "G.I. Joe", "Petits Poneys" pour une question NASA → blagues évidentes
+     • "Ta mère", "Chuck Norris", "Mon ex" → pas du même registre
+
+3. MANQUE DE PUNCH :
+   - La question n'a AUCUN de ces éléments → REJETER :
+     • Jeu de mots
+     • Image mentale drôle
+     • Tournure décalée/absurde
+     • Personnification
+     • Exagération comique
+
+⚠️ SEUILS DE SCORE STRICTS ⚠️
+
+- burger_quiz_style < 6 → REJETER la question (formulation pas assez fun)
+- clarity < 7 → REJETER (options pas assez plausibles)
+- Si plus de 3 questions avec burger_quiz_style < 6 → REJETER TOUT LE SET
+
+COMPTAGE OBLIGATOIRE :
+Pour chaque question, indique dans le feedback :
+- "style_score": 1-10 (la formulation est-elle drôle/décalée ?)
+- "plausibility_score": 1-10 (les 4 options font-elles vraiment hésiter ?)
 
 FORMAT JSON :
 {

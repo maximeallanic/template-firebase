@@ -4,7 +4,7 @@ import { FieldValue, Timestamp } from 'firebase-admin/firestore';
 import { db, admin } from './config/firebase';
 import Stripe from 'stripe';
 
-// Define secrets (automatically loaded from .env.local in emulator, from Secret Manager in production)
+// Define secrets for production (Secret Manager)
 const stripeSecretKey = defineSecret('STRIPE_SECRET_KEY');
 const stripeWebhookSecret = defineSecret('STRIPE_WEBHOOK_SECRET');
 
@@ -63,8 +63,8 @@ export const createCheckoutSession = onCall(
         throw new HttpsError('unauthenticated', 'User must be authenticated');
       }
 
-      // Initialize Stripe with secret
-      const stripe = new Stripe(stripeSecretKey.value(), { apiVersion: '2023-10-16' });
+      // Initialize Stripe with secret (trim to remove trailing newlines from Secret Manager)
+      const stripe = new Stripe(stripeSecretKey.value().trim(), { apiVersion: '2023-10-16' });
 
       const userId = auth.uid;
       const userDoc = await db.collection('users').doc(userId).get();
@@ -85,7 +85,7 @@ export const createCheckoutSession = onCall(
         });
       }
 
-      // Create checkout session
+      // Create checkout session for Premium subscription (phases 3-5 access)
       const session = await stripe.checkout.sessions.create({
         customer: customerId,
         payment_method_types: ['card'],
@@ -93,12 +93,12 @@ export const createCheckoutSession = onCall(
         line_items: [
           {
             price_data: {
-              currency: 'usd',
+              currency: 'eur',
               product_data: {
-                name: `${process.env.APP_NAME || 'App'} Pro`,
-                description: '250 analyses per month',
+                name: 'Spicy vs Sweet Premium',
+                description: 'Accès illimité aux 5 phases de jeu',
               },
-              unit_amount: 500,
+              unit_amount: 499, // 4.99 EUR
               recurring: { interval: 'month' },
             },
             quantity: 1,
@@ -106,7 +106,7 @@ export const createCheckoutSession = onCall(
         ],
         success_url: `${data.returnUrl || process.env.APP_URL || 'https://example.com'}?session_id={CHECKOUT_SESSION_ID}`,
         cancel_url: `${data.returnUrl || process.env.APP_URL || 'https://example.com'}/pricing`,
-        metadata: { firebaseUID: userId },
+        metadata: { firebaseUID: userId, subscriptionType: 'premium' },
       });
 
       return { sessionId: session.id, url: session.url };
@@ -134,7 +134,7 @@ export const createPortalSession = onCall(
       }
 
       // Initialize Stripe with secret
-      const stripe = new Stripe(stripeSecretKey.value(), { apiVersion: '2023-10-16' });
+      const stripe = new Stripe(stripeSecretKey.value().trim(), { apiVersion: '2023-10-16' });
 
       const userId = auth.uid;
       const userDoc = await db.collection('users').doc(userId).get();
@@ -173,7 +173,7 @@ export const cancelSubscription = onCall(
     }
 
     // Initialize Stripe with secret
-    const stripe = new Stripe(stripeSecretKey.value(), { apiVersion: '2023-10-16' });
+    const stripe = new Stripe(stripeSecretKey.value().trim(), { apiVersion: '2023-10-16' });
 
     const userId = auth.uid;
     const userDoc = await db.collection('users').doc(userId).get();
@@ -202,7 +202,7 @@ export const stripeWebhook = onRequest(
     const sig = req.headers['stripe-signature'] as string;
 
     // Initialize Stripe with secret
-    const stripe = new Stripe(stripeSecretKey.value(), { apiVersion: '2023-10-16' });
+    const stripe = new Stripe(stripeSecretKey.value().trim(), { apiVersion: '2023-10-16' });
 
     try {
       const event = stripe.webhooks.constructEvent(
@@ -220,7 +220,7 @@ export const stripeWebhook = onRequest(
             await db.collection('users').doc(userId).update({
               subscriptionStatus: 'active',
               subscriptionId: session.subscription,
-              analysesLimit: 250,
+              hasPremiumAccess: true, // Unlocks phases 3, 4, 5
               updatedAt: FieldValue.serverTimestamp(),
             });
           }
@@ -234,11 +234,11 @@ export const stripeWebhook = onRequest(
 
           if ('metadata' in customer && customer.metadata.firebaseUID) {
             const userId = customer.metadata.firebaseUID;
-            const status = subscription.status === 'active' ? 'active' : 'free';
+            const isActive = subscription.status === 'active';
 
             await db.collection('users').doc(userId).update({
-              subscriptionStatus: status,
-              analysesLimit: status === 'active' ? 250 : 5,
+              subscriptionStatus: isActive ? 'active' : 'free',
+              hasPremiumAccess: isActive, // Phases 3-5 access based on subscription status
               updatedAt: FieldValue.serverTimestamp(),
             });
           }
@@ -257,6 +257,7 @@ export const stripeWebhook = onRequest(
 
 
 import { generateGameQuestionsFlow } from './services/gameGenerator';
+import { validateAnswer } from './services/answerValidator';
 
 /**
  * Generate Game Questions (AI)
@@ -278,6 +279,16 @@ export const generateGameQuestions = onCall(
 
     // 2. Data Validation
     const { phase, topic, difficulty, roomCode } = data;
+
+    // 3. Premium Check for phases 3, 4, 5
+    const PREMIUM_PHASES = ['phase3', 'phase4', 'phase5'];
+    if (PREMIUM_PHASES.includes(phase)) {
+      const userDoc = await db.collection('users').doc(auth.uid).get();
+      const userData = userDoc.data();
+      if (userData?.subscriptionStatus !== 'active') {
+        throw new HttpsError('permission-denied', 'Premium subscription required for phases 3-5');
+      }
+    }
     if (!phase || !['phase1', 'phase2', 'phase3', 'phase4', 'phase5'].includes(phase)) {
       throw new HttpsError('invalid-argument', 'Invalid phase provided.');
     }
@@ -425,6 +436,155 @@ export const generateGameQuestions = onCall(
       console.error('AI Generation Error:', e);
       const message = e instanceof Error ? e.message : 'Unknown error';
       throw new HttpsError('internal', `Generation failed: ${message}`);
+    }
+  }
+);
+
+/**
+ * Validate Phase 3 Answer
+ * Uses LLM to validate player answers against correct answers.
+ * Supports fuzzy matching for typos, synonyms, and abbreviations.
+ * Protected by App Check.
+ */
+export const validatePhase3Answer = onCall(
+  {
+    consumeAppCheckToken: true,
+    timeoutSeconds: 30, // Quick validation should be fast
+  },
+  async ({ data, auth }) => {
+    if (!auth) {
+      throw new HttpsError('unauthenticated', 'User must be authenticated');
+    }
+
+    const { playerAnswer, correctAnswer, acceptableAnswers } = data;
+
+    if (!playerAnswer || !correctAnswer) {
+      throw new HttpsError('invalid-argument', 'playerAnswer and correctAnswer are required');
+    }
+
+    try {
+      const result = await validateAnswer(
+        playerAnswer,
+        correctAnswer,
+        acceptableAnswers
+      );
+
+      return {
+        isCorrect: result.isCorrect,
+        confidence: result.confidence,
+        matchType: result.matchType,
+        explanation: result.explanation,
+      };
+    } catch (error) {
+      console.error('[validatePhase3Answer] Error:', error);
+      const message = error instanceof Error ? error.message : 'Validation failed';
+      throw new HttpsError('internal', message);
+    }
+  }
+);
+
+import { validateAnswerBatch } from './services/answerValidator';
+
+/**
+ * Validate Phase 5 Answers
+ * Validates 10 answers from each team representative using LLM.
+ * Calculates points: +5 if first 5 correct in order, +10 if all 10 correct in order, 0 otherwise.
+ * Protected by App Check.
+ */
+export const validatePhase5Answers = onCall(
+  {
+    consumeAppCheckToken: true,
+    timeoutSeconds: 120, // May need more time for 20 validations
+    memory: '512MiB',
+  },
+  async ({ data, auth }) => {
+    if (!auth) {
+      throw new HttpsError('unauthenticated', 'User must be authenticated');
+    }
+
+    const { questions, spicyAnswers, sweetAnswers } = data;
+
+    // Validate input
+    if (!Array.isArray(questions) || questions.length !== 10) {
+      throw new HttpsError('invalid-argument', 'questions must be an array of 10 items');
+    }
+    if (!Array.isArray(spicyAnswers) || spicyAnswers.length !== 10) {
+      throw new HttpsError('invalid-argument', 'spicyAnswers must be an array of 10 items');
+    }
+    if (!Array.isArray(sweetAnswers) || sweetAnswers.length !== 10) {
+      throw new HttpsError('invalid-argument', 'sweetAnswers must be an array of 10 items');
+    }
+
+    try {
+      // Prepare validation batches for both teams
+      const spicyValidationInput = questions.map((q: { answer: string; acceptableAnswers?: string[] }, i: number) => ({
+        playerAnswer: spicyAnswers[i] || '',
+        correctAnswer: q.answer,
+        acceptableAnswers: q.acceptableAnswers,
+      }));
+
+      const sweetValidationInput = questions.map((q: { answer: string; acceptableAnswers?: string[] }, i: number) => ({
+        playerAnswer: sweetAnswers[i] || '',
+        correctAnswer: q.answer,
+        acceptableAnswers: q.acceptableAnswers,
+      }));
+
+      // Validate both teams in parallel
+      const [spicyResults, sweetResults] = await Promise.all([
+        validateAnswerBatch(spicyValidationInput),
+        validateAnswerBatch(sweetValidationInput),
+      ]);
+
+      // Build team results
+      const buildTeamResult = (
+        validationResults: Awaited<ReturnType<typeof validateAnswerBatch>>,
+        answers: string[],
+        questionsList: Array<{ answer: string }>
+      ) => {
+        const answerResults = validationResults.map((result, index) => ({
+          index,
+          expected: questionsList[index].answer,
+          given: answers[index] || '',
+          isCorrect: result.isCorrect,
+          explanation: result.explanation,
+        }));
+
+        // Check if first 5 are all correct (in order)
+        const first5Correct = answerResults.slice(0, 5).every(r => r.isCorrect);
+
+        // Check if all 10 are correct (in order)
+        const all10Correct = answerResults.every(r => r.isCorrect);
+
+        // Calculate points: +10 for all 10, +5 for first 5, 0 otherwise
+        let points = 0;
+        if (all10Correct) {
+          points = 10;
+        } else if (first5Correct) {
+          points = 5;
+        }
+
+        return {
+          answers: answerResults,
+          first5Correct,
+          all10Correct,
+          points,
+        };
+      };
+
+      const spicyTeamResult = buildTeamResult(spicyResults, spicyAnswers, questions);
+      const sweetTeamResult = buildTeamResult(sweetResults, sweetAnswers, questions);
+
+      console.log(`[validatePhase5Answers] Spicy: ${spicyTeamResult.points}pts (5/5: ${spicyTeamResult.first5Correct}, 10/10: ${spicyTeamResult.all10Correct})`);
+      console.log(`[validatePhase5Answers] Sweet: ${sweetTeamResult.points}pts (5/5: ${sweetTeamResult.first5Correct}, 10/10: ${sweetTeamResult.all10Correct})`);
+
+      return {
+        spicy: spicyTeamResult,
+        sweet: sweetTeamResult,
+      };
+    } catch (error) {
+      console.error('[validatePhase5Answers] Error:', error);
+      const message = error instanceof Error ? error.message : 'Validation failed';
+      throw new HttpsError('internal', message);
     }
   }
 );

@@ -147,3 +147,127 @@ export const generateWithRetry = async (
 
     throw lastError || new Error('Génération échouée après 3 tentatives');
 };
+
+// ============================================================================
+// Phase 3 Answer Validation
+// ============================================================================
+
+export interface AnswerValidationInput {
+    playerAnswer: string;
+    correctAnswer: string;
+    acceptableAnswers?: string[];
+}
+
+export interface AnswerValidationOutput {
+    isCorrect: boolean;
+    confidence: number;
+    matchType: 'exact' | 'alternative' | 'llm' | 'rejected';
+    explanation?: string;
+}
+
+/**
+ * Validate a player's answer against the correct answer using LLM.
+ * Uses fast path for exact matches, LLM for fuzzy matching.
+ * Timeout is set to 30 seconds to match the Cloud Function timeout.
+ */
+export const validatePhase3Answer = async (input: AnswerValidationInput): Promise<AnswerValidationOutput> => {
+    const validateFn = httpsCallable<AnswerValidationInput, AnswerValidationOutput>(
+        functions,
+        'validatePhase3Answer',
+        { timeout: 30000 } // 30 seconds
+    );
+
+    console.log('[AI-CLIENT] 🔍 Validating answer', {
+        playerAnswer: input.playerAnswer,
+        correctAnswer: input.correctAnswer,
+        hasAlternatives: !!input.acceptableAnswers?.length,
+    });
+
+    try {
+        const result = await validateFn(input);
+
+        console.log('[AI-CLIENT] ✅ Validation result', {
+            isCorrect: result.data.isCorrect,
+            confidence: result.data.confidence,
+            matchType: result.data.matchType,
+        });
+
+        return result.data;
+    } catch (error) {
+        console.error('[AI-CLIENT] ❌ Validation error:', error);
+        throw error;
+    }
+};
+
+// ============================================================================
+// Phase 5 Bulk Answer Validation
+// ============================================================================
+
+export interface Phase5Question {
+    question: string;
+    answer: string;
+    acceptableAnswers?: string[];
+}
+
+export interface Phase5ValidationInput {
+    questions: Phase5Question[];
+    spicyAnswers: string[];
+    sweetAnswers: string[];
+}
+
+export interface Phase5ValidationResult {
+    index: number;
+    expected: string;
+    given: string;
+    isCorrect: boolean;
+    explanation?: string;
+}
+
+export interface Phase5TeamResult {
+    answers: Phase5ValidationResult[];
+    first5Correct: boolean;
+    all10Correct: boolean;
+    points: number;
+}
+
+export interface Phase5ValidationOutput {
+    spicy: Phase5TeamResult;
+    sweet: Phase5TeamResult;
+}
+
+/**
+ * Validate all Phase 5 answers for both teams using LLM.
+ * Returns scoring: +5 for first 5 correct in order, +10 for all 10 correct, 0 otherwise.
+ * Timeout is set to 120 seconds to match the Cloud Function timeout.
+ */
+export const validatePhase5Answers = async (input: Phase5ValidationInput): Promise<Phase5ValidationOutput> => {
+    const validateFn = httpsCallable<Phase5ValidationInput, Phase5ValidationOutput>(
+        functions,
+        'validatePhase5Answers',
+        { timeout: 120000 } // 120 seconds
+    );
+
+    console.log('[AI-CLIENT] 🔍 Validating Phase 5 answers', {
+        questionsCount: input.questions.length,
+        spicyAnswersCount: input.spicyAnswers.length,
+        sweetAnswersCount: input.sweetAnswers.length,
+    });
+
+    try {
+        const result = await validateFn(input);
+
+        console.log('[AI-CLIENT] ✅ Phase 5 validation result', {
+            spicyPoints: result.data.spicy.points,
+            spicy5_5: result.data.spicy.first5Correct,
+            spicy10_10: result.data.spicy.all10Correct,
+            sweetPoints: result.data.sweet.points,
+            sweet5_5: result.data.sweet.first5Correct,
+            sweet10_10: result.data.sweet.all10Correct,
+        });
+
+        return result.data;
+    } catch (error) {
+        console.error('[AI-CLIENT] ❌ Phase 5 validation error:', error);
+        throw error;
+    }
+};

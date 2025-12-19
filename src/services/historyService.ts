@@ -1,7 +1,5 @@
 import { ref, get, update, child } from 'firebase/database';
 import { rtdb, auth } from './firebase';
-import type { Player } from '../types/gameTypes';
-import { QUESTIONS } from '../data/questions';
 import { generateQuestionHash } from '../utils/hash';
 
 /**
@@ -115,78 +113,4 @@ export async function filterUnseenQuestions<T>(
 
     // If all questions have been seen, return all to allow cycling
     return unseen.length > 0 ? unseen : questions;
-}
-
-/**
- * Check if ANY player in the room has exhausted the static Phase 1 questions.
- * Returns true if for any player, the number of seen static questions >= total static questions.
- * (Or a more sophisticated check: if the intersection of unseen questions for all players is empty).
- */
-export async function checkPhase1Exhaustion(players: Player[]): Promise<boolean> {
-    console.log('[HISTORY-SVC] checkPhase1Exhaustion called:', {
-        playerCount: players?.length || 0,
-        playerNames: players?.map(p => p.name) || []
-    });
-
-    if (!players || players.length === 0) {
-        console.log('[HISTORY-SVC] checkPhase1Exhaustion: No players, returning false');
-        return false;
-    }
-
-    try {
-        const totalStaticQuestions = QUESTIONS.length;
-        console.log('[HISTORY-SVC] Total static questions:', totalStaticQuestions);
-
-        // If no default questions exist, always trigger AI generation
-        if (totalStaticQuestions === 0) {
-            console.log('[HISTORY-SVC] checkPhase1Exhaustion: No static questions, returning true');
-            return true;
-        }
-
-        console.log('[HISTORY-SVC] Fetching history for all players...');
-        const histories = await Promise.all(
-            players.map(p => get(child(ref(rtdb), `userHistory/${p.id}`)))
-        );
-
-        // Let's just grab the FULL history keys for each player
-        const playerSeenIds = histories.map(snap => {
-            if (!snap.exists()) return new Set<string>();
-            return new Set(Object.keys(snap.val()));
-        });
-
-        // Log each player's seen count
-        const playerStats: { name: string; seenCount: number; totalSeen: number }[] = [];
-        for (let i = 0; i < playerSeenIds.length; i++) {
-            const seenSet = playerSeenIds[i];
-            let seenStaticCount = 0;
-            for (const q of QUESTIONS) {
-                const qId = generateQuestionHash(q.text);
-                if (seenSet.has(qId)) {
-                    seenStaticCount++;
-                }
-            }
-            playerStats.push({
-                name: players[i].name,
-                seenCount: seenStaticCount,
-                totalSeen: seenSet.size
-            });
-
-            // If a single player has seen 100% of questions, trigger AI generation
-            if (seenStaticCount >= totalStaticQuestions) {
-                console.log('[HISTORY-SVC] 🚨 Player exhausted static pool!', {
-                    player: players[i].name,
-                    seenStaticCount,
-                    totalStaticQuestions
-                });
-                return true;
-            }
-        }
-
-        console.log('[HISTORY-SVC] checkPhase1Exhaustion: Player stats:', playerStats);
-        console.log('[HISTORY-SVC] checkPhase1Exhaustion: No exhaustion detected, returning false');
-        return false;
-    } catch (error) {
-        console.error('[HISTORY-SVC] Error checking exhaustion:', error);
-        return false;
-    }
 }

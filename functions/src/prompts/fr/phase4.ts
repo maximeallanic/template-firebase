@@ -1,119 +1,123 @@
 /**
  * French Phase 4 (La Note) Prompts
- * Buzzer-based quick questions
+ * MCQ Race - Culture Générale classique
  */
 
-export const PHASE4_PROMPT = `Tu es l'animateur de "Burger Quiz" pour la phase "La Note" (buzzer).
-Génère 15 questions rapides pour un round de buzzer.
+export const PHASE4_PROMPT = `Tu es l'animateur de "Burger Quiz" pour la phase "La Note".
+Génère 10 questions de culture générale en format QCM.
 
 Thème : {TOPIC}
 Difficulté : {DIFFICULTY}
 
 CONCEPT :
-- Questions TRÈS courtes et directes
-- Réponses en 1-3 mots maximum
+- Course de rapidité : tous les joueurs répondent en même temps
+- Premier à répondre CORRECTEMENT gagne 2 points
+- Questions style quiz TV (Questions pour un Champion, QPUC)
 
-HUMOUR DANS LA FORME, SÉRIEUX DANS LE FOND :
-✅ FORMULATION HUMORISTIQUE :
-- Formulations pièges style Alain Chabat : "Quelle est la couleur du cheval blanc d'Henri IV ?"
-- Tournures inattendues pour des questions classiques
-- Questions qui semblent faciles mais font réfléchir
-
-❌ CONTENU SÉRIEUX :
-- Les RÉPONSES doivent être des FAITS réels
-- Pas de questions sur des sujets inventés ou absurdes
-- Culture générale, histoire, science = OK avec réponses factuelles
+FORMAT QCM :
+- Exactement 4 options de réponse
+- UNE SEULE réponse correcte
+- Les 3 distracteurs doivent être PLAUSIBLES
 
 IMPORTANT - VÉRIFICATION DES FAITS :
 - Utilise la recherche Google pour VÉRIFIER chaque réponse
 - Les réponses doivent être indiscutables
 
-FORMAT TEXTE - INTERDIT :
-- PAS de markdown
-- Texte brut uniquement
-
 JSON Format (STRICTEMENT ce format) :
 [
-  { "question": "Question courte et directe ?", "answer": "Réponse courte" }
-] (Array of exactly 15 items)`;
+  {
+    "question": "Question claire et directe ?",
+    "options": ["Option A", "Option B", "Option C", "Option D"],
+    "correctIndex": 0,
+    "anecdote": "Fait amusant optionnel"
+  }
+]
 
-export const PHASE4_GENERATOR_PROMPT = `Tu es un expert en quiz rapide pour "Burger Quiz" (phase "La Note" - Buzzer).
+10 questions exactement. Pas de markdown.`;
+
+export const PHASE4_GENERATOR_PROMPT = `Tu es un expert en quiz culture générale pour "Burger Quiz" (phase "La Note").
 
 Thème : {TOPIC}
 Difficulté : {DIFFICULTY}
 
-CONCEPT DE LA PHASE "LA NOTE" (BUZZER) :
-- Les équipes ont un buzzer
-- Première équipe à buzzer donne sa réponse
-- Questions RAPIDES : le joueur doit répondre en moins de 3 secondes après le buzz
+CONCEPT DE LA PHASE "LA NOTE" (COURSE MCQ) :
+- Tous les joueurs voient la question en même temps
+- Premier joueur à répondre CORRECTEMENT gagne 2 points
+- Timer de 30 secondes par question
+- Questions de culture générale style TV quiz
 
-GÉNÈRE 15 QUESTIONS pour le round buzzer.
+GÉNÈRE 10 QUESTIONS en format QCM.
 
-=== RÈGLE D'OR : VITESSE ===
+=== RÈGLES DE DIFFICULTÉ ===
 
-Les questions doivent être :
-- COURTES : max 15 mots par question
-- DIRECTES : la question doit être comprise instantanément
-- RÉPONSE RAPIDE : 1-3 mots maximum
+Répartition obligatoire :
+- 3 questions FACILES : Connu de 80% des gens (capitales, faits basiques)
+- 4 questions MOYENNES : Connu de 50% des gens (culture générale classique)
+- 3 questions DIFFICILES : Connu de 20% des gens (pour départager)
 
-=== FORMULATIONS PIÈGES (OBLIGATOIRE) ===
+=== FORMAT QCM STRICT ===
 
-Au moins 5-6 questions sur 15 doivent être des PIÈGES de formulation !
+1. QUESTION :
+   - Claire et directe (pas de piège de formulation)
+   - Max 25 mots
+   - Compréhension immédiate
 
-✅ EXEMPLES DE PIÈGES CLASSIQUES :
+2. OPTIONS (exactement 4) :
+   - Une seule réponse correcte (correctIndex 0-3)
+   - 3 distracteurs PLAUSIBLES du même registre
+   - Longueur similaire entre options
+   - Pas de "blague" évidente
 
-Type 1 - La réponse est dans la question :
-- "Quel est le prénom du Père Noël ?" → "Père" (pas "Nicolas")
-- "De quelle couleur sont les M&M's bleus ?" → "Bleus"
-- "Qui est le meilleur ami de Batman qui s'appelle Robin ?" → "Robin"
-- "Quel est le nom de famille de Louis de Funès ?" → "de Funès"
+✅ BON EXEMPLE :
+{
+  "question": "Quelle est la capitale de l'Australie ?",
+  "options": ["Sydney", "Melbourne", "Canberra", "Brisbane"],
+  "correctIndex": 2,
+  "anecdote": "Canberra a été construite spécialement pour être capitale !"
+}
 
-Type 2 - L'évidence trompeuse :
-- "Combien de mois ont 28 jours ?" → "12" (tous les mois ont au moins 28 jours)
-- "Dans quel pays trouve-t-on le mont Fuji ?" → "Japon" (semble facile mais fait hésiter)
-
-Type 3 - Le piège historique :
-- "Qui a peint le plafond du Louvre ?" → piège (le Louvre n'a pas UN plafond peint célèbre, c'est la Sixtine)
-- "Combien d'animaux Moïse a-t-il mis dans l'arche ?" → "0" (c'est Noé, pas Moïse)
-
-=== FORMULATIONS INTERDITES ===
-
-❌ TROP LONG (buzzer = rapidité) :
-- "Pouvez-vous me dire quel est le nom du célèbre peintre italien né en 1452 qui a peint la Joconde ?"
-  → INTERDIT (trop long, format exam)
-
-❌ TROP SCOLAIRE :
-- "Quelle est la formule chimique de l'eau ?" → INTERDIT (format exam)
-- "En quelle année a eu lieu la Révolution française ?" → INTERDIT (format encyclopédique)
-
-❌ SANS PIÈGE :
-- "Quelle est la capitale de la France ?" → INTERDIT (trop évident, pas de piège)
+❌ MAUVAIS EXEMPLE :
+{
+  "question": "Quelle est la capitale de l'Australie ?",
+  "options": ["Canberra", "Pizza", "42", "Le chat"],  // Distracteurs absurdes
+  "correctIndex": 0
+}
 
 === VARIÉTÉ THÉMATIQUE ===
 
-Mélange obligatoire sur 15 questions :
-- 3-4 questions culture pop / célébrités
-- 3-4 questions histoire / géographie
-- 3-4 questions sciences / nature
-- 3-4 questions expressions / jeux de mots
-- 1-2 questions d'actualité récente
+Sur 10 questions, mélange obligatoire :
+- 2-3 questions Histoire / Géographie
+- 2-3 questions Sciences / Nature
+- 2-3 questions Arts / Littérature / Musique
+- 2-3 questions Sport / Actualité / Pop culture
 
-=== EXACTITUDE FACTUELLE ===
+=== ANECDOTE (OPTIONNEL) ===
 
-- UTILISE Google Search pour vérifier CHAQUE réponse
+- Fait amusant ou surprenant sur la bonne réponse
+- Max 30 mots
+- Ton ludique et informatif
+
+=== EXACTITUDE FACTUELLE (CRITIQUE) ===
+
+- UTILISE Google Search pour VÉRIFIER chaque réponse
 - La réponse doit être INDISCUTABLE
-- Pas d'ambiguïté : UNE SEULE réponse possible
+- Pas d'ambiguïté : une seule réponse correcte
 
 {PREVIOUS_FEEDBACK}
 
 FORMAT JSON (STRICTEMENT) :
 [
-  { "question": "Question courte (max 15 mots) ?", "answer": "Réponse 1-3 mots" }
+  {
+    "question": "Question claire (max 25 mots) ?",
+    "options": ["Option A", "Option B", "Option C", "Option D"],
+    "correctIndex": 0,
+    "anecdote": "Fait amusant (optionnel)"
+  }
 ]
 
-15 questions exactement. Pas de markdown.`;
+10 questions exactement. Pas de markdown.`;
 
-export const PHASE4_DIALOGUE_REVIEWER_PROMPT = `Tu es un juge STRICT pour "Burger Quiz" phase "La Note" (Buzzer).
+export const PHASE4_DIALOGUE_REVIEWER_PROMPT = `Tu es un juge STRICT pour "Burger Quiz" phase "La Note" (QCM).
 Analyse ces questions et donne un feedback détaillé.
 
 QUESTIONS PROPOSÉES :
@@ -121,50 +125,57 @@ QUESTIONS PROPOSÉES :
 
 ÉVALUE CHAQUE CRITÈRE (score 1-10) :
 
-1. VITESSE (CRITIQUE) : Les questions sont-elles assez COURTES pour un buzzer ?
-   - Max 15 mots par question
-   - Compréhension instantanée requise
-   ✅ BON : "Quel est le prénom du Père Noël ?"
-   ❌ MAUVAIS : "Pouvez-vous me dire quel est le nom du célèbre peintre..."
-
-2. PIÈGES : Y a-t-il assez de questions-pièges (min 5/15) ?
-   - Réponse dans la question
-   - Évidence trompeuse
-   - Piège de formulation
-
-3. VARIÉTÉ THÉMATIQUE : Mix de sujets différents ?
-   - Culture pop, histoire, sciences, actualité...
-
-4. EXACTITUDE FACTUELLE (CRITIQUE) : Les réponses sont-elles 100% correctes ?
+1. EXACTITUDE FACTUELLE (CRITIQUE) :
+   - La bonne réponse est-elle VRAIE ?
    - UTILISE Google Search pour vérifier
-   - Une seule réponse possible par question
+   - UNE SEULE réponse possible par question
 
-5. LONGUEUR RÉPONSES : Toutes en 1-3 mots ?
+2. PLAUSIBILITÉ DES OPTIONS :
+   - Les 4 options sont-elles du MÊME REGISTRE ?
+   - Les distracteurs font-ils hésiter ?
+   - Pas de réponse "blague" évidente
 
-6. STYLE BURGER QUIZ : Ton décalé, formulations drôles ?
+3. DIFFICULTÉ ÉQUILIBRÉE :
+   - Mix de faciles (3), moyennes (4), difficiles (3) ?
+   - Pas trop obscur (jouable par tous)
+
+4. VARIÉTÉ THÉMATIQUE :
+   - Mix de thèmes différents (histoire, géo, sciences, arts, sport) ?
+   - Pas de répétition de thème
+
+5. CLARTÉ :
+   - Questions sans ambiguïté ?
+   - Options de longueur similaire ?
+
+6. QUALITÉ DES ANECDOTES :
+   - Faits intéressants et vrais ?
+   - Longueur appropriée (max 30 mots) ?
 
 FORMAT JSON (STRICTEMENT) :
 {
   "approved": true | false,
   "scores": {
-    "speed_friendly": 1-10,
-    "trap_quality": 1-10,
-    "thematic_variety": 1-10,
     "factual_accuracy": 1-10,
-    "answer_length": 1-10,
-    "burger_style": 1-10
+    "option_plausibility": 1-10,
+    "difficulty_balance": 1-10,
+    "thematic_variety": 1-10,
+    "clarity": 1-10,
+    "anecdote_quality": 1-10
   },
   "overall_score": 1-10,
-  "trap_count": 0-15,
+  "difficulty_distribution": {
+    "easy": [0, 1, 2],
+    "medium": [3, 4, 5, 6],
+    "hard": [7, 8, 9]
+  },
   "questions_feedback": [
     {
       "index": 0,
       "question": "La question",
-      "answer": "La réponse",
+      "correct_option": "La bonne réponse",
       "ok": true | false,
-      "is_trap": true | false,
-      "issues": ["trop_long" | "trop_scolaire" | "reponse_incorrecte" | "trop_evident" | "reponse_longue"],
-      "word_count": 8,
+      "difficulty": "easy" | "medium" | "hard",
+      "issues": ["factual_error" | "implausible_options" | "ambiguous" | "bad_anecdote"],
       "correction": "Correction si nécessaire"
     }
   ],
@@ -173,13 +184,13 @@ FORMAT JSON (STRICTEMENT) :
 }
 
 CRITÈRES DE REJET (approved = false) :
-- speed_friendly < 6 (questions trop longues)
-- trap_count < 4 (pas assez de pièges)
-- factual_accuracy < 7 (trop d'erreurs)
+- factual_accuracy < 7 (erreurs factuelles)
+- option_plausibility < 6 (distracteurs mauvais)
+- Plus de 3 questions avec issues
 
 Pas de markdown.`;
 
-export const PHASE4_TARGETED_REGENERATION_PROMPT = `Tu dois REMPLACER certaines questions Phase 4 "La Note" (Buzzer).
+export const PHASE4_TARGETED_REGENERATION_PROMPT = `Tu dois REMPLACER certaines questions Phase 4 "La Note" (QCM).
 
 QUESTIONS À GARDER (indices non listés) :
 {GOOD_QUESTIONS}
@@ -192,19 +203,20 @@ RAISONS DU REJET :
 
 RÈGLES POUR LES NOUVELLES QUESTIONS :
 
-1. COURTES : max 15 mots par question
-2. PIÈGES : la réponse doit surprendre
-3. FACTUELLES : utilise Google Search pour vérifier
-4. RÉPONSES : 1-3 mots max
-
-Types de pièges à utiliser :
-- Réponse dans la question ("prénom du Père Noël")
-- Évidence trompeuse ("couleur des M&M's bleus")
-- Piège logique ("mois avec 28 jours")
+1. Culture générale style TV quiz
+2. Exactement 4 options plausibles du même registre
+3. UNE seule réponse correcte
+4. Vérifie les faits avec Google Search
+5. Anecdote optionnelle (max 30 mots)
 
 GÉNÈRE UNIQUEMENT les {COUNT} questions de remplacement en JSON :
 [
-  { "question": "Nouvelle question piège ?", "answer": "Réponse courte" }
+  {
+    "question": "Nouvelle question ?",
+    "options": ["A", "B", "C", "D"],
+    "correctIndex": 0,
+    "anecdote": "Fait intéressant optionnel"
+  }
 ]
 
 {COUNT} questions exactement. Pas de markdown.`;

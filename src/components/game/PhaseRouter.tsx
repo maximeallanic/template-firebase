@@ -7,6 +7,8 @@ import { Phase5Player } from '../phases/Phase5Player';
 import { GameHeader } from './GameHeader';
 import { DebugPanel } from './DebugPanel';
 import { GenerationLoadingCard } from '../ui/GenerationLoadingCard';
+import { TeammateCursors } from './TeammateCursors';
+import { useTeammateCursors } from '../../hooks/useTeammateCursors';
 
 type GameStatus = 'lobby' | 'phase1' | 'phase2' | 'phase3' | 'phase4' | 'phase5' | 'victory';
 
@@ -24,6 +26,9 @@ interface GamePhaseLayoutProps {
     room: Room;
 }
 
+// Phases where cursor sharing is enabled
+const CURSOR_ENABLED_PHASES: GameStatus[] = ['phase1', 'phase2', 'phase3', 'phase4'];
+
 /**
  * Common layout wrapper for game phases
  * IMPORTANT: This component is defined OUTSIDE PhaseRouter to maintain
@@ -38,6 +43,18 @@ function GamePhaseLayout({
     onProfileUpdate,
     room
 }: GamePhaseLayoutProps) {
+    // Check if cursor sharing should be enabled for this phase
+    const isCursorEnabled = CURSOR_ENABLED_PHASES.includes(room.state.status as GameStatus);
+
+    // Use teammate cursors hook
+    const { teammateCursors } = useTeammateCursors({
+        roomCode,
+        playerId: playerId || '',
+        myTeam: currentPlayer?.team ?? null,
+        players,
+        enabled: isCursorEnabled && !!playerId,
+    });
+
     return (
         <div className="min-h-screen bg-slate-900 flex flex-col relative">
             <GameHeader
@@ -47,10 +64,15 @@ function GamePhaseLayout({
                 playerId={playerId}
                 onProfileUpdate={onProfileUpdate}
             />
-            <div className="flex-1 w-full max-w-7xl mx-auto flex flex-col items-center justify-center p-4 pt-20">
+            <div
+                data-cursor-container
+                className="flex-1 w-full max-w-7xl mx-auto flex flex-col items-center justify-center p-4 pt-20"
+            >
                 {children}
             </div>
             <DebugPanel room={room} />
+            {/* Teammate cursors overlay */}
+            {isCursorEnabled && <TeammateCursors cursors={teammateCursors} />}
         </div>
     );
 }
@@ -183,6 +205,7 @@ export function PhaseRouter({
                 <Phase5Player
                     room={room}
                     isHost={isHost}
+                    currentPlayerId={myId || ''}
                 />
             </GamePhaseLayout>
         );

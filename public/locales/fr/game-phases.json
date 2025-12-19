@@ -41,8 +41,7 @@
   },
   "navigation": {
     "startPhase3": "DÉMARRER PHASE 3: LA CARTE",
-    "startPhase4": "DÉMARRER PHASE 4: L'ADDITION",
-    "startPhase4LaNote": "Démarrer Phase 4: La Note"
+    "startPhase4": "Démarrer Phase 4: La Note"
   },
   "endPhase": {
     "phase2Complete": "Fin de la Phase 2 !",

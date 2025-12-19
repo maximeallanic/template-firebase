@@ -1,23 +1,30 @@
 import { useEffect, useLayoutEffect, useState, useRef, useCallback } from 'react';
 import { useParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { type Player, setGameStatus, updatePlayerTeam } from '../services/gameService';
+import { type Player, setGameStatus, updatePlayerTeam, PREMIUM_PHASES } from '../services/gameService';
 import { useGameRoom } from '../hooks/useGameRoom';
 import { useQuestionGeneration } from '../hooks/useQuestionGeneration';
+import { useHostSubscription } from '../hooks/useHostSubscription';
 import { PhaseRouter } from '../components/game/PhaseRouter';
+import { PhaseResults } from '../components/game/PhaseResults';
 import { GameErrorBoundary } from '../components/game/GameErrorBoundary';
 import { GenerationLoadingCard } from '../components/ui/GenerationLoadingCard';
+import { UpgradeModal } from '../components/subscription/UpgradeModal';
 import { motion, AnimatePresence, type Variants } from 'framer-motion';
 import { durations, organicEase, snappySpring } from '../animations';
 import { useReducedMotion } from '../hooks/useReducedMotion';
 import { UserBar } from '../components/auth/UserBar';
 import { PhaseTransition } from '../components/game/PhaseTransition';
 import { DebugPanel } from '../components/game/DebugPanel';
+import { MockPlayerProvider } from '../contexts/MockPlayerContext';
 import {
     Flame, Candy, Link, Eye, Clapperboard, Check
 } from 'lucide-react';
 import { AvatarIcon } from '../components/AvatarIcon';
 import { audioService } from '../services/audioService';
+import { SimpleConfetti } from '../components/ui/SimpleConfetti';
+import { TEAM_CONFETTI_COLORS } from '../components/ui/confettiColors';
+import { PlayerLeaderboard } from '../components/game/victory/PlayerLeaderboard';
 
 type GameStatus = 'lobby' | 'phase1' | 'phase2' | 'phase3' | 'phase4' | 'phase5' | 'victory';
 
@@ -62,8 +69,12 @@ export default function GameRoom() {
         myId
     });
 
+    // Premium subscription check (based on host's subscription)
+    const { isPremium: hostIsPremium } = useHostSubscription(room?.hostId);
+
     // UI State
     const [linkCopied, setLinkCopied] = useState(false);
+    const [showUpgradeModal, setShowUpgradeModal] = useState(false);
     const [showTransition, setShowTransition] = useState(false);
     const [transitionPhase, setTransitionPhase] = useState<GameStatus>('lobby');
     // displayStatus: what the UI shows (lags behind during transitions)
@@ -165,6 +176,38 @@ export default function GameRoom() {
         setTimeout(() => setLinkCopied(false), 2000);
     }, [room]);
 
+    // Handler for PhaseResults "Continue" button - transitions to next phase
+    const handlePhaseResultsContinue = useCallback(async () => {
+        if (!room) return;
+
+        const nextPhaseMap: Record<string, 'phase2' | 'phase3' | 'phase4' | 'phase5'> = {
+            phase1: 'phase2',
+            phase2: 'phase3',
+            phase3: 'phase4',
+            phase4: 'phase5',
+        };
+
+        const nextPhase = nextPhaseMap[room.state.status];
+        if (!nextPhase) return;
+
+        // Check if next phase is premium and host doesn't have subscription
+        if (PREMIUM_PHASES.includes(nextPhase) && !hostIsPremium) {
+            setShowUpgradeModal(true);
+            return;
+        }
+
+        try {
+            await setGameStatus(room.code, nextPhase);
+        } catch (error) {
+            // Handle PREMIUM_REQUIRED error from service layer
+            if (error instanceof Error && error.message === 'PREMIUM_REQUIRED') {
+                setShowUpgradeModal(true);
+            } else {
+                console.error('Failed to transition to next phase:', error);
+            }
+        }
+    }, [room, hostIsPremium]);
+
     // Loading State - return null to let PageTransition handle smooth fade-in
     if (isLoading) {
         return null;
@@ -255,7 +298,11 @@ export default function GameRoom() {
                         </div>
                     )}
 
-                    <DebugPanel room={room} />
+                    {import.meta.env.DEV && (
+                        <MockPlayerProvider room={room}>
+                            <DebugPanel room={room} />
+                        </MockPlayerProvider>
+                    )}
                 </div>
             );
         }
@@ -278,6 +325,9 @@ export default function GameRoom() {
         );
     };
 
+    // Check if we should show PhaseResults overlay
+    const showPhaseResults = room?.state.phaseState === 'phase_results' && !showTransition;
+
     // Single render point - PhaseTransition is ALWAYS rendered at the same place
     // This prevents mount/unmount issues when switching between lobby and phases
     return (
@@ -289,6 +339,22 @@ export default function GameRoom() {
                 onComplete={handleTransitionComplete}
                 onCurtainsClosed={handleCurtainsClosed}
                 isHost={isHost}
+            />
+            {/* Phase Results Overlay - shown between phases */}
+            <AnimatePresence>
+                {showPhaseResults && room && (
+                    <PhaseResults
+                        room={room}
+                        currentPhase={room.state.status}
+                        isHost={isHost}
+                        onContinue={handlePhaseResultsContinue}
+                    />
+                )}
+            </AnimatePresence>
+            {/* Premium Upgrade Modal - shown when trying to access premium phases */}
+            <UpgradeModal
+                isOpen={showUpgradeModal}
+                onClose={() => setShowUpgradeModal(false)}
             />
         </GameErrorBoundary>
     );
@@ -461,8 +527,18 @@ function VictoryScreen({ room, isHost }: { room: NonNullable<ReturnType<typeof u
     const sweetScore = players.filter(p => p.team === 'sweet').reduce((sum, p) => sum + (p.score || 0), 0);
     const winnerTeam = room.state.winnerTeam;
 
+    // Get confetti colors based on winner
+    const confettiColors = winnerTeam === 'spicy'
+        ? TEAM_CONFETTI_COLORS.spicy
+        : winnerTeam === 'sweet'
+            ? TEAM_CONFETTI_COLORS.sweet
+            : TEAM_CONFETTI_COLORS.tie;
+
     return (
         <div className="min-h-screen bg-gradient-to-b from-slate-900 via-slate-800 to-black flex flex-col items-center justify-center p-8 relative overflow-hidden">
+            {/* Confetti with team colors - continuous for victory celebration */}
+            <SimpleConfetti colors={confettiColors} continuous intensity={120} />
+
             {/* Animated Background */}
             <div className="absolute inset-0 overflow-hidden pointer-events-none">
                 <div className={`absolute top-0 left-0 w-96 h-96 rounded-full blur-3xl opacity-30 animate-pulse ${winnerTeam === 'spicy' ? 'bg-spicy-500' : winnerTeam === 'sweet' ? 'bg-sweet-500' : 'bg-yellow-500'}`} />
@@ -473,7 +549,7 @@ function VictoryScreen({ room, isHost }: { room: NonNullable<ReturnType<typeof u
                 initial={{ opacity: 0, scale: 0.8 }}
                 animate={{ opacity: 1, scale: 1 }}
                 transition={{ duration: 0.8, ease: organicEase }}
-                className="text-center z-10"
+                className="text-center z-10 w-full max-w-2xl"
             >
                 {/* Winner Announcement */}
                 <motion.div
@@ -490,11 +566,11 @@ function VictoryScreen({ room, isHost }: { room: NonNullable<ReturnType<typeof u
                             <h2 className="text-2xl md:text-3xl font-bold text-slate-400 uppercase tracking-widest mb-2">
                                 {t('victory.winner')}
                             </h2>
-                            <h1 className={`text-6xl md:text-8xl font-black uppercase tracking-tighter mb-4 flex items-center justify-center gap-4 ${winnerTeam === 'spicy' ? 'text-spicy-500' : 'text-sweet-500'}`}>
+                            <h1 className={`text-5xl md:text-7xl font-black uppercase tracking-tighter mb-4 flex items-center justify-center gap-4 ${winnerTeam === 'spicy' ? 'text-spicy-500' : 'text-sweet-500'}`}>
                                 {winnerTeam === 'spicy' ? (
-                                    <>Team {t('common:teams.spicy')} <Flame className="w-16 h-16 md:w-24 md:h-24" /></>
+                                    <>Team {t('common:teams.spicy')} <Flame className="w-12 h-12 md:w-20 md:h-20" /></>
                                 ) : (
-                                    <>Team {t('common:teams.sweet')} <Candy className="w-16 h-16 md:w-24 md:h-24" /></>
+                                    <>Team {t('common:teams.sweet')} <Candy className="w-12 h-12 md:w-20 md:h-20" /></>
                                 )}
                             </h1>
                         </>
@@ -505,15 +581,18 @@ function VictoryScreen({ room, isHost }: { room: NonNullable<ReturnType<typeof u
                 <motion.div
                     initial={{ y: 50, opacity: 0 }}
                     animate={{ y: 0, opacity: 1 }}
-                    transition={{ delay: 0.6, duration: 0.6 }}
-                    className="flex items-center justify-center gap-8 md:gap-16 my-12"
+                    transition={{ delay: 0.5, duration: 0.6 }}
+                    className="flex items-center justify-center gap-6 md:gap-12 my-8"
                     role="region"
                     aria-label={t('scores.finalScores')}
                 >
                     <ScoreCard team="spicy" score={spicyScore} isWinner={winnerTeam === 'spicy'} />
-                    <div className="text-4xl font-black text-slate-600" aria-hidden="true">VS</div>
+                    <div className="text-3xl font-black text-slate-600" aria-hidden="true">VS</div>
                     <ScoreCard team="sweet" score={sweetScore} isWinner={winnerTeam === 'sweet'} />
                 </motion.div>
+
+                {/* Player Leaderboard */}
+                <PlayerLeaderboard players={room.players} topN={3} />
 
                 {/* Play Again Button */}
                 {isHost && (
@@ -531,7 +610,11 @@ function VictoryScreen({ room, isHost }: { room: NonNullable<ReturnType<typeof u
                 )}
             </motion.div>
 
-            <DebugPanel room={room} />
+            {import.meta.env.DEV && (
+                <MockPlayerProvider room={room}>
+                    <DebugPanel room={room} />
+                </MockPlayerProvider>
+            )}
         </div>
     );
 }

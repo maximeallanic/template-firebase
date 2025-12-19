@@ -1,12 +1,14 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { LogOut, ChevronDown, Settings, Power } from 'lucide-react';
+import { LogOut, ChevronDown, Settings, Power, Crown } from 'lucide-react';
 import { ProfileEditModal } from './ProfileEditModal';
 import { AvatarIcon } from '../AvatarIcon';
 import { safeStorage } from '../../utils/storage';
 import { getLocalProfile } from '../../services/profileService';
 import { leaveRoom, type Avatar } from '../../services/gameService';
-import { signOut } from '../../services/firebase';
+import { signOut, createCheckoutSession } from '../../services/firebase';
+import { useAuthUser } from '../../hooks/useAuthUser';
+import { useHostSubscription } from '../../hooks/useHostSubscription';
 
 interface UserBarProps {
     playerName?: string;
@@ -28,7 +30,12 @@ export const UserBar: React.FC<UserBarProps> = ({
 }) => {
     const [isDropdownOpen, setIsDropdownOpen] = useState(false);
     const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
+    const [isUpgrading, setIsUpgrading] = useState(false);
     const dropdownRef = useRef<HTMLDivElement>(null);
+
+    // Get authenticated user and their subscription status
+    const { user } = useAuthUser();
+    const { isPremium, isLoading: isSubscriptionLoading } = useHostSubscription(user?.uid);
 
     // Read from localStorage cache if props not provided
     const localProfile = getLocalProfile();
@@ -125,6 +132,22 @@ export const UserBar: React.FC<UserBarProps> = ({
         window.location.href = '/login';
     };
 
+    const handleUpgrade = async () => {
+        if (!user) return;
+
+        setIsUpgrading(true);
+        try {
+            const returnUrl = window.location.href;
+            const { url } = await createCheckoutSession(returnUrl);
+            if (url) {
+                window.location.href = url;
+            }
+        } catch (error) {
+            console.error('Failed to create checkout session:', error);
+            setIsUpgrading(false);
+        }
+    };
+
     return (
         <>
             <div ref={dropdownRef} className="relative">
@@ -162,12 +185,33 @@ export const UserBar: React.FC<UserBarProps> = ({
                                     </div>
                                     <div className="flex-1 min-w-0">
                                         <p className="text-sm font-bold text-white truncate">{playerName}</p>
-                                        <p className="text-xs text-slate-400">Joueur</p>
+                                        <p className="text-xs text-slate-400 flex items-center gap-1">
+                                            {isPremium ? (
+                                                <>
+                                                    <Crown className="w-3 h-3 text-amber-400" />
+                                                    <span className="text-amber-400">Premium</span>
+                                                </>
+                                            ) : (
+                                                'Joueur'
+                                            )}
+                                        </p>
                                     </div>
                                 </div>
                             </div>
 
                             <div className="py-1" role="menu" aria-label="Actions utilisateur">
+                                {/* Premium upgrade button - only show if not premium and user is authenticated */}
+                                {user && !isPremium && !isSubscriptionLoading && (
+                                    <button
+                                        onClick={handleUpgrade}
+                                        disabled={isUpgrading}
+                                        role="menuitem"
+                                        className="w-full px-4 py-2 text-left text-sm bg-gradient-to-r from-amber-500/10 to-orange-500/10 text-amber-400 hover:from-amber-500/20 hover:to-orange-500/20 transition-colors flex items-center gap-2 disabled:opacity-50"
+                                    >
+                                        <Crown className="w-4 h-4" aria-hidden="true" />
+                                        {isUpgrading ? 'Chargement...' : 'Passer Premium — 4,99 €/mois'}
+                                    </button>
+                                )}
                                 <button
                                     onClick={handleEditProfile}
                                     role="menuitem"

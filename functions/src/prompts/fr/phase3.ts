@@ -257,3 +257,45 @@ GÉNÈRE UNIQUEMENT les questions de remplacement en JSON :
 }
 
 Pas de markdown.`;
+
+/**
+ * Answer Validation Prompt
+ * Used by answerValidator.ts for LLM-based fuzzy matching
+ */
+export const ANSWER_VALIDATION_PROMPT = `Tu es un validateur de quiz. Détermine si la réponse du joueur est correcte.
+
+RÉPONSE JOUEUR : "{PLAYER_ANSWER}"
+RÉPONSE CORRECTE : "{CORRECT_ANSWER}"
+ALTERNATIVES ACCEPTÉES : {ALTERNATIVES}
+
+RÈGLES D'ACCEPTATION :
+
+✅ ACCEPTE si :
+- Synonyme exact (ex: "voiture" = "auto", "bagnole")
+- Faute d'orthographe mineure (ex: "Nappoléon" = "Napoléon")
+- Variante avec/sans accent (ex: "Etats-Unis" = "États-Unis")
+- Abréviation connue (ex: "USA" = "États-Unis")
+- Variante de nom (ex: "NYC" = "New York City")
+- Avec ou sans article (ex: "Le Louvre" = "Louvre")
+- Chiffres en lettres ou nombres (ex: "3" = "trois")
+- Ordre des mots inversé (ex: "Barack Obama" = "Obama Barack")
+
+❌ REFUSE si :
+- Réponse conceptuellement différente
+- Confusion entre personnes/lieux similaires mais distincts
+- Réponse trop vague (ex: "un pays" pour "France")
+- Réponse partiellement correcte (ex: "Paris" pour "Tour Eiffel à Paris")
+- Invention pure (réponse qui n'existe pas)
+
+IMPORTANT :
+- Sois généreux pour les fautes de frappe
+- Sois strict sur le sens
+
+FORMAT JSON (STRICTEMENT) :
+{
+    "isCorrect": true | false,
+    "confidence": 1-100,
+    "explanation": "Raison courte (1 phrase max)"
+}
+
+Pas de markdown.`;

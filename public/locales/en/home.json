@@ -1,0 +1,63 @@
+{
+  "hero": {
+    "tagline": "The culinary quiz game with friends!",
+    "description": "Battle in teams <spicy>Spicy</spicy> vs <sweet>Sweet</sweet> in hilarious challenges!"
+  },
+  "features": {
+    "players": "2-20 players",
+    "challenges": "5 fun challenges",
+    "winner": "1 winning team"
+  },
+  "create": {
+    "title": "CREATE A GAME",
+    "subtitle": "Open your kitchen and invite your friends!",
+    "button": "Become the Chef"
+  },
+  "join": {
+    "title": "JOIN",
+    "subtitle": "Enter the code and pick your team!",
+    "placeholder": "CODE",
+    "button": "Join",
+    "invalidCode": "Invalid code"
+  },
+  "phases": {
+    "title": "5 Hilarious Challenges",
+    "tenders": {
+      "name": "Tenders",
+      "description": "Be the fastest to buzz!"
+    },
+    "sucreSale": {
+      "name": "Sweet & Salty",
+      "description": "A or B?"
+    },
+    "laCarte": {
+      "name": "The Menu",
+      "description": "Remember as many dishes as you can!"
+    },
+    "laNote": {
+      "name": "The Bill",
+      "description": "General knowledge questions!"
+    },
+    "burgerUltime": {
+      "name": "Ultimate Burger",
+      "description": "The final challenge for victory!"
+    }
+  },
+  "loading": {
+    "joining": "Joining the game...",
+    "creating": "Opening the kitchen..."
+  },
+  "premium": {
+    "badge": "PREMIUM",
+    "title": "Unlock all phases",
+    "description": "Go Premium to access phases 3, 4 and 5 with your team!",
+    "features": {
+      "laCarte": "The Menu",
+      "laNote": "The Bill",
+      "burgerUltime": "Ultimate Burger"
+    },
+    "price": "€4.99/month",
+    "cta": "Go Premium",
+    "hostOnly": "Only the host needs a subscription"
+  }
+}

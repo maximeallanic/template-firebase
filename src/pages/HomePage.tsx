@@ -3,6 +3,7 @@ import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useTranslation } from 'react-i18next';
 import { UserBar } from '../components/auth/UserBar';
+import { EmailActionHandler } from '../components/auth/EmailActionHandler';
 import { Logo } from '../components/ui/Logo';
 import { AvatarIcon } from '../components/AvatarIcon';
 import { PhaseIcon } from '../components/game/PhaseIcon';
@@ -10,7 +11,9 @@ import { createRoom, joinRoom, AVATAR_LIST } from '../services/gameService';
 import { safeStorage } from '../utils/storage';
 import { saveProfile } from '../services/profileService';
 import { useAuthUser } from '../hooks/useAuthUser';
-import { Users, Zap, Trophy, ChefHat, Flame, Candy, X } from 'lucide-react';
+import { Users, Zap, Trophy, ChefHat, Flame, Candy, X, Crown, Star, Lock } from 'lucide-react';
+import { createCheckoutSession } from '../services/firebase';
+import { useHostSubscription } from '../hooks/useHostSubscription';
 
 // Floating mascots configuration
 const floatingMascots = [
@@ -34,7 +37,15 @@ export default function HomePage() {
   const [joinCode, setJoinCode] = useState(searchParams.get('code')?.toUpperCase() || '');
   const [joinError, setJoinError] = useState<string | null>(null);
   const [urlError, setUrlError] = useState<string | null>(null);
+  const [isUpgrading, setIsUpgrading] = useState(false);
   const hasAutoJoined = useRef(false);
+
+  // Check if user is already premium
+  const { isPremium, isLoading: isPremiumLoading } = useHostSubscription(user?.uid);
+
+  // Handle Firebase email action links (verification, password reset)
+  const mode = searchParams.get('mode');
+  const oobCode = searchParams.get('oobCode');
 
   // Handle error from URL (e.g., kicked from room)
   useEffect(() => {
@@ -167,6 +178,32 @@ export default function HomePage() {
       setIsJoiningRoom(false);
     }
   };
+
+  // Handle Premium upgrade
+  const handleUpgrade = async () => {
+    // If not authenticated, redirect to login first
+    if (!user) {
+      navigate('/login');
+      return;
+    }
+
+    setIsUpgrading(true);
+    try {
+      const returnUrl = window.location.href;
+      const { url } = await createCheckoutSession(returnUrl);
+      if (url) {
+        window.location.href = url;
+      }
+    } catch (error) {
+      console.error('Failed to create checkout session:', error);
+      setIsUpgrading(false);
+    }
+  };
+
+  // If this is a Firebase email action (verification or password reset), show the handler
+  if ((mode === 'verifyEmail' || mode === 'resetPassword') && oobCode) {
+    return <EmailActionHandler />;
+  }
 
   return (
     <div className="min-h-screen flex flex-col items-center p-6 relative overflow-hidden">
@@ -435,6 +472,124 @@ export default function HomePage() {
             ))}
           </div>
         </motion.div>
+
+        {/* Premium Banner - Only show if not premium */}
+        {!isPremiumLoading && !isPremium && (
+          <motion.div
+            initial={{ opacity: 0, y: 30 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 1.4, duration: 0.6 }}
+            className="w-full max-w-4xl mb-16"
+          >
+            <div className="relative rounded-3xl overflow-hidden">
+              {/* Gradient background */}
+              <div className="absolute inset-0 bg-gradient-to-r from-amber-600/30 via-orange-500/20 to-amber-600/30" />
+              <div className="absolute inset-0 bg-gradient-to-b from-transparent via-black/20 to-black/40" />
+
+              {/* Animated sparkles */}
+              <motion.div
+                className="absolute top-4 left-8 text-amber-300/60"
+                animate={{ scale: [1, 1.3, 1], opacity: [0.4, 0.8, 0.4] }}
+                transition={{ duration: 2, repeat: Infinity, delay: 0 }}
+              >
+                <Star className="w-4 h-4 fill-current" />
+              </motion.div>
+              <motion.div
+                className="absolute top-6 right-12 text-amber-300/60"
+                animate={{ scale: [1, 1.3, 1], opacity: [0.4, 0.8, 0.4] }}
+                transition={{ duration: 2, repeat: Infinity, delay: 0.5 }}
+              >
+                <Star className="w-3 h-3 fill-current" />
+              </motion.div>
+              <motion.div
+                className="absolute bottom-8 left-16 text-amber-300/60"
+                animate={{ scale: [1, 1.3, 1], opacity: [0.4, 0.8, 0.4] }}
+                transition={{ duration: 2, repeat: Infinity, delay: 1 }}
+              >
+                <Star className="w-3 h-3 fill-current" />
+              </motion.div>
+
+              {/* Content */}
+              <div className="relative p-8 md:p-10 backdrop-blur-sm border-2 border-amber-500/30 rounded-3xl">
+                <div className="flex flex-col md:flex-row items-center gap-6 md:gap-10">
+                  {/* Crown Icon */}
+                  <div className="flex-shrink-0">
+                    <motion.div
+                      className="w-20 h-20 md:w-24 md:h-24 rounded-2xl bg-gradient-to-br from-amber-400 to-orange-500 flex items-center justify-center shadow-xl shadow-amber-500/30"
+                      whileHover={{ scale: 1.05, rotate: [0, -5, 5, 0] }}
+                      transition={{ rotate: { duration: 0.5 } }}
+                    >
+                      <Crown className="w-10 h-10 md:w-12 md:h-12 text-white" />
+                    </motion.div>
+                  </div>
+
+                  {/* Text content */}
+                  <div className="flex-1 text-center md:text-left">
+                    <div className="inline-block px-3 py-1 rounded-full bg-amber-500/20 text-amber-300 text-xs font-bold tracking-wider mb-3">
+                      {t('premium.badge')}
+                    </div>
+                    <h3 className="text-2xl md:text-3xl font-black text-white mb-2">
+                      {t('premium.title')}
+                    </h3>
+                    <p className="text-amber-100/80 mb-4 max-w-md">
+                      {t('premium.description')}
+                    </p>
+
+                    {/* Locked phases list */}
+                    <div className="flex flex-wrap justify-center md:justify-start gap-2 mb-4">
+                      {['laCarte', 'laNote', 'burgerUltime'].map((phase) => (
+                        <div
+                          key={phase}
+                          className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white/10 border border-amber-500/30"
+                        >
+                          <Lock className="w-3 h-3 text-amber-400" />
+                          <span className="text-sm text-white font-medium">
+                            {t(`premium.features.${phase}`)}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+
+                    <p className="text-amber-300/60 text-xs">
+                      {t('premium.hostOnly')}
+                    </p>
+                  </div>
+
+                  {/* CTA Button */}
+                  <div className="flex-shrink-0">
+                    <motion.button
+                      onClick={handleUpgrade}
+                      disabled={isUpgrading}
+                      whileHover={{ scale: 1.05 }}
+                      whileTap={{ scale: 0.98 }}
+                      className="group relative px-8 py-4 rounded-2xl bg-gradient-to-r from-amber-500 to-orange-500 text-white font-bold text-lg shadow-xl shadow-amber-500/30 hover:shadow-amber-500/50 transition-shadow disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      <span className="flex items-center gap-2">
+                        {isUpgrading ? (
+                          <>
+                            <motion.div
+                              animate={{ rotate: 360 }}
+                              transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+                              className="w-5 h-5 border-2 rounded-full border-white/30 border-t-white"
+                            />
+                            {t('common:messages.loading')}
+                          </>
+                        ) : (
+                          <>
+                            <Star className="w-5 h-5" />
+                            {t('premium.cta')}
+                            <span className="text-amber-200 font-normal">—</span>
+                            <span className="text-amber-100">{t('premium.price')}</span>
+                          </>
+                        )}
+                      </span>
+                    </motion.button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </motion.div>
+        )}
 
         {/* Footer */}
         <footer className="mt-auto pt-8 pb-4 text-center text-sm font-mono tracking-widest uppercase text-white/20">

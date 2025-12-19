@@ -2,6 +2,7 @@ import { ai } from '../config/genkit';
 import { googleAI } from '@genkit-ai/googleai';
 import { db } from '../config/firebase';
 import type { DocumentSnapshot } from 'firebase-admin/firestore';
+import { normalizeText } from './textNormalization';
 
 /**
  * Embedding model configuration
@@ -27,11 +28,15 @@ export const SIMILARITY_THRESHOLD = 0.85;
 
 /**
  * Generate embedding for a single text
+ * Text is normalized before embedding for consistent similarity comparison
  */
 export async function generateEmbedding(text: string): Promise<number[]> {
+    const normalized = normalizeText(text);
+    if (!normalized) return [];
+
     const result = await ai.embed({
         embedder,
-        content: text,
+        content: normalized,
     });
     // ai.embed() returns an array of embeddings, we want the first one
     return result[0]?.embedding || [];
@@ -80,14 +85,198 @@ export interface SemanticDuplicate {
 }
 
 /**
+ * Result type that includes both duplicates and generated embeddings for reuse.
+ * This allows callers to avoid regenerating embeddings multiple times.
+ */
+export interface SemanticDuplicateResult {
+    duplicates: SemanticDuplicate[];
+    embeddings: number[][];  // Generated embeddings for reuse in findInternalDuplicates and storeQuestionsWithEmbeddings
+}
+
+/**
  * Pagination batch size for Firestore queries
  * Prevents loading entire collection into memory
  */
 const PAGINATION_BATCH_SIZE = 100;
 
 /**
- * Find semantic duplicates by comparing new questions against existing ones in Firestore
- * Uses pagination to handle large collections efficiently
+ * Helper function to check for duplicates against a batch of documents with embeddings
+ */
+function checkDuplicatesAgainstBatch(
+    questions: Array<{ text: string }>,
+    newEmbeddings: number[][],
+    docsWithEmbeddings: FirebaseFirestore.QueryDocumentSnapshot[],
+    duplicates: SemanticDuplicate[],
+    foundDuplicateIndices: Set<number>
+): void {
+    for (let i = 0; i < questions.length; i++) {
+        // Skip if we already found a duplicate for this question
+        if (foundDuplicateIndices.has(i)) continue;
+
+        const newEmbedding = newEmbeddings[i];
+        if (!newEmbedding || newEmbedding.length === 0) {
+            console.warn(`⚠️ Failed to generate embedding for question ${i}: "${questions[i].text.slice(0, 50)}..."`);
+            continue;
+        }
+
+        for (const doc of docsWithEmbeddings) {
+            const existingData = doc.data();
+            const existingEmbedding = existingData.embedding as number[];
+
+            const similarity = cosineSimilarity(newEmbedding, existingEmbedding);
+
+            if (similarity >= SIMILARITY_THRESHOLD) {
+                duplicates.push({
+                    index: i,
+                    similarTo: existingData.text as string,
+                    score: similarity
+                });
+                foundDuplicateIndices.add(i);
+                break; // One duplicate is enough to reject
+            }
+        }
+    }
+}
+
+/**
+ * Filter documents to only those with compatible embeddings
+ */
+function filterDocsWithCompatibleEmbeddings(
+    docs: FirebaseFirestore.QueryDocumentSnapshot[]
+): FirebaseFirestore.QueryDocumentSnapshot[] {
+    return docs.filter(doc => {
+        const data = doc.data();
+        if (!data.embedding || !Array.isArray(data.embedding) || data.embedding.length === 0) {
+            return false;
+        }
+        // Accept if same model or no model specified (legacy data)
+        const docModel = data.embeddingModel as string | undefined;
+        return !docModel || docModel === EMBEDDING_MODEL;
+    });
+}
+
+/**
+ * Find semantic duplicates AND return generated embeddings for reuse.
+ * This is the primary function to use - it generates embeddings once and returns them
+ * so callers can reuse them for findInternalDuplicates() and storeQuestionsWithEmbeddings().
+ *
+ * Uses pagination to handle large collections efficiently.
+ * Queries BOTH 'questions' (complete data) and 'question_embeddings' (dedup-only data) collections.
+ *
+ * @param questions - Array of new questions to check
+ * @param phase - Game phase (phase1, phase2, etc.) to filter existing questions
+ * @returns Object containing duplicates array and generated embeddings for reuse
+ */
+export async function findSemanticDuplicatesWithEmbeddings(
+    questions: Array<{ text: string }>,
+    phase: string
+): Promise<SemanticDuplicateResult> {
+    const duplicates: SemanticDuplicate[] = [];
+    const foundDuplicateIndices = new Set<number>();
+
+    // 1. Generate embeddings for new questions first (we'll need them regardless)
+    console.log(`📊 Generating embeddings for ${questions.length} new questions...`);
+    const newEmbeddings = await generateEmbeddings(questions.map(q => q.text));
+
+    let totalExistingChecked = 0;
+
+    // 2. Check against 'questions' collection (complete question data with embeddings from index.ts)
+    let lastDocQuestions: DocumentSnapshot | null = null;
+    let hasMoreQuestions = true;
+
+    while (hasMoreQuestions) {
+        let query = db.collection('questions')
+            .where('phase', '==', phase)
+            .orderBy('createdAt', 'desc')
+            .limit(PAGINATION_BATCH_SIZE);
+
+        if (lastDocQuestions) {
+            query = query.startAfter(lastDocQuestions);
+        }
+
+        const snapshot = await query.get();
+
+        if (snapshot.empty) {
+            hasMoreQuestions = false;
+            break;
+        }
+
+        const docsWithEmbeddings = filterDocsWithCompatibleEmbeddings(snapshot.docs);
+        totalExistingChecked += docsWithEmbeddings.length;
+
+        checkDuplicatesAgainstBatch(
+            questions,
+            newEmbeddings,
+            docsWithEmbeddings,
+            duplicates,
+            foundDuplicateIndices
+        );
+
+        // If all questions have duplicates, stop early but still return embeddings
+        if (foundDuplicateIndices.size >= questions.length) {
+            console.log(`📊 All ${questions.length} questions have duplicates in 'questions' collection`);
+            return { duplicates, embeddings: newEmbeddings };
+        }
+
+        lastDocQuestions = snapshot.docs[snapshot.docs.length - 1];
+        hasMoreQuestions = snapshot.docs.length === PAGINATION_BATCH_SIZE;
+    }
+
+    // 3. Check against 'question_embeddings' collection (embedding-only data for deduplication)
+    let lastDocEmbeddings: DocumentSnapshot | null = null;
+    let hasMoreEmbeddings = true;
+
+    while (hasMoreEmbeddings) {
+        let query = db.collection('question_embeddings')
+            .where('phase', '==', phase)
+            .orderBy('createdAt', 'desc')
+            .limit(PAGINATION_BATCH_SIZE);
+
+        if (lastDocEmbeddings) {
+            query = query.startAfter(lastDocEmbeddings);
+        }
+
+        const snapshot = await query.get();
+
+        if (snapshot.empty) {
+            hasMoreEmbeddings = false;
+            break;
+        }
+
+        const docsWithEmbeddings = filterDocsWithCompatibleEmbeddings(snapshot.docs);
+        totalExistingChecked += docsWithEmbeddings.length;
+
+        checkDuplicatesAgainstBatch(
+            questions,
+            newEmbeddings,
+            docsWithEmbeddings,
+            duplicates,
+            foundDuplicateIndices
+        );
+
+        // If all questions have duplicates, stop early
+        if (foundDuplicateIndices.size >= questions.length) {
+            console.log(`📊 All ${questions.length} questions have duplicates, stopping early`);
+            break;
+        }
+
+        lastDocEmbeddings = snapshot.docs[snapshot.docs.length - 1];
+        hasMoreEmbeddings = snapshot.docs.length === PAGINATION_BATCH_SIZE;
+    }
+
+    if (totalExistingChecked === 0) {
+        console.log(`📊 No existing questions with embeddings for ${phase}, skipping duplicate check`);
+    } else {
+        console.log(`📊 Checked ${questions.length} questions against ${totalExistingChecked} existing embeddings (both collections)`);
+    }
+
+    return { duplicates, embeddings: newEmbeddings };
+}
+
+/**
+ * Find semantic duplicates by comparing new questions against existing ones in Firestore.
+ * This is a convenience wrapper around findSemanticDuplicatesWithEmbeddings() for backward compatibility.
+ * If you need to reuse embeddings, use findSemanticDuplicatesWithEmbeddings() directly.
  *
  * @param questions - Array of new questions to check
  * @param phase - Game phase (phase1, phase2, etc.) to filter existing questions
@@ -97,97 +286,8 @@ export async function findSemanticDuplicates(
     questions: Array<{ text: string }>,
     phase: string
 ): Promise<SemanticDuplicate[]> {
-    const duplicates: SemanticDuplicate[] = [];
-    const foundDuplicateIndices = new Set<number>();
-
-    // 1. Generate embeddings for new questions first (we'll need them regardless)
-    console.log(`📊 Generating embeddings for ${questions.length} new questions...`);
-    const newEmbeddings = await generateEmbeddings(questions.map(q => q.text));
-
-    // 2. Paginated fetch of existing questions with embeddings
-    let lastDoc: DocumentSnapshot | null = null;
-    let totalExistingChecked = 0;
-    let hasMore = true;
-
-    while (hasMore) {
-        // Build paginated query
-        let query = db.collection('questions')
-            .where('phase', '==', phase)
-            .orderBy('createdAt', 'desc')
-            .limit(PAGINATION_BATCH_SIZE);
-
-        if (lastDoc) {
-            query = query.startAfter(lastDoc);
-        }
-
-        const snapshot = await query.get();
-
-        if (snapshot.empty) {
-            hasMore = false;
-            break;
-        }
-
-        // Filter to only questions that have compatible embeddings
-        // Only compare embeddings from the same model (or legacy ones without model tag)
-        const docsWithEmbeddings = snapshot.docs.filter(doc => {
-            const data = doc.data();
-            if (!data.embedding || !Array.isArray(data.embedding) || data.embedding.length === 0) {
-                return false;
-            }
-            // Accept if same model or no model specified (legacy data)
-            const docModel = data.embeddingModel as string | undefined;
-            return !docModel || docModel === EMBEDDING_MODEL;
-        });
-
-        totalExistingChecked += docsWithEmbeddings.length;
-
-        // Compare each new question against this batch of existing ones
-        for (let i = 0; i < questions.length; i++) {
-            // Skip if we already found a duplicate for this question
-            if (foundDuplicateIndices.has(i)) continue;
-
-            const newEmbedding = newEmbeddings[i];
-            if (!newEmbedding || newEmbedding.length === 0) {
-                console.warn(`⚠️ Failed to generate embedding for question ${i}: "${questions[i].text.slice(0, 50)}..."`);
-                continue;
-            }
-
-            for (const doc of docsWithEmbeddings) {
-                const existingData = doc.data();
-                const existingEmbedding = existingData.embedding as number[];
-
-                const similarity = cosineSimilarity(newEmbedding, existingEmbedding);
-
-                if (similarity >= SIMILARITY_THRESHOLD) {
-                    duplicates.push({
-                        index: i,
-                        similarTo: existingData.text as string,
-                        score: similarity
-                    });
-                    foundDuplicateIndices.add(i);
-                    break; // One duplicate is enough to reject
-                }
-            }
-        }
-
-        // If all questions have duplicates, stop early
-        if (foundDuplicateIndices.size >= questions.length) {
-            console.log(`📊 All ${questions.length} questions have duplicates, stopping early`);
-            break;
-        }
-
-        // Prepare for next page
-        lastDoc = snapshot.docs[snapshot.docs.length - 1];
-        hasMore = snapshot.docs.length === PAGINATION_BATCH_SIZE;
-    }
-
-    if (totalExistingChecked === 0) {
-        console.log(`📊 No existing questions with embeddings for ${phase}, skipping duplicate check`);
-    } else {
-        console.log(`📊 Checked ${questions.length} questions against ${totalExistingChecked} existing embeddings (paginated)`);
-    }
-
-    return duplicates;
+    const result = await findSemanticDuplicatesWithEmbeddings(questions, phase);
+    return result.duplicates;
 }
 
 /**
@@ -246,7 +346,10 @@ export async function storeQuestionsWithEmbeddings(
     const now = new Date().toISOString();
 
     for (let i = 0; i < questions.length; i++) {
-        const docRef = db.collection('questions').doc();
+        // Store in separate collection to avoid polluting 'questions' with incomplete data
+        // The 'questions' collection stores complete question data (from index.ts)
+        // The 'question_embeddings' collection stores embedding-only data for deduplication
+        const docRef = db.collection('question_embeddings').doc();
         batch.set(docRef, {
             text: questions[i].text,
             embedding: embeddings[i],
@@ -260,8 +363,8 @@ export async function storeQuestionsWithEmbeddings(
 
     try {
         await batch.commit();
-        console.log(`📦 Stored ${questions.length} questions with embeddings for ${phase}`);
+        console.log(`📦 Stored ${questions.length} embeddings in question_embeddings for ${phase}`);
     } catch (err) {
-        console.error(`❌ Failed to store questions:`, err);
+        console.error(`❌ Failed to store embeddings:`, err);
     }
 }
