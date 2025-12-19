@@ -267,7 +267,7 @@ import { generateGameQuestionsFlow } from './services/gameGenerator';
 export const generateGameQuestions = onCall(
   {
     consumeAppCheckToken: true,
-    timeoutSeconds: 300, // gemini-3-pro-preview uses "thinking" tokens, needs more time
+    timeoutSeconds: 300, // gemini-3-flash-preview uses "thinking" tokens, needs more time
     memory: "1GiB",     // Genkit + Gemini needs some memory
   },
   async ({ data, auth }) => {

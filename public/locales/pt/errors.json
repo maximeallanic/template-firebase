@@ -1,4 +1,7 @@
 {
+  "room": {
+    "notInRoom": "Você não é membro desta sala"
+  },
   "general": {
     "somethingWrong": "Algo deu errado. Por favor, tente novamente"
   }

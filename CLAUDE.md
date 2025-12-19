@@ -123,7 +123,14 @@ export const functionName = onCall(async ({ data, auth }) => {
 });
 ```
 
+**Animations (Framer Motion):**
+- Use `src/animations/index.ts` for shared animation variants
+- `useReducedMotion()` hook respects user's `prefers-reduced-motion` setting
+- Apply `shouldReduceMotion` flag to disable animations for accessibility
+
 ### Data Model
+
+All TypeScript types are centralized in `src/types/gameTypes.ts`.
 
 **Firebase Realtime Database:**
 ```
@@ -186,36 +193,62 @@ users/{userId}
 ```
 src/
 ├── components/
-│   ├── Phase1Player.tsx      # Speed MCQ player view
-│   ├── Phase1Host.tsx        # Speed MCQ host controls
-│   ├── Phase2Player.tsx      # Sucré Salé player view
-│   ├── Phase3Player.tsx      # La Carte player view
-│   ├── Phase4Player.tsx      # La Note buzzer view
-│   ├── Phase5Player.tsx      # Burger Ultime view
-│   ├── AIGeneratorModal.tsx  # AI content generation UI
-│   ├── DebugPanel.tsx        # Debug panel for testing (DEV ONLY)
-│   ├── AvatarIcon.tsx        # Food mascot avatars
-│   ├── UserBar.tsx           # Auth status + profile
-│   └── Logo.tsx              # Game logo
+│   ├── ai/                   # AI features
+│   │   └── AIGeneratorModal.tsx
+│   ├── auth/                 # Authentication & user
+│   │   ├── AuthModal.tsx, AuthRequired.tsx
+│   │   ├── UserBar.tsx, ProfileEditModal.tsx
+│   │   └── EmailVerification.tsx, EmailActionHandler.tsx
+│   ├── game/                 # Core game components
+│   │   ├── PhaseRouter.tsx   # Routes to correct phase component
+│   │   ├── GameHeader.tsx    # In-game header with scores
+│   │   ├── TeamScores.tsx    # Team score display
+│   │   ├── PhaseTransition.tsx, QuestionTransition.tsx
+│   │   ├── DebugPanel.tsx    # Debug panel (DEV ONLY)
+│   │   └── TeammateRoster.tsx
+│   ├── phases/               # Phase-specific player views
+│   │   ├── Phase1Player.tsx  # Tenders (Speed MCQ)
+│   │   ├── Phase2Player.tsx  # Sucré Salé (Binary choice)
+│   │   ├── Phase3Player.tsx  # La Carte (Menu selection)
+│   │   ├── Phase4Player.tsx  # La Note (Buzzer round)
+│   │   └── Phase5Player.tsx  # Burger Ultime (Final)
+│   ├── subscription/         # Payment & subscription
+│   │   ├── Header.tsx, UsageBanner.tsx, FreeTrialBanner.tsx
+│   ├── ui/                   # Shared UI components
+│   │   ├── Logo.tsx, SharedBackground.tsx, PageTransition.tsx
+│   │   ├── SimpleConfetti.tsx, GenerationLoadingCard.tsx
+│   │   └── avatars/          # Food mascot avatar SVGs (15 types)
+│   ├── AvatarIcon.tsx        # Avatar selector/display
+│   └── LanguageSelector.tsx  # i18n language picker
 ├── pages/
 │   ├── HomePage.tsx          # Landing + Create/Join
 │   ├── HostLobby.tsx         # Room creation + team management
 │   ├── JoinGame.tsx          # Join room with code
-│   ├── GameRoom.tsx          # Main game view (routes to phases)
+│   ├── GameRoom.tsx          # Main game view (uses PhaseRouter)
 │   └── LoginPage.tsx         # Authentication
 ├── services/
-│   ├── firebase.ts           # Firebase initialization
+│   ├── firebase.ts           # Firebase initialization + callable functions
 │   ├── gameService.ts        # Game state management (RTDB)
-│   ├── debugService.ts       # Debug utilities (mock players, phase skip) - DEV ONLY
+│   ├── debugService.ts       # Debug utilities (DEV ONLY)
 │   ├── audioService.ts       # Sound effects
 │   └── historyService.ts     # Question deduplication
+├── hooks/
+│   ├── useAuthUser.ts        # Firebase auth state
+│   ├── useGameRoom.ts        # Room subscription & player state
+│   ├── useGameTranslation.ts # Game-specific i18n
+│   ├── useQuestionGeneration.ts # AI question generation flow
+│   ├── useReducedMotion.ts   # Accessibility (respects prefers-reduced-motion)
+│   └── useClipboard.ts       # Clipboard utilities
+├── types/
+│   └── gameTypes.ts          # All game types (Avatar, Player, Room, etc.)
+├── i18n/
+│   ├── config.ts             # i18next configuration
+│   └── types.ts              # Translation key types
 ├── data/
 │   ├── questions.ts          # Default Phase 1 questions
 │   ├── phase2.ts             # Default Phase 2 sets
 │   ├── phase4.ts             # Default Phase 4 questions
 │   └── phase5.ts             # Default Phase 5 questions
-└── hooks/
-    └── useAuthUser.ts        # Firebase auth hook
 
 functions/src/
 ├── index.ts                  # Function exports
@@ -232,17 +265,18 @@ functions/src/
 ## Common Tasks
 
 ### Adding a New Game Phase
-1. Create `Phase{N}Player.tsx` component in `src/components/`
+1. Create `Phase{N}Player.tsx` component in `src/components/phases/`
 2. Add phase data in `src/data/phase{n}.ts`
-3. Update `GameState` type in `src/services/gameService.ts`
+3. Update types in `src/types/gameTypes.ts` (PhaseStatus, GameState, PHASE_NAMES)
 4. Add phase logic functions (start, submit, next) in `gameService.ts`
-5. Update `GameRoom.tsx` to route to new phase
+5. Update `PhaseRouter.tsx` to route to new phase
 6. Update `setGameStatus()` to initialize phase state
 
 ### Adding New Avatars
-1. Add avatar name to `Avatar` type in `src/services/gameService.ts`
-2. Add to `AVATAR_LIST` array
-3. Add emoji/icon mapping in `src/components/AvatarIcon.tsx`
+1. Add avatar name to `Avatar` type in `src/types/gameTypes.ts`
+2. Add to `AVATAR_LIST` array in `src/types/gameTypes.ts`
+3. Create SVG component in `src/components/ui/avatars/{Name}Avatar.tsx`
+4. Register in `src/components/AvatarIcon.tsx`
 
 ### Modifying AI Prompts
 Edit `functions/src/prompts.ts`:
@@ -257,10 +291,24 @@ Edit `functions/src/prompts.ts`:
 3. Export in frontend: `src/services/firebase.ts`
 4. Call from frontend: `await myFunction({ param: value })`
 
+## Internationalization (i18n)
+
+The app uses i18next with 5 supported languages: EN, FR, ES, DE, PT.
+
+**Key Files:**
+- `src/i18n/config.ts` - i18next setup
+- `public/locales/{lang}/translation.json` - Translation files
+- `src/hooks/useGameTranslation.ts` - Game-specific translation hook
+
+**Adding Translations:**
+1. Add keys to all `public/locales/{lang}/translation.json` files
+2. Use `useTranslation()` from react-i18next or `useGameTranslation()` for game-specific strings
+3. For phase names/descriptions, use `PHASE_NAMES` constants in `src/types/gameTypes.ts`
+
 ## Debug Tools (Dev Mode Only)
 
 ### Debug Panel
-A floating debug panel appears automatically in development mode (`npm run dev`) in the bottom-right corner of `GameRoom.tsx`. It provides:
+A floating debug panel (`src/components/game/DebugPanel.tsx`) appears automatically in development mode in the bottom-right corner of the game room. It provides:
 
 - **Mock Players**: Add/remove fake players to teams for single-window testing
 - **Phase Skip**: Jump directly to any game phase (lobby, phase1-5)

@@ -1,5 +1,3 @@
-import type { Question } from '../data/questions';
-
 // === AVATARS ===
 
 export type Avatar =
@@ -53,6 +51,8 @@ export interface Player {
 export interface GameState {
     status: 'lobby' | 'phase1' | 'phase2' | 'phase3' | 'phase4' | 'phase5' | 'victory';
     phaseState: 'idle' | 'reading' | 'answering' | 'result' | 'menu_selection' | 'questioning' | 'buzzed';
+    isGenerating?: boolean; // True when AI is generating questions (visible to all players)
+    phase2Generating?: boolean; // Lock for Phase 2 generation (prevents double generation)
     currentQuestionIndex?: number;
     phase1Answers?: Record<string, boolean>;
     phase1BlockedTeams?: Team[]; // Teams blocked after wrong answer
@@ -83,11 +83,26 @@ export type PhaseState = GameState['phaseState'];
 
 // === QUESTION TYPES ===
 
+export interface Question {
+    text: string;
+    options: string[]; // 4 options
+    correctIndex: number;
+    anecdote?: string; // Info fun sur la réponse (généré par IA)
+}
+
 export interface SimplePhase2Set {
     title: string;
-    items: { text: string; answer: 'A' | 'B' | 'Both'; anecdote?: string; justification?: string }[];
+    items: {
+        text: string;
+        answer: 'A' | 'B' | 'Both';
+        acceptedAnswers?: ('A' | 'B' | 'Both')[];  // Réponses alternatives valides pour items ambigus
+        anecdote?: string;
+        justification?: string;
+    }[];
     optionA: string;
     optionB: string;
+    optionADescription?: string;  // Description pour différencier les homonymes (ex: "le gâteau")
+    optionBDescription?: string;  // Description pour différencier les homonymes (ex: "le banquier")
 }
 
 export interface Phase5Question {

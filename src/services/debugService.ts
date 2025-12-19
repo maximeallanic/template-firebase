@@ -9,10 +9,12 @@ import {
     type Player,
     type Team,
     type Avatar,
-    type GameState,
     type Room,
-    AVATAR_LIST
+    AVATAR_LIST,
+    getPhaseInitialUpdates,
+    schedulePhase1Transition
 } from './gameService';
+import type { PhaseStatus } from '../types/gameTypes';
 
 // ==================== MOCK PLAYERS ====================
 
@@ -111,91 +113,28 @@ export function countMockPlayers(room: Room | null): { total: number; spicy: num
 
 // ==================== PHASE SKIP ====================
 
-type PhaseStatus = GameState['status'];
-
 /**
  * Skip directly to a specific game phase
  * Initializes all required state for the target phase
  */
 export async function skipToPhase(code: string, phase: PhaseStatus): Promise<void> {
     const roomId = code.toUpperCase();
-    const updates: Record<string, unknown> = {};
 
-    // Set base status
-    updates[`rooms/${roomId}/state/status`] = phase;
+    // Get phase-specific state updates from shared function
+    const phaseUpdates = getPhaseInitialUpdates(roomId, phase);
 
-    // Clear common state
-    updates[`rooms/${roomId}/state/roundWinner`] = null;
-
-    // Initialize phase-specific state
-    switch (phase) {
-        case 'lobby':
-            updates[`rooms/${roomId}/state/phaseState`] = 'idle';
-            // Clear all phase-specific state
-            updates[`rooms/${roomId}/state/currentQuestionIndex`] = null;
-            updates[`rooms/${roomId}/state/phase1Answers`] = null;
-            updates[`rooms/${roomId}/state/phase1BlockedTeams`] = null;
-            updates[`rooms/${roomId}/state/currentPhase2Set`] = null;
-            updates[`rooms/${roomId}/state/currentPhase2Item`] = null;
-            updates[`rooms/${roomId}/state/phase2Answers`] = null;
-            updates[`rooms/${roomId}/state/phase3MenuSelection`] = null;
-            updates[`rooms/${roomId}/state/phase3CompletedMenus`] = null;
-            updates[`rooms/${roomId}/state/currentMenuTeam`] = null;
-            updates[`rooms/${roomId}/state/currentPhase4QuestionIndex`] = null;
-            updates[`rooms/${roomId}/state/buzzedTeam`] = null;
-            updates[`rooms/${roomId}/state/phase5State`] = null;
-            updates[`rooms/${roomId}/state/phase5QuestionIndex`] = null;
-            updates[`rooms/${roomId}/state/phase5Score`] = null;
-            break;
-
-        case 'phase1':
-            updates[`rooms/${roomId}/state/currentQuestionIndex`] = 0;
-            updates[`rooms/${roomId}/state/phaseState`] = 'reading';
-            updates[`rooms/${roomId}/state/phase1Answers`] = {};
-            updates[`rooms/${roomId}/state/phase1BlockedTeams`] = [];
-            updates[`rooms/${roomId}/state/questionStartTime`] = Date.now();
-            break;
-
-        case 'phase2':
-            updates[`rooms/${roomId}/state/currentPhase2Set`] = 0;
-            updates[`rooms/${roomId}/state/currentPhase2Item`] = 0;
-            updates[`rooms/${roomId}/state/phaseState`] = 'reading';
-            updates[`rooms/${roomId}/state/phase2Answers`] = {};
-            break;
-
-        case 'phase3':
-            updates[`rooms/${roomId}/state/phaseState`] = 'menu_selection';
-            updates[`rooms/${roomId}/state/phase3MenuSelection`] = {};
-            updates[`rooms/${roomId}/state/phase3CompletedMenus`] = [];
-            updates[`rooms/${roomId}/state/currentMenuTeam`] = 'spicy';
-            updates[`rooms/${roomId}/state/currentMenuQuestionIndex`] = 0;
-            break;
-
-        case 'phase4':
-            updates[`rooms/${roomId}/state/phaseState`] = 'idle';
-            updates[`rooms/${roomId}/state/currentPhase4QuestionIndex`] = 0;
-            updates[`rooms/${roomId}/state/buzzedTeam`] = null;
-            updates[`rooms/${roomId}/state/phase4State`] = 'idle';
-            break;
-
-        case 'phase5':
-            updates[`rooms/${roomId}/state/phase5State`] = 'idle';
-            updates[`rooms/${roomId}/state/phase5QuestionIndex`] = 0;
-            updates[`rooms/${roomId}/state/phase5Score`] = 0;
-            updates[`rooms/${roomId}/state/phaseState`] = 'idle';
-            break;
-    }
+    // Add the status change and clear round winner
+    const updates: Record<string, unknown> = {
+        [`rooms/${roomId}/state/status`]: phase,
+        [`rooms/${roomId}/state/roundWinner`]: null,
+        ...phaseUpdates
+    };
 
     await update(ref(rtdb), updates);
 
     // For phase1, auto-transition to answering after reading delay
     if (phase === 'phase1') {
-        setTimeout(async () => {
-            const answeringUpdates: Record<string, unknown> = {};
-            answeringUpdates[`rooms/${roomId}/state/phaseState`] = 'answering';
-            answeringUpdates[`rooms/${roomId}/state/questionStartTime`] = Date.now();
-            await update(ref(rtdb), answeringUpdates);
-        }, 3000);
+        schedulePhase1Transition(roomId);
     }
 }
 

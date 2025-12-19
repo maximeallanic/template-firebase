@@ -60,8 +60,10 @@ export function useGameRoom({ roomId, debugPlayerId }: UseGameRoomOptions): UseG
                                 navigate(`/?code=${data.code}${debugSuffix ? `&${debugSuffix.slice(1)}` : ''}`);
                             }
                         }, 500);
+                    } else {
+                        // Case B: Game Started -> Kick out with error message
+                        navigate('/?error=notInRoom');
                     }
-                    // Case B: Game Started -> Stay as Spectator
                 }
             }
         });

@@ -1,16 +1,16 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useLayoutEffect } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useTranslation } from 'react-i18next';
-import { UserBar } from '../components/UserBar';
-import { Logo } from '../components/Logo';
+import { UserBar } from '../components/auth/UserBar';
+import { Logo } from '../components/ui/Logo';
 import { AvatarIcon } from '../components/AvatarIcon';
-import { PhaseIcon } from '../components/PhaseIcon';
+import { PhaseIcon } from '../components/game/PhaseIcon';
 import { createRoom, joinRoom, AVATAR_LIST } from '../services/gameService';
-import { auth } from '../services/firebase';
 import { safeStorage } from '../utils/storage';
-import { getLocalProfile, saveProfile } from '../services/profileService';
-import { Users, Zap, Trophy, ChefHat, Flame, Candy } from 'lucide-react';
+import { saveProfile } from '../services/profileService';
+import { useAuthUser } from '../hooks/useAuthUser';
+import { Users, Zap, Trophy, ChefHat, Flame, Candy, X } from 'lucide-react';
 
 // Floating mascots configuration
 const floatingMascots = [
@@ -25,35 +25,53 @@ const floatingMascots = [
 ] as const;
 
 export default function HomePage() {
-  const { t } = useTranslation(['home', 'common']);
+  const { t } = useTranslation(['home', 'common', 'errors']);
   const navigate = useNavigate();
-  const [searchParams] = useSearchParams();
+  const { user, profile, loading: profileLoading } = useAuthUser();
+  const [searchParams, setSearchParams] = useSearchParams();
   const [isCreatingRoom, setIsCreatingRoom] = useState(false);
   const [isJoiningRoom, setIsJoiningRoom] = useState(false);
   const [joinCode, setJoinCode] = useState(searchParams.get('code')?.toUpperCase() || '');
   const [joinError, setJoinError] = useState<string | null>(null);
+  const [urlError, setUrlError] = useState<string | null>(null);
   const hasAutoJoined = useRef(false);
+
+  // Handle error from URL (e.g., kicked from room)
+  useEffect(() => {
+    const errorCode = searchParams.get('error');
+    if (errorCode) {
+      // Map error codes to translation keys
+      const errorMessages: Record<string, string> = {
+        'notInRoom': t('errors:room.notInRoom'),
+      };
+      setUrlError(errorMessages[errorCode] || t('errors:general.somethingWrong'));
+      // Remove error from URL without triggering navigation
+      searchParams.delete('error');
+      setSearchParams(searchParams, { replace: true });
+    }
+  }, [searchParams, setSearchParams, t]);
 
   // Auto-join if code from URL - triggers login if needed
   useEffect(() => {
+    // Wait for profile to be loaded from Firestore
+    if (profileLoading) return;
+
     const codeFromUrl = searchParams.get('code');
     if (!codeFromUrl || hasAutoJoined.current) return;
 
-    const localProfile = getLocalProfile();
-
     // If user has profile AND is authenticated, auto-join
-    if (localProfile?.profileName && auth.currentUser) {
+    if (profile?.profileName && user) {
       hasAutoJoined.current = true;
-      const validAvatar = localProfile.profileAvatar && (AVATAR_LIST as string[]).includes(localProfile.profileAvatar)
-        ? localProfile.profileAvatar
+      const validAvatar = profile.profileAvatar && (AVATAR_LIST as string[]).includes(profile.profileAvatar)
+        ? profile.profileAvatar
         : 'burger';
 
-      joinRoom(codeFromUrl, localProfile.profileName, validAvatar).then(async result => {
+      joinRoom(codeFromUrl, profile.profileName, validAvatar).then(async result => {
         if (result) {
           safeStorage.setItem('spicy_player_id', result.playerId);
           safeStorage.setItem('spicy_room_code', codeFromUrl.toUpperCase());
           // Save profile to Firestore (in case it's not already there)
-          await saveProfile(localProfile.profileName, validAvatar);
+          await saveProfile(profile.profileName, validAvatar);
           navigate(`/room/${codeFromUrl.toUpperCase()}`, { replace: true });
         }
       }).catch(err => {
@@ -61,21 +79,24 @@ export default function HomePage() {
         hasAutoJoined.current = false;
         setJoinError(t('common:errors.roomNotFound'));
       });
-    } else if (!auth.currentUser) {
+    } else if (!user) {
       // Not logged in - save code and redirect to login page
       // User can choose Google OR email/password login
       hasAutoJoined.current = true;
       sessionStorage.setItem('spicy_pending_join_code', codeFromUrl.toUpperCase());
       navigate('/login'); // Dedicated login page with both options
     }
-  }, [searchParams, navigate]);
+  }, [profile, profileLoading, user, searchParams, navigate, t]);
+
+  // Preload GameRoom for smooth transition (no Suspense fallback flash)
+  useLayoutEffect(() => {
+    import('./GameRoom');
+  }, []);
 
   // Handle "Create Room" - if user has profile AND is authenticated, create directly; otherwise go to /host
   const handleCreateRoom = async () => {
-    const localProfile = getLocalProfile();
-
     // Must have profile AND be authenticated to create room directly
-    if (!localProfile?.profileName || !auth.currentUser) {
+    if (!profile?.profileName || !user || profileLoading) {
       // No profile or not authenticated - go to /host (AuthRequired will handle login)
       navigate('/host');
       return;
@@ -84,16 +105,16 @@ export default function HomePage() {
     // Has profile AND authenticated - create room directly
     setIsCreatingRoom(true);
     try {
-      const validAvatar = localProfile.profileAvatar && (AVATAR_LIST as string[]).includes(localProfile.profileAvatar)
-        ? localProfile.profileAvatar
+      const validAvatar = profile.profileAvatar && (AVATAR_LIST as string[]).includes(profile.profileAvatar)
+        ? profile.profileAvatar
         : 'chili';
 
-      const result = await createRoom(localProfile.profileName, validAvatar);
+      const result = await createRoom(profile.profileName, validAvatar);
       if (result) {
         safeStorage.setItem('spicy_player_id', result.playerId);
         safeStorage.setItem('spicy_room_code', result.code);
         // Save profile to Firestore (in case it's not already there)
-        await saveProfile(localProfile.profileName, validAvatar);
+        await saveProfile(profile.profileName, validAvatar);
         navigate(`/room/${result.code}`);
       }
     } catch (err) {
@@ -110,17 +131,15 @@ export default function HomePage() {
     if (joinCode.length !== 4) return;
     setJoinError(null);
 
-    const localProfile = getLocalProfile();
-
     // If not authenticated, save code and redirect to login page
-    if (!auth.currentUser) {
+    if (!user) {
       sessionStorage.setItem('spicy_pending_join_code', joinCode.toUpperCase());
       navigate('/login'); // Dedicated login page with both options
       return;
     }
 
-    // If no profile, redirect to /host to create one (with pending code)
-    if (!localProfile?.profileName) {
+    // If no profile or still loading, redirect to /host to create one (with pending code)
+    if (!profile?.profileName || profileLoading) {
       sessionStorage.setItem('spicy_pending_join_code', joinCode.toUpperCase());
       navigate('/host');
       return;
@@ -129,16 +148,16 @@ export default function HomePage() {
     // Has profile AND authenticated - join room directly
     setIsJoiningRoom(true);
     try {
-      const validAvatar = localProfile.profileAvatar && (AVATAR_LIST as string[]).includes(localProfile.profileAvatar)
-        ? localProfile.profileAvatar
+      const validAvatar = profile.profileAvatar && (AVATAR_LIST as string[]).includes(profile.profileAvatar)
+        ? profile.profileAvatar
         : 'burger';
 
-      const result = await joinRoom(joinCode, localProfile.profileName, validAvatar);
+      const result = await joinRoom(joinCode, profile.profileName, validAvatar);
       if (result) {
         safeStorage.setItem('spicy_player_id', result.playerId);
         safeStorage.setItem('spicy_room_code', joinCode.toUpperCase());
         // Save profile to Firestore (in case it's not already there)
-        await saveProfile(localProfile.profileName, validAvatar);
+        await saveProfile(profile.profileName, validAvatar);
         navigate(`/room/${joinCode.toUpperCase()}`, { replace: true });
       }
     } catch (err) {
@@ -153,9 +172,9 @@ export default function HomePage() {
     <div className="min-h-screen flex flex-col items-center p-6 relative overflow-hidden">
       {/* Background is now handled by SharedBackground in App.tsx */}
 
-      {/* Loading Overlay */}
+      {/* Loading Overlay - Only for joining, not for creating (smooth transition) */}
       <AnimatePresence>
-        {(isCreatingRoom || isJoiningRoom) && (
+        {isJoiningRoom && (
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
@@ -165,11 +184,32 @@ export default function HomePage() {
             <motion.div
               animate={{ rotate: 360 }}
               transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
-              className={`w-16 h-16 border-4 rounded-full mb-4 ${isJoiningRoom ? 'border-pink-500/30 border-t-pink-500' : 'border-red-500/30 border-t-red-500'}`}
+              className="w-16 h-16 border-4 rounded-full mb-4 border-pink-500/30 border-t-pink-500"
             />
             <p className="text-white font-bold text-lg">
-              {isJoiningRoom ? t('loading.joining') : t('loading.creating')}
+              {t('loading.joining')}
             </p>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Error Toast */}
+      <AnimatePresence>
+        {urlError && (
+          <motion.div
+            initial={{ opacity: 0, y: -50 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -50 }}
+            className="fixed top-4 left-1/2 -translate-x-1/2 z-[100] bg-red-500/90 backdrop-blur-sm text-white px-6 py-3 rounded-xl shadow-lg flex items-center gap-3"
+          >
+            <span className="font-medium">{urlError}</span>
+            <button
+              onClick={() => setUrlError(null)}
+              className="p-1 hover:bg-white/20 rounded-full transition-colors"
+              aria-label={t('common:buttons.close')}
+            >
+              <X className="w-4 h-4" />
+            </button>
           </motion.div>
         )}
       </AnimatePresence>

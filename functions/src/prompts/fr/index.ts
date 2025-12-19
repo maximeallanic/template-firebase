@@ -36,17 +36,33 @@ export {
 } from './phase2';
 
 // Phase 3 (La Carte)
-export { PHASE3_PROMPT } from './phase3';
+export {
+    PHASE3_PROMPT,
+    PHASE3_GENERATOR_PROMPT,
+    PHASE3_DIALOGUE_REVIEWER_PROMPT,
+    PHASE3_TARGETED_REGENERATION_PROMPT
+} from './phase3';
 
 // Phase 4 (La Note)
-export { PHASE4_PROMPT } from './phase4';
+export {
+    PHASE4_PROMPT,
+    PHASE4_GENERATOR_PROMPT,
+    PHASE4_DIALOGUE_REVIEWER_PROMPT,
+    PHASE4_TARGETED_REGENERATION_PROMPT
+} from './phase4';
 
 // Phase 5 (Burger Ultime)
-export { PHASE5_PROMPT } from './phase5';
+export {
+    PHASE5_PROMPT,
+    PHASE5_GENERATOR_PROMPT,
+    PHASE5_DIALOGUE_REVIEWER_PROMPT,
+    PHASE5_TARGETED_REGENERATION_PROMPT
+} from './phase5';
 
 // Fact-checking
 export {
     FACT_CHECK_PROMPT,
     FACT_CHECK_BATCH_PROMPT,
+    FACT_CHECK_NO_SEARCH_PROMPT,
     FACT_CHECK_PHASE2_PROMPT
 } from './factcheck';

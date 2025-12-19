@@ -1,9 +1,9 @@
 import { Suspense, lazy, useMemo } from 'react';
 import { Routes, Route, useLocation } from 'react-router-dom';
 import { AnimatePresence, LayoutGroup } from 'framer-motion';
-import { AuthRequired } from './components/AuthRequired';
-import { PageTransition } from './components/PageTransition';
-import { SharedBackground, type BackgroundVariant } from './components/SharedBackground';
+import { AuthRequired } from './components/auth/AuthRequired';
+import { PageTransition } from './components/ui/PageTransition';
+import { SharedBackground, type BackgroundVariant } from './components/ui/SharedBackground';
 
 // Game Modules
 const HomePage = lazy(() => import('./pages/HomePage'));

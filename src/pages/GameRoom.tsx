@@ -6,19 +6,43 @@ import { useGameRoom } from '../hooks/useGameRoom';
 import { useQuestionGeneration } from '../hooks/useQuestionGeneration';
 import { PhaseRouter } from '../components/game/PhaseRouter';
 import { GameErrorBoundary } from '../components/game/GameErrorBoundary';
-import { GenerationLoadingCard } from '../components/GenerationLoadingCard';
-import { motion, AnimatePresence } from 'framer-motion';
-import { durations, organicEase } from '../animations';
-import { UserBar } from '../components/UserBar';
-import { PhaseTransition } from '../components/PhaseTransition';
-import { DebugPanel } from '../components/DebugPanel';
+import { GenerationLoadingCard } from '../components/ui/GenerationLoadingCard';
+import { motion, AnimatePresence, type Variants } from 'framer-motion';
+import { durations, organicEase, snappySpring } from '../animations';
+import { useReducedMotion } from '../hooks/useReducedMotion';
+import { UserBar } from '../components/auth/UserBar';
+import { PhaseTransition } from '../components/game/PhaseTransition';
+import { DebugPanel } from '../components/game/DebugPanel';
 import {
-    Flame, Candy, Link, Eye, Clapperboard, Loader, Check
+    Flame, Candy, Link, Eye, Clapperboard, Check
 } from 'lucide-react';
 import { AvatarIcon } from '../components/AvatarIcon';
 import { audioService } from '../services/audioService';
 
 type GameStatus = 'lobby' | 'phase1' | 'phase2' | 'phase3' | 'phase4' | 'phase5' | 'victory';
+
+// Animation variants for player cards in lobby
+const playerCardVariants: Variants = {
+    hidden: { opacity: 0, scale: 0.8, y: 15 },
+    visible: {
+        opacity: 1,
+        scale: 1,
+        y: 0,
+        transition: snappySpring
+    },
+    exit: {
+        opacity: 0,
+        scale: 0.8,
+        transition: { duration: durations.fast, ease: organicEase }
+    }
+};
+
+// Reduced motion variants (accessibility)
+const playerCardReducedVariants: Variants = {
+    hidden: { opacity: 0 },
+    visible: { opacity: 1, transition: { duration: 0.15 } },
+    exit: { opacity: 0, transition: { duration: 0.15 } }
+};
 
 export default function GameRoom() {
     const { t } = useTranslation(['lobby', 'game-ui', 'common']);
@@ -32,7 +56,7 @@ export default function GameRoom() {
         debugPlayerId
     });
 
-    const { isGenerating, isGeneratingPhase2, generationError, handleStartGame } = useQuestionGeneration({
+    const { isGenerating, generationError, handleStartGame } = useQuestionGeneration({
         room,
         isHost,
         myId
@@ -42,23 +66,38 @@ export default function GameRoom() {
     const [linkCopied, setLinkCopied] = useState(false);
     const [showTransition, setShowTransition] = useState(false);
     const [transitionPhase, setTransitionPhase] = useState<GameStatus>('lobby');
+    // displayStatus: what the UI shows (lags behind during transitions)
+    const [displayStatus, setDisplayStatus] = useState<GameStatus>('lobby');
 
     // Refs for tracking previous values
     const prevStatus = useRef<string>('');
     const prevPlayerCount = useRef(0);
     const prevAudioStatus = useRef<string>('');
     const isFirstRender = useRef(true);
+    const isTransitioning = useRef(false);
+    const targetPhaseRef = useRef<GameStatus>('lobby'); // Capture target phase when transition starts
+    const roomStatusRef = useRef<string | undefined>(undefined); // Stable ref for room status
 
     // Phase Transition - useLayoutEffect for SYNCHRONOUS execution before paint
     useLayoutEffect(() => {
-        if (!room) return;
+        if (!room || isTransitioning.current) return;
+
+        // Keep ref updated for stable callback access
+        roomStatusRef.current = room.state.status;
 
         if (room.state.status !== prevStatus.current) {
             if (prevStatus.current && !isFirstRender.current) {
                 if (room.state.status !== 'lobby') {
+                    isTransitioning.current = true;
+                    // Capture the target phase in ref BEFORE setting state
+                    targetPhaseRef.current = room.state.status as GameStatus;
                     setTransitionPhase(room.state.status as GameStatus);
                     setShowTransition(true);
+                    // DON'T update displayStatus yet - keep showing old phase
                 }
+            } else {
+                // First render or returning to lobby: update displayStatus immediately
+                setDisplayStatus(room.state.status as GameStatus);
             }
             isFirstRender.current = false;
             prevStatus.current = room.state.status;
@@ -92,9 +131,29 @@ export default function GameRoom() {
         }
     }, [room?.players, room?.state.status]);
 
-    // Handle transition completion
+    // Handle curtains closed - update displayStatus BEFORE curtains open
+    // This ensures the new phase content is visible when curtains open
+    // Uses ref instead of dependency for stable callback
+    const handleCurtainsClosed = useCallback(() => {
+        // Get the current game state from ref (stable, no stale closure issues)
+        const currentGameStatus = roomStatusRef.current as GameStatus | undefined;
+
+        // If game has already moved past the target phase, skip to current phase
+        if (currentGameStatus && currentGameStatus !== 'lobby' && currentGameStatus !== targetPhaseRef.current) {
+            // Game progressed during animation - skip directly to current phase
+            setDisplayStatus(currentGameStatus);
+            // Update prevStatus to prevent useLayoutEffect from triggering another transition
+            prevStatus.current = currentGameStatus;
+        } else {
+            // Normal case: show the phase we transitioned to
+            setDisplayStatus(targetPhaseRef.current);
+        }
+    }, []); // No dependencies - uses refs for stable access
+
+    // Handle transition completion - just clean up the transition state
     const handleTransitionComplete = useCallback(() => {
         setShowTransition(false);
+        isTransitioning.current = false;
     }, []);
 
     // Handle link copy
@@ -106,37 +165,24 @@ export default function GameRoom() {
         setTimeout(() => setLinkCopied(false), 2000);
     }, [room]);
 
-    // Loading State
+    // Loading State - return null to let PageTransition handle smooth fade-in
     if (isLoading) {
-        return (
-            <div className="min-h-screen bg-slate-900 flex items-center justify-center text-white">
-                <div className="animate-pulse text-2xl font-bold flex items-center gap-3">
-                    <Loader className="w-8 h-8 animate-spin" /> {t('common:labels.connecting')}
-                </div>
-            </div>
-        );
+        return null;
     }
 
     if (!room) return null;
 
-    // Render phase transition overlay
-    const renderTransition = () => (
-        <PhaseTransition
-            phase={transitionPhase}
-            isVisible={showTransition}
-            onComplete={handleTransitionComplete}
-        />
-    );
+    // Prepare lobby data (only used when displayStatus === 'lobby')
+    const players = Object.values(room.players);
+    const spicyTeam = players.filter(p => p.team === 'spicy');
+    const sweetTeam = players.filter(p => p.team === 'sweet');
+    const unassigned = players.filter(p => !p.team);
 
-    // ----- LOBBY PHASE -----
-    if (room.state.status === 'lobby') {
-        const players = Object.values(room.players);
-        const spicyTeam = players.filter(p => p.team === 'spicy');
-        const sweetTeam = players.filter(p => p.team === 'sweet');
-        const unassigned = players.filter(p => !p.team);
-
-        return (
-            <GameErrorBoundary>
+    // Render content based on displayStatus
+    const renderContent = () => {
+        // ----- LOBBY PHASE -----
+        if (displayStatus === 'lobby') {
+            return (
                 <div className="min-h-screen bg-brand-dark overflow-hidden flex flex-col md:flex-row relative">
                     {/* TOP RIGHT CONTROLS */}
                     <div className="absolute top-4 right-4 z-[100] flex items-center gap-3">
@@ -209,35 +255,40 @@ export default function GameRoom() {
                         </div>
                     )}
 
-                    {renderTransition()}
                     <DebugPanel room={room} />
                 </div>
-            </GameErrorBoundary>
-        );
-    }
+            );
+        }
 
-    // ----- VICTORY SCREEN -----
-    if (room.state.status === 'victory') {
+        // ----- VICTORY SCREEN -----
+        if (displayStatus === 'victory') {
+            return <VictoryScreen room={room} isHost={isHost} />;
+        }
+
+        // ----- GAME PHASES (1-5) -----
         return (
-            <GameErrorBoundary>
-                <VictoryScreen room={room} isHost={isHost} />
-            </GameErrorBoundary>
-        );
-    }
-
-    // ----- GAME PHASES (1-5) -----
-    return (
-        <GameErrorBoundary>
             <PhaseRouter
                 room={room}
                 myId={myId}
                 isHost={isHost}
                 currentPlayer={currentPlayer}
                 onProfileUpdate={handleProfileUpdate}
-                showTransition={showTransition}
-                transitionPhase={transitionPhase}
-                onTransitionComplete={handleTransitionComplete}
-                isGeneratingPhase2={isGeneratingPhase2}
+                displayStatus={displayStatus}
+            />
+        );
+    };
+
+    // Single render point - PhaseTransition is ALWAYS rendered at the same place
+    // This prevents mount/unmount issues when switching between lobby and phases
+    return (
+        <GameErrorBoundary>
+            {renderContent()}
+            <PhaseTransition
+                phase={transitionPhase}
+                isVisible={showTransition}
+                onComplete={handleTransitionComplete}
+                onCurtainsClosed={handleCurtainsClosed}
+                isHost={isHost}
             />
         </GameErrorBoundary>
     );
@@ -247,7 +298,9 @@ export default function GameRoom() {
 
 function TeamSide({ team, players }: { team: 'spicy' | 'sweet'; players: Player[] }) {
     const { t } = useTranslation(['lobby', 'common']);
+    const prefersReducedMotion = useReducedMotion();
     const isSpicy = team === 'spicy';
+    const variants = prefersReducedMotion ? playerCardReducedVariants : playerCardVariants;
 
     return (
         <div className={`flex-1 ${isSpicy ? 'bg-red-900/20 border-b-4 md:border-b-0 md:border-r-4 border-red-600/30' : 'bg-pink-900/20'} flex flex-col items-center justify-center p-8 relative overflow-hidden group`}>
@@ -258,7 +311,20 @@ function TeamSide({ team, players }: { team: 'spicy' | 'sweet'; players: Player[
             </h2>
 
             <div className="grid grid-cols-2 gap-4 w-full max-w-md z-10">
-                {players.map(p => <PlayerCard key={p.id} player={p} theme={team} />)}
+                <AnimatePresence mode="popLayout">
+                    {players.map(p => (
+                        <motion.div
+                            key={p.id}
+                            layout
+                            variants={variants}
+                            initial="hidden"
+                            animate="visible"
+                            exit="exit"
+                        >
+                            <PlayerCard player={p} theme={team} />
+                        </motion.div>
+                    ))}
+                </AnimatePresence>
                 {players.length === 0 && (
                     <p className={`col-span-2 text-center ${isSpicy ? 'text-red-300/50' : 'text-sweet-300/50'} font-medium italic`}>
                         {isSpicy ? t('lobby:teams.waitingSpicy') : t('lobby:teams.waitingSweet')}
@@ -305,38 +371,61 @@ function LobbyHeader({ roomCode, linkCopied, onCopyLink }: { roomCode: string; l
 
 function UnassignedPlayersList({ players, roomCode, isHost }: { players: Player[]; roomCode: string; isHost: boolean }) {
     const { t } = useTranslation('lobby');
+    const prefersReducedMotion = useReducedMotion();
+    const variants = prefersReducedMotion ? playerCardReducedVariants : playerCardVariants;
+
     return (
         <div className="w-full space-y-3 mb-6 max-h-64 overflow-y-auto custom-scrollbar" role="list" aria-label={t('teams.unassigned')}>
-            {players.length > 0 ? (
-                players.map(player => (
-                    <div key={player.id} className="bg-slate-800 p-3 rounded-xl flex items-center justify-between border border-slate-700 shadow-sm animate-fade-in" role="listitem">
-                        <div className="flex items-center gap-3">
-                            <AvatarIcon avatar={player.avatar} size={24} />
-                            <span className="font-bold text-white max-w-[120px] truncate">{player.name}</span>
-                        </div>
-                        {isHost && (
-                            <div className="flex gap-2" role="group" aria-label={t('teams.assignPlayer', { name: player.name })}>
-                                <button
-                                    onClick={() => updatePlayerTeam(roomCode, player.id, 'spicy')}
-                                    className="w-9 h-9 rounded-lg bg-spicy-600 text-white flex items-center justify-center hover:bg-spicy-500 transition-colors shadow-lg"
-                                    aria-label={t('teams.assignToSpicy', { name: player.name })}
-                                >
-                                    <Flame className="w-4 h-4" />
-                                </button>
-                                <button
-                                    onClick={() => updatePlayerTeam(roomCode, player.id, 'sweet')}
-                                    className="w-9 h-9 rounded-lg bg-sweet-600 text-white flex items-center justify-center hover:bg-sweet-500 transition-colors shadow-lg"
-                                    aria-label={t('teams.assignToSweet', { name: player.name })}
-                                >
-                                    <Candy className="w-4 h-4" />
-                                </button>
+            <AnimatePresence mode="popLayout">
+                {players.length > 0 ? (
+                    players.map(player => (
+                        <motion.div
+                            key={player.id}
+                            layout
+                            variants={variants}
+                            initial="hidden"
+                            animate="visible"
+                            exit="exit"
+                            className="bg-slate-800 p-3 rounded-xl flex items-center justify-between border border-slate-700 shadow-sm"
+                            role="listitem"
+                        >
+                            <div className="flex items-center gap-3">
+                                <AvatarIcon avatar={player.avatar} size={24} />
+                                <span className="font-bold text-white max-w-[120px] truncate">{player.name}</span>
                             </div>
-                        )}
-                    </div>
-                ))
-            ) : (
-                <p className="text-gray-500 text-center text-sm py-4">{t('teams.allAssigned')}</p>
-            )}
+                            {isHost && (
+                                <div className="flex gap-2" role="group" aria-label={t('teams.assignPlayer', { name: player.name })}>
+                                    <button
+                                        onClick={() => updatePlayerTeam(roomCode, player.id, 'spicy')}
+                                        className="w-9 h-9 rounded-lg bg-spicy-600 text-white flex items-center justify-center hover:bg-spicy-500 transition-colors shadow-lg"
+                                        aria-label={t('teams.assignToSpicy', { name: player.name })}
+                                    >
+                                        <Flame className="w-4 h-4" />
+                                    </button>
+                                    <button
+                                        onClick={() => updatePlayerTeam(roomCode, player.id, 'sweet')}
+                                        className="w-9 h-9 rounded-lg bg-sweet-600 text-white flex items-center justify-center hover:bg-sweet-500 transition-colors shadow-lg"
+                                        aria-label={t('teams.assignToSweet', { name: player.name })}
+                                    >
+                                        <Candy className="w-4 h-4" />
+                                    </button>
+                                </div>
+                            )}
+                        </motion.div>
+                    ))
+                ) : (
+                    <motion.p
+                        key="empty-message"
+                        variants={variants}
+                        initial="hidden"
+                        animate="visible"
+                        exit="exit"
+                        className="text-gray-500 text-center text-sm py-4"
+                    >
+                        {t('teams.allAssigned')}
+                    </motion.p>
+                )}
+            </AnimatePresence>
         </div>
     );
 }

@@ -12,23 +12,19 @@ import { generateQuestionHash } from '../utils/hash';
 export async function markQuestionAsSeen(_playerId: string, questionText: string): Promise<void> {
     // Use auth.uid for database path (required by security rules)
     const userId = auth.currentUser?.uid;
-    console.log('🔍 markQuestionAsSeen called:', { userId, questionText: questionText?.substring(0, 30) });
 
     if (!userId || !questionText) {
-        console.warn('⚠️ markQuestionAsSeen skipped:', { userId, hasText: !!questionText });
         return;
     }
 
     try {
         const qId = generateQuestionHash(questionText);
-        console.log('📝 Marking question as seen:', { qId, userId });
         const historyRef = ref(rtdb, `userHistory/${userId}`);
         await update(historyRef, {
             [qId]: Date.now()
         });
-        console.log('✅ Question marked as seen successfully');
     } catch (error) {
-        console.error("❌ Error marking question as seen:", error);
+        console.error("Error marking question as seen:", error);
     }
 }
 
@@ -54,14 +50,22 @@ export async function hasUserSeenQuestion(playerId: string, questionText: string
  */
 export async function getSeenQuestionHashes(): Promise<Set<string>> {
     const user = auth.currentUser;
-    if (!user) return new Set();
+    if (!user) {
+        console.log('[HISTORY-SVC] getSeenQuestionHashes: No authenticated user');
+        return new Set();
+    }
 
     try {
         const historyRef = ref(rtdb, `userHistory/${user.uid}`);
         const snapshot = await get(historyRef);
-        return snapshot.exists() ? new Set(Object.keys(snapshot.val())) : new Set();
+        const seenHashes = snapshot.exists() ? new Set(Object.keys(snapshot.val())) : new Set<string>();
+        console.log('[HISTORY-SVC] getSeenQuestionHashes result:', {
+            userId: user.uid,
+            seenCount: seenHashes.size
+        });
+        return seenHashes;
     } catch (error) {
-        console.error('Error getting seen questions:', error);
+        console.error('[HISTORY-SVC] Error getting seen questions:', error);
         return new Set();
     }
 }
@@ -79,16 +83,34 @@ export async function filterUnseenQuestions<T>(
     questions: T[],
     getTextFn: (q: T) => string
 ): Promise<T[]> {
-    if (!questions || questions.length === 0) return questions;
+    console.log('[HISTORY-SVC] filterUnseenQuestions called:', {
+        inputCount: questions?.length || 0
+    });
+
+    if (!questions || questions.length === 0) {
+        console.log('[HISTORY-SVC] filterUnseenQuestions: Empty input, returning as-is');
+        return questions;
+    }
 
     const seenHashes = await getSeenQuestionHashes();
-    if (seenHashes.size === 0) return questions;
+    if (seenHashes.size === 0) {
+        console.log('[HISTORY-SVC] filterUnseenQuestions: No seen history, returning all questions');
+        return questions;
+    }
 
     const unseen = questions.filter(q => {
         const text = getTextFn(q);
         if (!text) return true; // Keep items without text
         const hash = generateQuestionHash(text);
         return !seenHashes.has(hash);
+    });
+
+    console.log('[HISTORY-SVC] filterUnseenQuestions result:', {
+        input: questions.length,
+        seenByUser: seenHashes.size,
+        unseen: unseen.length,
+        filtered: questions.length - unseen.length,
+        willCycle: unseen.length === 0
     });
 
     // If all questions have been seen, return all to allow cycling
@@ -101,35 +123,30 @@ export async function filterUnseenQuestions<T>(
  * (Or a more sophisticated check: if the intersection of unseen questions for all players is empty).
  */
 export async function checkPhase1Exhaustion(players: Player[]): Promise<boolean> {
-    if (!players || players.length === 0) return false;
+    console.log('[HISTORY-SVC] checkPhase1Exhaustion called:', {
+        playerCount: players?.length || 0,
+        playerNames: players?.map(p => p.name) || []
+    });
+
+    if (!players || players.length === 0) {
+        console.log('[HISTORY-SVC] checkPhase1Exhaustion: No players, returning false');
+        return false;
+    }
 
     try {
         const totalStaticQuestions = QUESTIONS.length;
+        console.log('[HISTORY-SVC] Total static questions:', totalStaticQuestions);
 
         // If no default questions exist, always trigger AI generation
         if (totalStaticQuestions === 0) {
-            console.log("📋 Aucune question par défaut - génération IA requise");
+            console.log('[HISTORY-SVC] checkPhase1Exhaustion: No static questions, returning true');
             return true;
         }
-        // Optimization: checking specific questions is expensive for many players.
-        // For now, we can check count or assume if they have a lot of history.
-        // Better approach: Get all history for all players and check overlap.
 
+        console.log('[HISTORY-SVC] Fetching history for all players...');
         const histories = await Promise.all(
             players.map(p => get(child(ref(rtdb), `userHistory/${p.id}`)))
         );
-
-        // Simple check: Is there any question in QUESTIONS that EVERYONE has seen?
-        // Wait, requirements says: "If a user ... has already had all existing questions".
-        // Let's interpret as: If the intersection of "Unseen by Player A" AND "Unseen by Player B" ... is empty.
-        // Actually simpler: If the game cannot find a question that at least ONE person hasn't seen?
-        // Or strictly: if WE define the question set for the game, we want to pick one that is new to AS MANY as possible.
-        // But the prompt says: "Si un utilisateur ... a déja eu toute les questions" -> "If A user has already had ALL questions".
-        // So if ANY player has seen all questions, we generate new ones? Or only if ALL players have?
-        // Usually, you generate if you can't serve a "fresh" question to the current player.
-        // But Phase 1 is for everyone.
-        // Let's go with: If > 50% of the static pool is seen by the majority, or simpler:
-        // If (Unseen Questions Count) < 5 (Threshold), trigger generation.
 
         // Let's just grab the FULL history keys for each player
         const playerSeenIds = histories.map(snap => {
@@ -137,31 +154,39 @@ export async function checkPhase1Exhaustion(players: Player[]): Promise<boolean>
             return new Set(Object.keys(snap.val()));
         });
 
-        // Calculate available static questions that are "Fresh" (seen by no one, or few)
-        // Actually, trigger condition: "Si un utilisateur ... a déja eu TOUTE les questions"
-        // So checking if ANY player has seen ALL static questions.
-
+        // Log each player's seen count
+        const playerStats: { name: string; seenCount: number; totalSeen: number }[] = [];
         for (let i = 0; i < playerSeenIds.length; i++) {
             const seenSet = playerSeenIds[i];
-            let seenCount = 0;
+            let seenStaticCount = 0;
             for (const q of QUESTIONS) {
                 const qId = generateQuestionHash(q.text);
                 if (seenSet.has(qId)) {
-                    seenCount++;
+                    seenStaticCount++;
                 }
             }
-            console.log(`📋 Joueur ${players[i]?.id?.slice(0, 8)}... : ${seenCount}/${totalStaticQuestions} questions vues`);
+            playerStats.push({
+                name: players[i].name,
+                seenCount: seenStaticCount,
+                totalSeen: seenSet.size
+            });
+
             // If a single player has seen 100% of questions, trigger AI generation
-            if (seenCount >= totalStaticQuestions) {
-                console.log("✅ Exhaustion détectée pour ce joueur !");
+            if (seenStaticCount >= totalStaticQuestions) {
+                console.log('[HISTORY-SVC] 🚨 Player exhausted static pool!', {
+                    player: players[i].name,
+                    seenStaticCount,
+                    totalStaticQuestions
+                });
                 return true;
             }
         }
 
-        console.log("❌ Aucun joueur n'a vu 100% des questions");
+        console.log('[HISTORY-SVC] checkPhase1Exhaustion: Player stats:', playerStats);
+        console.log('[HISTORY-SVC] checkPhase1Exhaustion: No exhaustion detected, returning false');
         return false;
     } catch (error) {
-        console.error("Error checking exhaustion:", error);
+        console.error('[HISTORY-SVC] Error checking exhaustion:', error);
         return false;
     }
 }

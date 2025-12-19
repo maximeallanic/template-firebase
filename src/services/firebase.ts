@@ -87,9 +87,8 @@ if (import.meta.env.VITE_RECAPTCHA_ENTERPRISE_SITE_KEY) {
   } catch (error) {
     console.warn('⚠️ Failed to initialize App Check:', error);
   }
-} else {
-  console.warn('⚠️ App Check not initialized: VITE_RECAPTCHA_ENTERPRISE_SITE_KEY not set');
 }
+// App Check is optional in development - no warning needed
 
 // Lazy initialization flags
 let authInitialized = false;
@@ -175,7 +174,6 @@ if (import.meta.env.DEV) {
     connectFunctionsEmulator(functions, '127.0.0.1', 5001);
     connectFirestoreEmulator(db, '127.0.0.1', 8080);
     connectDatabaseEmulator(rtdb, '127.0.0.1', 9000);
-    console.log('✅ Connected to Firebase emulators (Auth:9099, Functions:5001, Firestore:8080, RTDB:9000)');
     // Mark auth as initialized since we just connected to emulator
     authInitialized = true;
   } catch (error) {

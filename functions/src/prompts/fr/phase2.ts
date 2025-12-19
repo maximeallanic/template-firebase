@@ -15,22 +15,43 @@ Accepté : homophones parfaits OU sons très proches qui créent un calembour dr
 - Catégorie A = sens sérieux/littéral
 - Catégorie B = calembour/sens absurde qui SONNE SIMILAIRE
 
-⚠️ RÈGLE CRITIQUE - LES DEUX CATÉGORIES DOIVENT ÊTRE CONCRÈTES ⚠️
-Les deux catégories doivent représenter des CHOSES RÉELLES auxquelles on peut rattacher des items.
-La catégorie B (le calembour) doit aussi avoir un sens concret, pas juste sonner pareil.
-Si tu ne peux pas lister 5 items ÉVIDENTS pour la catégorie B → CHANGE LE JEU DE MOTS
+⚠️ RÈGLE CRITIQUE - LA CATÉGORIE B DOIT ÊTRE UTILISABLE ⚠️
+La catégorie B est un CALEMBOUR/HOMOPHONE de A, mais elle doit être UTILISABLE pour le jeu :
+
+1. PHONÉTIQUEMENT IDENTIQUE (ou très proche) de A
+2. INTERPRÉTABLE comme une catégorie (même si le sens est absurde ou humoristique)
+3. CAPABLE d'avoir des ITEMS associés de manière cohérente et drôle
+
+Le "sens" de B peut être absurde (ex: "Poteau de vin" = un poteau fait en vin), mais on doit pouvoir LISTER des items qui s'y rattachent de façon humoristique.
+
+TEST : Peux-tu lister 5 items ÉVIDENTS pour B ?
+- Si OUI → B est utilisable (même si absurde)
+- Si NON → Change le calembour
+
+✅ BON : "Pot de vin" vs "Poteau de vin"
+  - A (Pot de vin = corruption) → items: Balkany, enveloppes, dessous-de-table
+  - B (Poteau de vin = absurde) → items: bornes, pylônes, piquets, lampadaires
+
+❌ MAUVAIS : "Pot de vin" vs "Po d'un vin"
+  - "Po d'un vin" n'est PAS une catégorie, on ne peut pas lister d'items
 
 ❌ INTERDIT :
 - Catégories opposées ou antonymes (elles doivent sonner pareil, pas s'opposer)
 - Notions subjectives : "j'aime", "j'aime pas", "c'est beau", "c'est moche", "bon", "mauvais"
 - Questions d'opinion ou de goût personnel
 
-✅ CONTENU OBLIGATOIRE :
-- DRÔLE et irrévérencieux, style Burger Quiz
-- Personnalités connues (acteurs, politiques, sportifs, influenceurs...)
-- Rumeurs célèbres, potins, scandales médiatisés
-- Anecdotes WTF et faits divers marquants
-- Culture pop, actualité, mèmes connus
+✅ HUMOUR DANS LA FORME, SÉRIEUX DANS LE FOND :
+L'humour vient du JEU DE MOTS (les catégories), pas des items eux-mêmes.
+
+FORME HUMORISTIQUE :
+- Le calembour entre optionA et optionB doit être drôle
+- La formulation des items peut être légèrement décalée
+
+CONTENU SÉRIEUX (les items) :
+- Personnalités connues RÉELLES (acteurs, politiques, sportifs...)
+- Faits VÉRIFIABLES sur ces personnalités
+- Liens RÉELS et FACTUELS avec les catégories
+- Pas d'inventions ou de rumeurs non vérifiées
 
 ⚠️ RÈGLES OPTIONS (CRITIQUE) ⚠️
 - optionA et optionB doivent être des NOMS DE CATÉGORIES COURTS (2-4 mots max)
@@ -102,9 +123,10 @@ Les deux phrases doivent SE PRONONCER EXACTEMENT PAREIL à l'oral !
 - Écris la transcription phonétique (IPA) pour vérifier AVANT de proposer
 
 RÈGLES SUPPLÉMENTAIRES :
-- Catégorie A = sens sérieux/littéral
-- Catégorie B = sens absurde/calembour
-- Les deux doivent représenter des CHOSES CONCRÈTES pour lesquelles on peut trouver des items
+- Catégorie A = sens sérieux/littéral (toujours concret)
+- Catégorie B = calembour/sens absurde ou humoristique
+- B peut avoir un sens absurde MAIS doit être UTILISABLE : on doit pouvoir lister des items qui s'y rattachent
+- TEST : Si tu ne peux pas trouver 5 items évidents pour B → change le calembour
 
 ⚠️ RÈGLE OPTIONS (CRITIQUE) ⚠️
 Les options doivent être des NOMS DE CATÉGORIES COURTS, pas des phrases !
@@ -122,13 +144,15 @@ Les options doivent être des NOMS DE CATÉGORIES COURTS, pas des phrases !
 - "Pot de vin" / "Poteau de vin" (3 mots, concret)
 - "Saint" / "Sein" (1 mot, concret)
 
-RÈGLES ITEMS (TRÈS STRICT) :
+RÈGLES ITEMS - HUMOUR FORME, SÉRIEUX FOND :
+⚠️ L'humour vient du JEU DE MOTS (catégories), pas des items.
+
 - Maximum 4 mots par item
-- Réponse = FAIT vérifiable (pas opinion)
-- Personnalités connues (acteurs, politiques, sportifs...)
-- Rumeurs célèbres, potins, scandales
-- Culture pop, mèmes, actualité
-- VÉRIFIE avec Google Search
+- Réponse = FAIT vérifiable (pas opinion, pas rumeur)
+- Personnalités connues RÉELLES (acteurs, politiques, sportifs...)
+- Liens FACTUELS avec les catégories
+- VÉRIFIE chaque fait avec Google Search
+- Pas d'inventions ou d'anecdotes non vérifiables
 
 ⚠️ PIÈGES OBLIGATOIRES (TRÈS IMPORTANT) ⚠️
 Au moins 5-6 items sur 12 doivent être des PIÈGES où la réponse est CONTRE-INTUITIVE !
@@ -153,8 +177,27 @@ Un bon piège = l'item SEMBLE appartenir à une catégorie mais appartient en fa
 INTERDIT :
 - Catégories opposées (oui/non, vrai/faux, chaud/froid)
 - Notions subjectives (j'aime, c'est beau, bon/mauvais)
-- Items ambigus qui pourraient aller dans plusieurs catégories
 - Calembours où la catégorie B est trop abstraite ou n'a pas de sens concret
+
+⚠️ HOMONYMES IDENTIQUES ⚠️
+Si optionA et optionB sont LE MÊME MOT avec des sens différents, tu DOIS fournir optionADescription et optionBDescription pour les différencier.
+Exemple :
+- optionA: "Financier", optionADescription: "le gâteau"
+- optionB: "Financier", optionBDescription: "le banquier"
+Si les mots sont différents (ex: "Mer" vs "Mère"), laisse les descriptions à null.
+
+⚠️ ITEMS AMBIGUS - RÉPONSES MULTIPLES ⚠️
+Certains items peuvent légitimement appartenir à PLUSIEURS catégories.
+Si un item est OBJECTIVEMENT ambigu (pas juste mal formulé), ajoute "acceptedAnswers" :
+Exemple :
+{
+  "text": "Opère sur les marchés",
+  "answer": "B",
+  "acceptedAnswers": ["B", "Both"],
+  "justification": "Le banquier opère sur les marchés financiers, mais les pâtisseries sont aussi vendues aux marchés de village"
+}
+ATTENTION : N'utilise acceptedAnswers que pour les VRAIES ambiguïtés factuelles.
+Maximum 2-3 items avec acceptedAnswers par set.
 
 {PREVIOUS_FEEDBACK}
 
@@ -162,11 +205,13 @@ FORMAT JSON (STRICTEMENT) :
 {
   "optionA": "Catégorie courte (2-4 mots max)",
   "optionB": "Calembour court (2-4 mots max)",
+  "optionADescription": "Description courte si optionA = optionB, sinon null",
+  "optionBDescription": "Description courte si optionA = optionB, sinon null",
   "reasoning": "Transcription IPA: /.../ = /.../ - Explication de pourquoi les sons sont IDENTIQUES",
   "items": [
     { "text": "Item max 4 mots", "answer": "A", "justification": "Pourquoi cet item va dans A" },
     { "text": "Item max 4 mots", "answer": "B", "justification": "Pourquoi cet item va dans B" },
-    { "text": "Item max 4 mots", "answer": "Both", "justification": "Pourquoi cet item va dans Both" }
+    { "text": "Item max 4 mots", "answer": "Both", "acceptedAnswers": ["Both", "A"], "justification": "Pourquoi cet item va dans Both (et aussi acceptable comme A)" }
   ]
 }
 
@@ -201,9 +246,11 @@ RAPPEL DES RÈGLES PIÈGES :
 GÉNÈRE UNIQUEMENT les {COUNT} nouveaux items en JSON :
 [
   { "text": "Nouvel item", "answer": "A", "justification": "Pourquoi" },
-  { "text": "Nouvel item", "answer": "B", "justification": "Pourquoi" }
+  { "text": "Nouvel item", "answer": "B", "justification": "Pourquoi" },
+  { "text": "Item ambigu", "answer": "Both", "acceptedAnswers": ["Both", "A"], "justification": "Pourquoi (ambiguïté)" }
 ]
 
+Note: acceptedAnswers est OPTIONNEL, uniquement pour les items OBJECTIVEMENT ambigus.
 {COUNT} items exactement. Pas de markdown.`;
 
 export const PHASE2_DIALOGUE_REVIEWER_PROMPT = `Tu es un juge strict pour "Burger Quiz".
@@ -242,8 +289,9 @@ SET PROPOSÉ :
    - TEST : Peux-tu expliquer en 5 mots pourquoi cet item va dans A ou B ?
    - Si tu dois faire une explication complexe → REJETTE L'ITEM
 
-5. CATÉGORIE B CONCRÈTE (CRITIQUE) : La catégorie B (calembour) représente-t-elle quelque chose de RÉEL ?
-   - Peut-on facilement nommer 5+ choses qui appartiennent clairement à B ?
+5. CATÉGORIE B UTILISABLE (CRITIQUE) : La catégorie B (calembour) est-elle UTILISABLE pour le jeu ?
+   - Peut-on facilement lister 5+ items qui s'y rattachent (même si le sens de B est absurde) ?
+   - Le sens de B peut être absurde/humoristique, mais on doit pouvoir y associer des items
 
 6. HUMOUR : Le set est-il drôle, style Burger Quiz ?
 
@@ -374,5 +422,8 @@ INSTRUCTIONS :
 
 JSON Format :
 [
-  { "text": "[item]", "answer": "A" | "B" | "Both" }
-]`;
+  { "text": "[item]", "answer": "A" | "B" | "Both" },
+  { "text": "[item ambigu]", "answer": "Both", "acceptedAnswers": ["Both", "B"] }
+]
+
+Note: acceptedAnswers est OPTIONNEL, uniquement pour les items OBJECTIVEMENT ambigus (max 2-3 par set).`;

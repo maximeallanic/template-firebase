@@ -26,13 +26,48 @@ export const springConfig = {
     damping: 20,
 };
 
+// Spring config for snappy UI feedback (faster response)
+export const snappySpring = {
+    type: "spring" as const,
+    stiffness: 300,
+    damping: 25,
+};
+
+// Spring config for bouncy icon animations (more bounce)
+export const bouncySpring = {
+    type: "spring" as const,
+    stiffness: 400,
+    damping: 15,
+};
+
 // Standard durations
 export const durations = {
     fast: 0.2,
+    quick: 0.3,      // Quick feedback (badges, micro-interactions)
     normal: 0.4,
+    medium: 0.5,     // Medium transitions (ripples, progress bars)
     slow: 0.6,
     verySlow: 0.8,
 };
+
+// Extended durations for loading animations
+export const loadingDurations = {
+    wobble: 2.5,      // Chef hat wobble
+    spin: 1,          // Spinner rotation
+    pulse: 1.5,       // Dot pulsation
+    curtain: 1.8,     // Curtain slide (slightly longer for natural feel)
+};
+
+// Curtain spring configuration - simulates heavy velvet fabric
+export const curtainSpring = {
+    type: "spring" as const,
+    stiffness: 80,     // Lower = heavier, slower movement
+    damping: 12,       // Controls oscillation - lower = more bounce
+    mass: 1.2,         // Heavier mass for theatrical feel
+};
+
+// Curtain easing for keyframe fallback - custom for theatrical effect
+export const curtainEase = [0.22, 1, 0.36, 1] as const;
 
 /**
  * Backdrop Variants - OPACITY ONLY
@@ -269,6 +304,33 @@ export const cardPositionVariants: Variants = {
         transition: {
             delay: 0.2,
             duration: durations.slow,
+            ease: organicEase
+        }
+    }
+};
+
+/**
+ * Flash Indicator Variants - For quick status indicators
+ * Used for badges, alerts, last question indicator
+ */
+export const flashIndicatorVariants: Variants = {
+    hidden: {
+        opacity: 0,
+        scale: 0.8
+    },
+    visible: {
+        opacity: 1,
+        scale: 1,
+        transition: {
+            duration: durations.fast,
+            ease: organicEase
+        }
+    },
+    exit: {
+        opacity: 0,
+        scale: 0.8,
+        transition: {
+            duration: durations.fast,
             ease: organicEase
         }
     }

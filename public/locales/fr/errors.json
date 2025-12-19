@@ -37,6 +37,9 @@
     "invalidSession": "Session email invalide",
     "receiveFailed": "Échec de la réception de l'email"
   },
+  "room": {
+    "notInRoom": "Vous n'êtes pas membre de cette room"
+  },
   "general": {
     "somethingWrong": "Quelque chose s'est mal passé. Veuillez réessayer",
     "serverError": "Erreur serveur. Veuillez réessayer plus tard",

@@ -1,6 +1,6 @@
-import { genkit } from 'genkit';
+import { genkit } from 'genkit/beta';
+import { googleAI } from '@genkit-ai/googleai';
 import { enableFirebaseTelemetry } from '@genkit-ai/firebase';
-import { GoogleGenAI } from '@google/genai';
 
 /**
  * IMPORTANT: Enable Firebase telemetry FIRST (before genkit(...) initialization)
@@ -12,91 +12,102 @@ import { GoogleGenAI } from '@google/genai';
 enableFirebaseTelemetry({
   // Force export in development (optional - useful for local testing)
   forceDevExport: process.env.NODE_ENV === 'development',
-
-  // Privacy controls (optional)
-  // disableLoggingInputAndOutput: true,  // Disable logging of input/output for privacy
-  // disableMetrics: false,               // Keep metrics enabled
 });
 
 /**
- * Configure Genkit
- * Telemetry is automatically exported to Google Cloud Observability via enableFirebaseTelemetry()
+ * Configure Genkit with Google AI plugin
+ * Uses GEMINI_API_KEY environment variable
  */
 export const ai = genkit({
-  // No plugins array needed - Firebase telemetry is enabled globally via enableFirebaseTelemetry()
+  plugins: [
+    googleAI({
+      apiKey: process.env.GEMINI_API_KEY,
+    }),
+  ],
 });
 
 /**
- * Configure Google Gen AI client
- * - With GEMINI_API_KEY: Use Gemini API for gemini-3-pro-preview
- * - Without: Fall back to Vertex AI with gemini-2.0-flash
+ * Generator model - Gemini 3 Pro Preview
+ * Powerful reasoning model for game content generation with tool support
  */
-const useGeminiApi = !!process.env.GEMINI_API_KEY;
-
-export const genAI = useGeminiApi
-  ? new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY })
-  : new GoogleGenAI({
-      vertexai: true,
-      project: process.env.GCLOUD_PROJECT || 'spicy-vs-sweety',
-      location: 'us-central1',
-    });
+export const GENERATOR_MODEL = googleAI.model('gemini-3-pro-preview');
 
 /**
- * Model configuration
- * - gemini-3-pro-preview: Best reasoning model (requires GEMINI_API_KEY)
- * - gemini-2.0-flash: Fast, capable, with Google Search grounding (Vertex AI)
+ * Reviewer model - Gemini 3 Flash Preview
+ * Fast model for reviewing/evaluating generated content (no tools needed)
+ */
+export const REVIEWER_MODEL = googleAI.model('gemini-3-flash-preview');
+
+/**
+ * Fact-check model - Gemini 2.0 Flash
+ * Used for fact-checking with web search tools
+ * Note: gemini-3-pro-preview requires "thought_signature" which Genkit doesn't support yet
+ */
+export const FACTCHECK_MODEL = googleAI.model('gemini-2.0-flash');
+
+/**
+ * Default model - alias to GENERATOR_MODEL for backward compatibility
+ */
+export const DEFAULT_MODEL = GENERATOR_MODEL;
+
+/**
+ * Safety settings configuration
+ * Applies to all ai.generate() calls
+ * Uses Genkit's expected enum values for safety thresholds
+ */
+const SAFETY_SETTINGS: Array<{
+  category: 'HARM_CATEGORY_HATE_SPEECH' | 'HARM_CATEGORY_DANGEROUS_CONTENT' | 'HARM_CATEGORY_SEXUALLY_EXPLICIT' | 'HARM_CATEGORY_HARASSMENT';
+  threshold: 'BLOCK_NONE';
+}> = [
+  { category: 'HARM_CATEGORY_HATE_SPEECH', threshold: 'BLOCK_NONE' },
+  { category: 'HARM_CATEGORY_DANGEROUS_CONTENT', threshold: 'BLOCK_NONE' },
+  { category: 'HARM_CATEGORY_SEXUALLY_EXPLICIT', threshold: 'BLOCK_NONE' },
+  { category: 'HARM_CATEGORY_HARASSMENT', threshold: 'BLOCK_NONE' },
+];
+
+/**
+ * Model configuration presets with different temperature settings
+ * Note: thinkingConfig removed for compatibility - gemini-3-pro-preview works without it
  */
 export const MODEL_CONFIG = {
-  model: useGeminiApi ? 'gemini-3-pro-preview' : 'gemini-2.0-flash',
-  config: {
-    // gemini-3-pro-preview uses ~8K tokens for "thinking" before producing output
-    maxOutputTokens: useGeminiApi ? 32768 : 8192,
+  // Creative generation (Phase 2, 5) - high temperature
+  creative: {
     temperature: 1,
     topP: 0.95,
-    safetySettings: [
-      { category: 'HARM_CATEGORY_HATE_SPEECH', threshold: 'OFF' },
-      { category: 'HARM_CATEGORY_DANGEROUS_CONTENT', threshold: 'OFF' },
-      { category: 'HARM_CATEGORY_SEXUALLY_EXPLICIT', threshold: 'OFF' },
-      { category: 'HARM_CATEGORY_HARASSMENT', threshold: 'OFF' },
-    ],
+    maxOutputTokens: 32768,
+    safetySettings: SAFETY_SETTINGS,
   },
-} as const;
-
-/**
- * Model configuration for factual content (Phase 1, Phase 3, Phase 4)
- * Lower temperature for more accurate, deterministic responses
- */
-export const MODEL_CONFIG_FACTUAL = {
-  model: useGeminiApi ? 'gemini-3-pro-preview' : 'gemini-2.0-flash',
-  config: {
-    maxOutputTokens: useGeminiApi ? 32768 : 8192,
-    temperature: 0.5, // Lowered from 0.8 for better factual accuracy
+  // Factual generation (Phase 1, 3, 4) - medium temperature
+  factual: {
+    temperature: 0.5,
     topP: 0.95,
-    safetySettings: [
-      { category: 'HARM_CATEGORY_HATE_SPEECH', threshold: 'OFF' },
-      { category: 'HARM_CATEGORY_DANGEROUS_CONTENT', threshold: 'OFF' },
-      { category: 'HARM_CATEGORY_SEXUALLY_EXPLICIT', threshold: 'OFF' },
-      { category: 'HARM_CATEGORY_HARASSMENT', threshold: 'OFF' },
-    ],
+    maxOutputTokens: 32768,
+    safetySettings: SAFETY_SETTINGS,
   },
-} as const;
+  // Fact-checking (post-generation verification) - low temperature
+  factCheck: {
+    temperature: 0.1,
+    topP: 0.9,
+    maxOutputTokens: 4096,
+    safetySettings: SAFETY_SETTINGS,
+  },
+  // Topic generation (high creativity)
+  topic: {
+    temperature: 1.2,
+    topP: 0.95,
+    maxOutputTokens: 512,
+    safetySettings: SAFETY_SETTINGS,
+  },
+};
 
 /**
- * Model configuration for fact-checking (post-generation verification)
- * Very low temperature for deterministic, accurate verification
- * Used to verify facts AFTER generation by Generator/Reviewer
+ * Web search enabled for fact-checking
+ * Uses Google Custom Search API with in-memory caching
+ *
+ * Required environment variables:
+ * - GOOGLE_CSE_API_KEY: API key from Google Cloud Console
+ * - GOOGLE_CSE_ENGINE_ID: Custom Search Engine ID
+ *
+ * Set to false to disable fact-checking web searches
  */
-export const MODEL_CONFIG_FACT_CHECK = {
-  model: useGeminiApi ? 'gemini-3-pro-preview' : 'gemini-2.0-flash',
-  config: {
-    maxOutputTokens: 4096,
-    temperature: 0.1, // Very low for deterministic fact-checking
-    topP: 0.9,
-    safetySettings: [
-      { category: 'HARM_CATEGORY_HATE_SPEECH', threshold: 'OFF' },
-      { category: 'HARM_CATEGORY_DANGEROUS_CONTENT', threshold: 'OFF' },
-      { category: 'HARM_CATEGORY_SEXUALLY_EXPLICIT', threshold: 'OFF' },
-      { category: 'HARM_CATEGORY_HARASSMENT', threshold: 'OFF' },
-    ],
-  },
-} as const;
+export const isSearchAvailable = true;

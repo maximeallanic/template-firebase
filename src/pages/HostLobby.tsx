@@ -4,14 +4,16 @@ import { useTranslation } from 'react-i18next';
 import { createRoom, joinRoom, type Avatar, AVATAR_LIST } from '../services/gameService';
 import { Flame, ChefHat, Lock, Users } from 'lucide-react';
 import { AvatarIcon } from '../components/AvatarIcon';
-import { UserBar } from '../components/UserBar';
-import { Logo } from '../components/Logo';
+import { UserBar } from '../components/auth/UserBar';
+import { Logo } from '../components/ui/Logo';
 import { safeStorage } from '../utils/storage';
-import { getLocalProfile, saveProfile } from '../services/profileService';
+import { saveProfile } from '../services/profileService';
+import { useAuthUser } from '../hooks/useAuthUser';
 
 export default function HostLobby() {
     const { t } = useTranslation(['lobby', 'common']);
     const navigate = useNavigate();
+    const { profile, loading: profileLoading } = useAuthUser();
     const [hostName, setHostName] = useState('');
     const [hostAvatar, setHostAvatar] = useState<Avatar>('chili');
     const [isCreating, setIsCreating] = useState(false);
@@ -28,56 +30,56 @@ export default function HostLobby() {
 
     // Auto-join pending room OR auto-create room if user has stored profile
     useEffect(() => {
+        // Wait for profile to be loaded from Firestore
+        if (profileLoading) return;
+
         // Check for pending join code (from redirect after login)
         const pendingJoinCode = sessionStorage.getItem('spicy_pending_join_code');
 
-        // Get profile from localStorage (cached from Firestore)
-        const localProfile = getLocalProfile();
-
         // If there's a pending join code and user has profile, join that room
-        if (pendingJoinCode && localProfile?.profileName && !hasAutoCreated.current) {
+        if (pendingJoinCode && profile?.profileName && !hasAutoCreated.current) {
             hasAutoCreated.current = true;
             sessionStorage.removeItem('spicy_pending_join_code'); // Clear pending code
 
-            const validAvatar = localProfile.profileAvatar && (AVATAR_LIST as string[]).includes(localProfile.profileAvatar)
-                ? localProfile.profileAvatar
+            const validAvatar = profile.profileAvatar && (AVATAR_LIST as string[]).includes(profile.profileAvatar)
+                ? profile.profileAvatar
                 : 'burger';
 
             // Join the pending room
-            joinRoom(pendingJoinCode, localProfile.profileName, validAvatar).then(async result => {
+            joinRoom(pendingJoinCode, profile.profileName, validAvatar).then(async result => {
                 if (result) {
                     safeStorage.setItem('spicy_player_id', result.playerId);
                     safeStorage.setItem('spicy_room_code', pendingJoinCode);
                     // Save profile to Firestore (in case it's not already there)
-                    await saveProfile(localProfile.profileName, validAvatar);
+                    await saveProfile(profile.profileName, validAvatar);
                     navigate(`/room/${pendingJoinCode}`, { replace: true });
                 }
             }).catch(err => {
                 console.error('Auto-join failed:', err);
                 hasAutoCreated.current = false;
                 // Fall back to showing the form
-                setHostName(localProfile.profileName);
-                if (localProfile.profileAvatar && (AVATAR_LIST as string[]).includes(localProfile.profileAvatar)) {
-                    setHostAvatar(localProfile.profileAvatar);
+                setHostName(profile.profileName);
+                if (profile.profileAvatar && (AVATAR_LIST as string[]).includes(profile.profileAvatar)) {
+                    setHostAvatar(profile.profileAvatar);
                 }
             });
             return;
         }
 
         // No pending join code - auto-create room if user has profile
-        if (localProfile?.profileName && !hasAutoCreated.current) {
+        if (profile?.profileName && !hasAutoCreated.current) {
             hasAutoCreated.current = true;
-            const validAvatar = localProfile.profileAvatar && (AVATAR_LIST as string[]).includes(localProfile.profileAvatar)
-                ? localProfile.profileAvatar
+            const validAvatar = profile.profileAvatar && (AVATAR_LIST as string[]).includes(profile.profileAvatar)
+                ? profile.profileAvatar
                 : 'chili';
 
             // Auto-create room with stored profile
-            createRoom(localProfile.profileName, validAvatar).then(async result => {
+            createRoom(profile.profileName, validAvatar).then(async result => {
                 if (result) {
                     safeStorage.setItem('spicy_player_id', result.playerId);
                     safeStorage.setItem('spicy_room_code', result.code);
                     // Save profile to Firestore (in case it's not already there)
-                    await saveProfile(localProfile.profileName, validAvatar);
+                    await saveProfile(profile.profileName, validAvatar);
                     // Replace history to fix back button (Home -> Room, not Home -> Host -> Room)
                     navigate(`/room/${result.code}`, { replace: true });
                 }
@@ -85,18 +87,18 @@ export default function HostLobby() {
                 console.error('Auto-create failed:', err);
                 hasAutoCreated.current = false;
                 // Fall back to showing the form
-                setHostName(localProfile.profileName);
-                if (localProfile.profileAvatar && (AVATAR_LIST as string[]).includes(localProfile.profileAvatar)) {
-                    setHostAvatar(localProfile.profileAvatar);
+                setHostName(profile.profileName);
+                if (profile.profileAvatar && (AVATAR_LIST as string[]).includes(profile.profileAvatar)) {
+                    setHostAvatar(profile.profileAvatar);
                 }
             });
-        } else if (localProfile?.profileName) {
-            setHostName(localProfile.profileName);
-            if (localProfile.profileAvatar && (AVATAR_LIST as string[]).includes(localProfile.profileAvatar)) {
-                setHostAvatar(localProfile.profileAvatar);
+        } else if (profile?.profileName) {
+            setHostName(profile.profileName);
+            if (profile.profileAvatar && (AVATAR_LIST as string[]).includes(profile.profileAvatar)) {
+                setHostAvatar(profile.profileAvatar);
             }
         }
-    }, [navigate]);
+    }, [profile, profileLoading, navigate]);
 
     const handleCreateRoom = async (e: React.FormEvent) => {
         e.preventDefault();

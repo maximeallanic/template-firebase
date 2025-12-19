@@ -34,8 +34,8 @@ i18n
     ns: ['common', 'home', 'lobby', 'game-ui', 'game-phases', 'game-loading', 'game-content'],
     defaultNS: 'common',
 
-    // Debug mode (disabled in production)
-    debug: import.meta.env.DEV,
+    // Debug mode disabled (too verbose)
+    debug: false,
 
     // Detection options
     detection: {

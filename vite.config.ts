@@ -2,12 +2,12 @@ import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 
 // https://vite.dev/config/
-export default defineConfig({
+export default defineConfig(({ mode }) => ({
   plugins: [react()],
-  // Drop console.log and debugger in production builds
-  esbuild: {
+  // Drop console.log and debugger in production builds only
+  esbuild: mode === 'production' ? {
     drop: ['console', 'debugger'],
-  },
+  } : undefined,
   build: {
     // Optimize chunk splitting for better caching and tree-shaking
     rollupOptions: {
@@ -127,4 +127,4 @@ export default defineConfig({
       ],
     },
   },
-})
+}))

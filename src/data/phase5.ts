@@ -1,7 +1,7 @@
-export interface Phase5Question {
-    question: string;
-    answer: string;
-}
+import type { Phase5Question } from '../types/gameTypes';
+
+// Re-export for backwards compatibility
+export type { Phase5Question };
 
 export const PHASE5_QUESTIONS: Phase5Question[] = [
     { question: "Qui est le meilleur amis de Harry Potter ?", answer: "Ron Weasley" },

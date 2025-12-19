@@ -1,7 +1,7 @@
-export interface Phase4Question {
-    question: string;
-    answer: string;
-}
+import type { Phase4Question } from '../types/gameTypes';
+
+// Re-export for backwards compatibility
+export type { Phase4Question };
 
 export const PHASE4_QUESTIONS: Phase4Question[] = [
     { question: "Quel est le prénom de Mr. Bean ?", answer: "Mr." },

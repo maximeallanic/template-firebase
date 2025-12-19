@@ -2,6 +2,9 @@
   "auth": {
     "unauthenticated": "Debes iniciar sesión para realizar esta acción"
   },
+  "room": {
+    "notInRoom": "No eres miembro de esta sala"
+  },
   "general": {
     "somethingWrong": "Algo salió mal. Por favor, inténtalo de nuevo"
   }

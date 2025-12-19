@@ -1,15 +1,59 @@
 import { type Room, type Avatar } from '../../services/gameService';
-import { Phase1Player } from '../Phase1Player';
-import { Phase2Player } from '../Phase2Player';
-import { Phase3Player } from '../Phase3Player';
-import { Phase4Player } from '../Phase4Player';
-import { Phase5Player } from '../Phase5Player';
-import { GameHeader } from '../GameHeader';
-import { DebugPanel } from '../DebugPanel';
-import { PhaseTransition } from '../PhaseTransition';
-import { Loader } from 'lucide-react';
+import { Phase1Player } from '../phases/Phase1Player';
+import { Phase2Player } from '../phases/Phase2Player';
+import { Phase3Player } from '../phases/Phase3Player';
+import { Phase4Player } from '../phases/Phase4Player';
+import { Phase5Player } from '../phases/Phase5Player';
+import { GameHeader } from './GameHeader';
+import { DebugPanel } from './DebugPanel';
+import { GenerationLoadingCard } from '../ui/GenerationLoadingCard';
 
 type GameStatus = 'lobby' | 'phase1' | 'phase2' | 'phase3' | 'phase4' | 'phase5' | 'victory';
+
+/**
+ * Props for GamePhaseLayout - extracted outside PhaseRouter to prevent
+ * unnecessary remounts of children on every render
+ */
+interface GamePhaseLayoutProps {
+    children: React.ReactNode;
+    players: Room['players'];
+    currentPlayer: Room['players'][string] | null;
+    roomCode: string;
+    playerId?: string;
+    onProfileUpdate: (name: string, avatar: Avatar) => void;
+    room: Room;
+}
+
+/**
+ * Common layout wrapper for game phases
+ * IMPORTANT: This component is defined OUTSIDE PhaseRouter to maintain
+ * a stable reference across renders, preventing child component remounts
+ */
+function GamePhaseLayout({
+    children,
+    players,
+    currentPlayer,
+    roomCode,
+    playerId,
+    onProfileUpdate,
+    room
+}: GamePhaseLayoutProps) {
+    return (
+        <div className="min-h-screen bg-slate-900 flex flex-col relative">
+            <GameHeader
+                players={players}
+                currentPlayer={currentPlayer}
+                roomCode={roomCode}
+                playerId={playerId}
+                onProfileUpdate={onProfileUpdate}
+            />
+            <div className="flex-1 w-full max-w-7xl mx-auto flex flex-col items-center justify-center p-4 pt-20">
+                {children}
+            </div>
+            <DebugPanel room={room} />
+        </div>
+    );
+}
 
 interface PhaseRouterProps {
     room: Room;
@@ -17,14 +61,12 @@ interface PhaseRouterProps {
     isHost: boolean;
     currentPlayer: Room['players'][string] | null;
     onProfileUpdate: (name: string, avatar: Avatar) => void;
-    showTransition: boolean;
-    transitionPhase: GameStatus;
-    onTransitionComplete: () => void;
-    isGeneratingPhase2: boolean;
+    displayStatus: GameStatus; // What phase to visually show (lags during transitions)
 }
 
 /**
  * Routes to the correct phase component based on game status
+ * Note: PhaseTransition is rendered at GameRoom level to avoid mount/unmount issues
  */
 export function PhaseRouter({
     room,
@@ -32,39 +74,24 @@ export function PhaseRouter({
     isHost,
     currentPlayer,
     onProfileUpdate,
-    showTransition,
-    transitionPhase,
-    onTransitionComplete,
-    isGeneratingPhase2
+    displayStatus
 }: PhaseRouterProps) {
-    const status = room.state.status;
+    // Use displayStatus for rendering (it lags behind during transitions)
+    const status = displayStatus;
+    // Read generation state from Firebase (visible to all players)
+    const isGenerating = room.state.isGenerating ?? false;
 
-    // Common layout wrapper for game phases
-    const GamePhaseLayout = ({ children }: { children: React.ReactNode }) => (
-        <div className="min-h-screen bg-slate-900 flex flex-col relative">
-            <GameHeader
+    // Phase 1: Tenders (MCQ)
+    if (status === 'phase1') {
+        return (
+            <GamePhaseLayout
                 players={room.players}
                 currentPlayer={currentPlayer}
                 roomCode={room.code}
                 playerId={myId || undefined}
                 onProfileUpdate={onProfileUpdate}
-            />
-            <div className="flex-1 w-full max-w-7xl mx-auto flex flex-col items-center justify-center p-4 pt-20">
-                {children}
-            </div>
-            <PhaseTransition
-                phase={transitionPhase}
-                isVisible={showTransition}
-                onComplete={onTransitionComplete}
-            />
-            <DebugPanel room={room} />
-        </div>
-    );
-
-    // Phase 1: Tenders (MCQ)
-    if (status === 'phase1') {
-        return (
-            <GamePhaseLayout>
+                room={room}
+            >
                 <Phase1Player
                     room={room}
                     playerId={myId || ''}
@@ -77,27 +104,25 @@ export function PhaseRouter({
     // Phase 2: Sucre Sale (Binary)
     if (status === 'phase2') {
         return (
-            <GamePhaseLayout>
+            <GamePhaseLayout
+                players={room.players}
+                currentPlayer={currentPlayer}
+                roomCode={room.code}
+                playerId={myId || undefined}
+                onProfileUpdate={onProfileUpdate}
+                room={room}
+            >
                 <Phase2Player
                     room={room}
                     playerId={myId || ''}
                     isHost={isHost}
                 />
 
-                {/* Phase 2 Generation Loading Overlay */}
-                {isGeneratingPhase2 && (
-                    <div className="fixed inset-0 bg-black/90 backdrop-blur-md flex items-center justify-center z-[200]">
-                        <div className="text-center space-y-4">
-                            <div className="relative">
-                                <Loader className="w-16 h-16 text-purple-400 animate-spin mx-auto" />
-                                <div className="absolute inset-0 animate-ping">
-                                    <Loader className="w-16 h-16 text-purple-400/30 mx-auto" />
-                                </div>
-                            </div>
-                            <h2 className="text-2xl font-black text-white">Preparation de Sucre Sale...</h2>
-                            <p className="text-slate-400 text-sm max-w-xs mx-auto">
-                                L'IA genere des questions binaires sur mesure
-                            </p>
+                {/* Generation Loading Overlay (visible to all players) */}
+                {isGenerating && (
+                    <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-[200]">
+                        <div className="bg-slate-900/95 backdrop-blur-xl border border-white/10 rounded-3xl p-6 shadow-2xl max-w-md w-full mx-4">
+                            <GenerationLoadingCard />
                         </div>
                     </div>
                 )}
@@ -108,7 +133,14 @@ export function PhaseRouter({
     // Phase 3: La Carte (Menus)
     if (status === 'phase3') {
         return (
-            <GamePhaseLayout>
+            <GamePhaseLayout
+                players={room.players}
+                currentPlayer={currentPlayer}
+                roomCode={room.code}
+                playerId={myId || undefined}
+                onProfileUpdate={onProfileUpdate}
+                room={room}
+            >
                 <Phase3Player
                     room={room}
                     isHost={isHost}
@@ -120,7 +152,14 @@ export function PhaseRouter({
     // Phase 4: La Note (Buzzer)
     if (status === 'phase4') {
         return (
-            <GamePhaseLayout>
+            <GamePhaseLayout
+                players={room.players}
+                currentPlayer={currentPlayer}
+                roomCode={room.code}
+                playerId={myId || undefined}
+                onProfileUpdate={onProfileUpdate}
+                room={room}
+            >
                 <Phase4Player
                     playerId={myId || ''}
                     room={room}
@@ -133,7 +172,14 @@ export function PhaseRouter({
     // Phase 5: Burger Ultime
     if (status === 'phase5') {
         return (
-            <GamePhaseLayout>
+            <GamePhaseLayout
+                players={room.players}
+                currentPlayer={currentPlayer}
+                roomCode={room.code}
+                playerId={myId || undefined}
+                onProfileUpdate={onProfileUpdate}
+                room={room}
+            >
                 <Phase5Player
                     room={room}
                     isHost={isHost}
@@ -143,16 +189,12 @@ export function PhaseRouter({
     }
 
     // Fallback for unknown phases
+    // Note: PhaseTransition is rendered at GameRoom level
     return (
         <>
             <div className="min-h-screen bg-slate-900 text-white flex items-center justify-center">
                 Phase inconnue : {status}
             </div>
-            <PhaseTransition
-                phase={transitionPhase}
-                isVisible={showTransition}
-                onComplete={onTransitionComplete}
-            />
             <DebugPanel room={room} />
         </>
     );

@@ -59,8 +59,8 @@
     },
     "userHistory": {
       "$playerId": {
-        // Users can only read/write their own history
-        ".read": "auth != null && auth.uid == $playerId",
+        // Any authenticated user can read (for exhaustion check), only owner can write
+        ".read": "auth != null",
         ".write": "auth != null && auth.uid == $playerId"
       }
     },

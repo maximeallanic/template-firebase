@@ -9,13 +9,21 @@ Génère 10 questions "Tenders" dans le style EXACT de l'émission.
 Thème : {TOPIC}
 Difficulté : {DIFFICULTY}
 
-STYLE BURGER QUIZ - OBLIGATOIRE :
-- Questions pièges avec formulations trompeuses ("Quel est le prénom du Père Noël ?")
-- Humour absurde et décalé
-- Fausses évidences qui font douter
-- Jeux de mots et calembours
-- Références culture pop, food, ou actualité
-- Questions qui semblent faciles mais qui piègent
+STYLE BURGER QUIZ - HUMOUR DANS LA FORME, PAS LE FOND :
+⚠️ RÈGLE CLÉ : La FORMULATION doit être drôle, mais le CONTENU doit être sérieux et vérifiable.
+
+✅ FORME HUMORISTIQUE (ce qu'il faut faire) :
+- Formulations trompeuses ou inattendues ("Quel est le prénom du Père Noël ?")
+- Tournures décalées et surprenantes pour poser des questions classiques
+- Fausses évidences qui font douter par la façon de demander
+- Jeux de mots dans la formulation de la question
+- Questions qui semblent faciles mais la formulation piège
+
+❌ PAS D'HUMOUR SUR LE FOND :
+- Les RÉPONSES doivent être des FAITS réels et vérifiables
+- Pas de questions sur des sujets inventés ou absurdes
+- Le sujet lui-même doit être sérieux (culture, histoire, science, etc.)
+- Les 4 options de réponse doivent être des choses réelles
 
 LONGUEUR DES QUESTIONS - TRÈS VARIÉ (OBLIGATOIRE) :
 Tu DOIS alterner entre différentes longueurs pour garder le rythme dynamique :
@@ -56,13 +64,21 @@ Génère 10 questions "Tenders" (QCM) dans le style EXACT de l'émission.
 Thème : {TOPIC}
 Difficulté : {DIFFICULTY}
 
-STYLE BURGER QUIZ - OBLIGATOIRE :
-- Questions pièges avec formulations trompeuses ("Quel est le prénom du Père Noël ?")
-- Humour absurde et décalé
-- Fausses évidences qui font douter
-- Jeux de mots et calembours
-- Références culture pop, célébrités, actualité
-- Questions qui semblent faciles mais qui piègent
+STYLE BURGER QUIZ - HUMOUR DANS LA FORME, PAS LE FOND :
+⚠️ RÈGLE CLÉ : La FORMULATION doit être drôle, mais le CONTENU doit être sérieux et vérifiable.
+
+✅ FORME HUMORISTIQUE (ce qu'il faut faire) :
+- Formulations trompeuses ou inattendues ("Quel est le prénom du Père Noël ?")
+- Tournures décalées et surprenantes pour poser des questions classiques
+- Fausses évidences qui font douter par la façon de demander
+- Jeux de mots dans la formulation de la question
+- Questions qui semblent faciles mais la formulation piège
+
+❌ PAS D'HUMOUR SUR LE FOND :
+- Les RÉPONSES doivent être des FAITS réels et vérifiables
+- Pas de questions sur des sujets inventés ou absurdes
+- Le sujet lui-même doit être sérieux (culture, histoire, science, etc.)
+- Les 4 options de réponse doivent être des choses réelles
 
 RÈGLES CRITIQUES :
 
@@ -145,14 +161,14 @@ QUESTIONS PROPOSÉES :
 
    ❌ SI SCORE < 6 → REJETTE (les questions ambiguës créent des disputes)
 
-3. STYLE BURGER QUIZ :
-   - Les questions sont-elles drôles, absurdes, ou pièges ?
-   - Évite-t-on le style trop scolaire/encyclopédique ?
-   - Y a-t-il des références culture pop, célébrités, actualité ?
+3. STYLE BURGER QUIZ (HUMOUR DANS LA FORME) :
+   - La FORMULATION est-elle drôle, décalée, ou piège ?
+   - Le CONTENU reste-t-il sérieux et factuel ?
+   - Évite-t-on le style trop scolaire dans la façon de poser la question ?
 
-   ✅ Score 9-10 : Style Burger Quiz parfait, drôle et décalé
-   ⚠️ Score 6-8 : Acceptable mais un peu plat
-   ❌ Score 1-5 : Trop scolaire, ennuyeux, style Wikipedia
+   ✅ Score 9-10 : Formulation Burger Quiz parfaite (drôle) + contenu sérieux
+   ⚠️ Score 6-8 : Formulation acceptable, contenu OK
+   ❌ Score 1-5 : Formulation trop scolaire OU contenu absurde/inventé
 
 4. VARIÉTÉ LONGUEUR :
    - Y a-t-il un mix de questions courtes/moyennes/longues ?
@@ -211,7 +227,8 @@ RAISONS DU REJET :
 
 INSTRUCTIONS :
 - Génère EXACTEMENT {COUNT} nouvelles questions pour remplacer celles rejetées
-- Garde le style Burger Quiz (absurde, pièges, humour)
+- HUMOUR DANS LA FORME : formulations drôles, décalées, pièges
+- SÉRIEUX DANS LE FOND : contenu factuel et vérifiable
 - VÉRIFIE les faits avec Google Search
 - Ajoute une anecdote pour chaque question
 - Les réponses doivent être 100% vérifiables et INDISCUTABLES
@@ -246,10 +263,11 @@ Pour CHAQUE question, vérifie ces critères (DANS L'ORDRE) :
    - Pas de "peut-être" ou "généralement"
    - Si plusieurs réponses pourraient être valides → REJET
 
-3. STYLE BURGER QUIZ :
-   - Doit être drôle, absurde, ou piège
-   - PAS académique, PAS style Wikipedia
-   - Si trop scolaire ou ennuyeux → REJET
+3. STYLE BURGER QUIZ (HUMOUR DANS LA FORME) :
+   - La FORMULATION doit être drôle, décalée, ou piège
+   - Le CONTENU doit rester sérieux et factuel
+   - PAS de formulation académique/style Wikipedia
+   - Si formulation trop scolaire OU contenu inventé → REJET
 
 4. ANECDOTE :
    - Doit être vraie et vérifiable
@@ -283,7 +301,8 @@ Questions rejetées et raisons :
 INSTRUCTIONS :
 - Génère EXACTEMENT {COUNT} nouvelles questions
 - Corrige les problèmes mentionnés
-- Garde le style Burger Quiz (absurde, pièges, humour)
+- HUMOUR DANS LA FORME : formulations drôles, décalées, pièges
+- SÉRIEUX DANS LE FOND : contenu factuel et vérifiable
 - Vérifie les faits avec Google Search
 - Ajoute une anecdote pour chaque question
 

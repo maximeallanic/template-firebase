@@ -67,7 +67,8 @@
     "orBoth": "ou les deux ?",
     "team": "Équipe :",
     "correct": "Correct !",
-    "wrongAnswer": "Mauvaise réponse"
+    "wrongAnswer": "Mauvaise réponse",
+    "alsoAccepted": "Également accepté"
   },
   "phase3": {
     "chooseMenu": "Choisis un menu",

@@ -1,21 +1,33 @@
 import { z } from 'zod';
-import { ai, genAI, MODEL_CONFIG, MODEL_CONFIG_FACTUAL, MODEL_CONFIG_FACT_CHECK } from '../config/genkit';
+import { ai, GENERATOR_MODEL, REVIEWER_MODEL, FACTCHECK_MODEL, MODEL_CONFIG, isSearchAvailable } from '../config/genkit';
+import { googleSearch } from '../tools/searchTool';
 import {
-    GAME_GENERATION_SYSTEM_PROMPT,
+    // Topic generation
     GENERATE_TOPIC_PROMPT,
     GENERATE_TOPIC_PHASE2_PROMPT,
-    PHASE1_PROMPT,
-    PHASE2_PROMPT,
-    PHASE3_PROMPT,
-    PHASE4_PROMPT,
-    PHASE5_PROMPT,
-    PHASE2_GENERATOR_PROMPT,
-    PHASE2_DIALOGUE_REVIEWER_PROMPT,
-    PHASE2_TARGETED_REGENERATION_PROMPT,
+    // Phase 1 dialogue prompts
     PHASE1_GENERATOR_PROMPT,
     PHASE1_DIALOGUE_REVIEWER_PROMPT,
     PHASE1_TARGETED_REGENERATION_PROMPT,
+    // Phase 2 dialogue prompts
+    PHASE2_GENERATOR_PROMPT,
+    PHASE2_DIALOGUE_REVIEWER_PROMPT,
+    PHASE2_TARGETED_REGENERATION_PROMPT,
+    // Phase 3 dialogue prompts
+    PHASE3_GENERATOR_PROMPT,
+    PHASE3_DIALOGUE_REVIEWER_PROMPT,
+    PHASE3_TARGETED_REGENERATION_PROMPT,
+    // Phase 4 dialogue prompts
+    PHASE4_GENERATOR_PROMPT,
+    PHASE4_DIALOGUE_REVIEWER_PROMPT,
+    PHASE4_TARGETED_REGENERATION_PROMPT,
+    // Phase 5 dialogue prompts
+    PHASE5_GENERATOR_PROMPT,
+    PHASE5_DIALOGUE_REVIEWER_PROMPT,
+    PHASE5_TARGETED_REGENERATION_PROMPT,
+    // Fact-check prompts
     FACT_CHECK_BATCH_PROMPT,
+    FACT_CHECK_NO_SEARCH_PROMPT,
     FACT_CHECK_PHASE2_PROMPT
 } from '../prompts';
 import { calculateCost, formatCost } from '../utils/costCalculator';
@@ -39,7 +51,14 @@ interface Phase1Question {
 interface Phase2Set {
     optionA: string;
     optionB: string;
-    items: Array<{ text: string; answer: 'A' | 'B' | 'Both'; justification?: string }>;
+    optionADescription?: string;  // Description pour différencier les homonymes
+    optionBDescription?: string;  // Description pour différencier les homonymes
+    items: Array<{
+        text: string;
+        answer: 'A' | 'B' | 'Both';
+        acceptedAnswers?: ('A' | 'B' | 'Both')[];  // Réponses alternatives valides
+        justification?: string;
+    }>;
 }
 
 // --- DIALOGUE REVIEW TYPES ---
@@ -47,10 +66,13 @@ interface Phase2Set {
 interface Phase2GeneratorResponse {
     optionA: string;
     optionB: string;
+    optionADescription?: string;  // Description pour différencier les homonymes
+    optionBDescription?: string;  // Description pour différencier les homonymes
     reasoning: string;
     items: Array<{
         text: string;
         answer: 'A' | 'B' | 'Both';
+        acceptedAnswers?: ('A' | 'B' | 'Both')[];  // Réponses alternatives valides
         justification: string;
     }>;
 }
@@ -117,6 +139,124 @@ interface Phase1DialogueReview {
     suggestions: string[];
 }
 
+// --- PHASE 3 DIALOGUE TYPES ---
+
+interface Phase3Menu {
+    title: string;
+    description: string;
+    questions: Array<{ question: string; answer: string }>;
+}
+
+interface Phase3DialogueReview {
+    approved: boolean;
+    scores: {
+        title_creativity: number;
+        descriptions: number;
+        thematic_variety: number;
+        question_style: number;
+        factual_accuracy: number;
+        clarity: number;
+        difficulty: number;
+        answer_length: number;
+    };
+    overall_score: number;
+    menus_feedback: Array<{
+        menu_index: number;
+        title: string;
+        title_ok: boolean;
+        title_issue?: string;
+        description_ok: boolean;
+        description_issue?: string;
+        questions_feedback: Array<{
+            index: number;
+            question: string;
+            answer: string;
+            ok: boolean;
+            issues: string[];
+            correction?: string;
+        }>;
+    }>;
+    global_feedback: string;
+    suggestions: string[];
+}
+
+// --- PHASE 4 DIALOGUE TYPES ---
+
+interface Phase4Question {
+    question: string;
+    answer: string;
+}
+
+interface Phase4DialogueReview {
+    approved: boolean;
+    scores: {
+        speed_friendly: number;
+        trap_quality: number;
+        thematic_variety: number;
+        factual_accuracy: number;
+        answer_length: number;
+        burger_style: number;
+    };
+    overall_score: number;
+    trap_count: number;
+    questions_feedback: Array<{
+        index: number;
+        question: string;
+        answer: string;
+        ok: boolean;
+        is_trap: boolean;
+        issues: string[];
+        word_count: number;
+        correction?: string;
+    }>;
+    global_feedback: string;
+    suggestions: string[];
+}
+
+// --- PHASE 5 DIALOGUE TYPES ---
+
+interface Phase5Question {
+    question: string;
+    answer: string;
+}
+
+interface Phase5DialogueReview {
+    approved: boolean;
+    scores: {
+        memorability: number;
+        callbacks: number;
+        progression: number;
+        factual_accuracy: number;
+        answer_length: number;
+        burger_style: number;
+        thematic_coherence: number;
+    };
+    overall_score: number;
+    callback_count: number;
+    identified_callbacks: Array<{
+        question_index: number;
+        references_question: number;
+        description: string;
+    }>;
+    difficulty_curve: {
+        easy_questions: number[];
+        medium_questions: number[];
+        hard_questions: number[];
+        curve_ok: boolean;
+    };
+    questions_feedback: Array<{
+        index: number;
+        question: string;
+        answer: string;
+        ok: boolean;
+        memorable: boolean;
+        issues: string[];
+        correction?: string;
+    }>;
+    global_feedback: string;
+    suggestions: string[];
+}
+
 // --- FACT-CHECK TYPES ---
 
 interface FactCheckResult {
@@ -175,141 +315,160 @@ export const GameGenerationOutputSchema = z.object({
     }),
 });
 
-// --- HELPER ---
+// --- HELPER FUNCTIONS ---
 
-function getPromptForPhase(phase: string, topic: string, difficulty: string): string {
-    let promptTemplate = '';
-    switch (phase) {
-        case 'phase1': promptTemplate = PHASE1_PROMPT; break;
-        case 'phase2': promptTemplate = PHASE2_PROMPT; break;
-        case 'phase3': promptTemplate = PHASE3_PROMPT; break;
-        case 'phase4': promptTemplate = PHASE4_PROMPT; break;
-        case 'phase5': promptTemplate = PHASE5_PROMPT; break;
-        default: return '';
+/**
+ * Call Gemini 3 Pro for GENERATION tasks (with search tools)
+ * Uses ai.chat() to properly handle thought_signature for Gemini 3 Pro with tools
+ * @param prompt - The prompt to send to the model
+ * @param configType - 'creative' for high temperature, 'factual' for lower temperature
+ */
+async function callGemini(prompt: string, configType: 'creative' | 'factual' = 'creative'): Promise<string> {
+    const config = MODEL_CONFIG[configType];
+
+    console.log(`🔧 Generator: gemini-3-pro-preview, config: ${configType}, tools: ${isSearchAvailable ? 'webSearch' : 'none'}`);
+
+    if (isSearchAvailable) {
+        // Use ai.chat() which properly handles thought signatures for Gemini 3 Pro with tools
+        const chat = ai.chat({
+            model: GENERATOR_MODEL,
+            config,
+            tools: [googleSearch],
+        });
+        const response = await chat.send(prompt);
+        return response.text;
+    } else {
+        const response = await ai.generate({
+            model: GENERATOR_MODEL,
+            prompt,
+            config,
+        });
+        return response.text;
     }
-
-    return promptTemplate
-        .replace('{TOPIC}', topic)
-        .replace('{DIFFICULTY}', difficulty);
-}
-
-// --- REVIEW FUNCTIONS ---
-
-async function callGeminiWithSearch(prompt: string, useFactualConfig = false): Promise<string> {
-    // Google Search grounding only available with Vertex AI (not API key)
-    const useGoogleSearch = !process.env.GEMINI_API_KEY;
-    const config = useFactualConfig ? MODEL_CONFIG_FACTUAL : MODEL_CONFIG;
-
-    console.log(`🔧 Using model: ${config.model}, factual: ${useFactualConfig}, API key mode: ${!!process.env.GEMINI_API_KEY}`);
-
-    const response = await genAI.models.generateContent({
-        model: config.model,
-        config: {
-            ...config.config,
-            ...(useGoogleSearch ? { tools: [{ googleSearch: {} }] } : {}),
-        },
-        contents: [{ role: 'user', parts: [{ text: prompt }] }]
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    } as any);
-
-    const text = response.text || '';
-    if (!text) {
-        console.error('⚠️ Empty response from model. Full response:', JSON.stringify(response, null, 2));
-    }
-    return text;
-}
-
-function parseJsonFromText(text: string): unknown {
-    const jsonMatch = text.match(/\{[\s\S]*\}|\[[\s\S]*\]/);
-    if (!jsonMatch) throw new Error('No JSON found in response');
-    return JSON.parse(jsonMatch[0]);
 }
 
 /**
- * Extract text from a Gemini API response
- * Handles both standard responses and thinking model responses (gemini-3-pro-preview)
- * which may have text split across multiple parts or candidates
+ * Call Gemini 3 Flash for REVIEW tasks (no tools needed)
+ * Fast model optimized for evaluation/scoring
+ * @param prompt - The prompt to send to the model
+ * @param configType - 'creative' for high temperature, 'factual' for lower temperature
  */
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function extractTextFromResponse(response: any): string {
-    // Try direct .text property first (standard SDK behavior)
-    if (response.text && typeof response.text === 'string' && response.text.trim()) {
-        return response.text;
-    }
+async function callGeminiForReview(prompt: string, configType: 'creative' | 'factual' = 'creative'): Promise<string> {
+    const config = MODEL_CONFIG[configType];
 
-    // For thinking models, extract text from candidates/parts
+    console.log(`🔧 Reviewer: gemini-3-flash, config: ${configType}`);
+
+    const response = await ai.generate({
+        model: REVIEWER_MODEL,
+        prompt,
+        config,
+    });
+
+    return response.text;
+}
+
+/**
+ * Helper to find a balanced JSON structure (handles nested objects/arrays)
+ */
+function findBalancedJson(text: string): string | null {
+    const startChars = ['{', '['];
+    const endChars = ['}', ']'];
+
+    for (const startChar of startChars) {
+        const startIdx = text.indexOf(startChar);
+        if (startIdx === -1) continue;
+
+        let depth = 0;
+        let inString = false;
+        let escaped = false;
+
+        for (let i = startIdx; i < text.length; i++) {
+            const char = text[i];
+
+            if (escaped) { escaped = false; continue; }
+            if (char === '\\') { escaped = true; continue; }
+            if (char === '"') { inString = !inString; continue; }
+            if (inString) continue;
+
+            if (startChars.includes(char)) depth++;
+            if (endChars.includes(char)) depth--;
+
+            if (depth === 0) {
+                return text.slice(startIdx, i + 1);
+            }
+        }
+    }
+    return null;
+}
+
+/**
+ * Parse JSON from text, handling markdown artifacts and nested structures
+ */
+function parseJsonFromText(text: string): unknown {
+    // Clean markdown artifacts
+    const cleanText = text
+        .replace(/```json\s*/gi, '')
+        .replace(/```\s*/g, '')
+        .trim();
+
+    // Try direct parse first (fastest path)
     try {
-        const candidates = response.candidates || [];
-        const textParts: string[] = [];
-
-        for (const candidate of candidates) {
-            const content = candidate.content || {};
-            const parts = content.parts || [];
-
-            for (const part of parts) {
-                // Skip thought parts, only get actual text output
-                if (part.text && typeof part.text === 'string') {
-                    // Skip if it looks like internal thinking (usually marked differently)
-                    if (!part.thought) {
-                        textParts.push(part.text);
-                    }
-                }
-            }
-        }
-
-        if (textParts.length > 0) {
-            return textParts.join('').trim();
-        }
-    } catch (err) {
-        console.warn('⚠️ Error extracting text from response candidates:', err);
+        return JSON.parse(cleanText);
+    } catch {
+        // Continue to balanced extraction
     }
 
-    // Fallback: try to call .text() if it's a function
-    if (typeof response.text === 'function') {
-        try {
-            const text = response.text();
-            if (text && typeof text === 'string') {
-                return text;
-            }
-        } catch (err) {
-            console.warn('⚠️ Error calling response.text():', err);
-        }
+    // Find balanced JSON structure
+    const jsonMatch = findBalancedJson(cleanText);
+    if (!jsonMatch) {
+        throw new Error('No valid JSON found in response');
     }
 
-    return '';
+    return JSON.parse(jsonMatch);
 }
 
 // --- FACT-CHECK FUNCTIONS ---
 
 /**
  * Call Gemini with fact-check config (very low temperature)
- * Uses Google Search grounding when available
+ * Uses gemini-2.0-flash with web search for accurate fact verification
+ * Note: gemini-3-pro-preview requires "thought_signature" which Genkit doesn't support yet
  */
 async function callGeminiForFactCheck(prompt: string): Promise<string> {
-    const useGoogleSearch = !process.env.GEMINI_API_KEY;
+    if (isSearchAvailable) {
+        console.log(`🔍 Fact-check: gemini-2.0-flash with web search`);
 
-    console.log(`🔍 Fact-check call (temp: ${MODEL_CONFIG_FACT_CHECK.config.temperature}, search: ${useGoogleSearch})`);
+        // Use ai.chat() for tool-enabled fact-checking
+        const chat = ai.chat({
+            model: FACTCHECK_MODEL,
+            config: MODEL_CONFIG.factCheck,
+            tools: [googleSearch],
+        });
 
-    const response = await genAI.models.generateContent({
-        model: MODEL_CONFIG_FACT_CHECK.model,
-        config: {
-            ...MODEL_CONFIG_FACT_CHECK.config,
-            ...(useGoogleSearch ? { tools: [{ googleSearch: {} }] } : {}),
-        },
-        contents: [{ role: 'user', parts: [{ text: prompt }] }]
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    } as any);
+        const response = await chat.send(prompt);
+        return response.text;
+    } else {
+        console.log(`🔍 Fact-check: gemini-3-flash-preview (no search)`);
 
-    return response.text || '';
+        const response = await ai.generate({
+            model: REVIEWER_MODEL,
+            prompt,
+            config: MODEL_CONFIG.factCheck,
+        });
+
+        return response.text;
+    }
 }
 
 /**
  * Verify factual accuracy of Phase 1 questions in batch
  * Returns questions that passed fact-check with high confidence
  * Also checks for synonyms/equivalents in wrong options
+ * Includes retry logic with exponential backoff
  */
 async function factCheckPhase1Questions(
-    questions: Phase1Question[]
+    questions: Phase1Question[],
+    maxRetries: number = 3
 ): Promise<{ passed: Phase1Question[]; failed: { question: Phase1Question; reason: string }[] }> {
     console.log(`🔍 Fact-checking ${questions.length} Phase 1 questions...`);
 
@@ -322,50 +481,73 @@ async function factCheckPhase1Questions(
         correctIndex: q.correctIndex
     }));
 
-    const prompt = FACT_CHECK_BATCH_PROMPT.replace(
+    // Use appropriate prompt based on search availability
+    const basePrompt = isSearchAvailable ? FACT_CHECK_BATCH_PROMPT : FACT_CHECK_NO_SEARCH_PROMPT;
+    const prompt = basePrompt.replace(
         '{QUESTIONS_JSON}',
         JSON.stringify(questionsForCheck, null, 2)
     );
 
-    try {
-        const responseText = await callGeminiForFactCheck(prompt);
-        const response = parseJsonFromText(responseText) as FactCheckBatchResponse;
+    // Retry loop with exponential backoff
+    for (let attempt = 1; attempt <= maxRetries; attempt++) {
+        try {
+            const responseText = await callGeminiForFactCheck(prompt);
+            const response = parseJsonFromText(responseText) as FactCheckBatchResponse;
 
-        const synonymCount = response.summary.synonymIssues || 0;
-        console.log(`📊 Fact-check summary: ${response.summary.correct}/${response.summary.total} correct, ${response.summary.incorrect} incorrect, ${response.summary.ambiguous} ambiguous, ${synonymCount} synonymes`);
+            const synonymCount = response.summary.synonymIssues || 0;
+            console.log(`📊 Fact-check summary: ${response.summary.correct}/${response.summary.total} correct, ${response.summary.incorrect} incorrect, ${response.summary.ambiguous} ambiguous, ${synonymCount} synonymes`);
 
-        const passed: Phase1Question[] = [];
-        const failed: { question: Phase1Question; reason: string }[] = [];
+            const passed: Phase1Question[] = [];
+            const failed: { question: Phase1Question; reason: string }[] = [];
 
-        for (const result of response.results) {
-            const question = questions[result.index];
+            for (const result of response.results) {
+                const question = questions[result.index];
 
-            // Check for synonym issues (even if answer is correct)
-            if (result.synonymIssue) {
-                const reason = `Synonyme détecté: ${result.synonymIssue}`;
-                failed.push({ question, reason });
-                console.log(`  ⚠️ Q${result.index + 1}: "${question.text.slice(0, 40)}..." - ${reason}`);
+                // Check for synonym issues (even if answer is correct)
+                if (result.synonymIssue) {
+                    const reason = `Synonyme détecté: ${result.synonymIssue}`;
+                    failed.push({ question, reason });
+                    console.log(`  ⚠️ Q${result.index + 1}: "${question.text.slice(0, 40)}..." - ${reason}`);
+                    continue;
+                }
+
+                if (result.isCorrect && result.confidence >= FACT_CHECK_CONFIDENCE_THRESHOLD) {
+                    passed.push(question);
+                    console.log(`  ✅ Q${result.index + 1}: "${question.text.slice(0, 40)}..." (${result.confidence}%)`);
+                } else {
+                    const reason = result.isCorrect
+                        ? `Confiance trop basse (${result.confidence}%): ${result.reasoning}`
+                        : `Erreur factuelle: ${result.reasoning}${result.correction ? ` (correction: ${result.correction})` : ''}`;
+                    failed.push({ question, reason });
+                    console.log(`  ❌ Q${result.index + 1}: "${question.text.slice(0, 40)}..." - ${reason}`);
+                }
+            }
+
+            return { passed, failed };
+        } catch (err) {
+            console.warn(`⚠️ Fact-check attempt ${attempt}/${maxRetries} failed:`, err);
+
+            if (attempt < maxRetries) {
+                const delay = Math.pow(2, attempt) * 1000; // 2s, 4s, 8s
+                console.log(`   Retrying in ${delay / 1000}s...`);
+                await new Promise(r => setTimeout(r, delay));
                 continue;
             }
 
-            if (result.isCorrect && result.confidence >= FACT_CHECK_CONFIDENCE_THRESHOLD) {
-                passed.push(question);
-                console.log(`  ✅ Q${result.index + 1}: "${question.text.slice(0, 40)}..." (${result.confidence}%)`);
-            } else {
-                const reason = result.isCorrect
-                    ? `Confiance trop basse (${result.confidence}%): ${result.reasoning}`
-                    : `Erreur factuelle: ${result.reasoning}${result.correction ? ` (correction: ${result.correction})` : ''}`;
-                failed.push({ question, reason });
-                console.log(`  ❌ Q${result.index + 1}: "${question.text.slice(0, 40)}..." - ${reason}`);
-            }
+            // All retries exhausted - REJECT all questions to be safe
+            console.error('❌ All fact-check retries failed, rejecting entire batch');
+            return {
+                passed: [],
+                failed: questions.map(q => ({
+                    question: q,
+                    reason: 'Fact-check unavailable after retries'
+                }))
+            };
         }
-
-        return { passed, failed };
-    } catch (err) {
-        console.error('❌ Fact-check failed:', err);
-        // If fact-check fails, return all questions (fallback to reviewer validation)
-        return { passed: questions, failed: [] };
     }
+
+    // Unreachable, but TypeScript needs this
+    return { passed: [], failed: [] };
 }
 
 /**
@@ -406,9 +588,10 @@ async function factCheckPhase2Items(
                     return { item, passed: false, reason };
                 }
             } catch (err) {
-                console.warn(`⚠️ Fact-check failed for item "${item.text}":`, err);
-                // If check fails, assume it passed (fallback to reviewer)
-                return { item, passed: true, reason: '' };
+                console.error(`❌ Fact-check failed for item "${item.text}":`, err);
+                // Conservative approach: reject if we can't verify
+                // This prevents potentially incorrect items from passing
+                return { item, passed: false, reason: 'Vérification impossible - item rejeté par précaution' };
             }
         });
 
@@ -445,7 +628,9 @@ async function factCheckSimpleQuestions(
         proposedAnswer: q.answer
     }));
 
-    const prompt = FACT_CHECK_BATCH_PROMPT.replace(
+    // Use appropriate prompt based on search availability
+    const basePrompt = isSearchAvailable ? FACT_CHECK_BATCH_PROMPT : FACT_CHECK_NO_SEARCH_PROMPT;
+    const prompt = basePrompt.replace(
         '{QUESTIONS_JSON}',
         JSON.stringify(questionsForCheck, null, 2)
     );
@@ -545,26 +730,22 @@ async function generateCreativeTopic(phase?: string): Promise<string> {
 
     for (let attempt = 1; attempt <= maxAttempts; attempt++) {
         try {
-            const response = await genAI.models.generateContent({
-                model: MODEL_CONFIG.model,
+            // Use REVIEWER_MODEL (gemini-3-flash) for topic generation - more stable for simple text
+            const response = await ai.generate({
+                model: REVIEWER_MODEL,
+                prompt,
                 config: {
-                    ...MODEL_CONFIG.config,
-                    maxOutputTokens: 50, // Very short response expected
+                    ...MODEL_CONFIG.topic,
                     temperature: 1.2 + (attempt * 0.1), // Increase creativity with each attempt
                 },
-                contents: [{ role: 'user', parts: [{ text: prompt }] }]
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            } as any);
+            });
 
-            // Extract text from response (handles thinking models like gemini-3-pro-preview)
-            const rawTopic = extractTextFromResponse(response);
+            const rawTopic = response.text;
 
             // Debug logging for topic generation issues
             if (!rawTopic) {
-                console.warn(`⚠️ Attempt ${attempt}: Empty response from model. Response keys:`, Object.keys(response || {}));
-                if (response?.candidates) {
-                    console.warn('   Candidates:', JSON.stringify(response.candidates, null, 2).slice(0, 500));
-                }
+                console.warn(`⚠️ Attempt ${attempt}: Empty response from model`);
+                console.warn(`⚠️ Full response:`, JSON.stringify(response, null, 2));
             }
 
             // Clean up the response - remove quotes, extra spaces, etc.
@@ -620,7 +801,7 @@ async function generatePhase2WithDialogue(
             .replace('{PREVIOUS_FEEDBACK}', previousFeedback);
 
         console.log('🤖 Generator creating set...');
-        const proposalText = await callGeminiWithSearch(generatorPrompt);
+        const proposalText = await callGemini(generatorPrompt, 'creative');
         let proposal: Phase2GeneratorResponse;
 
         try {
@@ -634,11 +815,18 @@ async function generatePhase2WithDialogue(
         console.log(`🎯 Proposition: "${proposal.optionA}" vs "${proposal.optionB}"`);
         console.log(`   Reasoning: ${proposal.reasoning}`);
 
-        // Store last set (in case we reach max iterations) - preserve justification
+        // Store last set (in case we reach max iterations) - preserve all fields
         lastSet = {
             optionA: proposal.optionA,
             optionB: proposal.optionB,
-            items: proposal.items.map(item => ({ text: item.text, answer: item.answer, justification: item.justification }))
+            optionADescription: proposal.optionADescription,
+            optionBDescription: proposal.optionBDescription,
+            items: proposal.items.map(item => ({
+                text: item.text,
+                answer: item.answer,
+                acceptedAnswers: item.acceptedAnswers,
+                justification: item.justification
+            }))
         };
 
         // 2. Reviewer evaluates the complete set
@@ -646,7 +834,7 @@ async function generatePhase2WithDialogue(
             .replace('{SET}', JSON.stringify(proposal, null, 2));
 
         console.log('👨‍⚖️ Reviewer evaluating set...');
-        const reviewText = await callGeminiWithSearch(reviewerPrompt);
+        const reviewText = await callGeminiForReview(reviewerPrompt, 'creative');
         let review: Phase2DialogueReview;
 
         try {
@@ -870,19 +1058,36 @@ Vérifie que chaque item appartient VRAIMENT à la catégorie assignée (A, B, o
                 .replace('{NEEDED_BOTH}', String(neededBoth));
 
             try {
-                const regenText = await callGeminiWithSearch(targetedPrompt);
-                const newItems = parseJsonFromText(regenText) as Array<{ text: string; answer: 'A' | 'B' | 'Both'; justification: string }>;
+                const regenText = await callGemini(targetedPrompt, 'creative');
+                const newItems = parseJsonFromText(regenText) as Array<{
+                    text: string;
+                    answer: 'A' | 'B' | 'Both';
+                    acceptedAnswers?: ('A' | 'B' | 'Both')[];
+                    justification: string;
+                }>;
 
-                // Merge: keep good items + add new items (preserve justification)
+                // Merge: keep good items + add new items (preserve all fields)
                 const mergedItems = [
-                    ...goodItems.map(item => ({ text: item.text, answer: item.answer, justification: item.justification })),
-                    ...newItems.map(item => ({ text: item.text, answer: item.answer, justification: item.justification }))
+                    ...goodItems.map(item => ({
+                        text: item.text,
+                        answer: item.answer,
+                        acceptedAnswers: item.acceptedAnswers,
+                        justification: item.justification
+                    })),
+                    ...newItems.map(item => ({
+                        text: item.text,
+                        answer: item.answer,
+                        acceptedAnswers: item.acceptedAnswers,
+                        justification: item.justification
+                    }))
                 ];
 
-                // Update lastSet with merged items (keeping same homophone)
+                // Update lastSet with merged items (keeping same homophone and descriptions)
                 lastSet = {
                     optionA: proposal.optionA,
                     optionB: proposal.optionB,
+                    optionADescription: proposal.optionADescription,
+                    optionBDescription: proposal.optionBDescription,
                     items: mergedItems.slice(0, 12) // Ensure max 12 items
                 };
 
@@ -990,7 +1195,7 @@ async function generatePhase1WithDialogue(
             .replace('{PREVIOUS_FEEDBACK}', previousFeedback);
 
         console.log('🤖 Generator creating questions...');
-        const proposalText = await callGeminiWithSearch(generatorPrompt, true); // Use factual config for Phase 1
+        const proposalText = await callGemini(generatorPrompt, 'factual'); // Use factual config for Phase 1
         let proposal: Phase1GeneratorQuestion[];
 
         try {
@@ -1016,7 +1221,7 @@ async function generatePhase1WithDialogue(
             .replace('{QUESTIONS}', JSON.stringify(proposal, null, 2));
 
         console.log('👨‍⚖️ Reviewer evaluating questions...');
-        const reviewText = await callGeminiWithSearch(reviewerPrompt, true); // Use factual config for Phase 1
+        const reviewText = await callGeminiForReview(reviewerPrompt, 'factual'); // Use factual config for Phase 1
         let review: Phase1DialogueReview;
 
         try {
@@ -1206,7 +1411,7 @@ NE RÉPÈTE PAS des questions déjà posées.
                 .replace(/{COUNT}/g, String(badQuestionIndices.length));
 
             try {
-                const regenText = await callGeminiWithSearch(targetedPrompt, true); // Use factual config for Phase 1
+                const regenText = await callGemini(targetedPrompt, 'factual'); // Use factual config for Phase 1
                 const newQuestions = parseJsonFromText(regenText) as Phase1GeneratorQuestion[];
 
                 // Merge: keep good questions + add new questions
@@ -1296,6 +1501,750 @@ ${review.global_feedback}
     throw new Error('Failed to generate Phase 1 questions after all iterations');
 }
 
+/**
+ * Generate Phase 3 menus using dialogue between Generator and Reviewer agents
+ * Creates 3 themed menus with 5 questions each
+ */
+async function generatePhase3WithDialogue(
+    topic: string,
+    difficulty: string,
+    maxIterations: number = 4
+): Promise<{ menus: Phase3Menu[]; embeddings: number[][] }> {
+    console.log('🎭 Starting Generator/Reviewer dialogue for Phase 3...');
+
+    let previousFeedback = '';
+    let lastMenus: Phase3Menu[] = [];
+    let bestMenus: Phase3Menu[] = [];
+    let bestScore = 0;
+
+    for (let i = 0; i < maxIterations; i++) {
+        console.log(`\n🔄 === ITERATION ${i + 1}/${maxIterations} ===`);
+
+        // 1. Generator proposes menus
+        const generatorPrompt = PHASE3_GENERATOR_PROMPT
+            .replace('{TOPIC}', topic)
+            .replace('{DIFFICULTY}', difficulty)
+            .replace('{PREVIOUS_FEEDBACK}', previousFeedback);
+
+        console.log('🤖 Generator creating menus...');
+        const proposalText = await callGemini(generatorPrompt, 'creative');
+        let proposal: Phase3Menu[];
+
+        try {
+            proposal = parseJsonFromText(proposalText) as Phase3Menu[];
+        } catch (err) {
+            console.error('❌ Failed to parse generator response:', err);
+            console.log('Raw response:', proposalText.slice(0, 500));
+            continue;
+        }
+
+        console.log(`📋 Generated ${proposal.length} menus`);
+        for (const menu of proposal) {
+            console.log(`   - "${menu.title}": ${menu.questions.length} questions`);
+        }
+
+        lastMenus = proposal;
+
+        // 2. Reviewer evaluates the menus
+        const reviewerPrompt = PHASE3_DIALOGUE_REVIEWER_PROMPT
+            .replace('{MENUS}', JSON.stringify(proposal, null, 2));
+
+        console.log('👨‍⚖️ Reviewer evaluating menus...');
+        const reviewText = await callGeminiForReview(reviewerPrompt, 'creative');
+        let review: Phase3DialogueReview;
+
+        try {
+            review = parseJsonFromText(reviewText) as Phase3DialogueReview;
+        } catch (err) {
+            console.error('❌ Failed to parse reviewer response:', err);
+            console.log('Raw response:', reviewText.slice(0, 500));
+            continue;
+        }
+
+        // Log scores
+        console.log(`📊 Scores: titles=${review.scores.title_creativity}, descs=${review.scores.descriptions}, variety=${review.scores.thematic_variety}`);
+        console.log(`          style=${review.scores.question_style}, factual=${review.scores.factual_accuracy}, clarity=${review.scores.clarity}`);
+        console.log(`   Overall: ${review.overall_score}/10`);
+
+        // 3. Check critical criteria
+        if (review.scores.factual_accuracy < 7) {
+            console.log(`❌ Factual accuracy too low (${review.scores.factual_accuracy}/10).`);
+
+            const problematicQuestions: string[] = [];
+            for (const menuFb of review.menus_feedback) {
+                for (const qFb of menuFb.questions_feedback) {
+                    if (!qFb.ok && qFb.issues.includes('reponse_incorrecte')) {
+                        problematicQuestions.push(`- Menu "${menuFb.title}", Q${qFb.index + 1}: "${qFb.question}" (correction: ${qFb.correction || 'N/A'})`);
+                    }
+                }
+            }
+
+            previousFeedback = `
+⚠️ ERREURS FACTUELLES DÉTECTÉES (score: ${review.scores.factual_accuracy}/10)
+
+Questions avec erreurs :
+${problematicQuestions.join('\n') || '(Vérifier toutes les réponses)'}
+
+CRITIQUE : Utilise Google Search pour VÉRIFIER chaque réponse.
+`;
+            continue;
+        }
+
+        if (review.scores.title_creativity < 5) {
+            console.log(`❌ Titles too generic (${review.scores.title_creativity}/10).`);
+
+            const genericTitles = review.menus_feedback
+                .filter(m => !m.title_ok)
+                .map(m => `- "${m.title}": ${m.title_issue || 'trop générique'}`)
+                .join('\n');
+
+            previousFeedback = `
+⚠️ TITRES TROP GÉNÉRIQUES (score: ${review.scores.title_creativity}/10)
+
+Titres à améliorer :
+${genericTitles}
+
+Rappel : Les titres doivent être CRÉATIFS et FUN, pas "Menu Culture Générale".
+Exemples de bons titres : "Menu Catastrophes Culinaires", "Menu Scandales Royaux".
+`;
+            continue;
+        }
+
+        // Track best menus
+        if (review.overall_score > bestScore) {
+            bestScore = review.overall_score;
+            bestMenus = [...lastMenus];
+            console.log(`📈 New best menus! Score: ${bestScore}/10`);
+        }
+
+        // Check overall score
+        if (review.overall_score >= 7) {
+            console.log(`✅ Menus validated after ${i + 1} iteration(s)! (score: ${review.overall_score}/10)`);
+
+            // Fact-check all questions
+            for (const menu of lastMenus) {
+                const factCheckResult = await factCheckSimpleQuestions(menu.questions);
+                if (factCheckResult.failed.length > 0) {
+                    console.warn(`⚠️ Menu "${menu.title}": ${factCheckResult.failed.length} questions failed fact-check`);
+                    menu.questions = factCheckResult.passed;
+                }
+            }
+
+            // Generate embeddings
+            const allQuestions = lastMenus.flatMap(m => m.questions.map(q => q.question));
+            const finalEmbeddings = await generateEmbeddings(allQuestions);
+
+            // Store for deduplication
+            await storeQuestionsWithEmbeddings(
+                allQuestions.map(q => ({ text: q })),
+                finalEmbeddings,
+                'phase3'
+            );
+
+            return { menus: lastMenus, embeddings: finalEmbeddings };
+        }
+
+        // 4. Try targeted regeneration for bad questions
+        const badQuestions: Array<{ menu_index: number; question_index: number; reason: string }> = [];
+        for (const menuFb of review.menus_feedback) {
+            for (const qFb of menuFb.questions_feedback) {
+                if (!qFb.ok) {
+                    badQuestions.push({
+                        menu_index: menuFb.menu_index,
+                        question_index: qFb.index,
+                        reason: qFb.issues.join(', ') || 'problème non spécifié'
+                    });
+                }
+            }
+        }
+
+        if (badQuestions.length > 0 && badQuestions.length <= 6 && review.overall_score >= 5) {
+            console.log(`🔧 Targeted regeneration: replacing ${badQuestions.length} questions`);
+
+            const menusStructure = lastMenus.map(m => ({
+                title: m.title,
+                description: m.description,
+                question_count: m.questions.length
+            }));
+
+            const badQuestionsText = badQuestions.map(bq =>
+                `- Menu ${bq.menu_index + 1} Q${bq.question_index + 1}: "${lastMenus[bq.menu_index].questions[bq.question_index].question}" (${bq.reason})`
+            ).join('\n');
+
+            const rejectionReasons = badQuestions.map(bq => bq.reason).join('; ');
+
+            const targetedPrompt = PHASE3_TARGETED_REGENERATION_PROMPT
+                .replace('{MENUS_STRUCTURE}', JSON.stringify(menusStructure, null, 2))
+                .replace('{BAD_QUESTIONS}', badQuestionsText)
+                .replace('{REJECTION_REASONS}', rejectionReasons);
+
+            try {
+                const regenText = await callGemini(targetedPrompt, 'creative');
+                interface ReplacementItem {
+                    menu_index: number;
+                    question_index: number;
+                    new_question: string;
+                    new_answer: string;
+                }
+                const replacements = parseJsonFromText(regenText) as { replacements: ReplacementItem[] };
+
+                // Apply replacements
+                for (const repl of replacements.replacements) {
+                    if (lastMenus[repl.menu_index] && lastMenus[repl.menu_index].questions[repl.question_index]) {
+                        lastMenus[repl.menu_index].questions[repl.question_index] = {
+                            question: repl.new_question,
+                            answer: repl.new_answer
+                        };
+                    }
+                }
+
+                console.log(`✅ Applied ${replacements.replacements.length} replacements`);
+                previousFeedback = `
+⚠️ RÉGÉNÉRATION CIBLÉE EFFECTUÉE
+
+${replacements.replacements.length} questions remplacées.
+Le reviewer va maintenant re-valider les menus.
+`;
+                continue;
+            } catch (err) {
+                console.warn('⚠️ Targeted regeneration failed:', err);
+            }
+        }
+
+        // Full regeneration feedback
+        previousFeedback = `
+⚠️ TENTATIVE REJETÉE (score: ${review.overall_score}/10)
+
+${review.global_feedback}
+
+SUGGESTIONS :
+${review.suggestions.map((s, idx) => `${idx + 1}. ${s}`).join('\n')}
+
+→ CORRIGE ces problèmes.
+`;
+
+        console.log(`❌ Rejected (score ${review.overall_score}/10). Iterating...`);
+    }
+
+    // Fallback to best menus
+    const fallbackMenus = bestMenus.length > 0 ? bestMenus : lastMenus;
+    if (fallbackMenus.length > 0) {
+        console.warn(`⚠️ Max iterations reached. Using best menus (score: ${bestScore}/10).`);
+        const allQuestions = fallbackMenus.flatMap(m => m.questions.map(q => q.question));
+        const finalEmbeddings = await generateEmbeddings(allQuestions);
+
+        await storeQuestionsWithEmbeddings(
+            allQuestions.map(q => ({ text: q })),
+            finalEmbeddings,
+            'phase3'
+        );
+
+        return { menus: fallbackMenus, embeddings: finalEmbeddings };
+    }
+
+    throw new Error('Failed to generate Phase 3 menus after all iterations');
+}
+
+/**
+ * Generate Phase 4 buzzer questions using dialogue between Generator and Reviewer agents
+ * Creates 15 fast questions with traps
+ */
+async function generatePhase4WithDialogue(
+    topic: string,
+    difficulty: string,
+    maxIterations: number = 4
+): Promise<{ questions: Phase4Question[]; embeddings: number[][] }> {
+    console.log('🎭 Starting Generator/Reviewer dialogue for Phase 4...');
+
+    let previousFeedback = '';
+    let lastQuestions: Phase4Question[] = [];
+    let bestQuestions: Phase4Question[] = [];
+    let bestScore = 0;
+
+    for (let i = 0; i < maxIterations; i++) {
+        console.log(`\n🔄 === ITERATION ${i + 1}/${maxIterations} ===`);
+
+        // 1. Generator proposes questions
+        const generatorPrompt = PHASE4_GENERATOR_PROMPT
+            .replace('{TOPIC}', topic)
+            .replace('{DIFFICULTY}', difficulty)
+            .replace('{PREVIOUS_FEEDBACK}', previousFeedback);
+
+        console.log('🤖 Generator creating buzzer questions...');
+        const proposalText = await callGemini(generatorPrompt, 'creative');
+        let proposal: Phase4Question[];
+
+        try {
+            proposal = parseJsonFromText(proposalText) as Phase4Question[];
+        } catch (err) {
+            console.error('❌ Failed to parse generator response:', err);
+            console.log('Raw response:', proposalText.slice(0, 500));
+            continue;
+        }
+
+        console.log(`📝 Generated ${proposal.length} questions`);
+        lastQuestions = proposal;
+
+        // 2. Reviewer evaluates the questions
+        const reviewerPrompt = PHASE4_DIALOGUE_REVIEWER_PROMPT
+            .replace('{QUESTIONS}', JSON.stringify(proposal, null, 2));
+
+        console.log('👨‍⚖️ Reviewer evaluating questions...');
+        const reviewText = await callGeminiForReview(reviewerPrompt, 'creative');
+        let review: Phase4DialogueReview;
+
+        try {
+            review = parseJsonFromText(reviewText) as Phase4DialogueReview;
+        } catch (err) {
+            console.error('❌ Failed to parse reviewer response:', err);
+            console.log('Raw response:', reviewText.slice(0, 500));
+            continue;
+        }
+
+        // Log scores
+        console.log(`📊 Scores: speed=${review.scores.speed_friendly}, traps=${review.scores.trap_quality}, variety=${review.scores.thematic_variety}`);
+        console.log(`          factual=${review.scores.factual_accuracy}, answers=${review.scores.answer_length}, style=${review.scores.burger_style}`);
+        console.log(`   Trap count: ${review.trap_count}/15, Overall: ${review.overall_score}/10`);
+
+        // 3. Check critical criteria
+        if (review.scores.speed_friendly < 6) {
+            console.log(`❌ Questions too long (speed score: ${review.scores.speed_friendly}/10).`);
+
+            const longQuestions = review.questions_feedback
+                .filter(q => q.word_count > 15)
+                .map(q => `- Q${q.index + 1} (${q.word_count} mots): "${q.question.slice(0, 50)}..."`)
+                .join('\n');
+
+            previousFeedback = `
+⚠️ QUESTIONS TROP LONGUES (score vitesse: ${review.scores.speed_friendly}/10)
+
+Questions à raccourcir (max 15 mots) :
+${longQuestions || '(Toutes les questions)'}
+
+RAPPEL : Phase buzzer = RAPIDITÉ. Questions COURTES et DIRECTES.
+`;
+            continue;
+        }
+
+        if (review.trap_count < 4) {
+            console.log(`❌ Not enough traps (${review.trap_count}/15, need at least 5).`);
+
+            previousFeedback = `
+⚠️ PAS ASSEZ DE PIÈGES (${review.trap_count}/15, minimum 5)
+
+Les questions sont trop évidentes. Ajoute des PIÈGES de formulation :
+- Réponse dans la question ("prénom du Père Noël" → "Père")
+- Évidence trompeuse ("couleur des M&M's bleus" → "Bleus")
+- Piège logique ("mois avec 28 jours" → "12")
+
+Au moins 5-6 questions sur 15 doivent être des pièges.
+`;
+            continue;
+        }
+
+        if (review.scores.factual_accuracy < 7) {
+            console.log(`❌ Factual accuracy too low (${review.scores.factual_accuracy}/10).`);
+
+            const wrongQuestions = review.questions_feedback
+                .filter(q => q.issues.includes('reponse_incorrecte'))
+                .map(q => `- Q${q.index + 1}: "${q.question}" → ${q.correction || '?'}`)
+                .join('\n');
+
+            previousFeedback = `
+⚠️ ERREURS FACTUELLES (score: ${review.scores.factual_accuracy}/10)
+
+Questions incorrectes :
+${wrongQuestions || '(Vérifier toutes les réponses)'}
+
+CRITIQUE : Utilise Google Search pour vérifier CHAQUE réponse.
+`;
+            continue;
+        }
+
+        // Track best questions
+        if (review.overall_score > bestScore) {
+            bestScore = review.overall_score;
+            bestQuestions = [...lastQuestions];
+            console.log(`📈 New best questions! Score: ${bestScore}/10`);
+        }
+
+        // Check overall score
+        if (review.overall_score >= 7) {
+            console.log(`✅ Questions validated after ${i + 1} iteration(s)! (score: ${review.overall_score}/10)`);
+
+            // Fact-check
+            const factCheckResult = await factCheckSimpleQuestions(lastQuestions);
+            if (factCheckResult.failed.length > 0) {
+                console.warn(`⚠️ ${factCheckResult.failed.length}/${lastQuestions.length} questions failed fact-check`);
+
+                if (factCheckResult.failed.length > 3) {
+                    previousFeedback = `
+⚠️ VÉRIFICATION FACTUELLE ÉCHOUÉE
+
+${factCheckResult.failed.length} questions incorrectes. Régénère avec des FAITS VÉRIFIABLES.
+`;
+                    continue;
+                }
+                lastQuestions = factCheckResult.passed;
+            }
+
+            // Generate embeddings
+            const finalEmbeddings = await generateEmbeddings(lastQuestions.map(q => q.question));
+
+            await storeQuestionsWithEmbeddings(
+                lastQuestions.map(q => ({ text: q.question })),
+                finalEmbeddings,
+                'phase4'
+            );
+
+            return { questions: lastQuestions, embeddings: finalEmbeddings };
+        }
+
+        // 4. Try targeted regeneration
+        const badIndices = review.questions_feedback
+            .filter(q => !q.ok)
+            .map(q => q.index);
+
+        if (badIndices.length > 0 && badIndices.length <= 5 && review.overall_score >= 5) {
+            console.log(`🔧 Targeted regeneration: replacing ${badIndices.length} questions`);
+
+            const goodQuestions = lastQuestions.filter((_, idx) => !badIndices.includes(idx));
+            const badQuestionsText = badIndices.map(idx =>
+                `- Q${idx + 1}: "${lastQuestions[idx].question}" (${review.questions_feedback[idx]?.issues?.join(', ') || 'problème'})`
+            ).join('\n');
+
+            const rejectionReasons = badIndices.map(idx =>
+                review.questions_feedback.find(q => q.index === idx)?.issues?.join(', ') || ''
+            ).join('; ');
+
+            const targetedPrompt = PHASE4_TARGETED_REGENERATION_PROMPT
+                .replace('{GOOD_QUESTIONS}', JSON.stringify(goodQuestions, null, 2))
+                .replace('{BAD_INDICES}', badIndices.map(i => i + 1).join(', '))
+                .replace('{BAD_QUESTIONS}', badQuestionsText)
+                .replace('{REJECTION_REASONS}', rejectionReasons)
+                .replace(/{COUNT}/g, String(badIndices.length));
+
+            try {
+                const regenText = await callGemini(targetedPrompt, 'creative');
+                const newQuestions = parseJsonFromText(regenText) as Phase4Question[];
+
+                lastQuestions = [...goodQuestions, ...newQuestions].slice(0, 15);
+                console.log(`✅ Merged ${goodQuestions.length} good + ${newQuestions.length} new questions`);
+
+                previousFeedback = `
+⚠️ RÉGÉNÉRATION CIBLÉE EFFECTUÉE
+
+${newQuestions.length} nouvelles questions ajoutées.
+Le reviewer va maintenant re-valider.
+`;
+                continue;
+            } catch (err) {
+                console.warn('⚠️ Targeted regeneration failed:', err);
+            }
+        }
+
+        // Full regeneration feedback
+        previousFeedback = `
+⚠️ TENTATIVE REJETÉE (score: ${review.overall_score}/10)
+
+${review.global_feedback}
+
+SUGGESTIONS :
+${review.suggestions.map((s, idx) => `${idx + 1}. ${s}`).join('\n')}
+`;
+
+        console.log(`❌ Rejected (score ${review.overall_score}/10). Iterating...`);
+    }
+
+    // Fallback
+    const fallbackQuestions = bestQuestions.length > 0 ? bestQuestions : lastQuestions;
+    if (fallbackQuestions.length > 0) {
+        console.warn(`⚠️ Max iterations reached. Using best questions (score: ${bestScore}/10).`);
+        const finalEmbeddings = await generateEmbeddings(fallbackQuestions.map(q => q.question));
+
+        await storeQuestionsWithEmbeddings(
+            fallbackQuestions.map(q => ({ text: q.question })),
+            finalEmbeddings,
+            'phase4'
+        );
+
+        return { questions: fallbackQuestions, embeddings: finalEmbeddings };
+    }
+
+    throw new Error('Failed to generate Phase 4 questions after all iterations');
+}
+
+/**
+ * Generate Phase 5 memory sequence using dialogue between Generator and Reviewer agents
+ * Creates 10 linked questions with callbacks for memory challenge
+ */
+async function generatePhase5WithDialogue(
+    topic: string,
+    difficulty: string,
+    maxIterations: number = 4
+): Promise<{ questions: Phase5Question[]; embeddings: number[][] }> {
+    console.log('🎭 Starting Generator/Reviewer dialogue for Phase 5...');
+
+    let previousFeedback = '';
+    let lastQuestions: Phase5Question[] = [];
+    let bestQuestions: Phase5Question[] = [];
+    let bestScore = 0;
+
+    for (let i = 0; i < maxIterations; i++) {
+        console.log(`\n🔄 === ITERATION ${i + 1}/${maxIterations} ===`);
+
+        // 1. Generator proposes questions
+        const generatorPrompt = PHASE5_GENERATOR_PROMPT
+            .replace('{TOPIC}', topic)
+            .replace('{DIFFICULTY}', difficulty)
+            .replace('{PREVIOUS_FEEDBACK}', previousFeedback);
+
+        console.log('🤖 Generator creating memory sequence...');
+        const proposalText = await callGemini(generatorPrompt, 'creative');
+        let proposal: Phase5Question[];
+
+        try {
+            proposal = parseJsonFromText(proposalText) as Phase5Question[];
+        } catch (err) {
+            console.error('❌ Failed to parse generator response:', err);
+            console.log('Raw response:', proposalText.slice(0, 500));
+            continue;
+        }
+
+        console.log(`📝 Generated ${proposal.length} questions for memory sequence`);
+        lastQuestions = proposal;
+
+        // 2. Reviewer evaluates the sequence
+        const reviewerPrompt = PHASE5_DIALOGUE_REVIEWER_PROMPT
+            .replace('{QUESTIONS}', JSON.stringify(proposal, null, 2));
+
+        console.log('👨‍⚖️ Reviewer evaluating sequence...');
+        const reviewText = await callGeminiForReview(reviewerPrompt, 'creative');
+        let review: Phase5DialogueReview;
+
+        try {
+            review = parseJsonFromText(reviewText) as Phase5DialogueReview;
+        } catch (err) {
+            console.error('❌ Failed to parse reviewer response:', err);
+            console.log('Raw response:', reviewText.slice(0, 500));
+            continue;
+        }
+
+        // Log scores
+        console.log(`📊 Scores: memorability=${review.scores.memorability}, callbacks=${review.scores.callbacks}, progression=${review.scores.progression}`);
+        console.log(`          factual=${review.scores.factual_accuracy}, answers=${review.scores.answer_length}, coherence=${review.scores.thematic_coherence}`);
+        console.log(`   Callbacks: ${review.callback_count}/10, Curve OK: ${review.difficulty_curve?.curve_ok}, Overall: ${review.overall_score}/10`);
+
+        // 3. Check critical criteria
+        if (review.scores.memorability < 6) {
+            console.log(`❌ Questions not memorable enough (${review.scores.memorability}/10).`);
+
+            const boringQuestions = review.questions_feedback
+                .filter(q => !q.memorable)
+                .map(q => `- Q${q.index + 1}: "${q.question.slice(0, 40)}..."`)
+                .join('\n');
+
+            previousFeedback = `
+⚠️ QUESTIONS PAS ASSEZ MÉMORABLES (score: ${review.scores.memorability}/10)
+
+Questions à reformuler :
+${boringQuestions || '(Toutes)'}
+
+RAPPEL : Les questions doivent être COURTES, avec des IMAGES MENTALES fortes.
+Évite le format encyclopédique.
+`;
+            continue;
+        }
+
+        if (review.callback_count < 2) {
+            console.log(`❌ Not enough callbacks (${review.callback_count}, need at least 2).`);
+
+            previousFeedback = `
+⚠️ PAS ASSEZ DE CALLBACKS (${review.callback_count}/10, minimum 2)
+
+Les questions doivent être LIÉES entre elles !
+
+TECHNIQUE DU CALLBACK (OBLIGATOIRE) :
+- Q3 doit référencer la réponse de Q1 ou Q2
+- Q7-10 peuvent référencer des questions précédentes
+
+Exemple :
+Q1: "Prénom de la reine d'Angleterre décédée en 2022 ?" → "Elizabeth"
+Q3: "Si Elizabeth avait été française, elle aurait été Elizabeth combien ?" → "3"
+`;
+            continue;
+        }
+
+        if (review.scores.factual_accuracy < 7) {
+            console.log(`❌ Factual accuracy too low (${review.scores.factual_accuracy}/10).`);
+
+            const wrongQuestions = review.questions_feedback
+                .filter(q => !q.ok && q.issues.includes('reponse_incorrecte'))
+                .map(q => `- Q${q.index + 1}: "${q.question}" → ${q.correction || '?'}`)
+                .join('\n');
+
+            previousFeedback = `
+⚠️ ERREURS FACTUELLES (score: ${review.scores.factual_accuracy}/10)
+
+Questions incorrectes :
+${wrongQuestions || '(Vérifier toutes les réponses)'}
+
+CRITIQUE : Utilise Google Search pour vérifier CHAQUE réponse.
+`;
+            continue;
+        }
+
+        if (review.difficulty_curve && !review.difficulty_curve.curve_ok) {
+            console.log(`❌ Difficulty curve not respected.`);
+
+            previousFeedback = `
+⚠️ COURBE DE DIFFICULTÉ INCORRECTE
+
+La progression doit être :
+- Q1-3 : FACILES (faits connus)
+- Q4-7 : MOYENNES
+- Q8-10 : DIFFICILES (détails, callbacks)
+
+Réorganise ou remplace les questions pour respecter cette courbe.
+`;
+            continue;
+        }
+
+        // Track best questions
+        if (review.overall_score > bestScore) {
+            bestScore = review.overall_score;
+            bestQuestions = [...lastQuestions];
+            console.log(`📈 New best sequence! Score: ${bestScore}/10`);
+        }
+
+        // Check overall score
+        if (review.overall_score >= 7) {
+            console.log(`✅ Sequence validated after ${i + 1} iteration(s)! (score: ${review.overall_score}/10)`);
+
+            // Fact-check
+            const factCheckResult = await factCheckSimpleQuestions(lastQuestions);
+            if (factCheckResult.failed.length > 0) {
+                console.warn(`⚠️ ${factCheckResult.failed.length}/${lastQuestions.length} questions failed fact-check`);
+
+                if (factCheckResult.failed.length > 2) {
+                    previousFeedback = `
+⚠️ VÉRIFICATION FACTUELLE ÉCHOUÉE
+
+${factCheckResult.failed.length} questions incorrectes. Régénère avec des FAITS VÉRIFIABLES.
+`;
+                    continue;
+                }
+                lastQuestions = factCheckResult.passed;
+            }
+
+            // Generate embeddings
+            const finalEmbeddings = await generateEmbeddings(lastQuestions.map(q => q.question));
+
+            await storeQuestionsWithEmbeddings(
+                lastQuestions.map(q => ({ text: q.question })),
+                finalEmbeddings,
+                'phase5'
+            );
+
+            return { questions: lastQuestions, embeddings: finalEmbeddings };
+        }
+
+        // 4. Try targeted regeneration
+        const badIndices = review.questions_feedback
+            .filter(q => !q.ok)
+            .map(q => q.index);
+
+        if (badIndices.length > 0 && badIndices.length <= 4 && review.overall_score >= 5) {
+            console.log(`🔧 Targeted regeneration: replacing ${badIndices.length} questions`);
+
+            // Prepare callback context
+            const callbackContext = review.identified_callbacks.map(cb =>
+                `Q${cb.question_index + 1} référence Q${cb.references_question + 1}: ${cb.description}`
+            ).join('\n');
+
+            const currentSequence = lastQuestions.map((q, idx) =>
+                `${idx + 1}. "${q.question}" → "${q.answer}"`
+            ).join('\n');
+
+            const badQuestionsText = badIndices.map(idx =>
+                `- Q${idx + 1}: "${lastQuestions[idx].question}" (${review.questions_feedback[idx]?.issues?.join(', ') || 'problème'})`
+            ).join('\n');
+
+            const targetedPrompt = PHASE5_TARGETED_REGENERATION_PROMPT
+                .replace('{CURRENT_SEQUENCE}', currentSequence)
+                .replace('{BAD_INDICES}', badIndices.map(i => i + 1).join(', '))
+                .replace('{BAD_QUESTIONS}', badQuestionsText)
+                .replace('{REJECTION_REASONS}', review.questions_feedback
+                    .filter(q => badIndices.includes(q.index))
+                    .map(q => q.issues.join(', '))
+                    .join('; '))
+                .replace('{CALLBACK_CONTEXT}', callbackContext || 'Aucun callback identifié')
+                .replace(/{COUNT}/g, String(badIndices.length));
+
+            try {
+                const regenText = await callGemini(targetedPrompt, 'creative');
+                interface ReplacementItem {
+                    replaces_index: number;
+                    new_question: string;
+                    new_answer: string;
+                }
+                const newQuestions = parseJsonFromText(regenText) as ReplacementItem[];
+
+                // Apply replacements
+                for (const repl of newQuestions) {
+                    if (lastQuestions[repl.replaces_index]) {
+                        lastQuestions[repl.replaces_index] = {
+                            question: repl.new_question,
+                            answer: repl.new_answer
+                        };
+                    }
+                }
+
+                console.log(`✅ Applied ${newQuestions.length} replacements`);
+
+                previousFeedback = `
+⚠️ RÉGÉNÉRATION CIBLÉE EFFECTUÉE
+
+${newQuestions.length} questions remplacées.
+Le reviewer va maintenant re-valider la séquence.
+`;
+                continue;
+            } catch (err) {
+                console.warn('⚠️ Targeted regeneration failed:', err);
+            }
+        }
+
+        // Full regeneration feedback
+        previousFeedback = `
+⚠️ TENTATIVE REJETÉE (score: ${review.overall_score}/10)
+
+${review.global_feedback}
+
+SUGGESTIONS :
+${review.suggestions.map((s, idx) => `${idx + 1}. ${s}`).join('\n')}
+`;
+
+        console.log(`❌ Rejected (score ${review.overall_score}/10). Iterating...`);
+    }
+
+    // Fallback
+    const fallbackQuestions = bestQuestions.length > 0 ? bestQuestions : lastQuestions;
+    if (fallbackQuestions.length > 0) {
+        console.warn(`⚠️ Max iterations reached. Using best sequence (score: ${bestScore}/10).`);
+        const finalEmbeddings = await generateEmbeddings(fallbackQuestions.map(q => q.question));
+
+        await storeQuestionsWithEmbeddings(
+            fallbackQuestions.map(q => ({ text: q.question })),
+            finalEmbeddings,
+            'phase5'
+        );
+
+        return { questions: fallbackQuestions, embeddings: finalEmbeddings };
+    }
+
+    throw new Error('Failed to generate Phase 5 sequence after all iterations');
+}
+
 // --- GENKIT FLOW ---
 
 export const generateGameQuestionsFlow = ai.defineFlow(
@@ -1337,86 +2286,47 @@ export const generateGameQuestionsFlow = ai.defineFlow(
             jsonData = result.set;
             embeddings = result.embeddings;
 
+        } else if (phase === 'phase3') {
+            // Phase 3: Generator/Reviewer dialogue system for menus
+            console.log('📋 Using dialogue system for Phase 3...');
+            const result = await generatePhase3WithDialogue(topic, difficulty);
+            jsonData = result.menus;
+            embeddings = result.embeddings;
+
+        } else if (phase === 'phase4') {
+            // Phase 4: Generator/Reviewer dialogue system for buzzer questions
+            console.log('📋 Using dialogue system for Phase 4...');
+            const result = await generatePhase4WithDialogue(topic, difficulty);
+            jsonData = result.questions;
+            embeddings = result.embeddings;
+
+        } else if (phase === 'phase5') {
+            // Phase 5: Generator/Reviewer dialogue system for memory sequence
+            console.log('📋 Using dialogue system for Phase 5...');
+            const result = await generatePhase5WithDialogue(topic, difficulty);
+            jsonData = result.questions;
+            embeddings = result.embeddings;
+
         } else {
-            // Phase 3, 4, 5: Direct generation with fact-checking
-            const userPrompt = getPromptForPhase(phase, topic, difficulty);
-
-            if (!userPrompt) {
-                throw new Error(`Invalid phase: ${phase}`);
-            }
-
-            const fullPrompt = `${GAME_GENERATION_SYSTEM_PROMPT}\n\nTasks:\n${userPrompt}`;
-
-            // Google Search grounding only available with Vertex AI (not API key)
-            const useGoogleSearch = !process.env.GEMINI_API_KEY;
-
-            const response = await genAI.models.generateContent({
-                model: MODEL_CONFIG.model,
-                config: {
-                    ...MODEL_CONFIG.config,
-                    ...(useGoogleSearch ? { tools: [{ googleSearch: {} }] } : {}),
-                },
-                contents: [{
-                    role: 'user',
-                    parts: [{ text: fullPrompt }]
-                }]
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            } as any);
-
-            const text = response.text || '';
-
-            try {
-                const jsonMatch = text.match(/\{[\s\S]*\}|\[[\s\S]*\]/);
-                if (!jsonMatch) throw new Error('No JSON found');
-                jsonData = JSON.parse(jsonMatch[0]);
-            } catch {
-                console.error('Failed to parse GenAI response:', text);
-                throw new Error('AI Generation failed to produce valid JSON');
-            }
-
-            // === FACT-CHECK STEP FOR PHASES 3, 4, 5 ===
-            console.log(`🔍 Running fact-check for ${phase}...`);
-
-            if (phase === 'phase3') {
-                // Phase 3: Array of menus with questions
-                type Phase3Menu = { title: string; description: string; questions: Array<{ question: string; answer: string }> };
-                const menus = jsonData as Phase3Menu[];
-
-                for (const menu of menus) {
-                    const factCheckResult = await factCheckSimpleQuestions(menu.questions);
-                    if (factCheckResult.failed.length > 0) {
-                        console.warn(`⚠️ Menu "${menu.title}": ${factCheckResult.failed.length} questions failed fact-check`);
-                        // Keep only passed questions
-                        menu.questions = factCheckResult.passed;
-                    }
-                }
-
-                console.log(`✅ Phase 3 fact-check complete`);
-
-            } else if (phase === 'phase4' || phase === 'phase5') {
-                // Phase 4 & 5: Array of { question, answer }
-                type SimpleQuestion = { question: string; answer: string };
-                const questions = jsonData as SimpleQuestion[];
-
-                const factCheckResult = await factCheckSimpleQuestions(questions);
-
-                if (factCheckResult.failed.length > 0) {
-                    console.warn(`⚠️ ${phase}: ${factCheckResult.failed.length}/${questions.length} questions failed fact-check`);
-                    // Keep only passed questions
-                    jsonData = factCheckResult.passed;
-                } else {
-                    console.log(`✅ All ${questions.length} ${phase} questions passed fact-check!`);
-                }
-            }
+            throw new Error(`Invalid phase: ${phase}`);
         }
 
-        // Calculate approximate metrics (review calls add overhead)
+        // Calculate approximate metrics (all phases now use dialogue system)
         const elapsedMs = Date.now() - startTime;
-        const estimatedTokens = phase === 'phase1' || phase === 'phase2'
-            ? 15000  // Higher estimate for reviewed phases (multiple API calls)
-            : 5000;  // Standard estimate for direct generation
+        // All phases now use dialogue system with multiple API calls
+        const estimatedTokens = 15000;
 
         const estimatedCost = calculateCost(estimatedTokens * 0.3, estimatedTokens * 0.7);
+
+        // Calculate question count based on phase
+        const getQuestionsCount = () => {
+            if (phase === 'phase1') return (jsonData as Phase1Question[]).length;
+            if (phase === 'phase2') return (jsonData as Phase2Set).items.length;
+            if (phase === 'phase3') return (jsonData as Phase3Menu[]).reduce((acc, m) => acc + m.questions.length, 0);
+            if (phase === 'phase4') return (jsonData as Phase4Question[]).length;
+            if (phase === 'phase5') return (jsonData as Phase5Question[]).length;
+            return 0;
+        };
 
         // Log structured metrics for observability
         const metrics = {
@@ -1427,11 +2337,7 @@ export const generateGameQuestionsFlow = ai.defineFlow(
             durationSec: (elapsedMs / 1000).toFixed(1),
             estimatedTokens,
             estimatedCost: formatCost(estimatedCost),
-            questionsCount: phase === 'phase1'
-                ? (jsonData as Phase1Question[]).length
-                : phase === 'phase2'
-                    ? (jsonData as Phase2Set).items.length
-                    : 'N/A',
+            questionsCount: getQuestionsCount(),
             embeddingsGenerated: embeddings?.length || 0,
             timestamp: new Date().toISOString(),
         };

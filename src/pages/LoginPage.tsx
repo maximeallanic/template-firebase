@@ -4,7 +4,7 @@ import { motion } from 'framer-motion';
 import { signIn, signUp, signInWithGoogle, sendPasswordReset, auth } from '../services/firebase';
 import { joinRoom, type Avatar, AVATAR_LIST } from '../services/gameService';
 import { safeStorage } from '../utils/storage';
-import { Logo } from '../components/Logo';
+import { Logo } from '../components/ui/Logo';
 import { ChefHat, Mail, Lock, ArrowRight, Loader2 } from 'lucide-react';
 
 type AuthMode = 'login' | 'register' | 'reset';

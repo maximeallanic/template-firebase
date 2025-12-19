@@ -2,7 +2,6 @@ import { ref, set, get, update, onValue, onDisconnect, increment, runTransaction
 import { rtdb, auth } from './firebase';
 import { QUESTIONS, type Question } from '../data/questions';
 import { PHASE2_SETS } from '../data/phase2';
-import { markQuestionAsSeen } from './historyService';
 
 // Re-export all types from centralized types file
 export type {
@@ -24,7 +23,96 @@ export type {
 export { AVATAR_LIST, PHASE_NAMES } from '../types/gameTypes';
 
 // Import types for internal use
-import type { Avatar, Team, Player, GameState, Room, SimplePhase2Set, Phase3Menu, Phase4Question, Phase5Data } from '../types/gameTypes';
+import type { Avatar, Team, Player, GameState, Room, SimplePhase2Set, Phase3Menu, Phase4Question, Phase5Data, PhaseStatus } from '../types/gameTypes';
+
+/**
+ * Returns the initial state updates for a given phase.
+ * Used by both setGameStatus and debugService.skipToPhase.
+ * @param roomId - The uppercase room ID
+ * @param phase - The target phase status
+ * @returns Record of Firebase update paths and values
+ */
+export function getPhaseInitialUpdates(roomId: string, phase: PhaseStatus): Record<string, unknown> {
+    const updates: Record<string, unknown> = {};
+
+    switch (phase) {
+        case 'lobby':
+            updates[`rooms/${roomId}/state/phaseState`] = 'idle';
+            // Clear all phase-specific state
+            updates[`rooms/${roomId}/state/currentQuestionIndex`] = null;
+            updates[`rooms/${roomId}/state/phase1Answers`] = null;
+            updates[`rooms/${roomId}/state/phase1BlockedTeams`] = null;
+            updates[`rooms/${roomId}/state/currentPhase2Set`] = null;
+            updates[`rooms/${roomId}/state/currentPhase2Item`] = null;
+            updates[`rooms/${roomId}/state/phase2Answers`] = null;
+            updates[`rooms/${roomId}/state/phase3MenuSelection`] = null;
+            updates[`rooms/${roomId}/state/phase3CompletedMenus`] = null;
+            updates[`rooms/${roomId}/state/currentMenuTeam`] = null;
+            updates[`rooms/${roomId}/state/currentPhase4QuestionIndex`] = null;
+            updates[`rooms/${roomId}/state/buzzedTeam`] = null;
+            updates[`rooms/${roomId}/state/phase5State`] = null;
+            updates[`rooms/${roomId}/state/phase5QuestionIndex`] = null;
+            updates[`rooms/${roomId}/state/phase5Score`] = null;
+            break;
+
+        case 'phase1':
+            updates[`rooms/${roomId}/state/currentQuestionIndex`] = 0;
+            updates[`rooms/${roomId}/state/phaseState`] = 'reading';
+            updates[`rooms/${roomId}/state/phase1Answers`] = {};
+            updates[`rooms/${roomId}/state/phase1BlockedTeams`] = [];
+            updates[`rooms/${roomId}/state/roundWinner`] = null;
+            updates[`rooms/${roomId}/state/questionStartTime`] = Date.now();
+            break;
+
+        case 'phase2':
+            updates[`rooms/${roomId}/state/currentPhase2Set`] = 0;
+            updates[`rooms/${roomId}/state/currentPhase2Item`] = 0;
+            updates[`rooms/${roomId}/state/phaseState`] = 'reading';
+            updates[`rooms/${roomId}/state/phase2Answers`] = {};
+            break;
+
+        case 'phase3':
+            updates[`rooms/${roomId}/state/phaseState`] = 'menu_selection';
+            updates[`rooms/${roomId}/state/phase3MenuSelection`] = {};
+            updates[`rooms/${roomId}/state/phase3CompletedMenus`] = [];
+            updates[`rooms/${roomId}/state/currentMenuTeam`] = 'spicy';
+            updates[`rooms/${roomId}/state/currentMenuQuestionIndex`] = 0;
+            updates[`rooms/${roomId}/state/roundWinner`] = null;
+            break;
+
+        case 'phase4':
+            updates[`rooms/${roomId}/state/phaseState`] = 'idle';
+            updates[`rooms/${roomId}/state/currentPhase4QuestionIndex`] = 0;
+            updates[`rooms/${roomId}/state/buzzedTeam`] = null;
+            updates[`rooms/${roomId}/state/phase4State`] = 'idle';
+            break;
+
+        case 'phase5':
+            updates[`rooms/${roomId}/state/phase5State`] = 'idle';
+            updates[`rooms/${roomId}/state/phase5QuestionIndex`] = 0;
+            updates[`rooms/${roomId}/state/phase5Score`] = 0;
+            updates[`rooms/${roomId}/state/phaseState`] = 'idle';
+            break;
+    }
+
+    return updates;
+}
+
+/**
+ * Triggers auto-transition to answering state after reading delay for phase1
+ */
+export function schedulePhase1Transition(roomId: string): void {
+    setTimeout(async () => {
+        try {
+            const answeringUpdates: Record<string, unknown> = {};
+            answeringUpdates[`rooms/${roomId}/state/phaseState`] = 'answering';
+            answeringUpdates[`rooms/${roomId}/state/questionStartTime`] = Date.now();
+            await update(ref(rtdb), answeringUpdates);
+        } catch (error) {
+            console.error('Failed to transition to answering state:', error);
+        }
+    }, 3000); // 3 seconds reading time
+}
 
 /**
  * Get current authenticated user ID
@@ -84,17 +172,11 @@ export const overwriteGameQuestions = async (
 
     await set(ref(rtdb, updatePath), contentStore);
 
-    // Reset state for new content
+    // Note: We do NOT set status here - that's handled by setGameStatus()
+    // which also schedules phase transitions. Only initialize data-related state.
     const updates: Record<string, unknown> = {};
-    if (phase === 'phase1') {
-        updates[`rooms/${roomId}/state/currentQuestionIndex`] = 0;
-        updates[`rooms/${roomId}/state/status`] = 'phase1';
-        updates[`rooms/${roomId}/state/phaseState`] = 'reading';
-    } else if (phase === 'phase2') {
-        updates[`rooms/${roomId}/state/currentPhase2Set`] = 0;
-        updates[`rooms/${roomId}/state/currentPhase2Item`] = 0;
-        updates[`rooms/${roomId}/state/status`] = 'phase2';
-    } else if (phase === 'phase3') {
+
+    if (phase === 'phase3') {
         updates[`rooms/${roomId}/state/phase3CompletedMenus`] = [];
         updates[`rooms/${roomId}/state/phase3MenuSelection`] = {};
         updates[`rooms/${roomId}/state/phaseState`] = 'menu_selection';
@@ -104,13 +186,14 @@ export const overwriteGameQuestions = async (
         updates[`rooms/${roomId}/state/buzzedTeam`] = null;
     }
 
-    await update(ref(rtdb), updates);
+    if (Object.keys(updates).length > 0) {
+        await update(ref(rtdb), updates);
+    }
 };
 
 // ... existing host actions
 
 export const startNextQuestion = async (code: string, nextIndex: number) => {
-    console.log('🎮 startNextQuestion CALLED:', { code, nextIndex });
     const roomId = code.toUpperCase();
     const snapshot = await get(ref(rtdb, `rooms/${roomId}`));
     if (!snapshot.exists()) return;
@@ -118,8 +201,18 @@ export const startNextQuestion = async (code: string, nextIndex: number) => {
 
     const questionsList = room.customQuestions?.phase1 || QUESTIONS;
 
-    // Safety check
+    // Safety check: prevent out of bounds
     if (nextIndex >= questionsList.length) return;
+
+    // Guard against duplicate calls: only advance if in 'result' state
+    // and the current question index is actually the previous one
+    const currentIndex = room.state.currentQuestionIndex ?? -1;
+    if (room.state.phaseState !== 'result' && room.state.phaseState !== 'idle') {
+        return;
+    }
+    if (currentIndex !== nextIndex - 1) {
+        return;
+    }
 
     const updates: Record<string, unknown> = {};
     updates[`rooms/${roomId}/state/currentQuestionIndex`] = nextIndex;
@@ -128,28 +221,22 @@ export const startNextQuestion = async (code: string, nextIndex: number) => {
     updates[`rooms/${roomId}/state/phase1Answers`] = {};
     updates[`rooms/${roomId}/state/phase1BlockedTeams`] = []; // Reset blocked teams
 
-    // Mark question as seen for all players
-    const currentQ = questionsList[nextIndex];
-    console.log('🎯 startNextQuestion - currentQ:', currentQ);
-    console.log('🎯 currentQ.text:', currentQ?.text);
-    console.log('🎯 room.players:', Object.keys(room.players || {}));
-    if (currentQ && room.players) {
-        Object.keys(room.players).forEach(pid => {
-            console.log('🎯 Calling markQuestionAsSeen for player:', pid);
-            markQuestionAsSeen(pid, currentQ.text);
-        });
-    } else {
-        console.warn('⚠️ Skipped markQuestionAsSeen - currentQ:', !!currentQ, 'players:', !!room.players);
-    }
+    // Note: Question marking is now done client-side in Phase1Player.tsx
+    // Each player's component marks the question as seen on their own device
+    // This ensures the correct user's history is updated (auth.currentUser.uid)
 
     await update(ref(rtdb), updates);
 
-    // Auto-switch to answering mode
+    // Auto-switch to answering mode after 3s reading time
     setTimeout(async () => {
-        const answeringUpdates: Record<string, unknown> = {};
-        answeringUpdates[`rooms/${roomId}/state/phaseState`] = 'answering';
-        answeringUpdates[`rooms/${roomId}/state/questionStartTime`] = Date.now();
-        await update(ref(rtdb), answeringUpdates);
+        try {
+            const answeringUpdates: Record<string, unknown> = {};
+            answeringUpdates[`rooms/${roomId}/state/phaseState`] = 'answering';
+            answeringUpdates[`rooms/${roomId}/state/questionStartTime`] = Date.now();
+            await update(ref(rtdb), answeringUpdates);
+        } catch (error) {
+            console.error('Failed to transition to answering state:', error);
+        }
     }, 3000);
 };
 
@@ -165,7 +252,23 @@ export const submitAnswer = async (code: string, playerId: string, answerIndex: 
     const player = room.players[playerId];
     if (!player) return;
 
+    // Reject answers from players without a team assigned
+    if (!player.team) {
+        console.warn('Player has no team assigned, rejecting answer:', playerId);
+        return;
+    }
+
     const questionsList = room.customQuestions?.phase1 || QUESTIONS;
+
+    // Determine which teams have real (non-mock) online players
+    // This allows solo play/debug mode to work when only one team is active
+    const teamsWithRealPlayers = new Set<Team>();
+    Object.values(room.players).forEach(p => {
+        if (p.team && p.isOnline && !p.id.startsWith('mock_')) {
+            teamsWithRealPlayers.add(p.team);
+        }
+    });
+    const activeTeams = Array.from(teamsWithRealPlayers);
 
     // Use transaction for atomic state updates to prevent race conditions
     const result = await runTransaction(stateRef, (currentState: GameState | null) => {
@@ -213,9 +316,9 @@ export const submitAnswer = async (code: string, playerId: string, answerIndex: 
             const newBlockedTeams = [...blockedTeams, player.team];
             newState.phase1BlockedTeams = newBlockedTeams;
 
-            // Check if ALL teams are now blocked
-            const allTeams: Team[] = ['spicy', 'sweet'];
-            const allBlocked = allTeams.every(t => newBlockedTeams.includes(t));
+            // Check if ALL teams with real players are now blocked
+            // This allows solo play/debug mode to continue when only one team is active
+            const allBlocked = activeTeams.length > 0 && activeTeams.every(t => newBlockedTeams.includes(t));
 
             if (allBlocked) {
                 // Nobody got it right - show result and move on
@@ -227,14 +330,13 @@ export const submitAnswer = async (code: string, playerId: string, answerIndex: 
         return newState;
     });
 
-    // If transaction committed and player won, update their score
+    // If transaction committed and player won, update their score atomically
     if (result.committed) {
         const newState = result.snapshot.val() as GameState;
         if (newState?.roundWinner?.playerId === playerId) {
-            // Update score separately (host-only write rule, but this runs on host's behalf)
-            const newScore = (player.score || 0) + 1;
+            // Use increment() for atomic score update (prevents race conditions)
             await update(ref(rtdb), {
-                [`rooms/${roomId}/players/${playerId}/score`]: newScore
+                [`rooms/${roomId}/players/${playerId}/score`]: increment(1)
             });
         }
     }
@@ -441,48 +543,58 @@ export const updatePlayerProfile = async (code: string, playerId: string, name: 
 
 export const setGameStatus = async (code: string, status: GameState['status']) => {
     const roomId = code.toUpperCase();
-    const updates: Record<string, unknown> = {};
-    updates[`rooms/${roomId}/state/status`] = status;
 
-    // Reset phase 1 state when entering it
-    if (status === 'phase1') {
-        updates[`rooms/${roomId}/state/currentQuestionIndex`] = 0;
-        updates[`rooms/${roomId}/state/phaseState`] = 'reading';
-        updates[`rooms/${roomId}/state/phase1Answers`] = {}; // Reset answers
-        updates[`rooms/${roomId}/state/phase1BlockedTeams`] = []; // Reset blocked teams
-        updates[`rooms/${roomId}/state/roundWinner`] = null; // Ensure round winner is reset
-    } else if (status === 'phase2') {
-        updates[`rooms/${roomId}/state/currentPhase2Set`] = 0; // Default to first set
-        updates[`rooms/${roomId}/state/currentPhase2Item`] = 0;
-        updates[`rooms/${roomId}/state/phaseState`] = 'reading';
-        updates[`rooms/${roomId}/state/phase2Answers`] = {}; // Reset answers
-    } else if (status === 'phase3') {
-        updates[`rooms/${roomId}/state/phaseState`] = 'menu_selection';
-        updates[`rooms/${roomId}/state/phase3MenuSelection`] = {};
-        updates[`rooms/${roomId}/state/phase3CompletedMenus`] = [];
-        updates[`rooms/${roomId}/state/currentMenuTeam`] = 'spicy'; // Spicy starts choosing
-        updates[`rooms/${roomId}/state/currentMenuQuestionIndex`] = 0;
-        updates[`rooms/${roomId}/state/roundWinner`] = null;
-    } else if (status === 'phase4') {
-        updates[`rooms/${roomId}/state/phaseState`] = 'idle'; // Hosting reading mode
-        updates[`rooms/${roomId}/state/currentPhase4QuestionIndex`] = 0;
-        updates[`rooms/${roomId}/state/buzzedTeam`] = null;
+    // Guard against duplicate calls: check current status first
+    const snapshot = await get(ref(rtdb, `rooms/${roomId}/state`));
+    if (snapshot.exists()) {
+        const currentState = snapshot.val() as GameState;
+        if (currentState.status === status) {
+            return;
+        }
     }
+
+    // Get phase-specific state updates
+    const phaseUpdates = getPhaseInitialUpdates(roomId, status);
+
+    // Add the status change
+    const updates: Record<string, unknown> = {
+        [`rooms/${roomId}/state/status`]: status,
+        ...phaseUpdates
+    };
 
     await update(ref(rtdb), updates);
 
     // If starting Phase 1, auto-transition to answering after delay
     if (status === 'phase1') {
-        setTimeout(async () => {
-            const answeringUpdates: Record<string, unknown> = {};
-            answeringUpdates[`rooms/${roomId}/state/phaseState`] = 'answering';
-            answeringUpdates[`rooms/${roomId}/state/questionStartTime`] = Date.now();
-            await update(ref(rtdb), answeringUpdates);
-        }, 3000); // 3 seconds reading time
+        schedulePhase1Transition(roomId);
+        // Note: Question marking is now done client-side in Phase1Player.tsx
     }
 };
 
+/**
+ * Set the generation state (visible to all players)
+ */
+export const setGeneratingState = async (code: string, isGenerating: boolean) => {
+    const roomId = code.toUpperCase();
+    await update(ref(rtdb, `rooms/${roomId}/state`), { isGenerating });
+};
 
+/**
+ * Set the Phase 2 generation lock state (prevents double generation)
+ */
+export const setPhase2GeneratingState = async (code: string, isGenerating: boolean) => {
+    const roomId = code.toUpperCase();
+    await update(ref(rtdb, `rooms/${roomId}/state`), { phase2Generating: isGenerating });
+};
+
+/**
+ * Get the Phase 2 generation lock state
+ */
+export const getPhase2GeneratingState = async (code: string): Promise<boolean> => {
+    const roomId = code.toUpperCase();
+    const snapshot = await get(ref(rtdb, `rooms/${roomId}/state/phase2Generating`));
+    return snapshot.val() === true;
+};
 
 // --- PHASE 2 LOGIC ---
 
@@ -507,8 +619,11 @@ export const submitPhase2Answer = async (
     const currentSet = room.customQuestions?.phase2?.[setIndex] || PHASE2_SETS[setIndex];
     if (!currentSet?.items?.[itemIndex]) return;
 
-    const correctAnswer = currentSet.items[itemIndex].answer;
-    const isCorrect = answer === correctAnswer;
+    const item = currentSet.items[itemIndex];
+    const correctAnswer = item.answer;
+    // Support for flexible scoring: accept primary answer OR any accepted alternative
+    const acceptedAnswers = item.acceptedAnswers || [correctAnswer];
+    const isCorrect = answer === correctAnswer || acceptedAnswers.includes(answer);
     const answersRef = ref(rtdb, `rooms/${roomId}/state/phase2Answers`);
 
     // Use transaction to atomically add answer
