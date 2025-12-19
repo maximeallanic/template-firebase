@@ -1,19 +1,20 @@
 /**
- * Mock Player Context
+ * Mock Player Context Provider
  * Manages auto-answering for mock players in debug mode
  * Stores pending answers locally until validated
+ *
+ * Note: Context and types are in mockPlayerContextDef.ts
+ * Hooks are in src/hooks/useMockPlayer.ts
  */
 
 import {
-    createContext,
-    useContext,
     useState,
     useEffect,
     useCallback,
     useRef,
     type ReactNode
 } from 'react';
-import type { Room, Player, Team } from '../types/gameTypes';
+import type { Room, Player } from '../types/gameTypes';
 import {
     generatePhase1Answer,
     generatePhase2Answer,
@@ -25,30 +26,11 @@ import {
     submitPhase2Answer,
     submitPhase4Answer
 } from '../services/gameService';
-
-// === Types ===
-
-export interface MockAnswer {
-    mockPlayerId: string;
-    playerName: string;
-    playerTeam: Team;
-    phase: 'phase1' | 'phase2' | 'phase4';
-    answer: number | Phase2Choice;
-    generatedAt: number;
-}
-
-interface MockPlayerContextValue {
-    pendingAnswers: MockAnswer[];
-    isAutoAnswerEnabled: boolean;
-    setAutoAnswerEnabled: (enabled: boolean) => void;
-    validateAllAnswers: () => Promise<void>;
-    clearPendingAnswers: () => void;
-    isValidating: boolean;
-}
-
-// === Context ===
-
-const MockPlayerContext = createContext<MockPlayerContextValue | null>(null);
+import {
+    MockPlayerContext,
+    type MockAnswer,
+    type MockPlayerContextValue
+} from './mockPlayerContextDef';
 
 // === Provider ===
 
@@ -262,7 +244,7 @@ export function MockPlayerProvider({ room, children }: MockPlayerProviderProps) 
         } finally {
             setIsValidating(false);
         }
-    }, [pendingAnswers, isValidating, room.code, room.players]);
+    }, [pendingAnswers, isValidating, room.code]);
 
     // Clear all pending answers without submitting
     const clearPendingAnswers = useCallback(() => {
@@ -283,21 +265,4 @@ export function MockPlayerProvider({ room, children }: MockPlayerProviderProps) 
             {children}
         </MockPlayerContext.Provider>
     );
-}
-
-// === Hooks ===
-
-// eslint-disable-next-line react-refresh/only-export-components
-export function useMockPlayer(): MockPlayerContextValue {
-    const context = useContext(MockPlayerContext);
-    if (!context) {
-        throw new Error('useMockPlayer must be used within a MockPlayerProvider');
-    }
-    return context;
-}
-
-// Optional hook that returns null if not in provider (for components that might be outside)
-// eslint-disable-next-line react-refresh/only-export-components
-export function useMockPlayerOptional(): MockPlayerContextValue | null {
-    return useContext(MockPlayerContext);
 }

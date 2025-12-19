@@ -57,6 +57,11 @@ interface Phase3To5Question extends BaseQuestion {
   answer: string;
 }
 
+// Type pour les données brutes d'un document (avant détection de phase)
+type RawQuestionData = Partial<Phase1Question & Phase2Question & Phase3To5Question> & {
+  phase?: string;
+};
+
 
 // Parse arguments
 function parseArgs(): {
@@ -176,8 +181,7 @@ function displayPhase3To5(q: Phase3To5Question, index: number): void {
 
 // Display question based on phase - detect structure if phase field is missing
 function displayQuestion(doc: admin.firestore.DocumentData, index: number): void {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const data = doc as any;
+  const data = doc as RawQuestionData;
 
   // Detect phase from data structure if not explicitly set
   const phase = data.phase || detectPhaseFromData(data);
@@ -331,9 +335,10 @@ async function main(): Promise<void> {
     if (args.exportFile) {
       const questions = docs.map(doc => {
         const data = doc.data();
-        // Remove embedding for cleaner export
-        // eslint-disable-next-line @typescript-eslint/no-unused-vars
+        // Remove embedding for cleaner export (destructure and discard with void)
         const { embedding, embeddingModel, ...rest } = data;
+        void embedding;
+        void embeddingModel;
         return {
           id: doc.id,
           ...rest,

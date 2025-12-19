@@ -510,7 +510,7 @@ export const PhaseTransition: React.FC<PhaseTransitionProps> = ({
             setShowContent(false);
             setIsSkipping(false);
         }
-    }, [isVisible, curtainClose, boardDuration, totalDuration]);
+    }, [isVisible, phase, curtainClose, boardDuration, totalDuration]);
 
     return (
         <AnimatePresence>

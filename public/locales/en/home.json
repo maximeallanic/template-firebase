@@ -59,5 +59,10 @@
     "price": "€4.99/month",
     "cta": "Go Premium",
     "hostOnly": "Only the host needs a subscription"
+  },
+  "install": {
+    "title": "Install the app!",
+    "subtitle": "Quick access from your home screen",
+    "button": "Install"
   }
 }

@@ -13,7 +13,7 @@ import {
     resetAllScores
 } from '../../services/debugService';
 import { PHASE_NAMES, type Room, type PhaseStatus } from '../../services/gameService';
-import { useMockPlayerOptional } from '../../contexts/MockPlayerContext';
+import { useMockPlayerOptional } from '../../hooks/useMockPlayer';
 import { formatAnswerForDisplay } from '../../services/mockAnswerService';
 
 interface DebugPanelProps {

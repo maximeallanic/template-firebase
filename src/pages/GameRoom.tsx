@@ -89,58 +89,62 @@ export default function GameRoom() {
     const targetPhaseRef = useRef<GameStatus>('lobby'); // Capture target phase when transition starts
     const roomStatusRef = useRef<string | undefined>(undefined); // Stable ref for room status
 
+    // Extract values for stable dependency tracking
+    const roomStatus = room?.state.status;
+    const roomPlayers = room?.players;
+
     // Phase Transition - useLayoutEffect for SYNCHRONOUS execution before paint
     useLayoutEffect(() => {
-        if (!room || isTransitioning.current) return;
+        if (!room || !roomStatus || isTransitioning.current) return;
 
         // Keep ref updated for stable callback access
-        roomStatusRef.current = room.state.status;
+        roomStatusRef.current = roomStatus;
 
-        if (room.state.status !== prevStatus.current) {
+        if (roomStatus !== prevStatus.current) {
             if (prevStatus.current && !isFirstRender.current) {
-                if (room.state.status !== 'lobby') {
+                if (roomStatus !== 'lobby') {
                     isTransitioning.current = true;
                     // Capture the target phase in ref BEFORE setting state
-                    targetPhaseRef.current = room.state.status as GameStatus;
-                    setTransitionPhase(room.state.status as GameStatus);
+                    targetPhaseRef.current = roomStatus as GameStatus;
+                    setTransitionPhase(roomStatus as GameStatus);
                     setShowTransition(true);
                     // DON'T update displayStatus yet - keep showing old phase
                 }
             } else {
                 // First render or returning to lobby: update displayStatus immediately
-                setDisplayStatus(room.state.status as GameStatus);
+                setDisplayStatus(roomStatus as GameStatus);
             }
             isFirstRender.current = false;
-            prevStatus.current = room.state.status;
+            prevStatus.current = roomStatus;
         }
-    }, [room?.state.status]);
+    }, [room, roomStatus]);
 
     // Audio Effects: Player Joined & Ambience
     useEffect(() => {
-        if (!room) return;
+        if (!room || !roomStatus) return;
 
         // Join Sound
-        const count = Object.keys(room.players || {}).length;
+        const count = Object.keys(roomPlayers || {}).length;
         if (count > prevPlayerCount.current && prevPlayerCount.current > 0) {
             audioService.playJoin();
         }
         prevPlayerCount.current = count;
 
         // Ambient Loops & Transitions Sound
-        if (room.state.status !== prevAudioStatus.current) {
+        if (roomStatus !== prevAudioStatus.current) {
             if (prevAudioStatus.current) {
                 audioService.playTransition();
             }
 
-            if (room.state.status === 'lobby') {
+            if (roomStatus === 'lobby') {
                 audioService.playAmbient('lobby');
             } else {
                 audioService.playAmbient('tension');
             }
 
-            prevAudioStatus.current = room.state.status;
+            prevAudioStatus.current = roomStatus;
         }
-    }, [room?.players, room?.state.status]);
+    }, [room, roomPlayers, roomStatus]);
 
     // Handle curtains closed - update displayStatus BEFORE curtains open
     // This ensures the new phase content is visible when curtains open

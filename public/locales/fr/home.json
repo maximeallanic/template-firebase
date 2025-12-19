@@ -59,5 +59,10 @@
     "price": "4,99 €/mois",
     "cta": "Devenir Premium",
     "hostOnly": "Seul l'hôte a besoin de l'abonnement"
+  },
+  "install": {
+    "title": "Installez l'app !",
+    "subtitle": "Accès rapide depuis votre écran d'accueil",
+    "button": "Installer"
   }
 }

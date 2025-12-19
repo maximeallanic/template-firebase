@@ -1,6 +1,12 @@
-
 // Simple Synthesizer for Game Sound Effects using Web Audio API
 // No external assets required!
+
+// Safari fallback for AudioContext
+declare global {
+    interface Window {
+        webkitAudioContext?: typeof AudioContext;
+    }
+}
 
 class AudioService {
     private ctx: AudioContext | null = null;
@@ -22,10 +28,12 @@ class AudioService {
 
     private init() {
         if (!this.ctx) {
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            this.ctx = new (window.AudioContext || (window as any).webkitAudioContext)();
+            const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+            if (AudioContextClass) {
+                this.ctx = new AudioContextClass();
+            }
         }
-        if (this.ctx.state === 'suspended') {
+        if (this.ctx?.state === 'suspended') {
             this.ctx.resume();
         }
     }

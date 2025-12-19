@@ -87,16 +87,18 @@ export const QuestionTransition: React.FC<QuestionTransitionProps> = ({
 
     // Memoize particles to avoid recalculating random positions on each render
     // We intentionally depend on questionNumber to get fresh random positions per question
-    const particles = useMemo<ParticleData[]>(() =>
-        Array.from({ length: 12 }).map((_, i) => ({
+    const particles = useMemo<ParticleData[]>(() => {
+        // Use questionNumber as seed to trigger recalculation when question changes
+        const _seed = questionNumber;
+        void _seed; // Acknowledge intentional dependency
+        return Array.from({ length: 12 }).map((_, i) => ({
             id: i,
             x: 10 + Math.random() * 80,
             y: 20 + Math.random() * 60,
             size: 4 + Math.random() * 6,
             color: i % 3 === 0 ? 'bg-amber-400' : i % 3 === 1 ? 'bg-orange-400' : 'bg-yellow-400'
-        }))
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    , [questionNumber]); // Recalculate only when question changes
+        }));
+    }, [questionNumber]);
 
     useEffect(() => {
         if (isVisible) {

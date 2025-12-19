@@ -1,4 +1,5 @@
 import { initializeApp } from 'firebase/app';
+import type { Analytics } from 'firebase/analytics';
 import {
   getAuth,
   connectAuthEmulator,
@@ -101,8 +102,7 @@ export const db = getFirestore(app);
 export const rtdb = getDatabase(app);
 
 // Initialize Analytics only in production
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-let analytics: any = null;
+let analytics: Analytics | null = null;
 
 /**
  * Lazy-initialize Firebase Auth

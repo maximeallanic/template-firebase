@@ -11,7 +11,8 @@ import { createRoom, joinRoom, AVATAR_LIST } from '../services/gameService';
 import { safeStorage } from '../utils/storage';
 import { saveProfile } from '../services/profileService';
 import { useAuthUser } from '../hooks/useAuthUser';
-import { Users, Zap, Trophy, ChefHat, Flame, Candy, X, Crown, Star, Lock } from 'lucide-react';
+import { useAppInstall } from '../hooks/useAppInstall';
+import { Users, Zap, Trophy, ChefHat, Flame, Candy, X, Crown, Star, Lock, Download, Smartphone } from 'lucide-react';
 import { createCheckoutSession } from '../services/firebase';
 import { useHostSubscription } from '../hooks/useHostSubscription';
 
@@ -42,6 +43,9 @@ export default function HomePage() {
 
   // Check if user is already premium
   const { isPremium, isLoading: isPremiumLoading } = useHostSubscription(user?.uid);
+
+  // PWA install detection
+  const { isInstalled, canInstall, promptInstall, isDismissed, dismiss } = useAppInstall();
 
   // Handle Firebase email action links (verification, password reset)
   const mode = searchParams.get('mode');
@@ -256,8 +260,48 @@ export default function HomePage() {
         <UserBar attachedToEdge />
       </div>
 
-      {/* Floating Food Mascots - fade out on page exit */}
-      {floatingMascots.map((mascot, i) => (
+      {/* Install Banner - Show when installable and not dismissed */}
+      <AnimatePresence>
+        {canInstall && !isDismissed && (
+          <motion.div
+            initial={{ opacity: 0, y: -20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -20 }}
+            className="fixed top-4 left-4 right-16 md:left-auto md:right-auto md:top-4 md:left-1/2 md:-translate-x-1/2 z-40"
+          >
+            <div className="flex items-center gap-3 px-4 py-3 rounded-2xl bg-gradient-to-r from-indigo-600/90 to-purple-600/90 backdrop-blur-sm border border-indigo-400/30 shadow-xl shadow-indigo-500/20">
+              <div className="flex-shrink-0 w-10 h-10 rounded-xl bg-white/20 flex items-center justify-center">
+                <Smartphone className="w-5 h-5 text-white" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-white font-bold text-sm truncate">
+                  {t('install.title')}
+                </p>
+                <p className="text-indigo-200 text-xs truncate hidden sm:block">
+                  {t('install.subtitle')}
+                </p>
+              </div>
+              <button
+                onClick={promptInstall}
+                className="flex-shrink-0 flex items-center gap-2 px-4 py-2 rounded-xl bg-white text-indigo-600 font-bold text-sm hover:bg-indigo-50 transition-colors"
+              >
+                <Download className="w-4 h-4" />
+                <span className="hidden sm:inline">{t('install.button')}</span>
+              </button>
+              <button
+                onClick={dismiss}
+                className="flex-shrink-0 p-1.5 rounded-lg hover:bg-white/20 transition-colors"
+                aria-label={t('common:buttons.close')}
+              >
+                <X className="w-4 h-4 text-white/80" />
+              </button>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Floating Food Mascots - fade out on page exit (hidden when app installed) */}
+      {!isInstalled && floatingMascots.map((mascot, i) => (
         <motion.div
           key={i}
           className="absolute pointer-events-none opacity-20 hidden md:block"
@@ -279,7 +323,7 @@ export default function HomePage() {
         </motion.div>
       ))}
 
-      <div className="max-w-6xl w-full z-10 flex flex-col items-center pt-8">
+      <div className={`max-w-6xl w-full z-10 flex flex-col items-center ${isInstalled ? 'pt-4 justify-center flex-1' : 'pt-8'}`}>
 
         {/* Main Title */}
         <motion.div
@@ -293,54 +337,58 @@ export default function HomePage() {
             <Logo className="w-full max-w-2xl h-auto" />
           </div>
 
-          {/* Tagline */}
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ delay: 0.5, duration: 0.8 }}
-            className="space-y-2 mt-4"
-          >
-            <p className="text-2xl md:text-3xl text-white font-bold">
-              {t('hero.tagline')}
-            </p>
-            <p className="text-lg text-indigo-300/80 max-w-2xl mx-auto">
-              {t('hero.description', {
-                replace: { spicy: t('common:teams.spicy'), sweet: t('common:teams.sweet') }
-              }).split(/<spicy>|<\/spicy>|<sweet>|<\/sweet>/).map((part, i) => {
-                if (i === 1) return <span key={i} className="text-spicy-400 font-bold"> {part} </span>;
-                if (i === 3) return <span key={i} className="text-sweet-400 font-bold"> {part} </span>;
-                return part;
-              })}
-            </p>
-          </motion.div>
+          {/* Tagline - hidden when app installed */}
+          {!isInstalled && (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: 0.5, duration: 0.8 }}
+              className="space-y-2 mt-4"
+            >
+              <p className="text-2xl md:text-3xl text-white font-bold">
+                {t('hero.tagline')}
+              </p>
+              <p className="text-lg text-indigo-300/80 max-w-2xl mx-auto">
+                {t('hero.description', {
+                  replace: { spicy: t('common:teams.spicy'), sweet: t('common:teams.sweet') }
+                }).split(/<spicy>|<\/spicy>|<sweet>|<\/sweet>/).map((part, i) => {
+                  if (i === 1) return <span key={i} className="text-spicy-400 font-bold"> {part} </span>;
+                  if (i === 3) return <span key={i} className="text-sweet-400 font-bold"> {part} </span>;
+                  return part;
+                })}
+              </p>
+            </motion.div>
+          )}
         </motion.div>
 
-        {/* How It Works - Quick Visual */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.7, duration: 0.6 }}
-          className="flex flex-wrap justify-center gap-6 md:gap-12 mb-12"
-        >
-          <div className="flex items-center gap-2 text-indigo-200">
-            <div className="w-10 h-10 rounded-full bg-indigo-500/20 flex items-center justify-center">
-              <Users className="w-5 h-5 text-indigo-400" />
+        {/* How It Works - Quick Visual (hidden when app installed) */}
+        {!isInstalled && (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.7, duration: 0.6 }}
+            className="flex flex-wrap justify-center gap-6 md:gap-12 mb-12"
+          >
+            <div className="flex items-center gap-2 text-indigo-200">
+              <div className="w-10 h-10 rounded-full bg-indigo-500/20 flex items-center justify-center">
+                <Users className="w-5 h-5 text-indigo-400" />
+              </div>
+              <span className="text-sm font-medium">{t('features.players')}</span>
             </div>
-            <span className="text-sm font-medium">{t('features.players')}</span>
-          </div>
-          <div className="flex items-center gap-2 text-indigo-200">
-            <div className="w-10 h-10 rounded-full bg-yellow-500/20 flex items-center justify-center">
-              <Zap className="w-5 h-5 text-yellow-400" />
+            <div className="flex items-center gap-2 text-indigo-200">
+              <div className="w-10 h-10 rounded-full bg-yellow-500/20 flex items-center justify-center">
+                <Zap className="w-5 h-5 text-yellow-400" />
+              </div>
+              <span className="text-sm font-medium">{t('features.challenges')}</span>
             </div>
-            <span className="text-sm font-medium">{t('features.challenges')}</span>
-          </div>
-          <div className="flex items-center gap-2 text-indigo-200">
-            <div className="w-10 h-10 rounded-full bg-emerald-500/20 flex items-center justify-center">
-              <Trophy className="w-5 h-5 text-emerald-400" />
+            <div className="flex items-center gap-2 text-indigo-200">
+              <div className="w-10 h-10 rounded-full bg-emerald-500/20 flex items-center justify-center">
+                <Trophy className="w-5 h-5 text-emerald-400" />
+              </div>
+              <span className="text-sm font-medium">{t('features.winner')}</span>
             </div>
-            <span className="text-sm font-medium">{t('features.winner')}</span>
-          </div>
-        </motion.div>
+          </motion.div>
+        )}
 
         {/* Action Cards */}
         <motion.div
@@ -437,41 +485,43 @@ export default function HomePage() {
           </div>
         </motion.div>
 
-        {/* Game Phases Preview */}
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 1.1, duration: 0.6 }}
-          className="w-full max-w-4xl mb-16"
-        >
-          <h3 className="text-center text-lg font-bold text-indigo-300 mb-6 uppercase tracking-wider">
-            {t('phases.title')}
-          </h3>
-          <div className="flex flex-col sm:flex-row sm:flex-wrap justify-center gap-4 sm:gap-2 md:gap-4">
-            {[
-              { key: 'tenders', icon: 'nuggets' as const, color: 'from-amber-500 to-orange-500' },
-              { key: 'sucreSale', icon: 'sweetysalty' as const, color: 'from-pink-400 to-amber-500' },
-              { key: 'laCarte', icon: 'menus' as const, color: 'from-emerald-500 to-teal-500' },
-              { key: 'laNote', icon: 'addition' as const, color: 'from-blue-500 to-indigo-500' },
-              { key: 'burgerUltime', icon: 'burger' as const, color: 'from-red-500 to-pink-500' },
-            ].map((phase, i) => (
-              <motion.div
-                key={phase.key}
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 1.2 + i * 0.1, duration: 0.4 }}
-                className="p-3 text-center transition-colors group"
-              >
-                <div className="w-16 h-16 md:w-20 md:h-20 mx-auto flex items-center justify-center mb-3 hover:scale-110 transition-transform duration-300">
-                  <PhaseIcon phase={phase.icon} size={64} className="md:hidden drop-shadow-lg" />
-                  <PhaseIcon phase={phase.icon} size={80} className="hidden md:block drop-shadow-xl" />
-                </div>
-                <p className="text-xs md:text-sm text-indigo-100 font-bold truncate tracking-wide mb-1">{t(`phases.${phase.key}.name`)}</p>
-                <p className="text-[10px] md:text-xs text-indigo-300/80 leading-tight max-w-[100px] md:max-w-full mx-auto">{t(`phases.${phase.key}.description`)}</p>
-              </motion.div>
-            ))}
-          </div>
-        </motion.div>
+        {/* Game Phases Preview (hidden when app installed) */}
+        {!isInstalled && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 1.1, duration: 0.6 }}
+            className="w-full max-w-4xl mb-16"
+          >
+            <h3 className="text-center text-lg font-bold text-indigo-300 mb-6 uppercase tracking-wider">
+              {t('phases.title')}
+            </h3>
+            <div className="flex flex-col sm:flex-row sm:flex-wrap justify-center gap-4 sm:gap-2 md:gap-4">
+              {[
+                { key: 'tenders', icon: 'nuggets' as const, color: 'from-amber-500 to-orange-500' },
+                { key: 'sucreSale', icon: 'sweetysalty' as const, color: 'from-pink-400 to-amber-500' },
+                { key: 'laCarte', icon: 'menus' as const, color: 'from-emerald-500 to-teal-500' },
+                { key: 'laNote', icon: 'addition' as const, color: 'from-blue-500 to-indigo-500' },
+                { key: 'burgerUltime', icon: 'burger' as const, color: 'from-red-500 to-pink-500' },
+              ].map((phase, i) => (
+                <motion.div
+                  key={phase.key}
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 1.2 + i * 0.1, duration: 0.4 }}
+                  className="p-3 text-center transition-colors group"
+                >
+                  <div className="w-16 h-16 md:w-20 md:h-20 mx-auto flex items-center justify-center mb-3 hover:scale-110 transition-transform duration-300">
+                    <PhaseIcon phase={phase.icon} size={64} className="md:hidden drop-shadow-lg" />
+                    <PhaseIcon phase={phase.icon} size={80} className="hidden md:block drop-shadow-xl" />
+                  </div>
+                  <p className="text-xs md:text-sm text-indigo-100 font-bold truncate tracking-wide mb-1">{t(`phases.${phase.key}.name`)}</p>
+                  <p className="text-[10px] md:text-xs text-indigo-300/80 leading-tight max-w-[100px] md:max-w-full mx-auto">{t(`phases.${phase.key}.description`)}</p>
+                </motion.div>
+              ))}
+            </div>
+          </motion.div>
+        )}
 
         {/* Premium Banner - Only show if not premium */}
         {!isPremiumLoading && !isPremium && (
@@ -591,17 +641,19 @@ export default function HomePage() {
           </motion.div>
         )}
 
-        {/* Footer */}
-        <footer className="mt-auto pt-8 pb-4 text-center text-sm font-mono tracking-widest uppercase text-white/20">
-          <div className="mb-4">
-            Spicy VS Sweet • {new Date().getFullYear()} • {t('common:footer.copyright')}
-          </div>
-          <div className="flex justify-center gap-4">
-            <Link to="/terms" className="hover:text-white/50 transition-colors">{t('common:footer.terms')}</Link>
-            <span>•</span>
-            <Link to="/privacy" className="hover:text-white/50 transition-colors">{t('common:footer.privacy')}</Link>
-          </div>
-        </footer>
+        {/* Footer (hidden when app installed) */}
+        {!isInstalled && (
+          <footer className="mt-auto pt-8 pb-4 text-center text-sm font-mono tracking-widest uppercase text-white/20">
+            <div className="mb-4">
+              Spicy VS Sweet • {new Date().getFullYear()} • {t('common:footer.copyright')}
+            </div>
+            <div className="flex justify-center gap-4">
+              <Link to="/terms" className="hover:text-white/50 transition-colors">{t('common:footer.terms')}</Link>
+              <span>•</span>
+              <Link to="/privacy" className="hover:text-white/50 transition-colors">{t('common:footer.privacy')}</Link>
+            </div>
+          </footer>
+        )}
 
       </div>
     </div>
