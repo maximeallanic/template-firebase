@@ -40,14 +40,8 @@ export async function loadProfile(): Promise<UserProfile | null> {
       }
     }
 
-    // No Firestore profile - check localStorage and migrate if exists
-    const localProfile = getLocalProfile();
-    if (localProfile) {
-      // Migrate localStorage profile to Firestore
-      await saveProfile(localProfile.profileName, localProfile.profileAvatar);
-      return localProfile;
-    }
-
+    // No Firestore profile - user needs to create one
+    // Don't auto-migrate localStorage (could be from a different account)
     return null;
   } catch (error) {
     console.error('Error loading profile from Firestore:', error);

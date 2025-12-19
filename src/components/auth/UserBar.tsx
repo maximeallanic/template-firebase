@@ -4,7 +4,7 @@ import { LogOut, ChevronDown, Settings, Power, Crown } from 'lucide-react';
 import { ProfileEditModal } from './ProfileEditModal';
 import { AvatarIcon } from '../AvatarIcon';
 import { safeStorage } from '../../utils/storage';
-import { getLocalProfile } from '../../services/profileService';
+import { getLocalProfile, clearLocalProfile } from '../../services/profileService';
 import { leaveRoom, type Avatar } from '../../services/gameService';
 import { signOut, createCheckoutSession } from '../../services/firebase';
 import { useAuthUser } from '../../hooks/useAuthUser';
@@ -126,7 +126,7 @@ export const UserBar: React.FC<UserBarProps> = ({
         // Nettoyer le localStorage
         safeStorage.removeItem('spicy_room_code');
         safeStorage.removeItem('spicy_player_id');
-        safeStorage.removeItem('spicy_profile');
+        clearLocalProfile();
 
         // Rediriger vers la page de connexion
         window.location.href = '/login';
