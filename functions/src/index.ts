@@ -105,7 +105,7 @@ export const createCheckoutSession = onCall(
           },
         ],
         success_url: `${data.returnUrl || process.env.APP_URL || 'https://example.com'}?session_id={CHECKOUT_SESSION_ID}`,
-        cancel_url: `${data.returnUrl || process.env.APP_URL || 'https://example.com'}/pricing`,
+        cancel_url: data.returnUrl || process.env.APP_URL || 'https://example.com',
         metadata: { firebaseUID: userId, subscriptionType: 'premium' },
       });
 
