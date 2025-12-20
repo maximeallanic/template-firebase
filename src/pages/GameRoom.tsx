@@ -69,8 +69,8 @@ export default function GameRoom() {
         myId
     });
 
-    // Premium subscription check (based on host's subscription)
-    const { isPremium: hostIsPremium } = useHostSubscription(room?.hostId);
+    // Premium subscription check (based on host's subscription stored in room data)
+    const { isPremium: hostIsPremium } = useHostSubscription(room?.hostIsPremium);
 
     // UI State
     const [linkCopied, setLinkCopied] = useState(false);

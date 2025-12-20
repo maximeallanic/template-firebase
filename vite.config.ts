@@ -6,7 +6,7 @@ export default defineConfig(({ mode }) => ({
   plugins: [react()],
   // Drop console.log and debugger in production builds only
   esbuild: mode === 'production' ? {
-    drop: ['console', 'debugger'],
+    drop: [/*'console', */'debugger'],
   } : undefined,
   build: {
     // Optimize chunk splitting for better caching and tree-shaking

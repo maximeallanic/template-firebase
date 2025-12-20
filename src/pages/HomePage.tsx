@@ -14,7 +14,7 @@ import { useAuthUser } from '../hooks/useAuthUser';
 import { useAppInstall } from '../hooks/useAppInstall';
 import { Users, Zap, Trophy, ChefHat, Flame, Candy, X, Crown, Star, Lock, Download, Smartphone } from 'lucide-react';
 import { createCheckoutSession } from '../services/firebase';
-import { useHostSubscription } from '../hooks/useHostSubscription';
+import { useCurrentUserSubscription } from '../hooks/useHostSubscription';
 
 // Floating mascots configuration
 const floatingMascots = [
@@ -41,8 +41,8 @@ export default function HomePage() {
   const [isUpgrading, setIsUpgrading] = useState(false);
   const hasAutoJoined = useRef(false);
 
-  // Check if user is already premium
-  const { isPremium, isLoading: isPremiumLoading } = useHostSubscription(user?.uid);
+  // Check if current user is already premium
+  const { isPremium, isLoading: isPremiumLoading } = useCurrentUserSubscription();
 
   // PWA install detection
   const { isInstalled, canInstall, promptInstall, isDismissed, dismiss } = useAppInstall();

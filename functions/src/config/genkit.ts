@@ -9,10 +9,11 @@ import { enableFirebaseTelemetry } from '@genkit-ai/firebase';
  * - Traces (detailed execution flow with input/output)
  * - Logs (structured logging to Cloud Logging)
  */
-enableFirebaseTelemetry({
-  // Force export in development (optional - useful for local testing)
-  forceDevExport: process.env.NODE_ENV === 'development',
-});
+// Only enable telemetry in production (Cloud Logging integration)
+const isProduction = process.env.NODE_ENV === 'production' || process.env.K_SERVICE;
+if (isProduction) {
+  enableFirebaseTelemetry();
+}
 
 /**
  * Configure Genkit with Google AI plugin

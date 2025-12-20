@@ -73,6 +73,13 @@ const firebaseConfig = {
   databaseURL: import.meta.env.VITE_FIREBASE_DATABASE_URL,
 };
 
+// DEBUG: Log database URL configuration
+if (!firebaseConfig.databaseURL) {
+  console.error('❌ CRITICAL: databaseURL is undefined! RTDB will not work.');
+} else {
+  console.log('✅ databaseURL configured:', firebaseConfig.databaseURL.substring(0, 50) + '...');
+}
+
 // Initialize Firebase
 const app = initializeApp(firebaseConfig);
 
@@ -100,6 +107,12 @@ export const auth = getAuth(app);
 export const functions = getFunctions(app, 'us-central1');
 export const db = getFirestore(app);
 export const rtdb = getDatabase(app);
+
+// DEBUG: Log RTDB initialization
+console.log('🔥 RTDB initialized - app options:', JSON.stringify({
+  projectId: rtdb.app.options.projectId,
+  databaseURL: rtdb.app.options.databaseURL,
+}, null, 2));
 
 // Initialize Analytics only in production
 let analytics: Analytics | null = null;

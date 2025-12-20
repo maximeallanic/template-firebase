@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { doc, onSnapshot } from 'firebase/firestore';
-import { db } from '../services/firebase';
+import { db, auth } from '../services/firebase';
 
 export interface HostSubscriptionState {
   isPremium: boolean;
@@ -10,18 +10,38 @@ export interface HostSubscriptionState {
 
 /**
  * Hook to check if the host has a premium subscription.
- * Listens to Firestore in real-time for subscription status changes.
+ * Reads directly from the room data (hostIsPremium field) instead of Firestore.
+ * This avoids permission issues for guests who can't read the host's Firestore document.
  *
- * @param hostId - The Firebase UID of the room host
+ * @param hostIsPremium - The hostIsPremium value from the room data
  * @returns Premium status and loading state
  */
-export function useHostSubscription(hostId: string | undefined): HostSubscriptionState {
+export function useHostSubscription(hostIsPremium: boolean | undefined): HostSubscriptionState {
+  // Simply derive values from the room's hostIsPremium field
+  // No async loading needed since room data is already available via RTDB subscription
+  const isPremium = hostIsPremium === true;
+  const isLoading = false;
+  const subscriptionStatus: 'free' | 'active' | 'loading' = isPremium ? 'active' : 'free';
+
+  return { isPremium, isLoading, subscriptionStatus };
+}
+
+/**
+ * Hook to check if the CURRENT USER has a premium subscription.
+ * Listens to the current user's own Firestore document.
+ * Use this for checking the logged-in user's premium status (e.g., on HomePage).
+ *
+ * @returns Premium status and loading state
+ */
+export function useCurrentUserSubscription(): HostSubscriptionState {
   const [isPremium, setIsPremium] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [subscriptionStatus, setSubscriptionStatus] = useState<'free' | 'active' | 'loading'>('loading');
 
   useEffect(() => {
-    if (!hostId) {
+    const user = auth.currentUser;
+
+    if (!user) {
       setIsPremium(false);
       setIsLoading(false);
       setSubscriptionStatus('free');
@@ -31,9 +51,10 @@ export function useHostSubscription(hostId: string | undefined): HostSubscriptio
     setIsLoading(true);
     setSubscriptionStatus('loading');
 
-    // Listen to host's user document in Firestore
+    // Listen to current user's own document in Firestore
+    // This is allowed by Firestore rules since users can read their own data
     const unsubscribe = onSnapshot(
-      doc(db, 'users', hostId),
+      doc(db, 'users', user.uid),
       (docSnap) => {
         if (docSnap.exists()) {
           const data = docSnap.data();
@@ -48,7 +69,7 @@ export function useHostSubscription(hostId: string | undefined): HostSubscriptio
         setIsLoading(false);
       },
       (error) => {
-        console.error('[useHostSubscription] Error listening to host subscription:', error);
+        console.error('[useCurrentUserSubscription] Error listening to subscription:', error);
         // On error, default to free (fail safe)
         setIsPremium(false);
         setSubscriptionStatus('free');
@@ -57,7 +78,7 @@ export function useHostSubscription(hostId: string | undefined): HostSubscriptio
     );
 
     return () => unsubscribe();
-  }, [hostId]);
+  }, []);
 
   return { isPremium, isLoading, subscriptionStatus };
 }

@@ -1,6 +1,6 @@
 import { ref, set, get, update, onValue, onDisconnect, increment, runTransaction, remove } from 'firebase/database';
 import { doc, getDoc } from 'firebase/firestore';
-import { rtdb, auth, db } from './firebase';
+import { rtdb, auth, db, getUserSubscriptionDirect } from './firebase';
 import { type Question } from '../data/questions';
 import { PHASE2_SETS } from '../data/phase2';
 
@@ -459,6 +459,16 @@ export const createRoom = async (hostName: string, avatar: Avatar): Promise<{ co
     const code = generateRoomCode();
     const roomId = code;
 
+    // Fetch host's subscription status (stored in room so guests can access it)
+    let hostIsPremium = false;
+    try {
+        const subscription = await getUserSubscriptionDirect();
+        hostIsPremium = subscription.subscriptionStatus === 'active';
+    } catch (error) {
+        // If we can't fetch subscription, default to free (fail-safe)
+        console.warn('[createRoom] Could not fetch host subscription, defaulting to free:', error);
+    }
+
     const hostPlayer: Player = {
         id: playerId,
         name: hostName,
@@ -478,6 +488,7 @@ export const createRoom = async (hostName: string, avatar: Avatar): Promise<{ co
     const roomData: Room = {
         code,
         hostId: playerId,
+        hostIsPremium, // Store premium status for all players to access
         players: { [playerId]: hostPlayer },
         state: initialGameState,
         createdAt: Date.now()
@@ -492,11 +503,22 @@ export const createRoom = async (hostName: string, avatar: Avatar): Promise<{ co
 export const joinRoom = async (code: string, playerName: string, avatar: Avatar): Promise<{ playerId: string } | null> => {
     // Use Firebase Auth UID as player ID for security
     const playerId = getAuthUserId();
+    console.log('🔍 joinRoom - playerId:', playerId);
 
     const roomId = code.toUpperCase();
     const roomRef = ref(rtdb, `rooms/${roomId}`);
+    console.log('🔍 joinRoom - looking for room:', roomId);
+
+    // DEBUG: Log RTDB config at query time
+    console.log('🔍 joinRoom - rtdb app options:', JSON.stringify({
+        projectId: rtdb.app.options.projectId,
+        databaseURL: rtdb.app.options.databaseURL,
+    }, null, 2));
 
     const snapshot = await get(roomRef);
+    console.log('🔍 joinRoom - snapshot.exists():', snapshot.exists());
+    console.log('🔍 joinRoom - snapshot.val():', snapshot.val());
+
     if (!snapshot.exists()) {
         throw new Error('Room not found');
     }

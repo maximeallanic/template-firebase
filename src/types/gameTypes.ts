@@ -254,6 +254,8 @@ export interface Room {
     players: Record<string, Player>;
     state: GameState;
     createdAt: number;
+    /** Whether the host has a premium subscription (stored at room creation) */
+    hostIsPremium?: boolean;
     customQuestions?: {
         phase1?: Question[];
         phase2?: SimplePhase2Set[];

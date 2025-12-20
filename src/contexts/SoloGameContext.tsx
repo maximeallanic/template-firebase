@@ -393,30 +393,24 @@ export function SoloGameProvider({
         dispatch({ type: 'START_GENERATION' });
 
         try {
-            // Generate questions for all 3 phases in parallel
-            const [phase1Result, phase3Result, phase4Result] = await Promise.all([
-                (async () => {
-                    dispatch({ type: 'SET_GENERATION_PROGRESS', phase: 'phase1', status: 'generating' });
-                    const result = await generateWithRetry({ phase: 'phase1' });
-                    dispatch({ type: 'SET_GENERATION_PROGRESS', phase: 'phase1', status: 'done' });
-                    dispatch({ type: 'SET_QUESTIONS', phase: 'phase1', questions: result.data as Question[] });
-                    return result;
-                })(),
-                (async () => {
-                    dispatch({ type: 'SET_GENERATION_PROGRESS', phase: 'phase3', status: 'generating' });
-                    const result = await generateWithRetry({ phase: 'phase3' });
-                    dispatch({ type: 'SET_GENERATION_PROGRESS', phase: 'phase3', status: 'done' });
-                    dispatch({ type: 'SET_QUESTIONS', phase: 'phase3', questions: result.data as Phase3Theme[] });
-                    return result;
-                })(),
-                (async () => {
-                    dispatch({ type: 'SET_GENERATION_PROGRESS', phase: 'phase4', status: 'generating' });
-                    const result = await generateWithRetry({ phase: 'phase4' });
-                    dispatch({ type: 'SET_GENERATION_PROGRESS', phase: 'phase4', status: 'done' });
-                    dispatch({ type: 'SET_QUESTIONS', phase: 'phase4', questions: result.data as Phase4Question[] });
-                    return result;
-                })(),
-            ]);
+            // Generate questions sequentially to avoid overwhelming the API
+            // Phase 1
+            dispatch({ type: 'SET_GENERATION_PROGRESS', phase: 'phase1', status: 'generating' });
+            const phase1Result = await generateWithRetry({ phase: 'phase1' });
+            dispatch({ type: 'SET_GENERATION_PROGRESS', phase: 'phase1', status: 'done' });
+            dispatch({ type: 'SET_QUESTIONS', phase: 'phase1', questions: phase1Result.data as Question[] });
+
+            // Phase 3
+            dispatch({ type: 'SET_GENERATION_PROGRESS', phase: 'phase3', status: 'generating' });
+            const phase3Result = await generateWithRetry({ phase: 'phase3' });
+            dispatch({ type: 'SET_GENERATION_PROGRESS', phase: 'phase3', status: 'done' });
+            dispatch({ type: 'SET_QUESTIONS', phase: 'phase3', questions: phase3Result.data as Phase3Theme[] });
+
+            // Phase 4
+            dispatch({ type: 'SET_GENERATION_PROGRESS', phase: 'phase4', status: 'generating' });
+            const phase4Result = await generateWithRetry({ phase: 'phase4' });
+            dispatch({ type: 'SET_GENERATION_PROGRESS', phase: 'phase4', status: 'done' });
+            dispatch({ type: 'SET_QUESTIONS', phase: 'phase4', questions: phase4Result.data as Phase4Question[] });
 
             console.log('[SOLO] Questions generated successfully', {
                 phase1: Array.isArray(phase1Result.data) ? phase1Result.data.length : 0,

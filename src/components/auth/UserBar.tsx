@@ -8,7 +8,7 @@ import { getLocalProfile, clearLocalProfile } from '../../services/profileServic
 import { leaveRoom, type Avatar } from '../../services/gameService';
 import { signOut, createCheckoutSession } from '../../services/firebase';
 import { useAuthUser } from '../../hooks/useAuthUser';
-import { useHostSubscription } from '../../hooks/useHostSubscription';
+import { useCurrentUserSubscription } from '../../hooks/useHostSubscription';
 
 interface UserBarProps {
     playerName?: string;
@@ -35,7 +35,7 @@ export const UserBar: React.FC<UserBarProps> = ({
 
     // Get authenticated user and their subscription status
     const { user } = useAuthUser();
-    const { isPremium, isLoading: isSubscriptionLoading } = useHostSubscription(user?.uid);
+    const { isPremium, isLoading: isSubscriptionLoading } = useCurrentUserSubscription();
 
     // Read from localStorage cache if props not provided
     const localProfile = getLocalProfile();
