@@ -485,6 +485,52 @@ export default function HomePage() {
           </div>
         </motion.div>
 
+        {/* Solo Mode Card */}
+        <motion.div
+          initial={{ opacity: 0, y: 30 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 1.0, duration: 0.6 }}
+          className="w-full max-w-4xl mb-8"
+        >
+          <Link to="/solo" className="block group">
+            <motion.div
+              whileHover={{ scale: 1.02, y: -3 }}
+              whileTap={{ scale: 0.98 }}
+              className="relative rounded-2xl bg-gradient-to-r from-orange-900/30 via-red-900/20 to-orange-900/30 backdrop-blur-lg border-2 border-orange-500/30 p-6 flex items-center gap-6 overflow-hidden transition-all hover:border-orange-500/60 hover:shadow-xl hover:shadow-orange-500/20"
+            >
+              {/* Animated background */}
+              <div className="absolute inset-0 bg-gradient-to-r from-orange-500/0 via-red-500/0 to-orange-500/0 group-hover:from-orange-500/10 group-hover:via-red-500/10 group-hover:to-orange-500/10 transition-all duration-500" />
+
+              {/* Icon */}
+              <div className="relative flex-shrink-0">
+                <div className="w-16 h-16 rounded-xl bg-gradient-to-br from-orange-500 to-red-500 flex items-center justify-center shadow-lg shadow-orange-500/30 group-hover:scale-110 transition-transform duration-300">
+                  <Zap className="w-8 h-8 text-white" />
+                </div>
+              </div>
+
+              {/* Content */}
+              <div className="relative flex-1 min-w-0">
+                <div className="flex items-center gap-2 mb-1">
+                  <h3 className="text-xl md:text-2xl font-black text-white">Mode Solo</h3>
+                  <span className="px-2 py-0.5 rounded-full bg-orange-500/30 text-orange-300 text-xs font-bold uppercase tracking-wider">
+                    Arcade
+                  </span>
+                </div>
+                <p className="text-orange-200/80 text-sm">
+                  Défiez-vous contre le chrono et atteignez le meilleur score !
+                </p>
+              </div>
+
+              {/* CTA Arrow */}
+              <div className="relative flex-shrink-0">
+                <div className="w-10 h-10 rounded-full bg-orange-500/20 flex items-center justify-center group-hover:bg-orange-500/40 transition-colors">
+                  <Trophy className="w-5 h-5 text-orange-400 group-hover:text-orange-300" />
+                </div>
+              </div>
+            </motion.div>
+          </Link>
+        </motion.div>
+
         {/* Game Phases Preview (hidden when app installed) */}
         {!isInstalled && (
           <motion.div

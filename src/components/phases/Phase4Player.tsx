@@ -7,6 +7,7 @@ import { submitPhase4Answer, handlePhase4Timeout, nextPhase4Question, showPhaseR
 import { markQuestionAsSeen } from '../../services/historyService';
 import { useReducedMotion } from '../../hooks/useReducedMotion';
 import { PHASE4_QUESTIONS } from '../../data/phase4';
+import type { SoloPhaseHandlers } from '../../types/soloTypes';
 
 // Modular components
 import { Phase4Timer } from './phase4/Phase4Timer';
@@ -24,11 +25,14 @@ interface Phase4PlayerProps {
     room: Room;
     playerId: string;
     isHost: boolean;
+    mode?: 'solo' | 'multiplayer';
+    soloHandlers?: SoloPhaseHandlers;
 }
 
-export function Phase4Player({ room, playerId, isHost }: Phase4PlayerProps) {
+export function Phase4Player({ room, playerId, isHost, mode = 'multiplayer', soloHandlers }: Phase4PlayerProps) {
     const { t } = useTranslation(['game-ui', 'common']);
     const prefersReducedMotion = useReducedMotion();
+    const isSolo = mode === 'solo';
 
     const player = room.players[playerId];
     const team = player?.team;
@@ -91,10 +95,15 @@ export function Phase4Player({ room, playerId, isHost }: Phase4PlayerProps) {
             const remaining = Math.max(0, QUESTION_TIMER - elapsed);
             setTimeRemaining(remaining);
 
-            // Host handles timeout
-            if (remaining === 0 && isHost && !hasHandledTimeoutRef.current) {
-                hasHandledTimeoutRef.current = true;
-                handlePhase4Timeout(room.code);
+            // Handle timeout: solo mode uses soloHandlers, multiplayer uses host
+            if (remaining === 0 && !hasHandledTimeoutRef.current) {
+                if (isSolo && soloHandlers) {
+                    hasHandledTimeoutRef.current = true;
+                    soloHandlers.handlePhase4Timeout();
+                } else if (isHost) {
+                    hasHandledTimeoutRef.current = true;
+                    handlePhase4Timeout(room.code);
+                }
             }
         };
 
@@ -106,25 +115,37 @@ export function Phase4Player({ room, playerId, isHost }: Phase4PlayerProps) {
                 clearInterval(timerRef.current);
             }
         };
-    }, [phase4State, phase4QuestionStartTime, isHost, room.code, showTransition]);
+    }, [phase4State, phase4QuestionStartTime, isHost, room.code, showTransition, isSolo, soloHandlers]);
 
-    // Auto-advance after result display (host only)
+    // Auto-advance after result display (solo always auto-advances, multiplayer host only)
     useEffect(() => {
-        if (phase4State !== 'result' || !isHost) return;
+        if (phase4State !== 'result') return;
+        if (!isSolo && !isHost) return;
 
         const delay = currentQuestion?.anecdote ? RESULT_WITH_ANECDOTE_TIME : RESULT_DISPLAY_TIME;
         const timeout = setTimeout(() => {
-            nextPhase4Question(room.code);
+            if (isSolo && soloHandlers) {
+                soloHandlers.nextPhase4Question();
+            } else {
+                nextPhase4Question(room.code);
+            }
         }, delay);
 
         return () => clearTimeout(timeout);
-    }, [phase4State, isHost, room.code, currentQuestion?.anecdote]);
+    }, [phase4State, isHost, isSolo, soloHandlers, room.code, currentQuestion?.anecdote]);
 
     // Handle answer submission
     const handleAnswerClick = useCallback(async (answerIndex: number) => {
-        if (hasAnswered || phase4State !== 'questioning' || !team) return;
-        await submitPhase4Answer(room.code, playerId, answerIndex);
-    }, [hasAnswered, phase4State, team, room.code, playerId]);
+        if (hasAnswered || phase4State !== 'questioning') return;
+        // In multiplayer, need team. In solo, always allowed
+        if (!isSolo && !team) return;
+
+        if (isSolo && soloHandlers) {
+            soloHandlers.submitPhase4Answer(answerIndex);
+        } else {
+            await submitPhase4Answer(room.code, playerId, answerIndex);
+        }
+    }, [hasAnswered, phase4State, team, room.code, playerId, isSolo, soloHandlers]);
 
     // Handle transition complete
     const handleTransitionComplete = useCallback(() => {
@@ -156,7 +177,22 @@ export function Phase4Player({ room, playerId, isHost }: Phase4PlayerProps) {
                 <h2 className="text-4xl font-black text-center">{t('phase4.phaseComplete')}</h2>
                 <div className="text-2xl text-gray-300">{t('phase4.laNote')}</div>
 
-                {isHost && (
+                {/* Solo mode: advance to results */}
+                {isSolo && soloHandlers && (
+                    <motion.button
+                        initial={prefersReducedMotion ? { opacity: 0 } : { opacity: 0, y: 20 }}
+                        animate={prefersReducedMotion ? { opacity: 1 } : { opacity: 1, y: 0 }}
+                        transition={{ delay: 0.3 }}
+                        onClick={() => soloHandlers.advanceToNextPhase()}
+                        className="bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-400 hover:to-red-400 px-8 py-4 rounded-xl text-xl font-bold shadow-lg flex items-center gap-2 text-white transition-colors"
+                    >
+                        <span>{t('common:actions.continue', 'Voir les résultats')}</span>
+                        <ChevronRight className="w-6 h-6" aria-hidden="true" />
+                    </motion.button>
+                )}
+
+                {/* Multiplayer mode: host starts Phase 5 */}
+                {!isSolo && isHost && (
                     <motion.button
                         initial={prefersReducedMotion ? { opacity: 0 } : { opacity: 0, y: 20 }}
                         animate={prefersReducedMotion ? { opacity: 1 } : { opacity: 1, y: 0 }}
@@ -169,7 +205,7 @@ export function Phase4Player({ room, playerId, isHost }: Phase4PlayerProps) {
                     </motion.button>
                 )}
 
-                {!isHost && (
+                {!isSolo && !isHost && (
                     <motion.p
                         initial={{ opacity: 0 }}
                         animate={{ opacity: 0.7 }}
@@ -248,18 +284,20 @@ export function Phase4Player({ room, playerId, isHost }: Phase4PlayerProps) {
                     </div>
                 )}
 
-                {/* Player Answer Status */}
-                <div className="mt-3 text-center text-sm text-gray-500">
-                    {answeredCount === totalPlayers ? (
-                        <span className="text-green-400">{t('phase4.everyoneAnswered')}</span>
-                    ) : (
-                        <span>{t('phase4.waitingForPlayers')} ({answeredCount}/{totalPlayers})</span>
-                    )}
-                </div>
+                {/* Player Answer Status - only show in multiplayer */}
+                {!isSolo && (
+                    <div className="mt-3 text-center text-sm text-gray-500">
+                        {answeredCount === totalPlayers ? (
+                            <span className="text-green-400">{t('phase4.everyoneAnswered')}</span>
+                        ) : (
+                            <span>{t('phase4.waitingForPlayers')} ({answeredCount}/{totalPlayers})</span>
+                        )}
+                    </div>
+                )}
             </div>
 
-            {/* Host Controls */}
-            {isHost && (
+            {/* Host Controls - only show in multiplayer */}
+            {!isSolo && isHost && (
                 <div className="w-full max-w-lg pt-4 border-t border-slate-700">
                     <button
                         onClick={() => nextPhase4Question(room.code)}

@@ -9,6 +9,7 @@ import { TeammateRoster } from '../game/TeammateRoster';
 import { QuestionTransition } from '../game/QuestionTransition';
 import { springConfig, organicEase, durations, flashIndicatorVariants, snappySpring } from '../../animations';
 import { useReducedMotion } from '../../hooks/useReducedMotion';
+import type { SoloPhaseHandlers } from '../../types/soloTypes';
 import {
     Triangle, Diamond, Circle, Square,
     Clock, Trophy, XCircle, Play, AlertTriangle
@@ -19,6 +20,8 @@ interface Phase1PlayerProps {
     room: Room;
     playerId: string;
     isHost?: boolean;
+    mode?: 'solo' | 'multiplayer';
+    soloHandlers?: SoloPhaseHandlers;
 }
 
 const COLORS = [
@@ -83,14 +86,15 @@ const questionReducedVariants: Variants = {
     exit: { opacity: 0, transition: { duration: durations.fast } }
 };
 
-export function Phase1Player({ room, playerId, isHost }: Phase1PlayerProps) {
+export function Phase1Player({ room, playerId, isHost, mode = 'multiplayer', soloHandlers }: Phase1PlayerProps) {
     const { t } = useTranslation(['game-ui', 'common']);
     const prefersReducedMotion = useReducedMotion();
+    const isSolo = mode === 'solo';
     const { state, players } = room;
     const { phaseState, currentQuestionIndex, phase1Answers, phase1BlockedTeams, phase1TriedWrongOptions } = state;
 
-    // Rebond: track tried wrong options
-    const triedWrongOptions = phase1TriedWrongOptions || [];
+    // Rebond: track tried wrong options (disabled in solo mode)
+    const triedWrongOptions = isSolo ? [] : (phase1TriedWrongOptions || []);
 
     // Use custom questions from database (no fallback - questions must be generated/saved first)
     const questionsList = room.customQuestions?.phase1 || [];
@@ -102,10 +106,10 @@ export function Phase1Player({ room, playerId, isHost }: Phase1PlayerProps) {
     const [submitError, setSubmitError] = useState(false);
     const [showQuestionTransition, setShowQuestionTransition] = useState(false);
 
-    // Check if my team is blocked
+    // Check if my team is blocked (disabled in solo mode)
     const myTeam = players[playerId]?.team;
     const blockedTeams = phase1BlockedTeams || [];
-    const isMyTeamBlocked = myTeam ? blockedTeams.includes(myTeam) : false;
+    const isMyTeamBlocked = isSolo ? false : (myTeam ? blockedTeams.includes(myTeam) : false);
 
     // Track previous question index to detect actual changes
     const prevQuestionIndexRef = useRef<number | undefined>(undefined);
@@ -157,7 +161,11 @@ export function Phase1Player({ room, playerId, isHost }: Phase1PlayerProps) {
             setMyAnswer(index);
             setSubmitError(false);
             try {
-                await submitAnswer(room.code, playerId, index);
+                if (isSolo && soloHandlers) {
+                    soloHandlers.submitPhase1Answer(index);
+                } else {
+                    await submitAnswer(room.code, playerId, index);
+                }
             } catch (error) {
                 console.error('Failed to submit answer:', error);
                 setMyAnswer(null); // Reset UI so player can try again
@@ -173,7 +181,11 @@ export function Phase1Player({ room, playerId, isHost }: Phase1PlayerProps) {
 
     const handleNextQuestion = () => {
         if (!isFinished) {
-            startNextQuestion(room.code, nextQIndex);
+            if (isSolo && soloHandlers) {
+                soloHandlers.nextPhase1Question();
+            } else {
+                startNextQuestion(room.code, nextQIndex);
+            }
         }
     };
 
@@ -273,17 +285,26 @@ export function Phase1Player({ room, playerId, isHost }: Phase1PlayerProps) {
             const hasAnecdote = currentQuestion?.anecdote;
             const delay = hasAnecdote ? 7000 : 5000; // 7s with anecdote, 5s without
             const timer = setTimeout(() => {
-                // All players trigger this, but Firebase operations are idempotent
-                // The first one to succeed advances the game, others will be no-ops
-                if (isFinished) {
-                    showPhaseResults(room.code);
+                if (isSolo && soloHandlers) {
+                    // Solo mode: use handlers
+                    if (isFinished) {
+                        soloHandlers.advanceToNextPhase();
+                    } else {
+                        soloHandlers.nextPhase1Question();
+                    }
                 } else {
-                    startNextQuestion(room.code, nextQIndex);
+                    // Multiplayer: All players trigger this, but Firebase operations are idempotent
+                    // The first one to succeed advances the game, others will be no-ops
+                    if (isFinished) {
+                        showPhaseResults(room.code);
+                    } else {
+                        startNextQuestion(room.code, nextQIndex);
+                    }
                 }
             }, delay);
             return () => clearTimeout(timer);
         }
-    }, [isResult, isFinished, room.code, nextQIndex, currentQuestion?.anecdote]);
+    }, [isResult, isFinished, room.code, nextQIndex, currentQuestion?.anecdote, isSolo, soloHandlers]);
 
     // Show transition for question number display (1-indexed)
     const displayQuestionNumber = (currentQuestionIndex ?? 0) + 1;
@@ -325,14 +346,16 @@ export function Phase1Player({ room, playerId, isHost }: Phase1PlayerProps) {
                     </AnimatePresence>
                 </div>
 
-                {/* Teammates Mini Roster - Shows answer status */}
-                <TeammateRoster
-                    players={room.players}
-                    currentPlayerId={playerId}
-                    myTeam={myTeam}
-                    answers={phase1Answers}
-                    maxDisplay={6}
-                />
+                {/* Teammates Mini Roster - Shows answer status (hidden in solo mode) */}
+                {!isSolo && (
+                    <TeammateRoster
+                        players={room.players}
+                        currentPlayerId={playerId}
+                        myTeam={myTeam}
+                        answers={phase1Answers}
+                        maxDisplay={6}
+                    />
+                )}
             </div>
 
             {/* Context Header */}
@@ -573,9 +596,9 @@ export function Phase1Player({ room, playerId, isHost }: Phase1PlayerProps) {
             {/* Celebration Confetti - for personal wins or team wins */}
             {isResult && (state.roundWinner?.playerId === playerId || (state.roundWinner?.team === myTeam)) && <SimpleConfetti />}
 
-            {/* HOST CONTROLS - Fixed at bottom */}
+            {/* HOST CONTROLS - Fixed at bottom (hidden in solo mode) */}
 
-            {isHost && currentQuestionIndex === -1 && (
+            {!isSolo && isHost && currentQuestionIndex === -1 && (
                 <div className="fixed bottom-0 left-0 right-0 p-4 bg-slate-950/80 backdrop-blur border-t border-slate-800 flex justify-center z-50">
                     <button
                         onClick={handleNextQuestion}

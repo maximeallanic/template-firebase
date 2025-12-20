@@ -11,6 +11,11 @@ const HostLobby = lazy(() => import('./pages/HostLobby'));
 const GameRoom = lazy(() => import('./pages/GameRoom'));
 const LoginPage = lazy(() => import('./pages/LoginPage').then(m => ({ default: m.LoginPage })));
 
+// Solo Mode
+const SoloSetup = lazy(() => import('./pages/SoloSetup'));
+const SoloGame = lazy(() => import('./pages/SoloGame'));
+const Leaderboard = lazy(() => import('./pages/Leaderboard'));
+
 // Legal Pages
 const TermsAndConditions = lazy(() => import('./pages/TermsAndConditions'));
 const TermsOfService = lazy(() => import('./pages/TermsOfService'));
@@ -22,9 +27,9 @@ function App() {
   const bgVariant = useMemo((): BackgroundVariant => {
     const path = location.pathname;
     if (path === '/') return 'home';
-    if (path === '/host' || path === '/login') return 'lobby';
+    if (path === '/host' || path === '/login' || path === '/solo' || path === '/leaderboard') return 'lobby';
     if (path === '/terms' || path === '/privacy') return 'legal';
-    if (path.startsWith('/room/')) return 'game';
+    if (path.startsWith('/room/') || path.startsWith('/solo/')) return 'game';
     return 'home';
   }, [location.pathname]);
 
@@ -63,6 +68,27 @@ function App() {
                 <GameRoom />
               </PageTransition>
             </AuthRequired>
+          } />
+
+          {/* Solo Mode Routes */}
+          <Route path="/solo" element={
+            <AuthRequired>
+              <PageTransition>
+                <SoloSetup />
+              </PageTransition>
+            </AuthRequired>
+          } />
+          <Route path="/solo/game" element={
+            <AuthRequired>
+              <PageTransition>
+                <SoloGame />
+              </PageTransition>
+            </AuthRequired>
+          } />
+          <Route path="/leaderboard" element={
+            <PageTransition>
+              <Leaderboard />
+            </PageTransition>
           } />
 
           {/* Login Page - handles redirect after auth */}

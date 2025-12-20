@@ -4,8 +4,9 @@ import { motion } from 'framer-motion';
 import { initPhase3, showPhaseResults } from '../../services/gameService';
 import type { Room } from '../../services/gameService';
 import type { Phase3Theme, Team } from '../../types/gameTypes';
+import type { SoloPhaseHandlers } from '../../types/soloTypes';
 import { PHASE3_DATA } from '../../services/data/phase3';
-import { Zap, Loader2 } from 'lucide-react';
+import { Zap, Loader2, ChevronRight } from 'lucide-react';
 import { markQuestionAsSeen } from '../../services/historyService';
 import { Phase3ThemeSelection } from './Phase3ThemeSelection';
 import { Phase3QuestionInput } from './Phase3QuestionInput';
@@ -14,14 +15,18 @@ import { auth } from '../../services/firebase';
 
 interface Phase3PlayerProps {
     room: Room;
+    playerId?: string; // Optional: used in solo mode
     isHost: boolean;
+    mode?: 'solo' | 'multiplayer';
+    soloHandlers?: SoloPhaseHandlers;
 }
 
-export const Phase3Player: React.FC<Phase3PlayerProps> = ({ room, isHost }) => {
+export const Phase3Player: React.FC<Phase3PlayerProps> = ({ room, playerId, isHost, mode = 'multiplayer', soloHandlers }) => {
     const { t } = useTranslation(['game-ui', 'game-phases', 'common']);
+    const isSolo = mode === 'solo';
 
-    // Get current player info
-    const currentUserId = auth.currentUser?.uid;
+    // Get current player info (use playerId prop in solo mode, auth in multiplayer)
+    const currentUserId = isSolo && playerId ? playerId : auth.currentUser?.uid;
     const currentPlayer = currentUserId ? room.players[currentUserId] : null;
     const playerTeam = currentPlayer?.team as Team | null;
 
@@ -87,8 +92,8 @@ export const Phase3Player: React.FC<Phase3PlayerProps> = ({ room, isHost }) => {
         );
     }
 
-    // No team assigned
-    if (!playerTeam || !currentPlayer) {
+    // No team assigned (skip check in solo mode - always on 'spicy' team)
+    if (!isSolo && (!playerTeam || !currentPlayer)) {
         return (
             <div className="flex flex-col items-center justify-center h-[60vh] text-white">
                 <p className="text-xl">{t('phase3.noTeamAssigned')}</p>
@@ -104,18 +109,20 @@ export const Phase3Player: React.FC<Phase3PlayerProps> = ({ room, isHost }) => {
                 themes={themes}
                 selectionOrder={phase3SelectionOrder as Team[]}
                 currentSelections={(phase3ThemeSelection || {}) as Record<Team, number>}
-                currentTeam={playerTeam}
+                currentTeam={playerTeam || 'spicy'}
+                mode={mode}
+                soloHandlers={soloHandlers}
             />
         );
     }
 
     // View 2: Playing (or Spectating if own team finished)
     if (phase3State === 'playing') {
-        // If own team finished, show spectator view
-        if (ownFinished && ownProgress) {
+        // If own team finished, show spectator view (only in multiplayer)
+        if (!isSolo && ownFinished && ownProgress) {
             return (
                 <Phase3Spectator
-                    playerTeam={playerTeam}
+                    playerTeam={playerTeam || 'spicy'}
                     ownProgress={ownProgress}
                     otherProgress={otherProgress}
                     otherTheme={otherTheme}
@@ -131,11 +138,13 @@ export const Phase3Player: React.FC<Phase3PlayerProps> = ({ room, isHost }) => {
                 <Phase3QuestionInput
                     roomCode={room.code}
                     playerId={currentUserId}
-                    playerTeam={playerTeam}
+                    playerTeam={playerTeam || 'spicy'}
                     theme={ownTheme}
                     teamProgress={ownProgress}
                     players={room.players}
                     otherTeamProgress={otherProgress}
+                    mode={mode}
+                    soloHandlers={soloHandlers}
                 />
             );
         }
@@ -145,17 +154,48 @@ export const Phase3Player: React.FC<Phase3PlayerProps> = ({ room, isHost }) => {
     if (phase3State === 'finished' && ownProgress) {
         return (
             <div className="flex flex-col items-center justify-center min-h-[60vh]">
-                <Phase3Spectator
-                    playerTeam={playerTeam}
-                    ownProgress={ownProgress}
-                    otherProgress={otherProgress}
-                    otherTheme={otherTheme}
-                    players={room.players}
-                    bothFinished={true}
-                />
+                {/* Only show spectator view in multiplayer */}
+                {!isSolo && playerTeam && (
+                    <Phase3Spectator
+                        playerTeam={playerTeam}
+                        ownProgress={ownProgress}
+                        otherProgress={otherProgress}
+                        otherTheme={otherTheme}
+                        players={room.players}
+                        bothFinished={true}
+                    />
+                )}
 
-                {/* Host Controls */}
-                {isHost && (
+                {/* Solo mode: Show score summary and advance button */}
+                {isSolo && (
+                    <motion.div
+                        initial={{ opacity: 0, scale: 0.9 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        className="text-center text-white"
+                    >
+                        <div className="text-6xl mb-4">🍽️</div>
+                        <h2 className="text-3xl font-black mb-2">{t('game-phases:phase3.title')}</h2>
+                        <p className="text-xl text-gray-400 mb-6">{t('game-phases:phase3.complete', 'Phase terminée !')}</p>
+
+                        <div className="bg-white/10 rounded-xl p-4 mb-6">
+                            <div className="text-lg text-gray-300">Score cette phase</div>
+                            <div className="text-4xl font-black text-green-400">
+                                {ownProgress.score} / {ownTheme?.questions.length || 5}
+                            </div>
+                        </div>
+
+                        <button
+                            onClick={() => soloHandlers?.advanceToNextPhase()}
+                            className="bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-400 hover:to-red-400 px-8 py-4 rounded-xl text-xl font-bold shadow-lg flex items-center gap-2 mx-auto transition-colors"
+                        >
+                            <ChevronRight className="w-6 h-6" />
+                            {t('common:actions.continue', 'Continuer')}
+                        </button>
+                    </motion.div>
+                )}
+
+                {/* Multiplayer: Host Controls */}
+                {!isSolo && isHost && (
                     <motion.div
                         initial={{ opacity: 0, y: 20 }}
                         animate={{ opacity: 1, y: 0 }}

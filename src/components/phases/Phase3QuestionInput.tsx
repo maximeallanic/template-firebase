@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useTranslation } from 'react-i18next';
 import { Send, Check, X, Loader2, Flame, Candy, Trophy, Users } from 'lucide-react';
 import type { Team, Phase3Theme, Phase3TeamProgress, Player } from '../../types/gameTypes';
+import type { SoloPhaseHandlers } from '../../types/soloTypes';
 import { submitPhase3Answer } from '../../services/gameService';
 import { audioService } from '../../services/audioService';
 import { useReducedMotion } from '../../hooks/useReducedMotion';
@@ -19,6 +20,8 @@ interface Phase3QuestionInputProps {
     teamProgress: Phase3TeamProgress;
     players: Record<string, Player>;
     otherTeamProgress?: Phase3TeamProgress;
+    mode?: 'solo' | 'multiplayer';
+    soloHandlers?: SoloPhaseHandlers;
 }
 
 type AnswerFeedback = 'correct' | 'incorrect' | 'already_answered' | null;
@@ -31,9 +34,12 @@ export const Phase3QuestionInput: React.FC<Phase3QuestionInputProps> = ({
     teamProgress,
     players,
     otherTeamProgress,
+    mode = 'multiplayer',
+    soloHandlers,
 }) => {
     const { t } = useTranslation(['game-ui', 'game-phases', 'common']);
     const prefersReducedMotion = useReducedMotion();
+    const isSolo = mode === 'solo';
     const [answer, setAnswer] = useState('');
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [feedback, setFeedback] = useState<AnswerFeedback>(null);
@@ -103,11 +109,23 @@ export const Phase3QuestionInput: React.FC<Phase3QuestionInputProps> = ({
         setFeedback(null);
 
         try {
-            const result = await submitPhase3Answer(roomCode, playerId, answer.trim());
+            let isCorrect = false;
 
-            if (result.alreadyAnswered) {
-                setFeedback('already_answered');
-            } else if (result.isCorrect) {
+            if (isSolo && soloHandlers) {
+                // Solo mode: use soloHandlers
+                isCorrect = await soloHandlers.submitPhase3Answer(answer.trim());
+            } else {
+                // Multiplayer mode: use gameService
+                const result = await submitPhase3Answer(roomCode, playerId, answer.trim());
+                if (result.alreadyAnswered) {
+                    setFeedback('already_answered');
+                    setIsSubmitting(false);
+                    return;
+                }
+                isCorrect = result.isCorrect;
+            }
+
+            if (isCorrect) {
                 setFeedback('correct');
                 // Answer will be cleared by the useEffect when question changes
             } else {
@@ -307,8 +325,8 @@ export const Phase3QuestionInput: React.FC<Phase3QuestionInputProps> = ({
                 </AnimatePresence>
             </motion.div>
 
-            {/* Other Team Progress (small indicator) */}
-            {otherTeamProgress && (
+            {/* Other Team Progress (small indicator) - only in multiplayer */}
+            {!isSolo && otherTeamProgress && (
                 <div className="mt-6 text-white/50 text-sm flex items-center gap-2">
                     {playerTeam === 'spicy' ? (
                         <Candy className="w-4 h-4 text-pink-400" />
@@ -325,24 +343,26 @@ export const Phase3QuestionInput: React.FC<Phase3QuestionInputProps> = ({
                 </div>
             )}
 
-            {/* Answered By History */}
-            <div className="mt-6 w-full">
-                <div className="flex flex-wrap gap-2 justify-center">
-                    {Array.from({ length: currentQuestionIndex }).map((_, idx) => {
-                        const answeredBy = getAnsweredBy(idx);
-                        if (!answeredBy) return null;
-                        return (
-                            <div
-                                key={idx}
-                                className="text-xs bg-green-500/20 text-green-300 px-3 py-1 rounded-full flex items-center gap-1"
-                            >
-                                <span>Q{idx + 1}:</span>
-                                <span className="font-bold">{answeredBy.name}</span>
-                            </div>
-                        );
-                    })}
+            {/* Answered By History - only in multiplayer (no teammates in solo) */}
+            {!isSolo && (
+                <div className="mt-6 w-full">
+                    <div className="flex flex-wrap gap-2 justify-center">
+                        {Array.from({ length: currentQuestionIndex }).map((_, idx) => {
+                            const answeredBy = getAnsweredBy(idx);
+                            if (!answeredBy) return null;
+                            return (
+                                <div
+                                    key={idx}
+                                    className="text-xs bg-green-500/20 text-green-300 px-3 py-1 rounded-full flex items-center gap-1"
+                                >
+                                    <span>Q{idx + 1}:</span>
+                                    <span className="font-bold">{answeredBy.name}</span>
+                                </div>
+                            );
+                        })}
+                    </div>
                 </div>
-            </div>
+            )}
         </div>
     );
 };
