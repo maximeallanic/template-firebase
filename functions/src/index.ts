@@ -8,6 +8,8 @@ import { z } from 'zod';
 // Define secrets for production (Secret Manager)
 const stripeSecretKey = defineSecret('STRIPE_SECRET_KEY');
 const stripeWebhookSecret = defineSecret('STRIPE_WEBHOOK_SECRET');
+const geminiApiKey = defineSecret('GEMINI_API_KEY');
+const googleCseEngineId = defineSecret('GOOGLE_CSE_ENGINE_ID');
 
 // ============================================================================
 // SECURITY UTILITIES
@@ -454,6 +456,7 @@ export const generateGameQuestions = onCall(
     consumeAppCheckToken: true,
     timeoutSeconds: 300, // gemini-3-flash-preview uses "thinking" tokens, needs more time
     memory: "1GiB",     // Genkit + Gemini needs some memory
+    secrets: [geminiApiKey, googleCseEngineId], // Required for Genkit/Gemini + fact-check search
   },
   async ({ data, auth }) => {
     // 1. Auth Check (Host only ideally, but at least authenticated)
@@ -645,6 +648,7 @@ export const validatePhase3Answer = onCall(
   {
     consumeAppCheckToken: true,
     timeoutSeconds: 30, // Quick validation should be fast
+    secrets: [geminiApiKey], // Required for LLM validation
   },
   async ({ data, auth }) => {
     if (!auth) {
@@ -701,6 +705,7 @@ export const validatePhase5Answers = onCall(
     consumeAppCheckToken: true,
     timeoutSeconds: 120, // May need more time for 20 validations
     memory: '512MiB',
+    secrets: [geminiApiKey], // Required for LLM validation
   },
   async ({ data, auth }) => {
     if (!auth) {
