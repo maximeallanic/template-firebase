@@ -1,7 +1,8 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { motion, useAnimation, AnimatePresence } from 'framer-motion';
-import { Utensils, Loader2, Lock, AlertTriangle, CheckCircle, XCircle } from 'lucide-react';
+import { Utensils, Lock, AlertTriangle, CheckCircle, XCircle } from 'lucide-react';
+import { FoodLoader } from '../ui/FoodLoader';
 import { submitPhase2Answer as submitPhase2AnswerToRoom, showPhaseResults } from '../../services/gameService';
 import type { Room, Team } from '../../services/gameService';
 import type { SimplePhase2Set } from '../../types/gameTypes';
@@ -183,8 +184,8 @@ export function Phase2Player({ room, playerId, isHost, mode = 'multiplayer', sol
 
         return (
             <div className="flex flex-col items-center justify-center h-full text-white">
-                <div className="text-2xl font-bold flex items-center gap-2">
-                    <Loader2 className="w-8 h-8 animate-spin" aria-hidden="true" />
+                <div className="text-2xl font-bold flex items-center gap-3">
+                    <FoodLoader size="lg" />
                     {t('player.waitingForHost')}
                 </div>
                 <div className="text-slate-400 mt-2">
@@ -208,7 +209,7 @@ export function Phase2Player({ room, playerId, isHost, mode = 'multiplayer', sol
                         {hasMyTeamAnswered ? (
                             myTeamAnswer?.correct ? '✓' : '✗'
                         ) : (
-                            <Loader2 className="w-4 h-4 animate-spin" />
+                            <FoodLoader size="sm" variant={myTeam === 'spicy' ? 'spicy' : 'sweet'} />
                         )}
                     </div>
 
@@ -221,7 +222,7 @@ export function Phase2Player({ room, playerId, isHost, mode = 'multiplayer', sol
                             {otherTeamAnswer ? (
                                 otherTeamAnswer.correct ? '✓' : '✗'
                             ) : (
-                                <Loader2 className="w-4 h-4 animate-spin" />
+                                <FoodLoader size="sm" variant={otherTeam === 'spicy' ? 'spicy' : 'sweet'} />
                             )}
                         </div>
                     )}
@@ -328,9 +329,9 @@ export function Phase2Player({ room, playerId, isHost, mode = 'multiplayer', sol
                     <motion.div
                         initial={{ opacity: 0 }}
                         animate={{ opacity: 1 }}
-                        className="absolute bottom-20 bg-slate-800/80 backdrop-blur text-white px-8 py-4 rounded-full font-bold text-xl flex items-center gap-2"
+                        className="absolute bottom-20 bg-slate-800/80 backdrop-blur text-white px-8 py-4 rounded-full font-bold text-xl flex items-center gap-3"
                     >
-                        <Loader2 className="w-5 h-5 animate-spin" aria-hidden="true" />
+                        <FoodLoader size="sm" />
                         <span>
                             {myTeamAnswer?.correct
                                 ? t('phase2.yourTeamWon', { defaultValue: 'Votre équipe gagne !' })

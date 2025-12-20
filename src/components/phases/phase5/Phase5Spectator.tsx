@@ -2,7 +2,8 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useTranslation } from 'react-i18next';
 import { type Room, type Team, type Phase5State } from '../../../services/gameService';
 import { AvatarIcon } from '../../AvatarIcon';
-import { Eye, Clock, Brain, Loader2, ChevronRight } from 'lucide-react';
+import { Eye, Clock, Brain, ChevronRight } from 'lucide-react';
+import { FoodLoader } from '../../ui/FoodLoader';
 import { organicEase, durations } from '../../../animations';
 import { useReducedMotion } from '../../../hooks/useReducedMotion';
 
@@ -134,7 +135,7 @@ export function Phase5Spectator({ room, currentPlayerTeam, phase5State }: Phase5
                             <div>
                                 <div className="font-bold text-xl">{representative.name}</div>
                                 <div className="text-sm text-slate-400 flex items-center gap-2">
-                                    <Loader2 className={`w-4 h-4 ${prefersReducedMotion ? '' : 'animate-spin'}`} />
+                                    <FoodLoader size="sm" variant={currentPlayerTeam === 'spicy' ? 'spicy' : 'sweet'} />
                                     {t('phase5.answering')}
                                 </div>
                             </div>
@@ -238,7 +239,7 @@ export function Phase5Spectator({ room, currentPlayerTeam, phase5State }: Phase5
     // Fallback for other states
     return (
         <div className="flex items-center justify-center min-h-full p-6 text-white">
-            <Loader2 className={`w-12 h-12 ${prefersReducedMotion ? '' : 'animate-spin'} text-slate-500`} />
+            <FoodLoader size="lg" />
         </div>
     );
 }

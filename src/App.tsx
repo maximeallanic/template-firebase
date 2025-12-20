@@ -4,6 +4,7 @@ import { AnimatePresence, LayoutGroup } from 'framer-motion';
 import { AuthRequired } from './components/auth/AuthRequired';
 import { PageTransition } from './components/ui/PageTransition';
 import { SharedBackground, type BackgroundVariant } from './components/ui/SharedBackground';
+import { FoodLoader } from './components/ui/FoodLoader';
 
 // Game Modules
 const HomePage = lazy(() => import('./pages/HomePage'));
@@ -33,10 +34,10 @@ function App() {
     return 'home';
   }, [location.pathname]);
 
-  // Minimal loading fallback - just a small spinner (background from SharedBackground)
+  // Minimal loading fallback - cooking dots loader (background from SharedBackground)
   const LoadingFallback = () => (
     <div className="min-h-screen flex items-center justify-center">
-      <div className="w-8 h-8 rounded-full border-2 border-white/10 border-t-indigo-500 animate-spin" />
+      <FoodLoader size="lg" />
     </div>
   );
 

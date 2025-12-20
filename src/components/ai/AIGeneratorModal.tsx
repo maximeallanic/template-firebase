@@ -1,6 +1,7 @@
 import React, { useState, useCallback, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Sparkles, Loader2, Check, AlertTriangle, BrainCircuit, Zap } from 'lucide-react';
+import { X, Sparkles, Check, AlertTriangle, BrainCircuit, Zap } from 'lucide-react';
+import { FoodLoader } from '../ui/FoodLoader';
 import { generateGameQuestions } from '../../services/aiClient';
 import { overwriteGameQuestions } from '../../services/gameService';
 
@@ -349,7 +350,7 @@ export const AIGeneratorModal: React.FC<AIGeneratorModalProps> = ({ isOpen, onCl
                                                 <div className="w-5 h-5 rounded-full border-2 border-slate-600" />
                                             )}
                                             {allPhasesProgress[p] === 'generating' && (
-                                                <Loader2 className="w-5 h-5 text-indigo-400 animate-spin" />
+                                                <FoodLoader size="sm" />
                                             )}
                                             {allPhasesProgress[p] === 'done' && (
                                                 <Check className="w-5 h-5 text-green-400" />
@@ -414,7 +415,7 @@ export const AIGeneratorModal: React.FC<AIGeneratorModalProps> = ({ isOpen, onCl
                             >
                                 {isLoading ? (
                                     <>
-                                        <Loader2 className="w-5 h-5 animate-spin" /> Génération...
+                                        <FoodLoader size="sm" /> Génération...
                                     </>
                                 ) : (
                                     <>
@@ -428,7 +429,7 @@ export const AIGeneratorModal: React.FC<AIGeneratorModalProps> = ({ isOpen, onCl
                                 disabled={isLoading}
                                 className="bg-emerald-500 hover:bg-emerald-400 text-white px-8 py-3 rounded-xl font-bold shadow-lg shadow-emerald-500/20 disabled:opacity-50 flex items-center gap-2 transition-all animate-bounce-short"
                             >
-                                {isLoading ? <Loader2 className="w-5 h-5 animate-spin" /> : <Check className="w-5 h-5" />}
+                                {isLoading ? <FoodLoader size="sm" /> : <Check className="w-5 h-5" />}
                                 Appliquer au jeu
                             </button>
                         ) : null}

@@ -2,7 +2,8 @@ import { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useTranslation } from 'react-i18next';
 import { type Room, type Team, submitPhase5Answer, checkPhase5AnswerCompletion } from '../../../services/gameService';
-import { Send, Check, Loader2 } from 'lucide-react';
+import { Send, Check } from 'lucide-react';
+import { FoodLoader } from '../../ui/FoodLoader';
 import { audioService } from '../../../services/audioService';
 import { organicEase, durations } from '../../../animations';
 
@@ -91,8 +92,8 @@ export function Phase5Answering({ room, currentPlayerId, currentPlayerTeam }: Ph
                         </div>
 
                         {opponentProgress < TOTAL_QUESTIONS && (
-                            <div className="mt-4 flex items-center justify-center gap-2 text-slate-500">
-                                <Loader2 className="w-5 h-5 animate-spin" />
+                            <div className="mt-4 flex items-center justify-center gap-3 text-slate-500">
+                                <FoodLoader size="sm" variant={opponentTeam === 'spicy' ? 'spicy' : 'sweet'} />
                                 <span>{t('phase5.opponentStillAnswering')}</span>
                             </div>
                         )}
@@ -194,7 +195,7 @@ export function Phase5Answering({ room, currentPlayerId, currentPlayerTeam }: Ph
                                 >
                                     {isSubmitting ? (
                                         <>
-                                            <Loader2 className="w-6 h-6 animate-spin" />
+                                            <FoodLoader size="md" />
                                             {t('common:loading')}
                                         </>
                                     ) : (

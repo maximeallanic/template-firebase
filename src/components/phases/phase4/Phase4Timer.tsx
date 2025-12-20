@@ -4,7 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { Clock } from 'lucide-react';
 import { audioService } from '../../../services/audioService';
 import { useReducedMotion } from '../../../hooks/useReducedMotion';
-import { organicEase, durations, snappySpring } from '../../../animations';
+import { organicEase, durations } from '../../../animations';
 
 interface Phase4TimerProps {
     timeRemaining: number;
@@ -12,35 +12,34 @@ interface Phase4TimerProps {
     isActive: boolean;
 }
 
-// SVG circle properties
-const CIRCLE_RADIUS = 36;
-const CIRCLE_CIRCUMFERENCE = 2 * Math.PI * CIRCLE_RADIUS;
+// Number of dots to display (groups of time)
+const TOTAL_DOTS = 10;
 
 export function Phase4Timer({ timeRemaining, totalTime, isActive }: Phase4TimerProps) {
     const { t } = useTranslation(['game-ui']);
     const prefersReducedMotion = useReducedMotion();
     const lastTickRef = useRef<number>(-1);
 
-    // Calculate progress (0 to 1)
+    // Calculate how many dots should be active
     const progress = timeRemaining / totalTime;
-    const strokeDashoffset = CIRCLE_CIRCUMFERENCE * (1 - progress);
+    const activeDots = Math.ceil(progress * TOTAL_DOTS);
 
     // Determine urgency level
     const isUrgent = timeRemaining <= 5;
     const isWarning = timeRemaining <= 10 && timeRemaining > 5;
 
-    // Get color based on time remaining
-    const getStrokeColor = () => {
-        if (isUrgent) return '#ef4444'; // red-500
-        if (isWarning) return '#eab308'; // yellow-500
-        return '#22c55e'; // green-500
+    // Get dot color based on time remaining
+    const getDotColor = () => {
+        if (isUrgent) return 'bg-red-500';
+        if (isWarning) return 'bg-yellow-400';
+        return 'bg-green-500';
     };
 
     // Get glow color for shadow
-    const getGlowColor = () => {
-        if (isUrgent) return 'rgba(239, 68, 68, 0.5)';
-        if (isWarning) return 'rgba(234, 179, 8, 0.4)';
-        return 'rgba(34, 197, 94, 0.3)';
+    const getGlowClass = () => {
+        if (isUrgent) return 'shadow-red-500/50';
+        if (isWarning) return 'shadow-yellow-400/40';
+        return 'shadow-green-500/30';
     };
 
     // Play tick sound when timer is urgent (< 5s)
@@ -58,89 +57,96 @@ export function Phase4Timer({ timeRemaining, totalTime, isActive }: Phase4TimerP
         }
     }, [isActive]);
 
+    // Create dot animation variants
+    const dotVariants = {
+        active: (i: number) => ({
+            scale: 1,
+            opacity: 1,
+            transition: {
+                duration: durations.fast,
+                ease: organicEase,
+                delay: i * 0.02
+            }
+        }),
+        inactive: {
+            scale: 0.3,
+            opacity: 0.2,
+            transition: {
+                duration: durations.normal,
+                ease: organicEase
+            }
+        },
+        pulse: (i: number) => ({
+            scale: [1, 1.3, 1],
+            transition: {
+                duration: 0.6,
+                repeat: Infinity,
+                ease: 'easeInOut' as const,
+                delay: i * 0.1
+            }
+        })
+    };
+
     return (
         <div className="flex items-center gap-3">
-            {/* Circular Timer with SVG Ring */}
-            <motion.div
-                className="relative"
-                animate={
-                    !prefersReducedMotion && isUrgent
-                        ? { scale: [1, 1.05, 1] }
-                        : { scale: 1 }
-                }
-                transition={
-                    isUrgent
-                        ? { duration: 0.5, repeat: Infinity, ease: 'easeInOut' }
-                        : { duration: durations.fast }
-                }
-            >
-                {/* Background ring (track) */}
-                <svg
-                    className="w-16 h-16 md:w-20 md:h-20 -rotate-90"
-                    viewBox="0 0 80 80"
-                    aria-hidden="true"
-                >
-                    <circle
-                        cx="40"
-                        cy="40"
-                        r={CIRCLE_RADIUS}
-                        fill="none"
-                        stroke="rgba(255, 255, 255, 0.1)"
-                        strokeWidth="6"
-                    />
-
-                    {/* Progress ring */}
-                    <motion.circle
-                        cx="40"
-                        cy="40"
-                        r={CIRCLE_RADIUS}
-                        fill="none"
-                        stroke={getStrokeColor()}
-                        strokeWidth="6"
-                        strokeLinecap="round"
-                        strokeDasharray={CIRCLE_CIRCUMFERENCE}
-                        initial={{ strokeDashoffset: 0 }}
-                        animate={{ strokeDashoffset }}
-                        transition={{ duration: 0.5, ease: organicEase }}
-                        style={{
-                            filter: `drop-shadow(0 0 8px ${getGlowColor()})`
-                        }}
-                    />
-                </svg>
-
-                {/* Center number */}
-                <div className="absolute inset-0 flex items-center justify-center">
+            {/* Timer Display */}
+            <div className="flex flex-col items-center gap-2">
+                {/* Number Display */}
+                <div className="relative">
                     <AnimatePresence mode="wait">
                         <motion.span
                             key={timeRemaining}
-                            initial={prefersReducedMotion ? { opacity: 0 } : { opacity: 0, scale: 1.3, y: -5 }}
+                            initial={prefersReducedMotion ? { opacity: 0 } : { opacity: 0, scale: 1.2, y: -3 }}
                             animate={prefersReducedMotion ? { opacity: 1 } : { opacity: 1, scale: 1, y: 0 }}
-                            exit={prefersReducedMotion ? { opacity: 0 } : { opacity: 0, scale: 0.8, y: 5 }}
-                            transition={prefersReducedMotion ? { duration: 0.1 } : snappySpring}
+                            exit={prefersReducedMotion ? { opacity: 0 } : { opacity: 0, scale: 0.8, y: 3 }}
+                            transition={{ duration: 0.15, ease: organicEase }}
                             className={`
-                                text-2xl md:text-3xl font-black tabular-nums
+                                text-3xl md:text-4xl font-black tabular-nums
                                 ${isUrgent ? 'text-red-400' : isWarning ? 'text-yellow-400' : 'text-white'}
                             `}
                         >
                             {timeRemaining}
                         </motion.span>
                     </AnimatePresence>
+
+                    {/* Pulse ring when urgent */}
+                    {isUrgent && !prefersReducedMotion && (
+                        <motion.div
+                            className="absolute -inset-2 rounded-full border-2 border-red-500/30"
+                            initial={{ scale: 1, opacity: 0.5 }}
+                            animate={{ scale: 1.5, opacity: 0 }}
+                            transition={{
+                                duration: 0.8,
+                                repeat: Infinity,
+                                ease: 'easeOut'
+                            }}
+                        />
+                    )}
                 </div>
 
-                {/* Pulse ring (urgent only) */}
-                {isUrgent && !prefersReducedMotion && (
-                    <motion.div
-                        className="absolute inset-0 rounded-full border-2 border-red-500/50"
-                        initial={{ scale: 1, opacity: 0.5 }}
-                        animate={{ scale: 1.4, opacity: 0 }}
-                        transition={{
-                            duration: 1,
-                            repeat: Infinity,
-                            ease: 'easeOut'
-                        }}
-                    />
-                )}
-            </motion.div>
+                {/* Progressive Dots Bar */}
+                <div className="flex gap-1" role="progressbar" aria-valuenow={timeRemaining} aria-valuemin={0} aria-valuemax={totalTime}>
+                    {Array.from({ length: TOTAL_DOTS }).map((_, i) => {
+                        const isActiveDot = i < activeDots;
+                        const shouldPulse = isUrgent && isActiveDot && !prefersReducedMotion;
+
+                        return (
+                            <motion.div
+                                key={i}
+                                custom={i}
+                                variants={dotVariants}
+                                initial="inactive"
+                                animate={shouldPulse ? 'pulse' : isActiveDot ? 'active' : 'inactive'}
+                                className={`
+                                    w-2 h-2 md:w-2.5 md:h-2.5 rounded-full
+                                    ${isActiveDot ? getDotColor() : 'bg-slate-700'}
+                                    ${isActiveDot ? `shadow-lg ${getGlowClass()}` : ''}
+                                `}
+                            />
+                        );
+                    })}
+                </div>
+            </div>
 
             {/* Label */}
             <div className="flex flex-col">

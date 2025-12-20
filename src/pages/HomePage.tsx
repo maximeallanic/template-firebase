@@ -7,6 +7,7 @@ import { EmailActionHandler } from '../components/auth/EmailActionHandler';
 import { Logo } from '../components/ui/Logo';
 import { AvatarIcon } from '../components/AvatarIcon';
 import { PhaseIcon } from '../components/game/PhaseIcon';
+import { FoodLoader } from '../components/ui/FoodLoader';
 import { createRoom, joinRoom, AVATAR_LIST } from '../services/gameService';
 import { safeStorage } from '../utils/storage';
 import { saveProfile } from '../services/profileService';
@@ -233,11 +234,9 @@ export default function HomePage() {
             exit={{ opacity: 0 }}
             className="fixed inset-0 z-[100] bg-slate-900/90 backdrop-blur-sm flex flex-col items-center justify-center"
           >
-            <motion.div
-              animate={{ rotate: 360 }}
-              transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
-              className="w-16 h-16 border-4 rounded-full mb-4 border-pink-500/30 border-t-pink-500"
-            />
+            <div className="mb-4">
+              <FoodLoader size="xl" variant="sweet" />
+            </div>
             <p className="text-white font-bold text-lg">
               {t('loading.joining')}
             </p>

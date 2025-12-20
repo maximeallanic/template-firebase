@@ -12,6 +12,7 @@ import {
     skipToPhase,
     resetAllScores
 } from '../../services/debugService';
+import { FoodLoader } from '../ui/FoodLoader';
 import { PHASE_NAMES, type Room, type PhaseStatus } from '../../services/gameService';
 import { useMockPlayerOptional } from '../../hooks/useMockPlayer';
 import { formatAnswerForDisplay } from '../../services/mockAnswerService';
@@ -197,7 +198,7 @@ export function DebugPanel({ room }: DebugPanelProps) {
                                             >
                                                 {mockPlayer.isValidating ? (
                                                     <>
-                                                        <div className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                                                        <FoodLoader size="sm" />
                                                         <span>Envoi...</span>
                                                     </>
                                                 ) : (
@@ -255,7 +256,7 @@ export function DebugPanel({ room }: DebugPanelProps) {
             {/* Loading indicator */}
             {isLoading && (
                 <div className="absolute inset-0 bg-gray-900/50 rounded-lg flex items-center justify-center">
-                    <div className="w-4 h-4 border-2 border-yellow-400 border-t-transparent rounded-full animate-spin" />
+                    <FoodLoader size="sm" />
                 </div>
             )}
         </motion.div>

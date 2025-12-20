@@ -1,7 +1,8 @@
 import { useEffect, useState, useCallback, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ChevronRight, Check, Loader2 } from 'lucide-react';
+import { ChevronRight, Check } from 'lucide-react';
+import { FoodLoader } from '../ui/FoodLoader';
 import type { Room, Phase4Question as Phase4QuestionType } from '../../services/gameService';
 import { submitPhase4Answer, handlePhase4Timeout, nextPhase4Question, showPhaseResults } from '../../services/gameService';
 import { markQuestionAsSeen } from '../../services/historyService';
@@ -210,9 +211,9 @@ export function Phase4Player({ room, playerId, isHost, mode = 'multiplayer', sol
                         initial={{ opacity: 0 }}
                         animate={{ opacity: 0.7 }}
                         transition={{ delay: 0.3 }}
-                        className="text-xl flex items-center gap-2"
+                        className="text-xl flex items-center gap-3"
                     >
-                        <Loader2 className="w-5 h-5 animate-spin" aria-hidden="true" />
+                        <FoodLoader size="sm" />
                         {t('player.waitingForHost')}
                     </motion.p>
                 )}

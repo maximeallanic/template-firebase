@@ -32,6 +32,8 @@ export interface StoredQuestion {
     anecdote?: string;
     question?: string; // For phase3, phase4, phase5
     answer?: string;   // For phase3, phase4, phase5
+    optionA?: string;  // For phase2 (e.g., "Sucré")
+    optionB?: string;  // For phase2 (e.g., "Salé")
     createdAt: Date;
     usageCount: number;
 }
@@ -99,6 +101,8 @@ export async function getAvailableQuestions(
                 anecdote: data.anecdote,
                 question: data.question,
                 answer: data.answer,
+                optionA: data.optionA,  // For phase2
+                optionB: data.optionB,  // For phase2
                 createdAt: data.createdAt instanceof Timestamp
                     ? data.createdAt.toDate()
                     : new Date(data.createdAt),
@@ -173,8 +177,28 @@ export async function getRandomQuestionSet(
             correctIndex: q.correctIndex || 0,
             anecdote: q.anecdote,
         })) as Question[];
+    } else if (phase === 'phase2') {
+        // Phase2: Reconstruct SimplePhase2Set from individual items
+        // All items share the same optionA/optionB from the same generation
+        const firstQ = questions[0];
+        gameQuestions = {
+            optionA: firstQ.optionA || 'A',
+            optionB: firstQ.optionB || 'B',
+            items: questions.map(q => ({
+                text: q.text || '',
+                answer: q.answer || 'A',
+            })),
+        } as unknown as Question[];
+    } else if (phase === 'phase4') {
+        // Phase4: MCQ format with question, options, correctIndex
+        gameQuestions = questions.map(q => ({
+            question: q.question || q.text || '',
+            options: q.options || [],
+            correctIndex: q.correctIndex ?? 0,
+            anecdote: q.anecdote,
+        }));
     } else {
-        // For other phases, return raw data
+        // For other phases (phase3, phase5), return raw data
         gameQuestions = questions.map(q => ({
             question: q.question || q.text,
             answer: q.answer,

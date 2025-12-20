@@ -3,7 +3,8 @@ import { motion } from 'framer-motion';
 import { useTranslation } from 'react-i18next';
 import { type Room, type Phase5Question, setPhase5State, setPhase5Results } from '../../../services/gameService';
 import { validatePhase5Answers } from '../../../services/aiClient';
-import { Loader2, Brain, Sparkles } from 'lucide-react';
+import { Brain, Sparkles } from 'lucide-react';
+import { FoodLoader } from '../../ui/FoodLoader';
 import { audioService } from '../../../services/audioService';
 import { organicEase, durations } from '../../../animations';
 
@@ -159,7 +160,7 @@ export function Phase5Validating({ room, isHost }: Phase5ValidatingProps) {
                         />
                     </div>
                     <div className="mt-2 flex items-center justify-center gap-2 text-sm text-slate-500">
-                        <Loader2 className="w-4 h-4 animate-spin" />
+                        <FoodLoader size="sm" />
                         <span>{validationProgress}%</span>
                     </div>
                 </div>

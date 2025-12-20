@@ -56,6 +56,28 @@ export const loadingDurations = {
     spin: 1,          // Spinner rotation
     pulse: 1.5,       // Dot pulsation
     curtain: 1.8,     // Curtain slide (slightly longer for natural feel)
+    cookingDots: 1.2, // Cooking dots loader cycle
+};
+
+/**
+ * Cooking Dots Loader Variants
+ * For the unified FoodLoader component - 3 dots pulsing sequentially
+ */
+export const cookingDotsVariants = {
+    dot: (delay: number) => ({
+        opacity: [0.3, 1, 0.3],
+        scale: [0.85, 1, 0.85],
+        transition: {
+            duration: loadingDurations.cookingDots,
+            repeat: Infinity,
+            delay,
+            ease: organicEase,
+        },
+    }),
+    static: {
+        opacity: 0.7,
+        scale: 1,
+    },
 };
 
 // Curtain spring configuration - simulates heavy velvet fabric

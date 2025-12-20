@@ -1,7 +1,8 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useTranslation } from 'react-i18next';
-import { Send, Check, X, Loader2, Flame, Candy, Trophy, Users } from 'lucide-react';
+import { Send, Check, X, Flame, Candy, Trophy, Users } from 'lucide-react';
+import { FoodLoader } from '../ui/FoodLoader';
 import type { Team, Phase3Theme, Phase3TeamProgress, Player } from '../../types/gameTypes';
 import type { SoloPhaseHandlers } from '../../types/soloTypes';
 import { submitPhase3Answer } from '../../services/gameService';
@@ -264,7 +265,7 @@ export const Phase3QuestionInput: React.FC<Phase3QuestionInputProps> = ({
                             }`}
                         >
                             {isSubmitting ? (
-                                <Loader2 className={`w-6 h-6 ${prefersReducedMotion ? '' : 'animate-spin'}`} />
+                                <FoodLoader size="sm" variant={playerTeam === 'spicy' ? 'spicy' : 'sweet'} />
                             ) : feedback === 'correct' ? (
                                 <Check className="w-6 h-6 text-green-600" />
                             ) : (

@@ -3,6 +3,7 @@ import type { ReactNode } from 'react';
 import { auth, onAuthChange, resendVerificationEmail } from '../../services/firebase';
 import type { User } from '../../services/firebase';
 import { Mail, RefreshCw } from 'lucide-react';
+import { FoodLoader } from '../ui/FoodLoader';
 
 // Lazy load LoginPage to avoid circular import and improve code splitting
 const LoginPage = lazy(() => import('../../pages/LoginPage').then(m => ({ default: m.LoginPage })));
@@ -49,7 +50,9 @@ export function AuthRequired({ children, requireEmailVerified = true }: AuthRequ
         return (
             <div className="min-h-screen bg-slate-900 flex items-center justify-center text-white">
                 <div className="text-center">
-                    <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-yellow-500 mx-auto mb-4"></div>
+                    <div className="mb-4 flex justify-center">
+                        <FoodLoader size="xl" />
+                    </div>
                     <p className="text-gray-400 font-medium tracking-widest uppercase">Loading...</p>
                 </div>
             </div>
@@ -60,7 +63,7 @@ export function AuthRequired({ children, requireEmailVerified = true }: AuthRequ
         return (
             <Suspense fallback={
                 <div className="min-h-screen bg-slate-900 flex items-center justify-center text-white">
-                    <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-yellow-500" />
+                    <FoodLoader size="xl" />
                 </div>
             }>
                 <LoginPage disableAutoRedirect />

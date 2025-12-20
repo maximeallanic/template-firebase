@@ -6,7 +6,8 @@ import type { Room } from '../../services/gameService';
 import type { Phase3Theme, Team } from '../../types/gameTypes';
 import type { SoloPhaseHandlers } from '../../types/soloTypes';
 import { PHASE3_DATA } from '../../services/data/phase3';
-import { Zap, Loader2, ChevronRight } from 'lucide-react';
+import { Zap, ChevronRight } from 'lucide-react';
+import { FoodLoader } from '../ui/FoodLoader';
 import { markQuestionAsSeen } from '../../services/historyService';
 import { Phase3ThemeSelection } from './Phase3ThemeSelection';
 import { Phase3QuestionInput } from './Phase3QuestionInput';
@@ -86,7 +87,9 @@ export const Phase3Player: React.FC<Phase3PlayerProps> = ({ room, playerId, isHo
     if (!phase3State || !phase3SelectionOrder) {
         return (
             <div className="flex flex-col items-center justify-center h-[60vh] text-white">
-                <Loader2 className="w-12 h-12 animate-spin text-yellow-400 mb-4" />
+                <div className="mb-4">
+                    <FoodLoader size="lg" />
+                </div>
                 <p className="text-white/60">{t('common:loading')}</p>
             </div>
         );

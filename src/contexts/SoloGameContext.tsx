@@ -5,6 +5,7 @@
 /* eslint-disable react-refresh/only-export-components */
 
 import { createContext, useContext, useReducer, useCallback, type ReactNode } from 'react';
+import { ref, child, get } from 'firebase/database';
 import type { Avatar, Question, SimplePhase2Set, Phase4Question } from '../types/gameTypes';
 import {
     type SoloGameState,
@@ -16,6 +17,8 @@ import {
     SOLO_SCORING,
 } from '../types/soloTypes';
 import { generateWithRetry } from '../services/aiClient';
+import { rtdb } from '../services/firebase';
+import { getRandomQuestionSet } from '../services/questionStorageService';
 
 // === ACTION TYPES ===
 
@@ -368,45 +371,84 @@ export function SoloGameProvider({
         dispatch({ type: 'SET_PLAYER_INFO', playerId, playerName, playerAvatar });
     }, []);
 
-    // Start game with AI question generation
+    // Start game with Firestore-first question loading (like multiplayer mode)
     const startGame = useCallback(async () => {
         dispatch({ type: 'START_GENERATION' });
 
         try {
-            // Generate questions sequentially to avoid overwhelming the API
-            // Phase 1
+            // Build seenIds from player history (like multiplayer mode)
+            const seenIds = new Set<string>();
+            try {
+                const historySnap = await get(child(ref(rtdb), `userHistory/${state.playerId}`));
+                if (historySnap.exists()) {
+                    Object.keys(historySnap.val()).forEach(id => seenIds.add(id));
+                    console.log('[SOLO] Loaded player history:', seenIds.size, 'seen questions');
+                }
+            } catch (e) {
+                console.warn('[SOLO] Failed to get player history:', e);
+            }
+
+            // Phase 1 - Try Firestore first, then AI
             dispatch({ type: 'SET_GENERATION_PROGRESS', phase: 'phase1', status: 'generating' });
-            const phase1Result = await generateWithRetry({ phase: 'phase1', soloMode: true });
+            let phase1Questions: Question[];
+            const storedPhase1 = await getRandomQuestionSet('phase1', seenIds);
+            if (storedPhase1) {
+                console.log('[SOLO] ✅ Using Firestore questions for phase1:', storedPhase1.questions.length);
+                phase1Questions = storedPhase1.questions as Question[];
+            } else {
+                console.log('[SOLO] 🤖 Generating AI questions for phase1...');
+                const result = await generateWithRetry({ phase: 'phase1', soloMode: true });
+                phase1Questions = result.data as Question[];
+            }
             dispatch({ type: 'SET_GENERATION_PROGRESS', phase: 'phase1', status: 'done' });
-            dispatch({ type: 'SET_QUESTIONS', phase: 'phase1', questions: phase1Result.data as Question[] });
+            dispatch({ type: 'SET_QUESTIONS', phase: 'phase1', questions: phase1Questions });
 
-            // Phase 2
+            // Phase 2 - Try Firestore first, then AI
             dispatch({ type: 'SET_GENERATION_PROGRESS', phase: 'phase2', status: 'generating' });
-            const phase2Result = await generateWithRetry({ phase: 'phase2', soloMode: true });
+            let phase2Questions: SimplePhase2Set;
+            const storedPhase2 = await getRandomQuestionSet('phase2', seenIds);
+            if (storedPhase2) {
+                console.log('[SOLO] ✅ Using Firestore questions for phase2');
+                // getRandomQuestionSet returns SimplePhase2Set structure for phase2
+                phase2Questions = storedPhase2.questions as unknown as SimplePhase2Set;
+            } else {
+                console.log('[SOLO] 🤖 Generating AI questions for phase2...');
+                const result = await generateWithRetry({ phase: 'phase2', soloMode: true });
+                phase2Questions = result.data as unknown as SimplePhase2Set;
+            }
             dispatch({ type: 'SET_GENERATION_PROGRESS', phase: 'phase2', status: 'done' });
-            dispatch({ type: 'SET_QUESTIONS', phase: 'phase2', questions: phase2Result.data as unknown as SimplePhase2Set });
+            dispatch({ type: 'SET_QUESTIONS', phase: 'phase2', questions: phase2Questions });
 
-            // Phase 4
+            // Phase 4 - Try Firestore first, then AI
             dispatch({ type: 'SET_GENERATION_PROGRESS', phase: 'phase4', status: 'generating' });
-            const phase4Result = await generateWithRetry({ phase: 'phase4', soloMode: true });
+            let phase4Questions: Phase4Question[];
+            const storedPhase4 = await getRandomQuestionSet('phase4', seenIds);
+            if (storedPhase4) {
+                console.log('[SOLO] ✅ Using Firestore questions for phase4');
+                phase4Questions = storedPhase4.questions as Phase4Question[];
+            } else {
+                console.log('[SOLO] 🤖 Generating AI questions for phase4...');
+                const result = await generateWithRetry({ phase: 'phase4', soloMode: true });
+                phase4Questions = result.data as Phase4Question[];
+            }
             dispatch({ type: 'SET_GENERATION_PROGRESS', phase: 'phase4', status: 'done' });
-            dispatch({ type: 'SET_QUESTIONS', phase: 'phase4', questions: phase4Result.data as Phase4Question[] });
+            dispatch({ type: 'SET_QUESTIONS', phase: 'phase4', questions: phase4Questions });
 
-            console.log('[SOLO] Questions generated successfully', {
-                phase1: Array.isArray(phase1Result.data) ? phase1Result.data.length : 0,
-                phase2: (phase2Result.data as unknown as SimplePhase2Set)?.items?.length ?? 0,
-                phase4: Array.isArray(phase4Result.data) ? phase4Result.data.length : 0,
+            console.log('[SOLO] Questions loaded successfully', {
+                phase1: phase1Questions.length,
+                phase2: phase2Questions?.items?.length ?? 0,
+                phase4: phase4Questions.length,
             });
 
             dispatch({ type: 'GENERATION_COMPLETE' });
         } catch (error) {
-            console.error('[SOLO] Question generation failed:', error);
+            console.error('[SOLO] Question loading failed:', error);
             dispatch({
                 type: 'GENERATION_ERROR',
-                error: 'Impossible de générer les questions. Veuillez réessayer.',
+                error: 'Impossible de charger les questions. Veuillez réessayer.',
             });
         }
-    }, []);
+    }, [state.playerId]);
 
     // Reset game
     const resetGame = useCallback(() => {

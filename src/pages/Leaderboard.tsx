@@ -6,7 +6,8 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Trophy, ArrowLeft, Loader2, Medal, Clock, Target, Zap } from 'lucide-react';
+import { Trophy, ArrowLeft, Medal, Clock, Target, Zap } from 'lucide-react';
+import { FoodLoader } from '../components/ui/FoodLoader';
 import { getTopScores, getMyBestScore, type LeaderboardEntry } from '../services/leaderboardService';
 import { AvatarIcon } from '../components/AvatarIcon';
 import { useAuthUser } from '../hooks/useAuthUser';
@@ -137,7 +138,9 @@ export default function Leaderboard() {
             {/* Loading State */}
             {loading && (
                 <div className="flex flex-col items-center justify-center py-20">
-                    <Loader2 className="w-12 h-12 text-orange-500 animate-spin mb-4" />
+                    <div className="mb-4">
+                        <FoodLoader size="lg" />
+                    </div>
                     <p className="text-gray-400">Chargement du classement...</p>
                 </div>
             )}

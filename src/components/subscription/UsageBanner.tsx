@@ -1,5 +1,6 @@
 import React from 'react';
 import { useTranslation } from 'react-i18next';
+import { FoodLoader } from '../ui/FoodLoader';
 
 interface UsageBannerProps {
   analysesUsed: number;
@@ -70,7 +71,7 @@ export const UsageBanner: React.FC<UsageBannerProps> = ({
           >
             {isUpgrading ? (
               <>
-                <div className="spinner h-4 w-4"></div>
+                <FoodLoader size="sm" />
                 {t('usage.loading')}
               </>
             ) : (

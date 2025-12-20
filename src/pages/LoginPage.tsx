@@ -5,7 +5,8 @@ import { signIn, signUp, signInWithGoogle, sendPasswordReset, auth } from '../se
 import { joinRoom, type Avatar, AVATAR_LIST } from '../services/gameService';
 import { safeStorage } from '../utils/storage';
 import { Logo } from '../components/ui/Logo';
-import { ChefHat, Mail, Lock, ArrowRight, Loader2 } from 'lucide-react';
+import { ChefHat, Mail, Lock, ArrowRight } from 'lucide-react';
+import { FoodLoader } from '../components/ui/FoodLoader';
 
 type AuthMode = 'login' | 'register' | 'reset';
 
@@ -214,7 +215,7 @@ export function LoginPage({ disableAutoRedirect = false }: LoginPageProps) {
                             className="w-full bg-gradient-to-r from-red-600 to-pink-600 py-4 rounded-xl font-bold text-xl shadow-lg hover:shadow-red-500/20 hover:scale-[1.02] active:scale-95 transition-all disabled:opacity-50 flex items-center justify-center gap-3 text-white"
                         >
                             {isLoading ? (
-                                <Loader2 className="w-6 h-6 animate-spin" />
+                                <FoodLoader size="sm" />
                             ) : (
                                 <>
                                     {mode === 'login' && 'Se connecter'}

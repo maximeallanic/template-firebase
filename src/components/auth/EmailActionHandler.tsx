@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { verifyEmailCode, verifyPasswordResetCodeAndGetEmail, resetPassword } from '../../services/firebase';
 import { Logo } from '../ui/Logo';
+import { FoodLoader } from '../ui/FoodLoader';
 
 type ActionMode = 'verifyEmail' | 'resetPassword' | null;
 type VerificationStatus = 'loading' | 'success' | 'error';
@@ -140,7 +141,7 @@ export const EmailActionHandler: React.FC = () => {
               {status === 'loading' && (
             <div className="text-center">
               <div className="flex justify-center mb-6">
-                <div className="w-16 h-16 border-4 border-blue-200 border-t-blue-600 rounded-full animate-spin"></div>
+                <FoodLoader size="xl" />
               </div>
               <h2 className="text-2xl font-bold text-gray-900 mb-3">
                 Verifying Your Email
@@ -211,7 +212,7 @@ export const EmailActionHandler: React.FC = () => {
               {resetStatus === 'verifying' && (
                 <div className="text-center">
                   <div className="flex justify-center mb-6">
-                    <div className="w-16 h-16 border-4 border-blue-200 border-t-blue-600 rounded-full animate-spin"></div>
+                    <FoodLoader size="xl" />
                   </div>
                   <h2 className="text-2xl font-bold text-gray-900 mb-3">
                     Verifying Reset Link
@@ -281,7 +282,7 @@ export const EmailActionHandler: React.FC = () => {
               {resetStatus === 'resetting' && (
                 <div className="text-center">
                   <div className="flex justify-center mb-6">
-                    <div className="w-16 h-16 border-4 border-blue-200 border-t-blue-600 rounded-full animate-spin"></div>
+                    <FoodLoader size="xl" />
                   </div>
                   <h2 className="text-2xl font-bold text-gray-900 mb-3">
                     Resetting Password

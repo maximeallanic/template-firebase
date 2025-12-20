@@ -1,6 +1,7 @@
 import { motion } from 'framer-motion';
 import { useTranslation } from 'react-i18next';
-import { Trophy, Flame, Candy, Clock, Eye, PartyPopper, Loader2 } from 'lucide-react';
+import { Trophy, Flame, Candy, Clock, Eye, PartyPopper } from 'lucide-react';
+import { FoodLoader } from '../ui/FoodLoader';
 import type { Team, Phase3TeamProgress, Phase3Theme, Player } from '../../types/gameTypes';
 
 interface Phase3SpectatorProps {
@@ -153,7 +154,7 @@ export const Phase3Spectator: React.FC<Phase3SpectatorProps> = ({
                                     </span>
                                 ) : (
                                     <span className="flex items-center gap-1">
-                                        <Loader2 className="w-4 h-4 animate-spin" />
+                                        <FoodLoader size="sm" variant={otherTeam === 'spicy' ? 'spicy' : 'sweet'} />
                                         {t('phase3.inProgress')}
                                     </span>
                                 )}

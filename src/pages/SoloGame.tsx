@@ -3,10 +3,11 @@
  * Main container for solo mode - wraps PhaseX components with solo context
  */
 
-import { useEffect, useMemo } from 'react';
+import { useEffect, useMemo, useRef } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Loader2, AlertCircle, RotateCcw, Trophy } from 'lucide-react';
+import { AlertCircle, RotateCcw, Trophy } from 'lucide-react';
+import { FoodLoader } from '../components/ui/FoodLoader';
 import type { Room, Avatar } from '../types/gameTypes';
 import { SoloGameProvider, useSoloGame, createSoloHandlers } from '../contexts/SoloGameContext';
 import { mapSoloStateToGameState, SOLO_PHASE_NAMES, SOLO_MAX_SCORE } from '../types/soloTypes';
@@ -23,6 +24,9 @@ function SoloGameInner() {
     const context = useSoloGame();
     const { state, startGame, resetGame } = context;
     const soloHandlers = useMemo(() => createSoloHandlers(context), [context]);
+
+    // Ref to prevent double-calling startGame (React Strict Mode calls effects twice)
+    const hasStartedRef = useRef(false);
 
     // Create a virtual Room object for PhaseX components
     const soloRoom: Room = useMemo(() => ({
@@ -45,9 +49,11 @@ function SoloGameInner() {
         customQuestions: state.customQuestions,
     }), [state]);
 
-    // Auto-start game on mount
+    // Auto-start game on mount (ref prevents double-call from React Strict Mode)
+    // Note: "Replay" button calls startGame() directly, so no need to handle that case here
     useEffect(() => {
-        if (state.status === 'setup' && !state.isGenerating) {
+        if (state.status === 'setup' && !state.isGenerating && !hasStartedRef.current) {
+            hasStartedRef.current = true;
             startGame();
         }
     }, [state.status, state.isGenerating, startGame]);
@@ -79,7 +85,9 @@ function SoloGameInner() {
                         </>
                     ) : (
                         <>
-                            <Loader2 className="w-16 h-16 text-orange-500 mx-auto mb-4 animate-spin" />
+                            <div className="flex justify-center mb-4">
+                                <FoodLoader size="xl" />
+                            </div>
                             <h2 className="text-2xl font-bold mb-2">Préparation du quiz...</h2>
                             <p className="text-gray-400 mb-6">Génération des questions par IA</p>
 

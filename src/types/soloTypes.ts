@@ -291,9 +291,23 @@ export function mapSoloStateToGameState(state: SoloGameState): import('./gameTyp
 
     // Phase 4 state mapping
     if (state.status === 'phase4' && state.phase4State) {
-        baseState.currentPhase4QuestionIndex = state.phase4State.currentQuestionIndex;
-        baseState.phase4State = 'questioning';
+        const currentIndex = state.phase4State.currentQuestionIndex;
+        const hasAnsweredCurrent = state.phase4State.answers.length > currentIndex;
+
+        baseState.currentPhase4QuestionIndex = currentIndex;
+        baseState.phase4State = hasAnsweredCurrent ? 'result' : 'questioning';
         baseState.phase4QuestionStartTime = state.phase4State.questionStartTime;
+
+        // Populate phase4Answers so Phase4Player can detect hasAnswered
+        if (hasAnsweredCurrent) {
+            const answerValue = state.phase4State.answers[currentIndex];
+            baseState.phase4Answers = {
+                [state.playerId]: {
+                    answer: answerValue ?? -1,  // -1 for timeout (null)
+                    timestamp: Date.now()
+                }
+            };
+        }
     }
 
     return baseState;

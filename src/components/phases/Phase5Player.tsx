@@ -1,6 +1,6 @@
 import { useMemo } from 'react';
 import { type Room, type Team, type Phase5State } from '../../services/gameService';
-import { Loader2 } from 'lucide-react';
+import { FoodLoader } from '../ui/FoodLoader';
 
 // Sub-components for each Phase 5 state
 import {
@@ -48,7 +48,7 @@ export function Phase5Player({ room, isHost, currentPlayerId }: Phase5PlayerProp
     if (!currentPlayer || !currentPlayerTeam) {
         return (
             <div className="flex items-center justify-center min-h-full p-6 text-white">
-                <Loader2 className="w-12 h-12 animate-spin text-slate-500" />
+                <FoodLoader size="lg" />
             </div>
         );
     }
