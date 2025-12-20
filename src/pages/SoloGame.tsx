@@ -11,7 +11,7 @@ import type { Room, Avatar } from '../types/gameTypes';
 import { SoloGameProvider, useSoloGame, createSoloHandlers } from '../contexts/SoloGameContext';
 import { mapSoloStateToGameState, SOLO_PHASE_NAMES, SOLO_MAX_SCORE } from '../types/soloTypes';
 import { Phase1Player } from '../components/phases/Phase1Player';
-import { Phase3Player } from '../components/phases/Phase3Player';
+import { Phase2Player } from '../components/phases/Phase2Player';
 import { Phase4Player } from '../components/phases/Phase4Player';
 import { SoloGameHeader } from '../components/solo/SoloGameHeader';
 import { useReducedMotion } from '../hooks/useReducedMotion';
@@ -55,7 +55,7 @@ function SoloGameInner() {
     // --- SETUP/GENERATING VIEW ---
     if (state.status === 'setup' || state.status === 'generating') {
         const progress = state.generationProgress;
-        const phases = ['phase1', 'phase3', 'phase4'] as const;
+        const phases = ['phase1', 'phase2', 'phase4'] as const;
 
         return (
             <div className="min-h-screen flex flex-col items-center justify-center p-4 text-white">
@@ -243,15 +243,15 @@ function SoloGameInner() {
                         </motion.div>
                     )}
 
-                    {state.status === 'phase3' && (
+                    {state.status === 'phase2' && (
                         <motion.div
-                            key="phase3"
+                            key="phase2"
                             initial={{ opacity: 0, x: 100 }}
                             animate={{ opacity: 1, x: 0 }}
                             exit={{ opacity: 0, x: -100 }}
                             className="w-full"
                         >
-                            <Phase3Player
+                            <Phase2Player
                                 room={soloRoom}
                                 playerId={state.playerId}
                                 isHost={true}

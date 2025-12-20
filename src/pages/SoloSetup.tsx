@@ -1,13 +1,11 @@
 /**
  * Solo Setup Page
- * Entry point for solo mode - player configures their name/avatar before starting
+ * Entry point for solo mode - player sees their profile and starts the game
  */
 
-import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useTranslation } from 'react-i18next';
 import { AVATAR_LIST, type Avatar } from '../types/gameTypes';
-import { Play, Trophy, Zap } from 'lucide-react';
+import { Play, Trophy, Zap, AlertCircle } from 'lucide-react';
 import { AvatarIcon } from '../components/AvatarIcon';
 import { UserBar } from '../components/auth/UserBar';
 import { Logo } from '../components/ui/Logo';
@@ -15,31 +13,24 @@ import { useAuthUser } from '../hooks/useAuthUser';
 import { SOLO_MAX_SCORE, SOLO_PHASE_NAMES } from '../types/soloTypes';
 
 export default function SoloSetup() {
-    const { t } = useTranslation(['lobby', 'common', 'game-ui']);
     const navigate = useNavigate();
     const { profile, loading: profileLoading, user } = useAuthUser();
-    const [playerName, setPlayerName] = useState('');
-    const [playerAvatar, setPlayerAvatar] = useState<Avatar>('chili');
 
-    // Pre-fill with profile data if available
-    useEffect(() => {
-        if (profileLoading) return;
-        if (profile?.profileName) {
-            setPlayerName(profile.profileName);
-        }
-        if (profile?.profileAvatar && (AVATAR_LIST as string[]).includes(profile.profileAvatar)) {
-            setPlayerAvatar(profile.profileAvatar);
-        }
-    }, [profile, profileLoading]);
+    // Check if profile is complete
+    const profileComplete = !!(
+        profile?.profileName &&
+        profile?.profileAvatar &&
+        (AVATAR_LIST as string[]).includes(profile.profileAvatar)
+    );
 
     const handleStartGame = () => {
-        if (!playerName.trim()) return;
-        // Navigate to solo game with player info as state
+        if (!profileComplete) return;
+        // Navigate to solo game with player info from profile
         navigate('/solo/game', {
             state: {
                 playerId: user?.uid || `solo_${Date.now()}`,
-                playerName: playerName.trim(),
-                playerAvatar,
+                playerName: profile!.profileName,
+                playerAvatar: profile!.profileAvatar as Avatar,
             },
         });
     };
@@ -86,49 +77,36 @@ export default function SoloSetup() {
                     ))}
                 </div>
 
-                <form onSubmit={(e) => { e.preventDefault(); handleStartGame(); }} className="space-y-6">
-                    <div>
-                        <label className="block text-gray-300 font-bold mb-2 ml-1 text-sm">
-                            {t('create.chefName')}
-                        </label>
-                        <input
-                            type="text"
-                            value={playerName}
-                            onChange={(e) => setPlayerName(e.target.value)}
-                            className="w-full bg-slate-950/50 border-2 border-slate-700/50 rounded-xl p-4 text-xl font-bold text-white focus:outline-none focus:border-orange-500 focus:ring-1 focus:ring-orange-500 transition-all placeholder:text-gray-600"
-                            placeholder={t('create.chefNamePlaceholder')}
-                            maxLength={12}
-                        />
-                    </div>
-
-                    <div>
-                        <label className="block text-gray-300 font-bold mb-2 ml-1 text-sm">
-                            {t('create.chooseAvatar')}
-                        </label>
-                        <div className="grid grid-cols-5 gap-2">
-                            {AVATAR_LIST.map(av => (
-                                <button
-                                    key={av}
-                                    type="button"
-                                    onClick={() => setPlayerAvatar(av)}
-                                    className={`
-                                        aspect-square rounded-xl p-1 flex items-center justify-center transition-all duration-300
-                                        ${playerAvatar === av
-                                            ? 'bg-gradient-to-br from-orange-500 to-red-500 scale-110 shadow-lg shadow-orange-500/30'
-                                            : 'bg-slate-800 hover:bg-slate-700'
-                                        }
-                                    `}
-                                >
-                                    <AvatarIcon avatar={av} size={36} />
-                                </button>
-                            ))}
+                <div className="space-y-6">
+                    {/* Profile incomplete warning */}
+                    {!profileLoading && !profileComplete && (
+                        <div className="bg-amber-500/20 border border-amber-500/50 rounded-xl p-4">
+                            <div className="flex items-center gap-3">
+                                <AlertCircle className="w-5 h-5 text-amber-400 flex-shrink-0" />
+                                <p className="text-amber-200 text-sm">
+                                    Configure ton profil pour jouer en solo ! Clique sur ton avatar en haut à droite.
+                                </p>
+                            </div>
                         </div>
-                    </div>
+                    )}
+
+                    {/* Profile preview */}
+                    {profileComplete && (
+                        <div className="bg-slate-800/50 rounded-xl p-4 flex items-center gap-4">
+                            <div className="bg-gradient-to-br from-orange-500 to-red-500 rounded-xl p-2">
+                                <AvatarIcon avatar={profile!.profileAvatar as Avatar} size={48} />
+                            </div>
+                            <div>
+                                <p className="text-white font-bold text-lg">{profile!.profileName}</p>
+                                <p className="text-gray-400 text-sm">Prêt à jouer</p>
+                            </div>
+                        </div>
+                    )}
 
                     <button
-                        type="submit"
-                        disabled={!playerName.trim()}
-                        className="w-full bg-gradient-to-r from-orange-600 to-red-600 hover:from-orange-500 hover:to-red-500 text-white font-bold py-4 rounded-xl shadow-lg shadow-orange-900/50 transform hover:scale-[1.02] active:scale-[0.98] transition-all text-xl disabled:opacity-50 disabled:cursor-not-allowed mt-4 flex items-center justify-center gap-2"
+                        onClick={handleStartGame}
+                        disabled={!profileComplete || profileLoading}
+                        className="w-full bg-gradient-to-r from-orange-600 to-red-600 hover:from-orange-500 hover:to-red-500 text-white font-bold py-4 rounded-xl shadow-lg shadow-orange-900/50 transform hover:scale-[1.02] active:scale-[0.98] transition-all text-xl disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                     >
                         <Play className="w-6 h-6 fill-current" />
                         Lancer la partie
@@ -142,7 +120,7 @@ export default function SoloSetup() {
                         <Trophy className="w-5 h-5" />
                         Voir le classement
                     </button>
-                </form>
+                </div>
             </div>
         </div>
     );

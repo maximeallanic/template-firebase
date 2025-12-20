@@ -6,7 +6,7 @@
  * 3. LLM validation for fuzzy matching (typos, synonyms, etc.)
  */
 
-import { ai, REVIEWER_MODEL, MODEL_CONFIG } from '../config/genkit';
+import { ai, FACTCHECK_MODEL, MODEL_CONFIG } from '../config/genkit';
 import { ANSWER_VALIDATION_PROMPT } from '../prompts/fr/phase3';
 
 export interface ValidationResult {
@@ -94,7 +94,7 @@ async function validateWithLLM(
             .replace('{ALTERNATIVES}', JSON.stringify(safeAlternatives));
 
         const response = await ai.generate({
-            model: REVIEWER_MODEL,
+            model: FACTCHECK_MODEL, // gemini-2.0-flash: fastest & cheapest
             config: MODEL_CONFIG.factCheck,
             prompt,
         });

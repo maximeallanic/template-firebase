@@ -5,7 +5,7 @@
 /* eslint-disable react-refresh/only-export-components */
 
 import { createContext, useContext, useReducer, useCallback, type ReactNode } from 'react';
-import type { Avatar, Question, Phase3Theme, Phase4Question } from '../types/gameTypes';
+import type { Avatar, Question, SimplePhase2Set, Phase4Question } from '../types/gameTypes';
 import {
     type SoloGameState,
     type SoloPhaseStatus,
@@ -15,23 +15,22 @@ import {
     SOLO_PHASE_ORDER,
     SOLO_SCORING,
 } from '../types/soloTypes';
-import { generateWithRetry, validatePhase3Answer } from '../services/aiClient';
+import { generateWithRetry } from '../services/aiClient';
 
 // === ACTION TYPES ===
 
 type SoloGameAction =
     | { type: 'SET_PLAYER_INFO'; playerId: string; playerName: string; playerAvatar: Avatar }
     | { type: 'START_GENERATION' }
-    | { type: 'SET_GENERATION_PROGRESS'; phase: 'phase1' | 'phase3' | 'phase4'; status: 'generating' | 'done' | 'error' }
-    | { type: 'SET_QUESTIONS'; phase: 'phase1' | 'phase3' | 'phase4'; questions: unknown[] }
+    | { type: 'SET_GENERATION_PROGRESS'; phase: 'phase1' | 'phase2' | 'phase4'; status: 'generating' | 'done' | 'error' }
+    | { type: 'SET_QUESTIONS'; phase: 'phase1' | 'phase2' | 'phase4'; questions: unknown }
     | { type: 'GENERATION_COMPLETE' }
     | { type: 'GENERATION_ERROR'; error: string }
     | { type: 'START_PHASE'; phase: SoloPhaseStatus }
     | { type: 'SUBMIT_PHASE1_ANSWER'; answerIndex: number; isCorrect: boolean }
     | { type: 'NEXT_PHASE1_QUESTION' }
-    | { type: 'SELECT_PHASE3_THEME'; themeIndex: number }
-    | { type: 'SUBMIT_PHASE3_ANSWER'; answer: string; isCorrect: boolean }
-    | { type: 'NEXT_PHASE3_QUESTION' }
+    | { type: 'SUBMIT_PHASE2_ANSWER'; answer: 'A' | 'B' | 'Both'; isCorrect: boolean }
+    | { type: 'NEXT_PHASE2_ITEM' }
     | { type: 'SUBMIT_PHASE4_ANSWER'; answerIndex: number; isCorrect: boolean; timeMs: number }
     | { type: 'NEXT_PHASE4_QUESTION' }
     | { type: 'PHASE4_TIMEOUT' }
@@ -59,7 +58,7 @@ function soloGameReducer(state: SoloGameState, action: SoloGameAction): SoloGame
                 generationError: null,
                 generationProgress: {
                     phase1: 'generating',
-                    phase3: 'generating',
+                    phase2: 'generating',
                     phase4: 'generating',
                 },
             };
@@ -114,13 +113,11 @@ function soloGameReducer(state: SoloGameState, action: SoloGameAction): SoloGame
                     correctCount: 0,
                     questionStartTime: Date.now(),
                 };
-            } else if (action.phase === 'phase3') {
-                newState.phase3State = {
-                    selectedThemeIndex: null,
-                    currentQuestionIndex: 0,
+            } else if (action.phase === 'phase2') {
+                newState.phase2State = {
+                    currentItemIndex: 0,
                     answers: [],
                     correctCount: 0,
-                    validationResults: [],
                 };
             } else if (action.phase === 'phase4') {
                 newState.phase4State = {
@@ -172,52 +169,38 @@ function soloGameReducer(state: SoloGameState, action: SoloGameAction): SoloGame
             };
         }
 
-        case 'SELECT_PHASE3_THEME': {
-            if (!state.phase3State) return state;
+        case 'SUBMIT_PHASE2_ANSWER': {
+            if (!state.phase2State) return state;
+
+            const newCorrectCount = state.phase2State.correctCount + (action.isCorrect ? 1 : 0);
+            const newAnswers = [...state.phase2State.answers, action.answer];
+            const scoreIncrease = action.isCorrect ? SOLO_SCORING.phase2.correctAnswer : 0;
 
             return {
                 ...state,
-                phase3State: {
-                    ...state.phase3State,
-                    selectedThemeIndex: action.themeIndex,
-                },
-            };
-        }
-
-        case 'SUBMIT_PHASE3_ANSWER': {
-            if (!state.phase3State) return state;
-
-            const newCorrectCount = state.phase3State.correctCount + (action.isCorrect ? 1 : 0);
-            const newAnswers = [...state.phase3State.answers, action.answer];
-            const newValidationResults = [...state.phase3State.validationResults, action.isCorrect];
-            const scoreIncrease = action.isCorrect ? SOLO_SCORING.phase3.correctAnswer : 0;
-
-            return {
-                ...state,
-                phase3State: {
-                    ...state.phase3State,
+                phase2State: {
+                    ...state.phase2State,
                     answers: newAnswers,
                     correctCount: newCorrectCount,
-                    validationResults: newValidationResults,
                 },
                 totalScore: state.totalScore + scoreIncrease,
                 phaseScores: {
                     ...state.phaseScores,
-                    phase3: state.phaseScores.phase3 + scoreIncrease,
+                    phase2: state.phaseScores.phase2 + scoreIncrease,
                 },
                 correctAnswers: state.correctAnswers + (action.isCorrect ? 1 : 0),
                 totalQuestions: state.totalQuestions + 1,
             };
         }
 
-        case 'NEXT_PHASE3_QUESTION': {
-            if (!state.phase3State) return state;
+        case 'NEXT_PHASE2_ITEM': {
+            if (!state.phase2State) return state;
 
             return {
                 ...state,
-                phase3State: {
-                    ...state.phase3State,
-                    currentQuestionIndex: state.phase3State.currentQuestionIndex + 1,
+                phase2State: {
+                    ...state.phase2State,
+                    currentItemIndex: state.phase2State.currentItemIndex + 1,
                 },
             };
         }
@@ -299,13 +282,11 @@ function soloGameReducer(state: SoloGameState, action: SoloGameAction): SoloGame
             };
 
             // Initialize next phase state
-            if (nextPhase === 'phase3') {
-                newState.phase3State = {
-                    selectedThemeIndex: null,
-                    currentQuestionIndex: 0,
+            if (nextPhase === 'phase2') {
+                newState.phase2State = {
+                    currentItemIndex: 0,
                     answers: [],
                     correctCount: 0,
-                    validationResults: [],
                 };
             } else if (nextPhase === 'phase4') {
                 newState.phase4State = {
@@ -348,10 +329,9 @@ interface SoloGameContextValue {
     // Phase 1 actions
     submitPhase1Answer: (answerIndex: number) => void;
     nextPhase1Question: () => void;
-    // Phase 3 actions
-    selectPhase3Theme: (themeIndex: number) => void;
-    submitPhase3Answer: (answer: string) => Promise<boolean>;
-    nextPhase3Question: () => void;
+    // Phase 2 actions
+    submitPhase2Answer: (answer: 'A' | 'B' | 'Both') => void;
+    nextPhase2Item: () => void;
     // Phase 4 actions
     submitPhase4Answer: (answerIndex: number) => void;
     nextPhase4Question: () => void;
@@ -396,25 +376,25 @@ export function SoloGameProvider({
             // Generate questions sequentially to avoid overwhelming the API
             // Phase 1
             dispatch({ type: 'SET_GENERATION_PROGRESS', phase: 'phase1', status: 'generating' });
-            const phase1Result = await generateWithRetry({ phase: 'phase1' });
+            const phase1Result = await generateWithRetry({ phase: 'phase1', soloMode: true });
             dispatch({ type: 'SET_GENERATION_PROGRESS', phase: 'phase1', status: 'done' });
             dispatch({ type: 'SET_QUESTIONS', phase: 'phase1', questions: phase1Result.data as Question[] });
 
-            // Phase 3
-            dispatch({ type: 'SET_GENERATION_PROGRESS', phase: 'phase3', status: 'generating' });
-            const phase3Result = await generateWithRetry({ phase: 'phase3' });
-            dispatch({ type: 'SET_GENERATION_PROGRESS', phase: 'phase3', status: 'done' });
-            dispatch({ type: 'SET_QUESTIONS', phase: 'phase3', questions: phase3Result.data as Phase3Theme[] });
+            // Phase 2
+            dispatch({ type: 'SET_GENERATION_PROGRESS', phase: 'phase2', status: 'generating' });
+            const phase2Result = await generateWithRetry({ phase: 'phase2', soloMode: true });
+            dispatch({ type: 'SET_GENERATION_PROGRESS', phase: 'phase2', status: 'done' });
+            dispatch({ type: 'SET_QUESTIONS', phase: 'phase2', questions: phase2Result.data as unknown as SimplePhase2Set });
 
             // Phase 4
             dispatch({ type: 'SET_GENERATION_PROGRESS', phase: 'phase4', status: 'generating' });
-            const phase4Result = await generateWithRetry({ phase: 'phase4' });
+            const phase4Result = await generateWithRetry({ phase: 'phase4', soloMode: true });
             dispatch({ type: 'SET_GENERATION_PROGRESS', phase: 'phase4', status: 'done' });
             dispatch({ type: 'SET_QUESTIONS', phase: 'phase4', questions: phase4Result.data as Phase4Question[] });
 
             console.log('[SOLO] Questions generated successfully', {
                 phase1: Array.isArray(phase1Result.data) ? phase1Result.data.length : 0,
-                phase3: Array.isArray(phase3Result.data) ? phase3Result.data.length : 0,
+                phase2: (phase2Result.data as unknown as SimplePhase2Set)?.items?.length ?? 0,
                 phase4: Array.isArray(phase4Result.data) ? phase4Result.data.length : 0,
             });
 
@@ -449,42 +429,23 @@ export function SoloGameProvider({
         dispatch({ type: 'NEXT_PHASE1_QUESTION' });
     }, []);
 
-    // Phase 3 actions
-    const selectPhase3Theme = useCallback((themeIndex: number) => {
-        dispatch({ type: 'SELECT_PHASE3_THEME', themeIndex });
-    }, []);
+    // Phase 2 actions
+    const submitPhase2Answer = useCallback((answer: 'A' | 'B' | 'Both') => {
+        const setData = state.customQuestions.phase2;
+        if (!setData || !state.phase2State) return;
 
-    const submitPhase3Answer = useCallback(async (answer: string): Promise<boolean> => {
-        const themes = state.customQuestions.phase3;
-        if (!themes || !state.phase3State || state.phase3State.selectedThemeIndex === null) {
-            return false;
-        }
+        const currentItem = setData.items[state.phase2State.currentItemIndex];
+        if (!currentItem) return;
 
-        const theme = themes[state.phase3State.selectedThemeIndex];
-        const question = theme?.questions[state.phase3State.currentQuestionIndex];
-        if (!question) return false;
+        // Check if answer is correct (including accepted alternatives)
+        const isCorrect = answer === currentItem.answer ||
+            (currentItem.acceptedAnswers?.includes(answer) ?? false);
 
-        try {
-            // Validate answer using LLM
-            const validationResult = await validatePhase3Answer({
-                playerAnswer: answer,
-                correctAnswer: question.answer,
-                acceptableAnswers: question.acceptableAnswers,
-            });
+        dispatch({ type: 'SUBMIT_PHASE2_ANSWER', answer, isCorrect });
+    }, [state.customQuestions.phase2, state.phase2State]);
 
-            const isCorrect = validationResult.isCorrect;
-            dispatch({ type: 'SUBMIT_PHASE3_ANSWER', answer, isCorrect });
-            return isCorrect;
-        } catch (error) {
-            console.error('[SOLO] Phase 3 answer validation failed:', error);
-            // On error, mark as incorrect
-            dispatch({ type: 'SUBMIT_PHASE3_ANSWER', answer, isCorrect: false });
-            return false;
-        }
-    }, [state.customQuestions.phase3, state.phase3State]);
-
-    const nextPhase3Question = useCallback(() => {
-        dispatch({ type: 'NEXT_PHASE3_QUESTION' });
+    const nextPhase2Item = useCallback(() => {
+        dispatch({ type: 'NEXT_PHASE2_ITEM' });
     }, []);
 
     // Phase 4 actions
@@ -525,9 +486,8 @@ export function SoloGameProvider({
         resetGame,
         submitPhase1Answer,
         nextPhase1Question,
-        selectPhase3Theme,
-        submitPhase3Answer,
-        nextPhase3Question,
+        submitPhase2Answer,
+        nextPhase2Item,
         submitPhase4Answer,
         nextPhase4Question,
         handlePhase4Timeout,
@@ -561,10 +521,9 @@ export function createSoloHandlers(context: SoloGameContextValue): SoloPhaseHand
         // Phase 1
         submitPhase1Answer: context.submitPhase1Answer,
         nextPhase1Question: context.nextPhase1Question,
-        // Phase 3
-        selectPhase3Theme: context.selectPhase3Theme,
-        submitPhase3Answer: context.submitPhase3Answer,
-        nextPhase3Question: context.nextPhase3Question,
+        // Phase 2
+        submitPhase2Answer: context.submitPhase2Answer,
+        nextPhase2Item: context.nextPhase2Item,
         // Phase 4
         submitPhase4Answer: context.submitPhase4Answer,
         nextPhase4Question: context.nextPhase4Question,

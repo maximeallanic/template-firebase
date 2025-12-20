@@ -1,13 +1,16 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { motion, useAnimation, AnimatePresence } from 'framer-motion';
-import { Utensils, Loader2, Lock, AlertTriangle } from 'lucide-react';
-import { submitPhase2Answer, showPhaseResults } from '../../services/gameService';
+import { Utensils, Loader2, Lock, AlertTriangle, CheckCircle, XCircle } from 'lucide-react';
+import { submitPhase2Answer as submitPhase2AnswerToRoom, showPhaseResults } from '../../services/gameService';
 import type { Room, Team } from '../../services/gameService';
+import type { SimplePhase2Set } from '../../types/gameTypes';
 import { PHASE2_SETS } from '../../data/phase2';
 import { markQuestionAsSeen } from '../../services/historyService';
 import { useReducedMotion } from '../../hooks/useReducedMotion';
 import { SimpleConfetti } from '../ui/SimpleConfetti';
+import type { SoloPhaseHandlers } from '../../types/soloTypes';
+import { SOLO_SCORING } from '../../types/soloTypes';
 
 // Modular components
 import { Phase2Card, Phase2Zones, Phase2Result, Phase2Transition } from './phase2';
@@ -17,12 +20,15 @@ interface Phase2PlayerProps {
     room: Room;
     playerId: string;
     isHost: boolean;
+    mode?: 'solo' | 'multiplayer';
+    soloHandlers?: SoloPhaseHandlers;
 }
 
-export function Phase2Player({ room, playerId, isHost }: Phase2PlayerProps) {
+export function Phase2Player({ room, playerId, isHost, mode = 'multiplayer', soloHandlers }: Phase2PlayerProps) {
     const { t } = useTranslation(['game-ui', 'game-phases', 'common']);
     const prefersReducedMotion = useReducedMotion();
     const controls = useAnimation();
+    const isSolo = mode === 'solo';
 
     // Extract values from room
     const roomId = room.code;
@@ -35,16 +41,18 @@ export function Phase2Player({ room, playerId, isHost }: Phase2PlayerProps) {
         phase2RoundWinner,
     } = room.state;
 
-    // Prefer custom questions if available
-    const currentSet = customQuestions?.phase2?.[setIndex] || PHASE2_SETS[setIndex];
+    // In solo mode, customQuestions.phase2 is a single set, not an array
+    const currentSet: SimplePhase2Set | undefined = isSolo
+        ? (customQuestions?.phase2 as SimplePhase2Set | undefined) || PHASE2_SETS[0]
+        : (customQuestions?.phase2 as SimplePhase2Set[] | undefined)?.[setIndex] || PHASE2_SETS[setIndex];
     const currentItem = currentSet?.items[itemIndex];
     const totalItems = currentSet?.items.length || 0;
 
-    // Get current player's team
-    const myTeam = players[playerId]?.team;
-    const otherTeam: Team | null = myTeam === 'spicy' ? 'sweet' : myTeam === 'sweet' ? 'spicy' : null;
+    // Get current player's team (in solo mode, always 'spicy')
+    const myTeam = isSolo ? 'spicy' : players[playerId]?.team;
+    const otherTeam: Team | null = isSolo ? null : (myTeam === 'spicy' ? 'sweet' : myTeam === 'sweet' ? 'spicy' : null);
 
-    // Team-based answer tracking
+    // Team-based answer tracking (multiplayer)
     const myTeamAnswer = myTeam ? phase2TeamAnswers?.[myTeam] : undefined;
     const otherTeamAnswer = otherTeam ? phase2TeamAnswers?.[otherTeam] : undefined;
 
@@ -52,13 +60,25 @@ export function Phase2Player({ room, playerId, isHost }: Phase2PlayerProps) {
     const [showTransition, setShowTransition] = useState(false);
     const previousItemIdxRef = useRef<number | null>(null);
 
+    // Solo mode state
+    const [soloAnswered, setSoloAnswered] = useState(false);
+    const [soloResult, setSoloResult] = useState<{ correct: boolean; answer: Phase2Answer } | null>(null);
+
+    // Reset solo state when item changes
+    useEffect(() => {
+        if (isSolo) {
+            setSoloAnswered(false);
+            setSoloResult(null);
+        }
+    }, [itemIndex, isSolo]);
+
     // Determine round state
-    const isRoundOver = phaseState === 'result';
-    const didMyTeamWin = isRoundOver && phase2RoundWinner === myTeam;
+    const isRoundOver = isSolo ? soloAnswered : phaseState === 'result';
+    const didMyTeamWin = isSolo ? (soloResult?.correct ?? false) : (isRoundOver && phase2RoundWinner === myTeam);
 
     // Can this player answer?
-    const hasMyTeamAnswered = !!myTeamAnswer;
-    const didIAnswer = myTeamAnswer?.playerId === playerId;
+    const hasMyTeamAnswered = isSolo ? soloAnswered : !!myTeamAnswer;
+    const didIAnswer = isSolo ? soloAnswered : myTeamAnswer?.playerId === playerId;
     const canAnswer = !isRoundOver && !hasMyTeamAnswered;
 
     // Reset card position when item changes
@@ -84,15 +104,39 @@ export function Phase2Player({ room, playerId, isHost }: Phase2PlayerProps) {
         previousItemIdxRef.current = itemIndex;
     }, [itemIndex, currentItem, prefersReducedMotion]);
 
-    // Handle answer submission (team-based: only 1 person per team)
+    // Handle answer submission
     const handleAnswer = useCallback((choice: Phase2Answer) => {
-        if (!canAnswer) return;
+        if (!canAnswer || !currentItem) return;
 
-        // Submit answer for team
-        if (currentItem) {
-            submitPhase2Answer(roomId, playerId, choice);
+        if (isSolo && soloHandlers) {
+            // Solo mode: use solo handlers
+            const isCorrect = choice === currentItem.answer ||
+                (currentItem.acceptedAnswers?.includes(choice) ?? false);
+
+            soloHandlers.submitPhase2Answer(choice);
+            setSoloAnswered(true);
+            setSoloResult({ correct: isCorrect, answer: choice });
+        } else {
+            // Multiplayer mode: submit to room
+            submitPhase2AnswerToRoom(roomId, playerId, choice);
         }
-    }, [canAnswer, roomId, playerId, currentItem]);
+    }, [canAnswer, currentItem, isSolo, soloHandlers, roomId, playerId]);
+
+    // Auto-advance for solo mode
+    useEffect(() => {
+        if (!isSolo || !soloAnswered || !soloResult || !soloHandlers) return;
+
+        const timer = setTimeout(() => {
+            if (itemIndex + 1 < SOLO_SCORING.phase2.maxItems && itemIndex + 1 < totalItems) {
+                soloHandlers.nextPhase2Item();
+            } else {
+                // Phase complete
+                soloHandlers.advanceToNextPhase();
+            }
+        }, 1500); // Show result for 1.5 seconds
+
+        return () => clearTimeout(timer);
+    }, [isSolo, soloAnswered, soloResult, soloHandlers, itemIndex, totalItems]);
 
     // Handle transition complete
     const handleTransitionComplete = useCallback(() => {
@@ -153,34 +197,50 @@ export function Phase2Player({ room, playerId, isHost }: Phase2PlayerProps) {
     // --- MAIN GAME VIEW ---
     return (
         <div className="fixed inset-0 flex overflow-hidden">
-            {/* Team Status Bar - Top */}
-            <div className="absolute top-4 left-1/2 -translate-x-1/2 z-50 flex gap-4">
-                {/* My Team Status */}
-                <div className={`px-4 py-2 rounded-full text-sm font-bold flex items-center gap-2 ${
-                    myTeam === 'spicy' ? 'bg-red-500/80' : 'bg-pink-500/80'
-                } text-white backdrop-blur`}>
-                    <span>{myTeam === 'spicy' ? '🌶️' : '🍬'}</span>
-                    {hasMyTeamAnswered ? (
-                        myTeamAnswer?.correct ? '✓' : '✗'
-                    ) : (
-                        <Loader2 className="w-4 h-4 animate-spin" />
-                    )}
-                </div>
-
-                {/* Other Team Status */}
-                {otherTeam && (
+            {/* Team Status Bar - Top (multiplayer only) */}
+            {!isSolo && (
+                <div className="absolute top-4 left-1/2 -translate-x-1/2 z-50 flex gap-4">
+                    {/* My Team Status */}
                     <div className={`px-4 py-2 rounded-full text-sm font-bold flex items-center gap-2 ${
-                        otherTeam === 'spicy' ? 'bg-red-500/80' : 'bg-pink-500/80'
+                        myTeam === 'spicy' ? 'bg-red-500/80' : 'bg-pink-500/80'
                     } text-white backdrop-blur`}>
-                        <span>{otherTeam === 'spicy' ? '🌶️' : '🍬'}</span>
-                        {otherTeamAnswer ? (
-                            otherTeamAnswer.correct ? '✓' : '✗'
+                        <span>{myTeam === 'spicy' ? '🌶️' : '🍬'}</span>
+                        {hasMyTeamAnswered ? (
+                            myTeamAnswer?.correct ? '✓' : '✗'
                         ) : (
                             <Loader2 className="w-4 h-4 animate-spin" />
                         )}
                     </div>
-                )}
-            </div>
+
+                    {/* Other Team Status */}
+                    {otherTeam && (
+                        <div className={`px-4 py-2 rounded-full text-sm font-bold flex items-center gap-2 ${
+                            otherTeam === 'spicy' ? 'bg-red-500/80' : 'bg-pink-500/80'
+                        } text-white backdrop-blur`}>
+                            <span>{otherTeam === 'spicy' ? '🌶️' : '🍬'}</span>
+                            {otherTeamAnswer ? (
+                                otherTeamAnswer.correct ? '✓' : '✗'
+                            ) : (
+                                <Loader2 className="w-4 h-4 animate-spin" />
+                            )}
+                        </div>
+                    )}
+                </div>
+            )}
+
+            {/* Solo Progress Indicator */}
+            {isSolo && (
+                <div className="absolute top-4 left-1/2 -translate-x-1/2 z-50">
+                    <div className="px-4 py-2 rounded-full text-sm font-bold bg-slate-800/80 text-white backdrop-blur flex items-center gap-2">
+                        <span>{itemIndex + 1} / {totalItems}</span>
+                        {soloResult && (
+                            soloResult.correct
+                                ? <CheckCircle className="w-4 h-4 text-green-400" />
+                                : <XCircle className="w-4 h-4 text-red-400" />
+                        )}
+                    </div>
+                </div>
+            )}
 
             {/* Confetti if team won (respects reduced motion) */}
             {didMyTeamWin && !prefersReducedMotion && <SimpleConfetti />}
@@ -221,36 +281,38 @@ export function Phase2Player({ room, playerId, isHost }: Phase2PlayerProps) {
                     )}
                 </AnimatePresence>
 
-                {/* Team Lock Overlay - When teammate answered but round not over */}
-                <AnimatePresence>
-                    {hasMyTeamAnswered && !didIAnswer && !isRoundOver && (
-                        <motion.div
-                            initial={{ opacity: 0 }}
-                            animate={{ opacity: 1 }}
-                            exit={{ opacity: 0 }}
-                            className="absolute inset-0 z-30 flex flex-col items-center justify-center bg-black/60 backdrop-blur-sm"
-                        >
-                            <div className="bg-slate-800/90 backdrop-blur p-8 rounded-2xl text-center text-white max-w-sm">
-                                <Lock className="w-12 h-12 mx-auto mb-4 text-yellow-400" />
-                                <h3 className="text-xl font-bold mb-2">
-                                    {t('phase2.teammateAnswered', { defaultValue: 'Un coéquipier a répondu !' })}
-                                </h3>
-                                <p className="text-slate-300">
-                                    {t('phase2.waitingForResult', {
-                                        name: myTeamAnswer?.playerName,
-                                        defaultValue: `${myTeamAnswer?.playerName} a fait son choix...`
-                                    })}
-                                </p>
-                                {!myTeamAnswer?.correct && otherTeam && !otherTeamAnswer && (
-                                    <p className="mt-4 text-yellow-300 text-sm flex items-center justify-center gap-2">
-                                        <AlertTriangle className="w-4 h-4" />
-                                        {t('phase2.otherTeamTurn', { defaultValue: "L'équipe adverse peut tenter !" })}
+                {/* Team Lock Overlay - When teammate answered but round not over (multiplayer only) */}
+                {!isSolo && (
+                    <AnimatePresence>
+                        {hasMyTeamAnswered && !didIAnswer && !isRoundOver && (
+                            <motion.div
+                                initial={{ opacity: 0 }}
+                                animate={{ opacity: 1 }}
+                                exit={{ opacity: 0 }}
+                                className="absolute inset-0 z-30 flex flex-col items-center justify-center bg-black/60 backdrop-blur-sm"
+                            >
+                                <div className="bg-slate-800/90 backdrop-blur p-8 rounded-2xl text-center text-white max-w-sm">
+                                    <Lock className="w-12 h-12 mx-auto mb-4 text-yellow-400" />
+                                    <h3 className="text-xl font-bold mb-2">
+                                        {t('phase2.teammateAnswered', { defaultValue: 'Un coéquipier a répondu !' })}
+                                    </h3>
+                                    <p className="text-slate-300">
+                                        {t('phase2.waitingForResult', {
+                                            name: myTeamAnswer?.playerName,
+                                            defaultValue: `${myTeamAnswer?.playerName} a fait son choix...`
+                                        })}
                                     </p>
-                                )}
-                            </div>
-                        </motion.div>
-                    )}
-                </AnimatePresence>
+                                    {!myTeamAnswer?.correct && otherTeam && !otherTeamAnswer && (
+                                        <p className="mt-4 text-yellow-300 text-sm flex items-center justify-center gap-2">
+                                            <AlertTriangle className="w-4 h-4" />
+                                            {t('phase2.otherTeamTurn', { defaultValue: "L'équipe adverse peut tenter !" })}
+                                        </p>
+                                    )}
+                                </div>
+                            </motion.div>
+                        )}
+                    </AnimatePresence>
+                )}
 
                 {/* The Drag Card */}
                 <Phase2Card
@@ -261,8 +323,8 @@ export function Phase2Player({ room, playerId, isHost }: Phase2PlayerProps) {
                     onAnswer={handleAnswer}
                 />
 
-                {/* Waiting Feedback - When I answered and waiting for other team */}
-                {didIAnswer && !isRoundOver && (
+                {/* Waiting Feedback - When I answered and waiting for other team (multiplayer only) */}
+                {!isSolo && didIAnswer && !isRoundOver && (
                     <motion.div
                         initial={{ opacity: 0 }}
                         animate={{ opacity: 1 }}

@@ -115,7 +115,8 @@
     "waitingForHost": "En attente de l'hôte pour continuer...",
     "phaseComplete": "Phase 3 terminée !",
     "inProgress": "En cours...",
-    "noTeamAssigned": "Vous n'êtes pas assigné à une équipe"
+    "noTeamAssigned": "Vous n'êtes pas assigné à une équipe",
+    "exactMatch": "Pas besoin d'être exact, l'orthographe approximative est acceptée !"
   },
   "phase4": {
     "phaseComplete": "PHASE 4 TERMINÉE !",

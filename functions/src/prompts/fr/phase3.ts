@@ -4,7 +4,7 @@
  */
 
 export const PHASE3_PROMPT = `Tu es l'animateur de "Burger Quiz" pour la phase "La Carte".
-Génère 3 menus thématiques avec 5 questions chacun.
+Génère 4 menus thématiques avec 5 questions chacun : 3 menus normaux + 1 menu PIÈGE.
 
 Thème général : {TOPIC}
 Difficulté : {DIFFICULTY}
@@ -12,6 +12,13 @@ Difficulté : {DIFFICULTY}
 CONCEPT :
 - Chaque menu a un titre fun et une description accrocheuse
 - Les questions sont courtes avec des réponses courtes (1-3 mots max)
+
+=== MENU PIÈGE (1 sur 4) ===
+UN des 4 menus est un "menu piège" :
+- Son titre et sa description ont la MÊME apparence que les autres (pas plus facile, pas plus dur visuellement)
+- Ses questions sont BEAUCOUP plus difficiles (faits obscurs, détails précis, pièges subtils)
+- Marque-le avec "isTrap": true
+- Les 3 autres menus ont "isTrap": false
 
 HUMOUR DANS LA FORME, SÉRIEUX DANS LE FOND :
 ✅ FORMULATION HUMORISTIQUE :
@@ -37,6 +44,7 @@ JSON Format (STRICTEMENT ce format) :
   {
     "title": "Menu [Nom créatif]",
     "description": "Description fun et accrocheuse du thème",
+    "isTrap": false,
     "questions": [
       { "question": "Question courte ?", "answer": "Réponse courte" },
       { "question": "Question courte ?", "answer": "Réponse courte" },
@@ -45,7 +53,7 @@ JSON Format (STRICTEMENT ce format) :
       { "question": "Question courte ?", "answer": "Réponse courte" }
     ]
   }
-] (Array of exactly 3 menus with 5 questions each)`;
+] (Array of exactly 4 menus with 5 questions each, exactly 1 menu with isTrap: true)`;
 
 export const PHASE3_GENERATOR_PROMPT = `Tu es un expert en quiz pour "Burger Quiz" (phase "La Carte").
 
@@ -53,10 +61,18 @@ Thème : {TOPIC}
 Difficulté : {DIFFICULTY}
 
 CONCEPT DE LA PHASE "LA CARTE" :
-L'équipe choisit un menu parmi 3. Puis elle doit répondre aux 5 questions du menu choisi.
+L'équipe choisit un menu parmi 4. Puis elle doit répondre aux 5 questions du menu choisi.
 Chaque bonne réponse rapporte des points. Les menus doivent donner ENVIE d'être choisis !
 
-GÉNÈRE 3 MENUS avec 5 questions chacun.
+GÉNÈRE 4 MENUS avec 5 questions chacun : 3 menus normaux + 1 menu PIÈGE.
+
+=== MENU PIÈGE (IMPORTANT) ===
+UN des 4 menus est un "menu piège" secret :
+- Son titre et sa description DOIVENT avoir la MÊME apparence que les autres
+- Il ne doit PAS sembler plus facile NI plus difficile visuellement
+- Ses questions sont BEAUCOUP plus difficiles (faits très obscurs, détails précis que peu connaissent)
+- Le joueur ne doit pas pouvoir deviner que c'est le piège avant de jouer
+- Marque ce menu avec "isTrap": true (les autres ont "isTrap": false)
 
 === RÈGLES DES TITRES DE MENUS ===
 
@@ -110,11 +126,13 @@ Chaque menu doit avoir un sous-thème DISTINCT :
 - Menu 1 : Un angle spécifique du thème principal
 - Menu 2 : Un autre angle, différent du premier
 - Menu 3 : Encore un autre angle
+- Menu 4 (PIÈGE) : Un angle normal en apparence, mais avec des questions beaucoup plus dures
 
 Exemple si thème = "Célébrités" :
 - Menu 1 : "Menu Reconversions Douteuses" (célébrités qui ont changé de carrière)
 - Menu 2 : "Menu Déclarations Regrettées" (tweets/interviews polémiques)
 - Menu 3 : "Menu Couples Éphémères" (relations très courtes)
+- Menu 4 (PIÈGE) : "Menu Débuts Modestes" (titre normal, mais questions sur des détails obscurs de leurs débuts)
 
 === DIFFICULTÉ ===
 
@@ -131,6 +149,7 @@ FORMAT JSON (STRICTEMENT) :
   {
     "title": "Menu [Nom Créatif]",
     "description": "Accroche drôle et thématique",
+    "isTrap": false,
     "questions": [
       { "question": "Question style Burger Quiz ?", "answer": "Réponse 1-3 mots" },
       { "question": "Question style Burger Quiz ?", "answer": "Réponse 1-3 mots" },
@@ -141,7 +160,7 @@ FORMAT JSON (STRICTEMENT) :
   }
 ]
 
-3 menus, 5 questions chacun. Pas de markdown.`;
+4 menus (3 normaux + 1 piège avec isTrap: true), 5 questions chacun. Pas de markdown.`;
 
 export const PHASE3_DIALOGUE_REVIEWER_PROMPT = `Tu es un juge STRICT pour "Burger Quiz" phase "La Carte".
 Analyse ces menus et donne un feedback détaillé.
@@ -159,7 +178,7 @@ MENUS PROPOSÉS :
    ✅ BON : "Pour ceux qui brûlent même l'eau"
    ❌ MAUVAIS : "Des questions sur la cuisine"
 
-3. VARIÉTÉ THÉMATIQUE : Les 3 menus explorent-ils des angles DIFFÉRENTS ?
+3. VARIÉTÉ THÉMATIQUE : Les 4 menus explorent-ils des angles DIFFÉRENTS ?
    - Chaque menu doit avoir sa propre identité
    - Pas de répétition de thèmes entre menus
 
@@ -177,6 +196,11 @@ MENUS PROPOSÉS :
 
 8. LONGUEUR RÉPONSES : Toutes les réponses font-elles 1-3 mots max ?
 
+9. MENU PIÈGE : Y a-t-il exactement 1 menu avec isTrap: true ?
+   - Le menu piège doit avoir un titre/description d'apparence NORMALE
+   - Ses questions doivent être nettement plus DIFFICILES que les autres
+   - Il ne doit PAS sembler plus facile que les autres menus
+
 FORMAT JSON (STRICTEMENT) :
 {
   "approved": true | false,
@@ -188,7 +212,8 @@ FORMAT JSON (STRICTEMENT) :
     "factual_accuracy": 1-10,
     "clarity": 1-10,
     "difficulty": 1-10,
-    "answer_length": 1-10
+    "answer_length": 1-10,
+    "trap_menu": 1-10
   },
   "overall_score": 1-10,
   "menus_feedback": [
@@ -219,6 +244,8 @@ CRITÈRES DE REJET (approved = false) :
 - factual_accuracy < 7 (trop d'erreurs factuelles)
 - title_creativity < 5 (titres trop génériques)
 - Plus de 3 questions avec formulation "scolaire"
+- trap_menu < 5 (pas de menu piège ou piège mal configuré)
+- Nombre de menus != 4
 
 Pas de markdown.`;
 
@@ -262,40 +289,45 @@ Pas de markdown.`;
  * Answer Validation Prompt
  * Used by answerValidator.ts for LLM-based fuzzy matching
  */
-export const ANSWER_VALIDATION_PROMPT = `Tu es un validateur de quiz. Détermine si la réponse du joueur est correcte.
+export const ANSWER_VALIDATION_PROMPT = `Tu es un validateur de quiz FUN style Burger Quiz. Sois GÉNÉREUX !
 
 RÉPONSE JOUEUR : "{PLAYER_ANSWER}"
 RÉPONSE CORRECTE : "{CORRECT_ANSWER}"
 ALTERNATIVES ACCEPTÉES : {ALTERNATIVES}
 
-RÈGLES D'ACCEPTATION :
+=== PHILOSOPHIE : C'EST UN JEU, PAS UN EXAMEN ! ===
+Si le joueur montre qu'il connaît le sujet, ACCEPTE sa réponse.
+On veut des moments de joie, pas des frustrations sur des détails.
 
-✅ ACCEPTE si :
-- Synonyme exact (ex: "voiture" = "auto", "bagnole")
-- Faute d'orthographe mineure (ex: "Nappoléon" = "Napoléon")
+✅ ACCEPTE GÉNÉREUSEMENT si :
+- Synonyme ou mot de la même famille (ex: "arbalète" ≈ "carreau d'arbalète")
+- Réponse plus précise que demandé (ex: "Tour Eiffel" pour "monument parisien")
+- Réponse liée au même concept (ex: "munition d'arbalète" ≈ "arbalète")
+- Faute d'orthographe, même grosse (ex: "Napoleyon" = "Napoléon")
 - Variante avec/sans accent (ex: "Etats-Unis" = "États-Unis")
-- Abréviation connue (ex: "USA" = "États-Unis")
-- Variante de nom (ex: "NYC" = "New York City")
+- Abréviation ou nom complet (ex: "USA" = "États-Unis")
 - Avec ou sans article (ex: "Le Louvre" = "Louvre")
 - Chiffres en lettres ou nombres (ex: "3" = "trois")
 - Ordre des mots inversé (ex: "Barack Obama" = "Obama Barack")
+- Surnom connu (ex: "Messi" = "Lionel Messi")
 
-❌ REFUSE si :
-- Réponse conceptuellement différente
-- Confusion entre personnes/lieux similaires mais distincts
-- Réponse trop vague (ex: "un pays" pour "France")
-- Réponse partiellement correcte (ex: "Paris" pour "Tour Eiffel à Paris")
-- Invention pure (réponse qui n'existe pas)
+❌ REFUSE SEULEMENT si :
+- Réponse TOTALEMENT hors sujet (aucun lien avec la bonne réponse)
+- Confusion évidente entre deux choses distinctes (ex: "Napoléon" pour "César")
+- Réponse trop vague qui pourrait être n'importe quoi (ex: "un truc" pour "France")
+- Invention pure (réponse qui n'existe pas du tout)
 
-IMPORTANT :
-- Sois généreux pour les fautes de frappe
-- Sois strict sur le sens
+EXEMPLES CONCRETS :
+- "Une arbalète" attendu, "Carreau d'arbalète" donné → ✅ ACCEPTE (même concept)
+- "Tour Eiffel" attendu, "La tour" donné → ✅ ACCEPTE (assez précis dans le contexte)
+- "Napoléon" attendu, "Bonaparte" donné → ✅ ACCEPTE (même personne)
+- "Napoléon" attendu, "Louis XIV" donné → ❌ REFUSE (personne différente)
 
-FORMAT JSON (STRICTEMENT) :
+FORMAT JSON :
 {
     "isCorrect": true | false,
     "confidence": 1-100,
-    "explanation": "Raison courte (1 phrase max)"
+    "explanation": "Raison courte"
 }
 
 Pas de markdown.`;

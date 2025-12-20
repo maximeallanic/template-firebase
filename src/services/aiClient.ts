@@ -6,6 +6,7 @@ export interface GameGenerationInput {
     topic?: string;
     difficulty?: 'easy' | 'normal' | 'hard' | 'wtf';
     roomCode?: string; // For server-side idempotency check
+    soloMode?: boolean; // Bypass premium check for solo practice mode
 }
 
 export interface GameGenerationOutput {

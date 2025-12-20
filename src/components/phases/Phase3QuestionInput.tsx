@@ -80,6 +80,17 @@ export const Phase3QuestionInput: React.FC<Phase3QuestionInputProps> = ({
         }
     }, [feedback]);
 
+    // Auto-advance to next question in solo mode after correct answer
+    useEffect(() => {
+        const nextQuestion = soloHandlers?.nextPhase3Question;
+        if (feedback === 'correct' && isSolo && nextQuestion) {
+            const timer = setTimeout(() => {
+                nextQuestion();
+            }, 2000);
+            return () => clearTimeout(timer);
+        }
+    }, [feedback, isSolo, soloHandlers]);
+
     // Play audio feedback when feedback changes
     useEffect(() => {
         if (hasPlayedFeedbackRef.current) return;
@@ -111,9 +122,10 @@ export const Phase3QuestionInput: React.FC<Phase3QuestionInputProps> = ({
         try {
             let isCorrect = false;
 
-            if (isSolo && soloHandlers) {
-                // Solo mode: use soloHandlers
-                isCorrect = await soloHandlers.submitPhase3Answer(answer.trim());
+            if (isSolo && soloHandlers?.submitPhase3Answer) {
+                // Solo mode: use soloHandlers (Phase 3 not used in solo mode anymore)
+                soloHandlers.submitPhase3Answer(answer.trim());
+                isCorrect = false; // This path is deprecated
             } else {
                 // Multiplayer mode: use gameService
                 const result = await submitPhase3Answer(roomCode, playerId, answer.trim());

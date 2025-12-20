@@ -4,11 +4,11 @@
  */
 
 import type { Timestamp } from 'firebase/firestore';
-import type { Avatar, Question, Phase3Theme, Phase4Question } from './gameTypes';
+import type { Avatar, Question, SimplePhase2Set, Phase4Question } from './gameTypes';
 
 // === SOLO GAME STATUS ===
 
-export type SoloPhaseStatus = 'setup' | 'generating' | 'phase1' | 'phase3' | 'phase4' | 'results';
+export type SoloPhaseStatus = 'setup' | 'generating' | 'phase1' | 'phase2' | 'phase4' | 'results';
 
 export interface SoloPhaseInfo {
     name: string;
@@ -19,12 +19,12 @@ export interface SoloPhaseInfo {
 
 export const SOLO_PHASE_NAMES: Record<Exclude<SoloPhaseStatus, 'setup' | 'generating' | 'results'>, SoloPhaseInfo> = {
     phase1: { name: 'Tenders', subtitle: 'Réponds aux questions !', shortName: 'Tenders', maxScore: 10 },
-    phase3: { name: 'La Carte', subtitle: 'Choisis un thème et réponds !', shortName: 'La Carte', maxScore: 5 },
+    phase2: { name: 'Sucré Salé', subtitle: 'Classe les éléments !', shortName: 'Sucré Salé', maxScore: 12 },
     phase4: { name: 'La Note', subtitle: 'Réponds vite pour plus de points !', shortName: 'La Note', maxScore: 30 },
 };
 
 // Order of phases in solo mode
-export const SOLO_PHASE_ORDER: (keyof typeof SOLO_PHASE_NAMES)[] = ['phase1', 'phase3', 'phase4'];
+export const SOLO_PHASE_ORDER: (keyof typeof SOLO_PHASE_NAMES)[] = ['phase1', 'phase2', 'phase4'];
 
 // === SOLO GAME STATE ===
 
@@ -35,12 +35,10 @@ export interface SoloPhase1State {
     questionStartTime?: number;
 }
 
-export interface SoloPhase3State {
-    selectedThemeIndex: number | null;
-    currentQuestionIndex: number;
-    answers: string[]; // Player's text answers
+export interface SoloPhase2State {
+    currentItemIndex: number;
+    answers: ('A' | 'B' | 'Both' | null)[]; // Player's answers per item
     correctCount: number;
-    validationResults: (boolean | null)[]; // null = pending, true/false = validated
 }
 
 export interface SoloPhase4State {
@@ -65,7 +63,7 @@ export interface SoloGameState {
     totalScore: number;
     phaseScores: {
         phase1: number;
-        phase3: number;
+        phase2: number;
         phase4: number;
     };
 
@@ -76,13 +74,13 @@ export interface SoloGameState {
 
     // Phase-specific state
     phase1State: SoloPhase1State | null;
-    phase3State: SoloPhase3State | null;
+    phase2State: SoloPhase2State | null;
     phase4State: SoloPhase4State | null;
 
     // AI-generated questions (stored locally)
     customQuestions: {
         phase1?: Question[];
-        phase3?: Phase3Theme[];
+        phase2?: SimplePhase2Set;
         phase4?: Phase4Question[];
     };
 
@@ -90,7 +88,7 @@ export interface SoloGameState {
     isGenerating: boolean;
     generationProgress: {
         phase1: 'pending' | 'generating' | 'done' | 'error';
-        phase3: 'pending' | 'generating' | 'done' | 'error';
+        phase2: 'pending' | 'generating' | 'done' | 'error';
         phase4: 'pending' | 'generating' | 'done' | 'error';
     };
     generationError: string | null;
@@ -107,9 +105,9 @@ export const SOLO_SCORING = {
         correctAnswer: 1, // +1 per correct answer
         maxQuestions: 10,
     },
-    phase3: {
-        correctAnswer: 1, // +1 per correct answer
-        maxQuestions: 5,
+    phase2: {
+        correctAnswer: 1, // +1 per correct classification
+        maxItems: 12,
     },
     phase4: {
         // Speed-based scoring
@@ -122,10 +120,10 @@ export const SOLO_SCORING = {
     },
 } as const;
 
-// Maximum possible score: 10 + 5 + 30 = 45
+// Maximum possible score: 10 + 12 + 30 = 52
 export const SOLO_MAX_SCORE =
     SOLO_SCORING.phase1.correctAnswer * SOLO_SCORING.phase1.maxQuestions +
-    SOLO_SCORING.phase3.correctAnswer * SOLO_SCORING.phase3.maxQuestions +
+    SOLO_SCORING.phase2.correctAnswer * SOLO_SCORING.phase2.maxItems +
     SOLO_SCORING.phase4.fast.points * SOLO_SCORING.phase4.maxQuestions;
 
 // === SOLO PHASE HANDLERS ===
@@ -136,10 +134,14 @@ export interface SoloPhaseHandlers {
     submitPhase1Answer: (answerIndex: number) => void;
     nextPhase1Question: () => void;
 
-    // Phase 3 (La Carte)
-    selectPhase3Theme: (themeIndex: number) => void;
-    submitPhase3Answer: (answer: string) => Promise<boolean>;
-    nextPhase3Question: () => void;
+    // Phase 2 (Sucré Salé)
+    submitPhase2Answer: (answer: 'A' | 'B' | 'Both') => void;
+    nextPhase2Item: () => void;
+
+    // Phase 3 (La Carte) - Optional, not used in solo mode but kept for compatibility
+    selectPhase3Theme?: (themeIndex: number) => void;
+    submitPhase3Answer?: (answer: string) => void;
+    nextPhase3Question?: () => void;
 
     // Phase 4 (La Note)
     submitPhase4Answer: (answerIndex: number) => void;
@@ -164,7 +166,7 @@ export interface LeaderboardEntry {
     // Scores
     totalScore: number;
     phase1Score: number;
-    phase3Score: number;
+    phase2Score: number;
     phase4Score: number;
 
     // Stats
@@ -197,20 +199,20 @@ export function createInitialSoloState(
         totalScore: 0,
         phaseScores: {
             phase1: 0,
-            phase3: 0,
+            phase2: 0,
             phase4: 0,
         },
         totalQuestions: 0,
         correctAnswers: 0,
         totalTimeMs: 0,
         phase1State: null,
-        phase3State: null,
+        phase2State: null,
         phase4State: null,
         customQuestions: {},
         isGenerating: false,
         generationProgress: {
             phase1: 'pending',
-            phase3: 'pending',
+            phase2: 'pending',
             phase4: 'pending',
         },
         generationError: null,
@@ -260,33 +262,31 @@ export function mapSoloStateToGameState(state: SoloGameState): import('./gameTyp
 
     // Phase 1 state mapping
     if (state.status === 'phase1' && state.phase1State) {
-        baseState.currentQuestionIndex = state.phase1State.currentQuestionIndex;
-        baseState.phaseState = 'answering';
+        const currentIdx = state.phase1State.currentQuestionIndex;
+        baseState.currentQuestionIndex = currentIdx;
+        // Check if current question has been answered
+        const currentAnswered = state.phase1State.answers.length > currentIdx;
+        baseState.phaseState = currentAnswered ? 'result' : 'answering';
+
+        // Set roundWinner if player answered correctly (for result display)
+        if (currentAnswered && state.customQuestions.phase1) {
+            const question = state.customQuestions.phase1[currentIdx];
+            const playerAnswer = state.phase1State.answers[currentIdx];
+            if (question && playerAnswer === question.correctIndex) {
+                baseState.roundWinner = {
+                    playerId: state.playerId,
+                    name: state.playerName,
+                    team: 'spicy', // Solo player is always spicy
+                };
+            }
+        }
     }
 
-    // Phase 3 state mapping
-    if (state.status === 'phase3' && state.phase3State) {
-        baseState.phase3State = state.phase3State.selectedThemeIndex !== null ? 'playing' : 'selecting';
-        if (state.phase3State.selectedThemeIndex !== null) {
-            baseState.phase3ThemeSelection = {
-                spicy: state.phase3State.selectedThemeIndex,
-                sweet: state.phase3State.selectedThemeIndex, // Same theme for solo
-            };
-            baseState.phase3TeamProgress = {
-                spicy: {
-                    themeIndex: state.phase3State.selectedThemeIndex,
-                    currentQuestionIndex: state.phase3State.currentQuestionIndex,
-                    score: state.phase3State.correctCount,
-                    finished: state.phase3State.currentQuestionIndex >= SOLO_SCORING.phase3.maxQuestions,
-                },
-                sweet: {
-                    themeIndex: state.phase3State.selectedThemeIndex,
-                    currentQuestionIndex: state.phase3State.currentQuestionIndex,
-                    score: state.phase3State.correctCount,
-                    finished: state.phase3State.currentQuestionIndex >= SOLO_SCORING.phase3.maxQuestions,
-                },
-            };
-        }
+    // Phase 2 state mapping
+    if (state.status === 'phase2' && state.phase2State) {
+        baseState.currentPhase2Set = 0; // Solo uses single set
+        baseState.currentPhase2Item = state.phase2State.currentItemIndex;
+        baseState.phaseState = 'answering';
     }
 
     // Phase 4 state mapping

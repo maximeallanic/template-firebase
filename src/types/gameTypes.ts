@@ -258,7 +258,7 @@ export interface Room {
     hostIsPremium?: boolean;
     customQuestions?: {
         phase1?: Question[];
-        phase2?: SimplePhase2Set[];
+        phase2?: SimplePhase2Set | SimplePhase2Set[]; // Solo mode uses single set, multiplayer uses array
         phase3?: Phase3Theme[];
         phase4?: Phase4Question[];
         phase5?: Phase5Data;

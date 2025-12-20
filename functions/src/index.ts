@@ -115,18 +115,19 @@ const GenerateQuestionsSchema = z.object({
   roomCode: z.string()
     .regex(/^[A-Z0-9]{4}$/, 'Room code must be 4 uppercase alphanumeric characters')
     .optional(),
+  soloMode: z.boolean().optional().default(false),
 });
 
 const ValidatePhase3Schema = z.object({
   playerAnswer: z.string().min(1).max(500),
   correctAnswer: z.string().min(1).max(500),
-  acceptableAnswers: z.array(z.string().max(500)).optional(),
+  acceptableAnswers: z.array(z.string().max(500)).nullish(), // Accept null, undefined, or array
 });
 
 const ValidatePhase5Schema = z.object({
   questions: z.array(z.object({
     answer: z.string().min(1),
-    acceptableAnswers: z.array(z.string()).optional(),
+    acceptableAnswers: z.array(z.string()).nullish(), // Accept null, undefined, or array
   })).length(10),
   spicyAnswers: z.array(z.string()).length(10),
   sweetAnswers: z.array(z.string()).length(10),
@@ -478,11 +479,12 @@ export const generateGameQuestions = onCall(
       throw new HttpsError('invalid-argument', message);
     }
 
-    const { phase, topic, difficulty, roomCode } = validatedData;
+    const { phase, topic, difficulty, roomCode, soloMode } = validatedData;
 
     // 2. Premium Check for phases 3, 4, 5 (BEFORE generation to save costs)
+    // Solo mode bypasses premium check (free practice mode with no persistence)
     const PREMIUM_PHASES = ['phase3', 'phase4', 'phase5'];
-    if (PREMIUM_PHASES.includes(phase)) {
+    if (PREMIUM_PHASES.includes(phase) && !soloMode) {
       const userDoc = await db.collection('users').doc(auth.uid).get();
       const userData = userDoc.data();
       if (userData?.subscriptionStatus !== 'active') {
@@ -675,7 +677,7 @@ export const validatePhase3Answer = onCall(
       const result = await validateAnswer(
         playerAnswer,
         correctAnswer,
-        acceptableAnswers
+        acceptableAnswers ?? undefined // Convert null to undefined
       );
 
       return {
@@ -730,16 +732,16 @@ export const validatePhase5Answers = onCall(
 
     try {
       // Prepare validation batches for both teams
-      const spicyValidationInput = questions.map((q: { answer: string; acceptableAnswers?: string[] }, i: number) => ({
+      const spicyValidationInput = questions.map((q, i) => ({
         playerAnswer: spicyAnswers[i] || '',
         correctAnswer: q.answer,
-        acceptableAnswers: q.acceptableAnswers,
+        acceptableAnswers: q.acceptableAnswers ?? undefined, // Convert null to undefined
       }));
 
-      const sweetValidationInput = questions.map((q: { answer: string; acceptableAnswers?: string[] }, i: number) => ({
+      const sweetValidationInput = questions.map((q, i) => ({
         playerAnswer: sweetAnswers[i] || '',
         correctAnswer: q.answer,
-        acceptableAnswers: q.acceptableAnswers,
+        acceptableAnswers: q.acceptableAnswers ?? undefined, // Convert null to undefined
       }));
 
       // Validate both teams in parallel

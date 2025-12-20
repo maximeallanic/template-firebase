@@ -13,7 +13,7 @@ interface SoloGameHeaderProps {
     phaseName: string;
     phaseScores: {
         phase1: number;
-        phase3: number;
+        phase2: number;
         phase4: number;
     };
 }
@@ -64,8 +64,8 @@ export function SoloGameHeader({ score, maxScore, phaseName, phaseScores }: Solo
                         <span className="text-orange-400 font-bold">{phaseScores.phase1}</span>
                     </div>
                     <div className="bg-slate-800 rounded-lg px-2 py-1 flex items-center gap-1">
-                        <span className="text-gray-400">P3:</span>
-                        <span className="text-orange-400 font-bold">{phaseScores.phase3}</span>
+                        <span className="text-gray-400">P2:</span>
+                        <span className="text-orange-400 font-bold">{phaseScores.phase2}</span>
                     </div>
                     <div className="bg-slate-800 rounded-lg px-2 py-1 flex items-center gap-1">
                         <span className="text-gray-400">P4:</span>

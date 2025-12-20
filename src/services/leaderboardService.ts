@@ -24,7 +24,7 @@ export interface LeaderboardEntry {
     playerAvatar: Avatar;
     score: number;
     phase1Score: number;
-    phase3Score: number;
+    phase2Score: number;
     phase4Score: number;
     accuracy: number; // percentage (0-100)
     totalTimeMs: number;

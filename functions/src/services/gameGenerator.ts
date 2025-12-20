@@ -148,6 +148,7 @@ interface Phase1DialogueReview {
 interface Phase3Menu {
     title: string;
     description: string;
+    isTrap?: boolean;
     questions: Array<{ question: string; answer: string }>;
 }
 
@@ -162,6 +163,7 @@ interface Phase3DialogueReview {
         clarity: number;
         difficulty: number;
         answer_length: number;
+        trap_menu?: number;
     };
     overall_score: number;
     menus_feedback: Array<{
@@ -327,33 +329,28 @@ export const GameGenerationOutputSchema = z.object({
 // --- HELPER FUNCTIONS ---
 
 /**
- * Call Gemini 3 Pro for GENERATION tasks (with search tools)
- * Uses ai.chat() to properly handle thought_signature for Gemini 3 Pro with tools
+ * Call Gemini 3 Pro for GENERATION tasks (with Google Search grounding)
+ * Uses native googleSearchRetrieval for web search (avoids thought_signature issues with custom tools)
  * @param prompt - The prompt to send to the model
  * @param configType - 'creative' for high temperature, 'factual' for lower temperature
  */
 async function callGemini(prompt: string, configType: 'creative' | 'factual' = 'creative'): Promise<string> {
-    const config = MODEL_CONFIG[configType];
+    const baseConfig = MODEL_CONFIG[configType];
 
-    console.log(`🔧 Generator: gemini-3-pro-preview, config: ${configType}, tools: ${isSearchAvailable ? 'webSearch' : 'none'}`);
+    console.log(`🔧 Generator: gemini-3-pro-preview, config: ${configType}, grounding: ${isSearchAvailable ? 'googleSearch' : 'none'}`);
 
-    if (isSearchAvailable) {
-        // Use ai.chat() which properly handles thought signatures for Gemini 3 Pro with tools
-        const chat = ai.chat({
-            model: GENERATOR_MODEL,
-            config,
-            tools: [googleSearch],
-        });
-        const response = await chat.send(prompt);
-        return response.text;
-    } else {
-        const response = await ai.generate({
-            model: GENERATOR_MODEL,
-            prompt,
-            config,
-        });
-        return response.text;
-    }
+    // Use native Google Search grounding instead of custom tool
+    // This avoids thought_signature issues with Gemini 3 Pro
+    const config = isSearchAvailable
+        ? { ...baseConfig, googleSearchRetrieval: true }
+        : baseConfig;
+
+    const response = await ai.generate({
+        model: GENERATOR_MODEL,
+        prompt,
+        config,
+    });
+    return response.text;
 }
 
 /**
@@ -1931,7 +1928,7 @@ ${review.global_feedback}
 
 /**
  * Generate Phase 3 menus using dialogue between Generator and Reviewer agents
- * Creates 3 themed menus with 5 questions each
+ * Creates 4 themed menus with 5 questions each: 3 normal + 1 trap menu
  */
 async function generatePhase3WithDialogue(
     topic: string,
@@ -1968,7 +1965,39 @@ async function generatePhase3WithDialogue(
 
         console.log(`📋 Generated ${proposal.length} menus`);
         for (const menu of proposal) {
-            console.log(`   - "${menu.title}": ${menu.questions.length} questions`);
+            const trapIndicator = menu.isTrap ? ' 🎭 TRAP' : '';
+            console.log(`   - "${menu.title}": ${menu.questions.length} questions${trapIndicator}`);
+        }
+
+        // Validate menu count (expecting 4 menus: 3 normal + 1 trap)
+        if (proposal.length !== 4) {
+            console.log(`❌ Expected 4 menus, got ${proposal.length}. Retrying...`);
+            previousFeedback = `
+⚠️ NOMBRE DE MENUS INCORRECT
+
+Tu as généré ${proposal.length} menus, mais il en faut exactement 4 :
+- 3 menus normaux (isTrap: false)
+- 1 menu piège (isTrap: true)
+
+Recommence avec 4 menus.
+`;
+            continue;
+        }
+
+        // Validate trap menu presence
+        const trapMenus = proposal.filter(m => m.isTrap === true);
+        if (trapMenus.length !== 1) {
+            console.log(`❌ Expected exactly 1 trap menu, got ${trapMenus.length}. Retrying...`);
+            previousFeedback = `
+⚠️ MENU PIÈGE MANQUANT OU INCORRECT
+
+Tu as ${trapMenus.length} menu(s) piège(s), mais il en faut exactement 1.
+- Mets "isTrap": true pour UN seul menu (celui avec les questions les plus difficiles)
+- Les 3 autres menus doivent avoir "isTrap": false
+
+Recommence avec exactement 1 menu piège.
+`;
+            continue;
         }
 
         lastMenus = proposal;
@@ -2181,9 +2210,21 @@ ${review.suggestions.map((s, idx) => `${idx + 1}. ${s}`).join('\n')}
     }
 
     // Fallback to best menus
-    const fallbackMenus = bestMenus.length > 0 ? bestMenus : lastMenus;
+    let fallbackMenus = bestMenus.length > 0 ? bestMenus : lastMenus;
     if (fallbackMenus.length > 0) {
         console.warn(`⚠️ Max iterations reached. Using best menus (score: ${bestScore}/10).`);
+
+        // Ensure exactly one trap menu exists (fallback logic)
+        const trapCount = fallbackMenus.filter(m => m.isTrap === true).length;
+        if (trapCount !== 1) {
+            console.warn(`⚠️ Trap menu fix: found ${trapCount} trap(s), expected 1. Auto-assigning...`);
+            // Reset all isTrap to false first
+            fallbackMenus = fallbackMenus.map(m => ({ ...m, isTrap: false }));
+            // Pick a random menu to be the trap (index 0-3)
+            const trapIndex = Math.floor(Math.random() * fallbackMenus.length);
+            fallbackMenus[trapIndex].isTrap = true;
+            console.log(`   → Menu "${fallbackMenus[trapIndex].title}" marked as trap`);
+        }
         const allQuestions = fallbackMenus.flatMap(m => m.questions.map(q => q.question));
         const questionsAsItems = allQuestions.map(q => ({ text: q }));
 

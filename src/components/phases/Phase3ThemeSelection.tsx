@@ -59,7 +59,7 @@ export const Phase3ThemeSelection: React.FC<Phase3ThemeSelectionProps> = ({
         audioService.playClick();
 
         try {
-            if (isSolo && soloHandlers) {
+            if (isSolo && soloHandlers?.selectPhase3Theme) {
                 soloHandlers.selectPhase3Theme(originalIndex);
                 audioService.playSuccess();
             } else {

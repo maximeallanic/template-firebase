@@ -749,7 +749,8 @@ export const submitPhase2Answer = async (
     // Get current question data
     const setIndex = room.state.currentPhase2Set ?? 0;
     const itemIndex = room.state.currentPhase2Item ?? 0;
-    const currentSet = room.customQuestions?.phase2?.[setIndex] || PHASE2_SETS[setIndex];
+    const phase2Sets = room.customQuestions?.phase2 as SimplePhase2Set[] | undefined;
+    const currentSet = phase2Sets?.[setIndex] || PHASE2_SETS[setIndex];
     if (!currentSet?.items?.[itemIndex]) return;
 
     const item = currentSet.items[itemIndex];
@@ -862,7 +863,8 @@ export const endPhase2Round = async (roomCode: string) => {
 
     const setIndex = room.state.currentPhase2Set ?? 0;
     const itemIndex = room.state.currentPhase2Item ?? 0;
-    const currentSet = room.customQuestions?.phase2?.[setIndex] || PHASE2_SETS[setIndex];
+    const phase2Sets = room.customQuestions?.phase2 as SimplePhase2Set[] | undefined;
+    const currentSet = phase2Sets?.[setIndex] || PHASE2_SETS[setIndex];
     const hasAnecdote = currentSet?.items?.[itemIndex]?.anecdote;
 
     const updates: Record<string, unknown> = {};
