@@ -132,7 +132,7 @@ jobs:
       - name: Deploy to Firebase (All services)
         run: |
           npx firebase-tools deploy \
-            --only hosting,functions,firestore:rules,firestore:indexes \
+            --only hosting,functions,firestore:rules,firestore:indexes,database \
             --project ${{ secrets.FIREBASE_PROJECT_ID }} \
             --non-interactive \
             --force

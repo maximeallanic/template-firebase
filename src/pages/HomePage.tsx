@@ -177,7 +177,18 @@ export default function HomePage() {
       }
     } catch (err) {
       console.error('Failed to join room:', err);
-      setJoinError('Room introuvable');
+      // Provide more specific error messages
+      if (err instanceof Error) {
+        if (err.message.includes('PERMISSION_DENIED')) {
+          setJoinError('Accès refusé - la partie a peut-être déjà commencé');
+        } else if (err.message.includes('Room not found')) {
+          setJoinError('Room introuvable');
+        } else {
+          setJoinError('Erreur de connexion - réessaie');
+        }
+      } else {
+        setJoinError('Room introuvable');
+      }
     } finally {
       setIsJoiningRoom(false);
     }
