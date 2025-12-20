@@ -59,18 +59,18 @@
     },
     "userHistory": {
       "$playerId": {
-        // Any authenticated user can read (for exhaustion check), only owner can write
-        ".read": "auth != null",
+        // SEC-006: Only owner can read and write their own history
+        ".read": "auth != null && auth.uid == $playerId",
         ".write": "auth != null && auth.uid == $playerId"
       }
     },
     "cursors": {
       "$roomCode": {
-        // Any authenticated user can read cursors in a room
-        ".read": "auth != null",
+        // SEC-007: Only players in this room can read cursors
+        ".read": "auth != null && root.child('rooms').child($roomCode).child('players').child(auth.uid).exists()",
         "$playerId": {
-          // Only the owner can write their own cursor position
-          ".write": "auth != null && auth.uid == $playerId",
+          // Only the owner can write their own cursor position (if they're in the room)
+          ".write": "auth != null && auth.uid == $playerId && root.child('rooms').child($roomCode).child('players').child(auth.uid).exists()",
           ".validate": "newData.hasChildren(['x', 'y', 'isTouch', 'timestamp'])"
         }
       }

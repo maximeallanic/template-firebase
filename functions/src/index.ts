@@ -3,13 +3,136 @@ import { defineSecret } from 'firebase-functions/params';
 import { FieldValue, Timestamp } from 'firebase-admin/firestore';
 import { db, admin } from './config/firebase';
 import Stripe from 'stripe';
+import { z } from 'zod';
 
 // Define secrets for production (Secret Manager)
 const stripeSecretKey = defineSecret('STRIPE_SECRET_KEY');
 const stripeWebhookSecret = defineSecret('STRIPE_WEBHOOK_SECRET');
 
+// ============================================================================
+// SECURITY UTILITIES
+// ============================================================================
+
+/**
+ * Allowed origins for URL validation (SEC-001)
+ */
+const ALLOWED_ORIGINS = [
+  process.env.APP_URL,
+  'https://spicyvssweet.com',
+  'https://spicy-vs-sweet.web.app',
+  'https://spicy-vs-sweet.firebaseapp.com',
+].filter(Boolean) as string[];
+
+/**
+ * Validates return URLs to prevent open redirect attacks (SEC-001)
+ */
+function validateReturnUrl(url: string | undefined): string {
+  const defaultUrl = process.env.APP_URL || 'https://spicy-vs-sweet.web.app';
+  if (!url) return defaultUrl;
+
+  try {
+    const parsed = new URL(url);
+    const isAllowed = ALLOWED_ORIGINS.some(origin => {
+      try {
+        return new URL(origin).hostname === parsed.hostname;
+      } catch {
+        return false;
+      }
+    });
+    return isAllowed ? url : defaultUrl;
+  } catch {
+    return defaultUrl;
+  }
+}
+
+/**
+ * Sanitizes log messages to prevent sensitive data exposure (SEC-010)
+ */
+function sanitizeLog(message: string): string {
+  return message
+    .replace(/sk_[a-zA-Z0-9_]+/g, '[STRIPE_KEY]')
+    .replace(/pi_[a-zA-Z0-9_]+/g, '[PAYMENT_INTENT]')
+    .replace(/cs_[a-zA-Z0-9_]+/g, '[CHECKOUT_SESSION]')
+    .replace(/sub_[a-zA-Z0-9_]+/g, '[SUBSCRIPTION_ID]')
+    .replace(/cus_[a-zA-Z0-9_]+/g, '[CUSTOMER_ID]');
+}
+
+/**
+ * Rate limiting configuration per operation (SEC-004)
+ */
+const RATE_LIMITS: Record<string, number> = {
+  generateGameQuestions: 20, // 20 per hour
+  validatePhase3Answer: 200, // 200 per hour
+  validatePhase5Answers: 50, // 50 per hour
+};
+
+/**
+ * Checks and enforces rate limits per user (SEC-004)
+ */
+async function checkRateLimit(
+  userId: string,
+  operation: string
+): Promise<void> {
+  const maxPerHour = RATE_LIMITS[operation];
+  if (!maxPerHour) return; // No limit configured
+
+  const hour = Math.floor(Date.now() / 3600000);
+  const docId = `${userId}_${operation}_${hour}`;
+  const ref = db.collection('rateLimits').doc(docId);
+
+  const doc = await ref.get();
+  const count = doc.data()?.count || 0;
+
+  if (count >= maxPerHour) {
+    throw new HttpsError(
+      'resource-exhausted',
+      `Rate limit exceeded: max ${maxPerHour} ${operation} calls per hour`
+    );
+  }
+
+  await ref.set({
+    count: count + 1,
+    userId,
+    operation,
+    hour,
+    updatedAt: FieldValue.serverTimestamp()
+  }, { merge: true });
+}
+
+/**
+ * Zod schemas for input validation (SEC-005)
+ */
+const GenerateQuestionsSchema = z.object({
+  phase: z.enum(['phase1', 'phase2', 'phase3', 'phase4', 'phase5']),
+  topic: z.string()
+    .min(1)
+    .max(100)
+    .regex(/^[\w\s\-'àâäéèêëïîôùûüÿçÀÂÄÉÈÊËÏÎÔÙÛÜŸÇ.,!?]+$/i, 'Invalid characters in topic')
+    .optional(),
+  difficulty: z.enum(['easy', 'normal', 'hard', 'wtf']).optional(),
+  roomCode: z.string()
+    .regex(/^[A-Z0-9]{4}$/, 'Room code must be 4 uppercase alphanumeric characters')
+    .optional(),
+});
+
+const ValidatePhase3Schema = z.object({
+  playerAnswer: z.string().min(1).max(500),
+  correctAnswer: z.string().min(1).max(500),
+  acceptableAnswers: z.array(z.string().max(500)).optional(),
+});
+
+const ValidatePhase5Schema = z.object({
+  questions: z.array(z.object({
+    answer: z.string().min(1),
+    acceptableAnswers: z.array(z.string()).optional(),
+  })).length(10),
+  spicyAnswers: z.array(z.string()).length(10),
+  sweetAnswers: z.array(z.string()).length(10),
+});
+
 /**
  * Get User Subscription
+ * SEC-003: Verifies email before creating new user records
  */
 export const getUserSubscription = onCall(async ({ auth }) => {
   if (!auth) {
@@ -21,9 +144,22 @@ export const getUserSubscription = onCall(async ({ auth }) => {
   const userData = userDoc.data();
 
   if (!userData) {
-    // Create default user
+    // SEC-003: Verify email before creating user record
+    // Google Sign-In emails are considered verified
+    const isGoogleUser = auth.token.firebase?.sign_in_provider === 'google.com';
+    const isEmailVerified = auth.token.email_verified === true || isGoogleUser;
+
+    if (!isEmailVerified) {
+      throw new HttpsError(
+        'permission-denied',
+        'Email must be verified before accessing this feature. Please check your inbox for a verification email.'
+      );
+    }
+
+    // Create default user only after email verification
     await db.collection('users').doc(userId).set({
       email: auth.token.email,
+      emailVerified: true,
       subscriptionStatus: 'free',
       analysesUsedThisMonth: 0,
       analysesLimit: 5,
@@ -85,6 +221,9 @@ export const createCheckoutSession = onCall(
         });
       }
 
+      // SEC-001: Validate return URL to prevent open redirect
+      const validatedReturnUrl = validateReturnUrl(data.returnUrl);
+
       // Create checkout session for Premium subscription (phases 3-5 access)
       const session = await stripe.checkout.sessions.create({
         customer: customerId,
@@ -104,8 +243,8 @@ export const createCheckoutSession = onCall(
             quantity: 1,
           },
         ],
-        success_url: `${data.returnUrl || process.env.APP_URL || 'https://example.com'}?session_id={CHECKOUT_SESSION_ID}`,
-        cancel_url: data.returnUrl || process.env.APP_URL || 'https://example.com',
+        success_url: `${validatedReturnUrl}?session_id={CHECKOUT_SESSION_ID}`,
+        cancel_url: validatedReturnUrl,
         metadata: { firebaseUID: userId, subscriptionType: 'premium' },
       });
 
@@ -144,9 +283,12 @@ export const createPortalSession = onCall(
         throw new HttpsError('not-found', 'No Stripe customer found');
       }
 
+      // SEC-001: Validate return URL to prevent open redirect
+      const validatedReturnUrl = validateReturnUrl(data.returnUrl);
+
       const session = await stripe.billingPortal.sessions.create({
         customer: userData.stripeCustomerId,
-        return_url: data.returnUrl || process.env.APP_URL || 'https://example.com',
+        return_url: validatedReturnUrl,
       });
 
       return { url: session.url };
@@ -195,11 +337,20 @@ export const cancelSubscription = onCall(
 
 /**
  * Handle Stripe Webhooks
+ * SEC-009: Added idempotency to prevent duplicate processing
+ * SEC-010: Sanitized logging
  */
 export const stripeWebhook = onRequest(
   { secrets: [stripeSecretKey, stripeWebhookSecret] },
   async (req, res) => {
-    const sig = req.headers['stripe-signature'] as string;
+    const sig = req.headers['stripe-signature'];
+
+    // SEC-009: Validate signature header exists
+    if (!sig) {
+      console.error('Webhook error: Missing stripe-signature header');
+      res.status(400).send('Missing stripe-signature header');
+      return;
+    }
 
     // Initialize Stripe with secret
     const stripe = new Stripe(stripeSecretKey.value().trim(), { apiVersion: '2023-10-16' });
@@ -211,12 +362,35 @@ export const stripeWebhook = onRequest(
         stripeWebhookSecret.value()
       );
 
+      // SEC-009: Check idempotency - prevent duplicate processing
+      const eventId = event.id;
+      const processedRef = db.collection('processedWebhooks').doc(eventId);
+      const processedDoc = await processedRef.get();
+
+      if (processedDoc.exists) {
+        console.log(`Webhook ${eventId} already processed, skipping`);
+        res.json({ received: true, skipped: true });
+        return;
+      }
+
+      // Mark as processed immediately to prevent race conditions
+      await processedRef.set({
+        eventType: event.type,
+        processedAt: FieldValue.serverTimestamp(),
+      });
+
       switch (event.type) {
         case 'checkout.session.completed': {
           const session = event.data.object as Stripe.Checkout.Session;
           const userId = session.metadata?.firebaseUID;
 
-          if (userId && session.subscription) {
+          // SEC-009: Validate userId format
+          if (!userId || typeof userId !== 'string' || !/^[a-zA-Z0-9]+$/.test(userId)) {
+            console.error('Invalid userId in webhook metadata');
+            break;
+          }
+
+          if (session.subscription) {
             await db.collection('users').doc(userId).update({
               subscriptionStatus: 'active',
               subscriptionId: session.subscription,
@@ -234,6 +408,13 @@ export const stripeWebhook = onRequest(
 
           if ('metadata' in customer && customer.metadata.firebaseUID) {
             const userId = customer.metadata.firebaseUID;
+
+            // SEC-009: Validate userId format
+            if (typeof userId !== 'string' || !/^[a-zA-Z0-9]+$/.test(userId)) {
+              console.error('Invalid userId in customer metadata');
+              break;
+            }
+
             const isActive = subscription.status === 'active';
 
             await db.collection('users').doc(userId).update({
@@ -248,9 +429,10 @@ export const stripeWebhook = onRequest(
 
       res.json({ received: true });
     } catch (error: unknown) {
-      console.error('Webhook error:', error);
+      // SEC-010: Sanitize error logs
       const message = error instanceof Error ? error.message : 'Unknown error';
-      res.status(400).send(`Webhook Error: ${message}`);
+      console.error('Webhook error:', sanitizeLog(message));
+      res.status(400).send(`Webhook Error: ${sanitizeLog(message)}`);
     }
   }
 );
@@ -264,6 +446,8 @@ import { validateAnswer } from './services/answerValidator';
  * Use Gemini to generate funny/absurd questions for the game.
  * Protected by App Check.
  * Automatically saves generated questions to Firestore for reuse.
+ * SEC-004: Rate limited
+ * SEC-005: Input validation with Zod
  */
 export const generateGameQuestions = onCall(
   {
@@ -277,10 +461,23 @@ export const generateGameQuestions = onCall(
       throw new HttpsError('unauthenticated', 'User must be authenticated to generate content.');
     }
 
-    // 2. Data Validation
-    const { phase, topic, difficulty, roomCode } = data;
+    // SEC-004: Check rate limit BEFORE any expensive operations
+    await checkRateLimit(auth.uid, 'generateGameQuestions');
 
-    // 3. Premium Check for phases 3, 4, 5
+    // SEC-005: Validate input with Zod schema
+    let validatedData;
+    try {
+      validatedData = GenerateQuestionsSchema.parse(data);
+    } catch (zodError) {
+      const message = zodError instanceof z.ZodError
+        ? zodError.errors.map(e => e.message).join(', ')
+        : 'Invalid input';
+      throw new HttpsError('invalid-argument', message);
+    }
+
+    const { phase, topic, difficulty, roomCode } = validatedData;
+
+    // 2. Premium Check for phases 3, 4, 5 (BEFORE generation to save costs)
     const PREMIUM_PHASES = ['phase3', 'phase4', 'phase5'];
     if (PREMIUM_PHASES.includes(phase)) {
       const userDoc = await db.collection('users').doc(auth.uid).get();
@@ -289,18 +486,16 @@ export const generateGameQuestions = onCall(
         throw new HttpsError('permission-denied', 'Premium subscription required for phases 3-5');
       }
     }
-    if (!phase || !['phase1', 'phase2', 'phase3', 'phase4', 'phase5'].includes(phase)) {
-      throw new HttpsError('invalid-argument', 'Invalid phase provided.');
-    }
 
     // 3. Idempotency Check: If room already has questions for this phase, return them
     if (roomCode) {
       const roomSnap = await admin.database()
-        .ref(`rooms/${roomCode.toUpperCase()}/customQuestions/${phase}`)
+        .ref(`rooms/${roomCode}/customQuestions/${phase}`)
         .once('value');
 
       if (roomSnap.exists()) {
-        console.log(`⏭️ Room ${roomCode} already has ${phase} questions, skipping generation`);
+        // SEC-010: Don't log room codes in production
+        console.log(`Room already has ${phase} questions, skipping generation`);
         return {
           success: true,
           data: roomSnap.val(),
@@ -456,11 +651,21 @@ export const validatePhase3Answer = onCall(
       throw new HttpsError('unauthenticated', 'User must be authenticated');
     }
 
-    const { playerAnswer, correctAnswer, acceptableAnswers } = data;
+    // SEC-004: Check rate limit
+    await checkRateLimit(auth.uid, 'validatePhase3Answer');
 
-    if (!playerAnswer || !correctAnswer) {
-      throw new HttpsError('invalid-argument', 'playerAnswer and correctAnswer are required');
+    // SEC-005: Validate input with Zod schema
+    let validatedData;
+    try {
+      validatedData = ValidatePhase3Schema.parse(data);
+    } catch (zodError) {
+      const message = zodError instanceof z.ZodError
+        ? zodError.errors.map(e => e.message).join(', ')
+        : 'Invalid input';
+      throw new HttpsError('invalid-argument', message);
     }
+
+    const { playerAnswer, correctAnswer, acceptableAnswers } = validatedData;
 
     try {
       const result = await validateAnswer(
@@ -502,18 +707,21 @@ export const validatePhase5Answers = onCall(
       throw new HttpsError('unauthenticated', 'User must be authenticated');
     }
 
-    const { questions, spicyAnswers, sweetAnswers } = data;
+    // SEC-004: Check rate limit
+    await checkRateLimit(auth.uid, 'validatePhase5Answers');
 
-    // Validate input
-    if (!Array.isArray(questions) || questions.length !== 10) {
-      throw new HttpsError('invalid-argument', 'questions must be an array of 10 items');
+    // SEC-005: Validate input with Zod schema
+    let validatedData;
+    try {
+      validatedData = ValidatePhase5Schema.parse(data);
+    } catch (zodError) {
+      const message = zodError instanceof z.ZodError
+        ? zodError.errors.map(e => e.message).join(', ')
+        : 'Invalid input';
+      throw new HttpsError('invalid-argument', message);
     }
-    if (!Array.isArray(spicyAnswers) || spicyAnswers.length !== 10) {
-      throw new HttpsError('invalid-argument', 'spicyAnswers must be an array of 10 items');
-    }
-    if (!Array.isArray(sweetAnswers) || sweetAnswers.length !== 10) {
-      throw new HttpsError('invalid-argument', 'sweetAnswers must be an array of 10 items');
-    }
+
+    const { questions, spicyAnswers, sweetAnswers } = validatedData;
 
     try {
       // Prepare validation batches for both teams

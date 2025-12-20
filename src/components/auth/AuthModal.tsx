@@ -1,6 +1,23 @@
 import React, { useState } from 'react';
 import { signIn, signUp, signInWithGoogle, sendPasswordReset } from '../../services/firebase';
 
+/**
+ * SEC-008: Masks email to prevent shoulder surfing
+ * Shows first 2 chars + masked middle + last char before @ + full domain
+ * Example: jo***n@example.com
+ */
+function maskEmail(email: string): string {
+  if (!email || !email.includes('@')) return email;
+  const [local, domain] = email.split('@');
+  if (local.length <= 3) {
+    return `${local[0]}${'*'.repeat(local.length - 1)}@${domain}`;
+  }
+  const first = local.slice(0, 2);
+  const last = local.slice(-1);
+  const masked = '*'.repeat(Math.min(local.length - 3, 5));
+  return `${first}${masked}${last}@${domain}`;
+}
+
 interface AuthModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -141,7 +158,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onSuccess
                     We sent a password reset link to:
                   </p>
                   <p className="text-base font-semibold text-blue-600 mb-3 break-all">
-                    {resetEmail}
+                    {maskEmail(resetEmail)}
                   </p>
                   <p className="text-sm text-gray-700">
                     Click the link in the email to reset your password.
@@ -236,7 +253,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onSuccess
                 A verification email has been sent to:
               </p>
               <p className="text-base font-semibold text-blue-600 mb-3 break-all">
-                {email}
+                {maskEmail(email)}
               </p>
               <p className="text-sm text-gray-700">
                 Please check your inbox and click the verification link to activate your account.

@@ -36,6 +36,25 @@ export function normalizeAnswer(answer: string): string {
 }
 
 /**
+ * SEC-002: Sanitizes input to prevent LLM prompt injection attacks.
+ * Removes newlines, control characters, and potential injection patterns.
+ * Limits length to prevent token exhaustion.
+ */
+function sanitizeLLMInput(input: string, maxLength = 500): string {
+    if (!input) return '';
+
+    return input
+        .replace(/[\r\n]+/g, ' ')                      // Replace newlines with space
+        // eslint-disable-next-line no-control-regex
+        .replace(/[\x00-\x1f\x7f]/g, '')               // Remove control characters
+        .replace(/[<>{}[\]]/g, '')                     // Remove brackets that could confuse parsing
+        .replace(/```/g, '')                           // Remove code block markers
+        .replace(/\b(instruction|system|prompt|ignore|override)\b/gi, '') // Remove injection keywords
+        .substring(0, maxLength)                        // Limit length
+        .trim();
+}
+
+/**
  * Quick check for exact match (normalized)
  */
 function isExactMatch(playerAnswer: string, correctAnswer: string): boolean {
@@ -54,6 +73,7 @@ function matchesAlternative(playerAnswer: string, acceptableAnswers?: string[]):
 
 /**
  * Validate answer using LLM for fuzzy matching
+ * SEC-002: Applies input sanitization to prevent prompt injection
  */
 async function validateWithLLM(
     playerAnswer: string,
@@ -61,10 +81,17 @@ async function validateWithLLM(
     acceptableAnswers?: string[]
 ): Promise<ValidationResult> {
     try {
+        // SEC-002: Sanitize all inputs before passing to LLM
+        const safePlayerAnswer = sanitizeLLMInput(playerAnswer);
+        const safeCorrectAnswer = sanitizeLLMInput(correctAnswer);
+        const safeAlternatives = (acceptableAnswers || [])
+            .map(alt => sanitizeLLMInput(alt, 200))
+            .filter(alt => alt.length > 0);
+
         const prompt = ANSWER_VALIDATION_PROMPT
-            .replace('{PLAYER_ANSWER}', playerAnswer)
-            .replace('{CORRECT_ANSWER}', correctAnswer)
-            .replace('{ALTERNATIVES}', JSON.stringify(acceptableAnswers || []));
+            .replace('{PLAYER_ANSWER}', safePlayerAnswer)
+            .replace('{CORRECT_ANSWER}', safeCorrectAnswer)
+            .replace('{ALTERNATIVES}', JSON.stringify(safeAlternatives));
 
         const response = await ai.generate({
             model: REVIEWER_MODEL,
