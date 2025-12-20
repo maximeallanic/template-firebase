@@ -3,7 +3,7 @@ import type { Question } from '../types/gameTypes';
 // Re-export for backwards compatibility
 export type { Question };
 
-// Questions de fallback Phase 1 - Style Burger Quiz
+// Questions de fallback Phase 1
 // Utilisées quand l'IA est indisponible ou en cas d'erreur
 export const QUESTIONS: Question[] = [
     {

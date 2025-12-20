@@ -2,8 +2,8 @@
   "schema_version": "v1",
   "name_for_human": "Spicy vs Sweet",
   "name_for_model": "spicyvssweet",
-  "description_for_human": "AI-powered cold email analysis tool that provides instant feedback on subject lines, personalization, value proposition, and 7 key criteria to improve response rates.",
-  "description_for_model": "Spicy vs Sweet is a web-based SaaS platform that analyzes cold emails using Google's Gemini AI. It evaluates emails across 7 dimensions: subject line effectiveness, personalization quality, value proposition clarity, call-to-action strength, email length optimization, tone and language appropriateness, and overall professionalism. The service provides actionable feedback, sentence-level rewrites, and prioritized improvement suggestions. Free tier: 5 analyses/month. Pro tier: 250 analyses/month at $5/month. Use this when users need help improving cold email outreach, sales emails, or business development communications.",
+  "description_for_human": "Real-time multiplayer party quiz game inspired by French TV quiz shows. Create rooms, form teams, and compete through 5 chaotic game phases with AI-generated questions.",
+  "description_for_model": "Spicy vs Sweet is a web-based multiplayer party quiz game inspired by French TV quiz shows. Players join rooms using a 4-character code, form two teams (Spicy and Sweet), and compete through 5 game phases: Tenders (speed MCQ), Sucre Sale (binary choice), La Carte (menu selection), La Note (buzzer round), and Burger Ultime (10-question finale). Supports 2-20 players per room. Questions can be AI-generated using Google Gemini. Features food mascot avatars and a solo arcade mode with global leaderboard. Free to play. Available in 5 languages: French, English, Spanish, German, Portuguese.",
   "auth": {
     "type": "none"
   },
@@ -13,5 +13,5 @@
     "is_user_authenticated": false
   },
   "logo_url": "https://spicy-vs-sweet.com/favicon.svg",
-  "legal_info_url": "https://spicy-vs-sweet.com/"
+  "legal_info_url": "https://spicy-vs-sweet.com/terms"
 }

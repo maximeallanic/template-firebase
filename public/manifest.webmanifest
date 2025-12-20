@@ -1,7 +1,7 @@
 {
   "name": "Spicy vs Sweet",
   "short_name": "Spicy vs Sweet",
-  "description": "Jeu de quiz multijoueur en equipes - Spicy vs Sweet. Inspiré du Burger Quiz !",
+  "description": "Jeu de quiz multijoueur en equipes - Spicy vs Sweet. Inspiré des jeux TV de quiz !",
   "start_url": "/",
   "display": "standalone",
   "orientation": "portrait",

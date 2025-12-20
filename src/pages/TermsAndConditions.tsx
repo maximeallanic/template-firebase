@@ -32,7 +32,7 @@ const TermsAndConditions = () => {
           <section>
             <h2 className="text-2xl font-semibold text-white mb-3">2. Description du Service</h2>
             <p className="text-indigo-100/80 mb-3">
-              Spicy vs Sweet est un jeu de quiz multijoueur en ligne inspiré de "Burger Quiz". Les joueurs peuvent :
+              Spicy vs Sweet est un jeu de quiz multijoueur en ligne inspiré des jeux TV de quiz. Les joueurs peuvent :
             </p>
             <ul className="list-disc list-inside text-indigo-100/80 ml-4 space-y-2">
               <li>Créer des parties et inviter des amis via un code de room</li>

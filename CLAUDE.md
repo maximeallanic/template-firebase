@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-**Spicy vs Sweet** is a multiplayer party quiz game inspired by "Burger Quiz". Players join rooms, split into teams (Spicy vs Sweet), and compete through 5 chaotic, funny game phases.
+**Spicy vs Sweet** is a multiplayer party quiz game inspired by French TV quiz shows. Players join rooms, split into teams (Spicy vs Sweet), and compete through 5 chaotic, funny game phases.
 
 **Core Features:**
 - **Real-time Multiplayer**: 2-20 players per room via Firebase Realtime Database

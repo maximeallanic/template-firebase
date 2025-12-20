@@ -7,9 +7,33 @@
   <!-- Main page - Highest priority -->
   <url>
     <loc>https://spicy-vs-sweet.com/</loc>
-    <lastmod>2025-10-11</lastmod>
+    <lastmod>2025-12-20</lastmod>
     <changefreq>weekly</changefreq>
     <priority>1.0</priority>
+  </url>
+
+  <!-- Leaderboard - Solo mode rankings -->
+  <url>
+    <loc>https://spicy-vs-sweet.com/leaderboard</loc>
+    <lastmod>2025-12-20</lastmod>
+    <changefreq>daily</changefreq>
+    <priority>0.8</priority>
+  </url>
+
+  <!-- Terms and Conditions -->
+  <url>
+    <loc>https://spicy-vs-sweet.com/terms</loc>
+    <lastmod>2025-12-20</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.3</priority>
+  </url>
+
+  <!-- Privacy Policy -->
+  <url>
+    <loc>https://spicy-vs-sweet.com/privacy</loc>
+    <lastmod>2025-12-20</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.3</priority>
   </url>
 
 </urlset>
