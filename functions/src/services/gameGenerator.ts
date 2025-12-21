@@ -375,9 +375,10 @@ async function callGeminiForReview(prompt: string, configType: 'creative' | 'fac
 
 /**
  * Helper to find a balanced JSON structure (handles nested objects/arrays)
+ * @param preferArray - If true, searches for '[' before '{' to prioritize array extraction
  */
-function findBalancedJson(text: string): string | null {
-    const startChars = ['{', '['];
+function findBalancedJson(text: string, preferArray: boolean = false): string | null {
+    const startChars = preferArray ? ['[', '{'] : ['{', '['];
     const endChars = ['}', ']'];
 
     for (const startChar of startChars) {
@@ -431,6 +432,36 @@ function parseJsonFromText(text: string): unknown {
     }
 
     return JSON.parse(jsonMatch);
+}
+
+/**
+ * Parse JSON array from text, prioritizing array extraction over objects.
+ * Handles cases where AI returns preamble text before JSON.
+ * If a single object is found, wraps it in an array.
+ */
+function parseJsonArrayFromText<T>(text: string): T[] {
+    // Clean markdown artifacts
+    const cleanText = text
+        .replace(/```json\s*/gi, '')
+        .replace(/```\s*/g, '')
+        .trim();
+
+    // Try direct parse first (fastest path)
+    try {
+        const result = JSON.parse(cleanText);
+        return Array.isArray(result) ? result : [result];
+    } catch {
+        // Continue to balanced extraction
+    }
+
+    // Find balanced JSON structure, prioritizing arrays
+    const jsonMatch = findBalancedJson(cleanText, true);
+    if (!jsonMatch) {
+        throw new Error('No valid JSON array found in response');
+    }
+
+    const result = JSON.parse(jsonMatch);
+    return Array.isArray(result) ? result : [result];
 }
 
 /**
@@ -1419,7 +1450,7 @@ async function performPhase1TargetedRegen(
     try {
         console.log(`🔧 Targeted regeneration: replacing ${badIndices.length} questions (indices: ${badIndices.map(i => i + 1).join(', ')})`);
         const regenText = await callGemini(targetedPrompt, 'factual');
-        const newQuestions = parseJsonFromText(regenText) as Phase1GeneratorQuestion[];
+        const newQuestions = parseJsonArrayFromText<Phase1GeneratorQuestion>(regenText);
 
         // Merge: keep good questions + add new questions
         const mergedQuestions = [
@@ -1464,7 +1495,7 @@ async function performPhase4TargetedRegen(
     try {
         console.log(`🔧 Targeted regeneration: replacing ${badIndices.length} questions (indices: ${badIndices.map(i => i + 1).join(', ')})`);
         const regenText = await callGemini(targetedPrompt, 'creative');
-        const newQuestions = parseJsonFromText(regenText) as Phase4Question[];
+        const newQuestions = parseJsonArrayFromText<Phase4Question>(regenText);
 
         const mergedQuestions = [...goodQuestions, ...newQuestions];
         console.log(`✅ Targeted regen: merged ${goodQuestions.length} good + ${newQuestions.length} new questions`);
@@ -1499,7 +1530,7 @@ async function performPhase5TargetedRegen(
     try {
         console.log(`🔧 Targeted regeneration: replacing ${badIndices.length} questions (indices: ${badIndices.map(i => i + 1).join(', ')})`);
         const regenText = await callGemini(targetedPrompt, 'creative');
-        const newQuestions = parseJsonFromText(regenText) as Phase5Question[];
+        const newQuestions = parseJsonArrayFromText<Phase5Question>(regenText);
 
         const mergedQuestions = [...goodQuestions, ...newQuestions];
         console.log(`✅ Targeted regen: merged ${goodQuestions.length} good + ${newQuestions.length} new questions`);
@@ -1542,7 +1573,7 @@ async function generatePhase1WithDialogue(
         let proposal: Phase1GeneratorQuestion[];
 
         try {
-            proposal = parseJsonFromText(proposalText) as Phase1GeneratorQuestion[];
+            proposal = parseJsonArrayFromText<Phase1GeneratorQuestion>(proposalText);
         } catch (err) {
             console.error('❌ Failed to parse generator response:', err);
             console.log('Raw response:', proposalText.slice(0, 500));
@@ -1956,7 +1987,7 @@ async function generatePhase3WithDialogue(
         let proposal: Phase3Menu[];
 
         try {
-            proposal = parseJsonFromText(proposalText) as Phase3Menu[];
+            proposal = parseJsonArrayFromText<Phase3Menu>(proposalText);
         } catch (err) {
             console.error('❌ Failed to parse generator response:', err);
             console.log('Raw response:', proposalText.slice(0, 500));
@@ -2285,7 +2316,7 @@ async function generatePhase4WithDialogue(
         let proposal: Phase4Question[];
 
         try {
-            proposal = parseJsonFromText(proposalText) as Phase4Question[];
+            proposal = parseJsonArrayFromText<Phase4Question>(proposalText);
             // Validate MCQ format
             proposal = proposal.filter(q =>
                 q.question &&
@@ -2577,7 +2608,7 @@ async function generatePhase5WithDialogue(
         let proposal: Phase5Question[];
 
         try {
-            proposal = parseJsonFromText(proposalText) as Phase5Question[];
+            proposal = parseJsonArrayFromText<Phase5Question>(proposalText);
         } catch (err) {
             console.error('❌ Failed to parse generator response:', err);
             console.log('Raw response:', proposalText.slice(0, 500));
