@@ -1,4 +1,12 @@
 {
+  "errors": {
+    "generic": "Ocorreu um erro",
+    "roomNotFound": "Sala não encontrada",
+    "connectionLost": "Conexão perdida",
+    "gameAlreadyStarted": "O jogo já começou",
+    "roomFull": "A sala está cheia",
+    "createFailed": "Falha ao criar a sala"
+  },
   "plans": {
     "free": "Plano Gratuito",
     "pro": "Plano Pro"

@@ -426,14 +426,28 @@ function LobbyHeader({ roomCode, linkCopied, onCopyLink }: { roomCode: string; l
                 <span className="text-5xl font-black tracking-widest text-transparent bg-clip-text bg-gradient-to-r from-red-400 to-pink-400" style={{ backgroundImage: 'linear-gradient(to right, #f87171, #f472b6)', WebkitBackgroundClip: 'text', color: 'transparent' }}>
                     {roomCode}
                 </span>
-                <button
-                    onClick={onCopyLink}
-                    className={`p-2 rounded-lg transition-colors ${linkCopied ? 'bg-green-600 text-white' : 'bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white'}`}
-                    title={t('room.copyLink')}
-                    aria-label={linkCopied ? t('room.linkCopied') : t('room.copyInviteLink')}
-                >
-                    {linkCopied ? <Check className="w-5 h-5" /> : <Link className="w-5 h-5" />}
-                </button>
+                <div className="relative">
+                    <AnimatePresence>
+                        {linkCopied && (
+                            <motion.div
+                                initial={{ opacity: 0, y: 10 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                exit={{ opacity: 0, y: -10 }}
+                                className="absolute -top-10 left-1/2 -translate-x-1/2 bg-green-600 text-white px-3 py-1 rounded-lg text-sm font-medium whitespace-nowrap shadow-lg"
+                            >
+                                {t('room.linkCopied')}
+                            </motion.div>
+                        )}
+                    </AnimatePresence>
+                    <button
+                        onClick={onCopyLink}
+                        className={`p-2 rounded-lg transition-colors ${linkCopied ? 'bg-green-600 text-white' : 'bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white'}`}
+                        title={t('room.copyLink')}
+                        aria-label={linkCopied ? t('room.linkCopied') : t('room.copyInviteLink')}
+                    >
+                        {linkCopied ? <Check className="w-5 h-5" /> : <Link className="w-5 h-5" />}
+                    </button>
+                </div>
             </div>
         </header>
     );

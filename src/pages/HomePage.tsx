@@ -178,17 +178,19 @@ export default function HomePage() {
       }
     } catch (err) {
       console.error('Failed to join room:', err);
-      // Provide more specific error messages
+      // Provide more specific error messages using i18n
       if (err instanceof Error) {
-        if (err.message.includes('PERMISSION_DENIED')) {
-          setJoinError('Accès refusé - la partie a peut-être déjà commencé');
+        if (err.message.includes('PERMISSION_DENIED') || err.message.includes('Game already started')) {
+          setJoinError(t('common:errors.gameAlreadyStarted'));
         } else if (err.message.includes('Room not found')) {
-          setJoinError('Room introuvable');
+          setJoinError(t('common:errors.roomNotFound'));
+        } else if (err.message.includes('Room is full')) {
+          setJoinError(t('common:errors.roomFull'));
         } else {
-          setJoinError('Erreur de connexion - réessaie');
+          setJoinError(t('common:errors.generic'));
         }
       } else {
-        setJoinError('Room introuvable');
+        setJoinError(t('common:errors.roomNotFound'));
       }
     } finally {
       setIsJoiningRoom(false);

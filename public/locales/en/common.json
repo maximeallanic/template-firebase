@@ -20,6 +20,14 @@
     "optional": "Optional",
     "required": "Required"
   },
+  "errors": {
+    "generic": "An error occurred",
+    "roomNotFound": "Room not found",
+    "connectionLost": "Connection lost",
+    "gameAlreadyStarted": "Game has already started",
+    "roomFull": "Room is full",
+    "createFailed": "Failed to create room"
+  },
   "messages": {
     "success": "Success!",
     "error": "Error",

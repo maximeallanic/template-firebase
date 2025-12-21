@@ -8,6 +8,8 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { AlertCircle, RotateCcw, Trophy } from 'lucide-react';
 import { FoodLoader } from '../components/ui/FoodLoader';
+import { submitScore } from '../services/leaderboardService';
+import { useAuthUser } from '../hooks/useAuthUser';
 import type { Room, Avatar } from '../types/gameTypes';
 import { SoloGameProvider, useSoloGame, createSoloHandlers } from '../contexts/SoloGameContext';
 import { mapSoloStateToGameState, SOLO_PHASE_NAMES, SOLO_MAX_SCORE } from '../types/soloTypes';
@@ -21,12 +23,15 @@ import { useReducedMotion } from '../hooks/useReducedMotion';
 function SoloGameInner() {
     const navigate = useNavigate();
     const prefersReducedMotion = useReducedMotion();
+    const { user } = useAuthUser();
     const context = useSoloGame();
     const { state, startGame, resetGame } = context;
     const soloHandlers = useMemo(() => createSoloHandlers(context), [context]);
 
     // Ref to prevent double-calling startGame (React Strict Mode calls effects twice)
     const hasStartedRef = useRef(false);
+    // Ref to prevent double-submitting score to leaderboard
+    const hasSubmittedRef = useRef(false);
 
     // Create a virtual Room object for PhaseX components
     const soloRoom: Room = useMemo(() => ({
@@ -58,6 +63,33 @@ function SoloGameInner() {
         }
     }, [state.status, state.isGenerating, startGame]);
 
+    // Submit score to leaderboard when game ends
+    useEffect(() => {
+        if (state.status === 'results' && user && !hasSubmittedRef.current) {
+            hasSubmittedRef.current = true;
+
+            const accuracy = state.totalQuestions > 0
+                ? Math.round((state.correctAnswers / state.totalQuestions) * 100)
+                : 0;
+
+            submitScore({
+                playerId: user.uid,
+                playerName: state.playerName,
+                playerAvatar: state.playerAvatar,
+                score: state.totalScore,
+                phase1Score: state.phaseScores.phase1,
+                phase2Score: state.phaseScores.phase2,
+                phase4Score: state.phaseScores.phase4,
+                accuracy,
+                totalTimeMs: state.totalTimeMs || 0,
+                isAuthenticated: true,
+            }).catch(err => {
+                console.error('[SoloGame] Failed to submit score:', err);
+            });
+        }
+    }, [state.status, user, state.totalQuestions, state.correctAnswers, state.playerName,
+        state.playerAvatar, state.totalScore, state.phaseScores, state.totalTimeMs]);
+
     // --- SETUP/GENERATING VIEW ---
     if (state.status === 'setup' || state.status === 'generating') {
         const progress = state.generationProgress;
@@ -76,7 +108,7 @@ function SoloGameInner() {
                             <h2 className="text-2xl font-bold mb-2">Erreur</h2>
                             <p className="text-gray-400 mb-6">{state.generationError}</p>
                             <button
-                                onClick={() => { resetGame(); startGame(); }}
+                                onClick={() => { hasSubmittedRef.current = false; resetGame(); startGame(); }}
                                 className="bg-orange-500 hover:bg-orange-400 px-6 py-3 rounded-xl font-bold flex items-center gap-2 mx-auto"
                             >
                                 <RotateCcw className="w-5 h-5" />
@@ -194,7 +226,7 @@ function SoloGameInner() {
                     {/* Actions */}
                     <div className="space-y-3">
                         <button
-                            onClick={() => { resetGame(); startGame(); }}
+                            onClick={() => { hasSubmittedRef.current = false; resetGame(); startGame(); }}
                             className="w-full bg-gradient-to-r from-orange-600 to-red-600 hover:from-orange-500 hover:to-red-500 px-6 py-4 rounded-xl font-bold flex items-center justify-center gap-2"
                         >
                             <RotateCcw className="w-5 h-5" />

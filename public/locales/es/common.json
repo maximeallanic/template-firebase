@@ -5,6 +5,14 @@
     "save": "Guardar",
     "close": "Cerrar"
   },
+  "errors": {
+    "generic": "Ha ocurrido un error",
+    "roomNotFound": "Sala no encontrada",
+    "connectionLost": "Conexión perdida",
+    "gameAlreadyStarted": "La partida ya ha comenzado",
+    "roomFull": "La sala está llena",
+    "createFailed": "Error al crear la sala"
+  },
   "plans": {
     "free": "Plan Gratuito",
     "pro": "Plan Pro"

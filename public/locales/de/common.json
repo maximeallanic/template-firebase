@@ -1,4 +1,12 @@
 {
+  "errors": {
+    "generic": "Ein Fehler ist aufgetreten",
+    "roomNotFound": "Raum nicht gefunden",
+    "connectionLost": "Verbindung verloren",
+    "gameAlreadyStarted": "Das Spiel hat bereits begonnen",
+    "roomFull": "Der Raum ist voll",
+    "createFailed": "Raum konnte nicht erstellt werden"
+  },
   "plans": {
     "free": "Kostenloser Plan",
     "pro": "Pro Plan"

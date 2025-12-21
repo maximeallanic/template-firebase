@@ -87,34 +87,81 @@ export function Phase4Timer({ timeRemaining, totalTime, isActive }: Phase4TimerP
         })
     };
 
+    // SVG circle parameters for progress ring
+    const circleSize = 64;
+    const strokeWidth = 4;
+    const radius = (circleSize - strokeWidth) / 2;
+    const circumference = 2 * Math.PI * radius;
+    const strokeDashoffset = circumference * (1 - progress);
+
+    // Get stroke color based on urgency
+    const getStrokeColor = () => {
+        if (isUrgent) return '#f87171'; // red-400
+        if (isWarning) return '#facc15'; // yellow-400
+        return '#4ade80'; // green-400
+    };
+
     return (
         <div className="flex items-center gap-3">
             {/* Timer Display */}
             <div className="flex flex-col items-center gap-2">
-                {/* Number Display */}
-                <div className="relative">
-                    <AnimatePresence mode="wait">
-                        <motion.span
-                            key={timeRemaining}
-                            initial={prefersReducedMotion ? { opacity: 0 } : { opacity: 0, scale: 1.2, y: -3 }}
-                            animate={prefersReducedMotion ? { opacity: 1 } : { opacity: 1, scale: 1, y: 0 }}
-                            exit={prefersReducedMotion ? { opacity: 0 } : { opacity: 0, scale: 0.8, y: 3 }}
-                            transition={{ duration: 0.15, ease: organicEase }}
-                            className={`
-                                text-3xl md:text-4xl font-black tabular-nums
-                                ${isUrgent ? 'text-red-400' : isWarning ? 'text-yellow-400' : 'text-white'}
-                            `}
-                        >
-                            {timeRemaining}
-                        </motion.span>
-                    </AnimatePresence>
+                {/* Number Display with Progress Ring */}
+                <div className="relative" style={{ width: circleSize, height: circleSize }}>
+                    {/* Background circle */}
+                    <svg
+                        className="absolute inset-0 -rotate-90"
+                        width={circleSize}
+                        height={circleSize}
+                    >
+                        <circle
+                            cx={circleSize / 2}
+                            cy={circleSize / 2}
+                            r={radius}
+                            stroke="currentColor"
+                            strokeWidth={strokeWidth}
+                            fill="none"
+                            className="text-slate-700"
+                        />
+                        {/* Progress circle */}
+                        <circle
+                            cx={circleSize / 2}
+                            cy={circleSize / 2}
+                            r={radius}
+                            stroke={getStrokeColor()}
+                            strokeWidth={strokeWidth}
+                            fill="none"
+                            strokeLinecap="round"
+                            strokeDasharray={circumference}
+                            strokeDashoffset={strokeDashoffset}
+                            className="transition-all duration-1000 ease-linear"
+                        />
+                    </svg>
+
+                    {/* Number centered in circle */}
+                    <div className="absolute inset-0 flex items-center justify-center">
+                        <AnimatePresence mode="wait">
+                            <motion.span
+                                key={timeRemaining}
+                                initial={prefersReducedMotion ? { opacity: 0 } : { opacity: 0, scale: 1.2 }}
+                                animate={prefersReducedMotion ? { opacity: 1 } : { opacity: 1, scale: 1 }}
+                                exit={prefersReducedMotion ? { opacity: 0 } : { opacity: 0, scale: 0.8 }}
+                                transition={{ duration: 0.15, ease: organicEase }}
+                                className={`
+                                    text-2xl md:text-3xl font-black tabular-nums
+                                    ${isUrgent ? 'text-red-400' : isWarning ? 'text-yellow-400' : 'text-white'}
+                                `}
+                            >
+                                {timeRemaining}
+                            </motion.span>
+                        </AnimatePresence>
+                    </div>
 
                     {/* Pulse ring when urgent */}
                     {isUrgent && !prefersReducedMotion && (
                         <motion.div
-                            className="absolute -inset-2 rounded-full border-2 border-red-500/30"
+                            className="absolute -inset-1 rounded-full border-2 border-red-500/30"
                             initial={{ scale: 1, opacity: 0.5 }}
-                            animate={{ scale: 1.5, opacity: 0 }}
+                            animate={{ scale: 1.3, opacity: 0 }}
                             transition={{
                                 duration: 0.8,
                                 repeat: Infinity,
