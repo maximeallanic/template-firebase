@@ -592,8 +592,8 @@ async function factCheckPhase2Items(
     const passed: typeof set.items = [];
     const failed: { item: typeof set.items[0]; reason: string }[] = [];
 
-    // Check items in parallel (batches of 4 to avoid rate limits)
-    const batchSize = 4;
+    // Check all items in parallel (no batching needed, Gemini handles it)
+    const batchSize = 12;
     for (let i = 0; i < set.items.length; i += batchSize) {
         const batch = set.items.slice(i, i + batchSize);
 
@@ -810,7 +810,7 @@ async function generateCreativeTopic(phase?: string): Promise<string> {
 async function generatePhase2WithDialogue(
     topic: string,
     difficulty: string,
-    maxIterations: number = 5
+    maxIterations: number = 3
 ): Promise<{ set: Phase2Set; embeddings: number[][] }> {
     console.log('🎭 Starting Generator/Reviewer dialogue for Phase 2...');
 
@@ -883,8 +883,8 @@ async function generatePhase2WithDialogue(
         console.log(`   Overall: ${review.overall_score}/10`);
 
         // 3. Check if score is sufficient
-        // CRITICAL: Phonetic score must be >= 7, otherwise homophone is too weak
-        if (review.scores.phonetic < 7) {
+        // CRITICAL: Phonetic score must be >= 6, otherwise homophone is too weak
+        if (review.scores.phonetic < 6) {
             console.log(`❌ Phonetic score too low (${review.scores.phonetic}/10). Must change homophone entirely.`);
             previousFeedback = `
 ⚠️ HOMOPHONE REJETÉ (score phonétique: ${review.scores.phonetic}/10)
@@ -940,7 +940,7 @@ Tu dois changer COMPLÈTEMENT de jeu de mots pour avoir un B CONCRET.
             const obviousIndices = obviousItemsFeedback.map(item => item.index);
 
             // If homophone is valid AND we have <= 60% obvious items → targeted regen
-            const homophoneValid = review.scores.phonetic >= 7 && bConcreteScore >= 6;
+            const homophoneValid = review.scores.phonetic >= 6 && bConcreteScore >= 6;
             if (homophoneValid && shouldUseTargetedRegen(obviousIndices.length, proposal.items.length)) {
                 console.log(`🔧 Trap quality targeted regen: homophone valid, replacing ${obviousIndices.length} obvious items`);
 
@@ -1208,8 +1208,8 @@ Vérifie que chaque item appartient VRAIMENT à la catégorie assignée (A, B, o
         }
 
         // 4. Decide: targeted item regeneration or full regeneration?
-        // If homophone is good (>= 7) and b_concrete is good (>= 6), we can do targeted regeneration
-        const canDoTargetedRegen = review.scores.phonetic >= 7 && bConcreteScore >= 6;
+        // If homophone is good (>= 6) and b_concrete is good (>= 6), we can do targeted regeneration
+        const canDoTargetedRegen = review.scores.phonetic >= 6 && bConcreteScore >= 6;
 
         // Find problematic items
         const badItemIndices = review.items_feedback

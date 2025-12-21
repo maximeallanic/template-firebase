@@ -117,291 +117,91 @@ Thème : {TOPIC}
 Difficulté : {DIFFICULTY}
 
 GÉNÈRE UN SET COMPLET avec :
-1. Un JEU DE MOTS PHONÉTIQUE (optionA et optionB qui sonnent pareil ou très proche)
-2. 12 items répartis : exactement 5 A, exactement 5 B, exactement 2 Both
+1. Un JEU DE MOTS PHONÉTIQUE (optionA et optionB sonnent IDENTIQUES à l'oral)
+2. 12 items répartis : exactement 5 A, 5 B, 2 Both
 
-RÈGLES HOMOPHONE (CRITIQUE) :
-Les deux phrases doivent SE PRONONCER EXACTEMENT PAREIL à l'oral !
+═══════════════════════════════════════════════════════════════════════
+⚠️ RÈGLES HOMOPHONES (CRITIQUE)
+═══════════════════════════════════════════════════════════════════════
 
-✅ BONS EXEMPLES D'HOMOPHONES :
-- "Les poules du couvent couvent" (les poules du monastère font éclore des œufs)
-- "Vers vert" vs "Verre vert" (un lombric vs une vitre colorée)
-- "Mer, mère, maire" (océan, maman, élu)
-- "Sot, seau, sceau, saut" (idiot, récipient, cachet, bond)
-- "Vingt vins" vs "20 vins" (même prononciation)
-- "Salle comble" vs "Sale con" (si on coupe différemment)
+Les deux options doivent SE PRONONCER PAREIL. Écris la transcription IPA pour vérifier.
 
-❌ MAUVAIS EXEMPLES (NE FONT PAS CE TYPE) :
-- "notre pain" vs "nos terrains" → FAUX! /nɔtʁ pɛ̃/ ≠ /no tɛ.ʁɛ̃/ (sons différents)
-- "nos trains" vs "notre règne" → FAUX! /no tʁɛ̃/ ≠ /nɔtʁ ʁɛɲ/ (sons différents)
-- "Pot de chambre" vs "Impose des membres" → PAS DU TOUT LE MÊME SON
-- "Assurance bateau" vs "Science d'un bateau" → PAS LE MÊME SON
+✅ BONS : "Vers vert"/"Verre vert" (/vɛʁ vɛʁ/), "Mer"/"Mère" (/mɛʁ/), "Graisse"/"Grèce" (/gʁɛs/)
+❌ MAUVAIS : "notre"≠"nos" (/nɔtʁ/≠/no/), "Grease"≠"graisse" (anglais interdit)
 
-⚠️ PIÈGE À ÉVITER :
-- "notre" (/nɔtʁ/) et "nos" (/no/) ne sont JAMAIS homophones !
-- Des syllabes similaires ne suffisent pas - les SONS doivent être IDENTIQUES
-- Écris la transcription phonétique (IPA) pour vérifier AVANT de proposer
+- Catégorie A = sens littéral/sérieux (concret)
+- Catégorie B = calembour absurde MAIS utilisable (on doit pouvoir lister 5+ items)
+- Maximum 4 mots par option
+- TEST : Un francophone sans anglais comprend-il le jeu de mots ? Si NON → change
 
-⚠️ HOMOPHONES FRANCO-FRANÇAIS UNIQUEMENT ⚠️
-L'homophone doit fonctionner ENTIÈREMENT en français.
+═══════════════════════════════════════════════════════════════════════
+⚠️ RÈGLES ITEMS - PIÈGES OBLIGATOIRES
+═══════════════════════════════════════════════════════════════════════
 
-❌ INTERDIT - Jeux de mots franco-anglais :
-- "Grease" (film) pour "graisse" → INTERDIT car /griːs/ ≠ /gʁɛs/
-- "Beach" pour "bitch" → INTERDIT (anglais)
-- Toute référence nécessitant de connaître l'anglais
-
-✅ AUTORISÉ - Homophones 100% français :
-- "Ver/Verre/Vers/Vert" → tous /vɛʁ/
-- "Mer/Mère/Maire" → tous /mɛʁ/
-- "Graisse/Grèce" → /gʁɛs/ = /gʁɛs/ ✅
-
-TEST : Un francophone qui ne parle pas anglais comprend-il le jeu de mots ?
-- Si NON → CHANGE L'HOMOPHONE ou l'item
-
-RÈGLES SUPPLÉMENTAIRES :
-- Catégorie A = sens sérieux/littéral (toujours concret)
-- Catégorie B = calembour/sens absurde ou humoristique
-- B peut avoir un sens absurde MAIS doit être UTILISABLE : on doit pouvoir lister des items qui s'y rattachent
-- TEST : Si tu ne peux pas trouver 5 items évidents pour B → change le calembour
-
-⚠️ RÈGLE OPTIONS (CRITIQUE) ⚠️
-Les options doivent être des NOMS DE CATÉGORIES COURTS, pas des phrases !
-- Maximum 4 mots par option (optionA ET optionB)
-- Les deux doivent représenter des CATÉGORIES concrètes (pas des expressions idiomatiques)
-
-❌ MAUVAIS EXEMPLES D'OPTIONS (trop long ou abstrait) :
-- "Être né avec une cuillère en argent" → INTERDIT (expression idiomatique, trop long)
-- "Avoir le cafard du dimanche soir" → INTERDIT (trop long, pas une catégorie)
-- "Les trains qui arrivent à l'heure" → INTERDIT (phrase, pas catégorie)
-
-✅ BONS EXEMPLES D'OPTIONS :
-- "Mer" / "Mère" (1 mot, concret)
-- "Ver de terre" / "Verre de terre" (3 mots, concret)
-- "Pot de vin" / "Poteau de vin" (3 mots, concret)
-- "Saint" / "Sein" (1 mot, concret)
-
-RÈGLES ITEMS - HUMOUR FORME, SÉRIEUX FOND :
-⚠️ L'humour vient du JEU DE MOTS (catégories), pas des items.
-
+L'humour vient du JEU DE MOTS, pas des items. Items = faits vérifiables.
 - Maximum 4 mots par item
-- Réponse = FAIT vérifiable (pas opinion, pas rumeur)
-- Personnalités connues RÉELLES (acteurs, politiques, sportifs...)
-- Liens FACTUELS avec les catégories
-- VÉRIFIE chaque fait avec Google Search
-- Pas d'inventions ou d'anecdotes non vérifiables
+- Personnalités/faits RÉELS et VÉRIFIABLES
+- 5-6 items sur 12 doivent être des PIÈGES (réponse contre-intuitive)
 
-⚠️ PIÈGES OBLIGATOIRES (TRÈS IMPORTANT) ⚠️
-Au moins 5-6 items sur 12 doivent être des PIÈGES où la réponse est CONTRE-INTUITIVE !
+📋 CHECKLIST (rejette si un test échoue) :
+□ TEST 2 SEC : Joueur lambda répond en <2s ? → REJETER
+□ TEST MOT-CLÉ : Item contient un mot de la famille A ou B ? → REJETER
+□ TEST SVT : On l'apprendrait en cours ? → REJETER (géo/bio basique)
+□ TEST PIÈGE : L'item SEMBLE aller dans l'autre catégorie ? → BON !
 
-Un bon piège = l'item SEMBLE appartenir à une catégorie mais appartient en fait à L'AUTRE (ou Both).
+🎯 DISTRIBUTION :
+- 2-3 faciles | 5-6 PIÈGES | 2-3 subtils | 2 Both
 
-📋 CHECKLIST OBLIGATOIRE - À FAIRE POUR CHAQUE ITEM 📋
-Avant d'inclure un item, réponds à ces 4 questions :
+═══════════════════════════════════════════════════════════════════════
+⚠️ RÈGLE ANTI-ÉVIDENCE
+═══════════════════════════════════════════════════════════════════════
 
-□ TEST 2 SECONDES : "Est-ce qu'un joueur lambda répond en moins de 2 secondes ?"
-  → Si OUI : REJETER IMMÉDIATEMENT cet item
+INTERDIT si l'item est :
+- Mot-clé direct : "Athènes"→Grèce, "dialyse"→rein, "houblon"→bière
+- Définition/géographie : "Traverse Strasbourg", "A forme de haricot", "Océan Pacifique"
+- Association immédiate : capitales, symboles, plats typiques évidents
 
-□ TEST MOT-CLÉ : "L'item contient-il un mot de la même famille que A ou B ?"
-  → Si OUI : REJETER (ex: "Strasbourg" pour "Rhin", "haricot" pour "Rein")
+PRÉFÉRER : références culturelles, expressions détournées, célébrités inattendues
 
-□ TEST COURS DE SVT : "Est-ce qu'on apprendrait ça en cours de géo/bio/histoire ?"
-  → Si OUI : REJETER (descriptions physiques, faits géographiques de base)
+🔴 EXEMPLE "RHIN vs REIN" :
+❌ INTERDITS : "Traverse Strasbourg", "Forme de haricot", "Dialyse", "Source en Suisse"
+✅ ACCEPTÉS :
+| Item          | Rép  | Pourquoi BON                              |
+|---------------|------|-------------------------------------------|
+| "Les calculs" | B    | PIÈGE! On pense maths → calculs rénaux    |
+| "Victor Hugo" | A    | PIÈGE! A écrit "Le Rhin", peu connu       |
+| "Le coup"     | B    | Expression "coup de rein"                 |
+| "Le bassin"   | Both | Bassin versant ET bassin rénal            |
+| "La Lorelei"  | A    | Rocher légendaire du Rhin                 |
+| "La greffe"   | B    | Greffe de rein                            |
 
-□ TEST PIÈGE : "Est-ce que l'item SEMBLE appartenir à l'autre catégorie ?"
-  → Si NON : Essayer de trouver un meilleur item (on veut des pièges !)
+═══════════════════════════════════════════════════════════════════════
+⚠️ CAS SPÉCIAUX
+═══════════════════════════════════════════════════════════════════════
 
-⚠️ SI UN ITEM ÉCHOUE À UN SEUL DE CES TESTS → NE PAS L'INCLURE ⚠️
+HOMONYMES IDENTIQUES (même mot, sens différents) :
+→ OBLIGATOIRE : optionADescription et optionBDescription
+Ex: optionA: "Bière", optionADescription: "la boisson", optionB: "Bière", optionBDescription: "le cercueil"
+Si mots différents ("Mer"/"Mère") → descriptions = null
 
-🎯 DISTRIBUTION OBLIGATOIRE DES 12 ITEMS 🎯
-- 2-3 items "faciles" (réponse logique, pour ne pas frustrer)
-- 5-6 items "PIÈGES" (réponse contre-intuitive, cœur du jeu !)
-- 2-3 items "subtils" (nécessite réflexion, pas évident)
-- 2 items "Both" (fonctionnent pour les deux sens)
-
-⚠️ SI MOINS DE 5 PIÈGES SUR 12 → RÉGÉNÉRER LE SET ⚠️
-
-✅ EXEMPLES DE BONS PIÈGES (réponse SURPRENANTE) :
-- "Mer" vs "Mère" :
-  • "Jacques Cousteau" → On pense MÈRE (papa de 2 enfants)... MAIS c'est MER (explorateur des océans) = PIÈGE!
-  • "Cordon" → On pense MER (cordon littoral)... MAIS c'est MÈRE (cordon ombilical) = PIÈGE!
-  • "Bretagne" → On pense MER (côtes bretonnes)... MAIS c'est BOTH (aussi "mère patrie" des Bretons) = PIÈGE!
-
-❌ MAUVAIS ITEMS (TROP ÉVIDENTS - INTERDIT) :
-- "Mer" vs "Mère" → "Océan" = INTERDIT (évidemment Mer, zéro hésitation)
-- "Mer" vs "Mère" → "Biberon" = INTERDIT (évidemment Mère, zéro hésitation)
-
-🎯 RÈGLE D'OR : Pour chaque item, demande-toi :
-"Est-ce que le joueur va HÉSITER avant de répondre ?"
-- Si NON (réponse évidente) → REMPLACE PAR UN PIÈGE
-- Si OUI (il y a doute) → BON ITEM
-
-⚠️ RÈGLE ANTI-ÉVIDENCE (CRITIQUE) ⚠️
-Un item est INTERDIT s'il remplit UN de ces critères :
-
-1. MOTS-CLÉS DIRECTS :
-   - L'item contient un mot directement lié à une seule catégorie
-   - ❌ "Athènes" → interdit car synonyme de "Grèce"
-   - ❌ "Liposuccion" → interdit car 100% lié à "graisse"
-   - ❌ "Sirtaki" → interdit car danse grecque ultra-connue
-
-2. TEST DES 2 SECONDES :
-   - Si un joueur moyen répond en moins de 2 secondes → REJETER
-   - Demande-toi : "Est-ce que ma mère hésiterait ?"
-   - Si NON → REMPLACER par un piège
-
-3. ASSOCIATIONS IMMÉDIATES :
-   - ❌ Capitales, symboles nationaux, plats typiques évidents
-   - ❌ Définitions littérales ("océan" pour "mer")
-   - ❌ Mots de la même famille ("maternel" pour "mère")
-
-4. DESCRIPTIONS PHYSIQUES/GÉOGRAPHIQUES LITTÉRALES :
-   - ❌ "A une forme de haricot" pour "rein" → trop scolaire, tout le monde le sait
-   - ❌ "Traverse Strasbourg" pour "Rhin" → trop évident géographiquement
-   - ❌ "Sépare la France de l'Allemagne" pour "Rhin" → même problème
-   - ✅ Préférer des PIÈGES ou des références CULTURELLES moins évidentes
-
-5. RÈGLE DU JOUEUR LAMBDA :
-   - Imagine un joueur qui n'a pas révisé, légèrement alcoolisé, en soirée
-   - Si ce joueur répond correctement à 80%+ → l'item est TROP ÉVIDENT
-   - On veut des items où même les gens cultivés hésitent 2-3 secondes
-
-EXEMPLES INTERDITS vs AUTORISÉS :
-
-❌ ITEMS SCOLAIRES/ÉVIDENTS (INTERDIT) :
-- "Mer vs Mère" → "L'océan Pacifique" (évident = MER, définition)
-- "Graisse vs Grèce" → "Le Parthénon" (évident = GRÈCE, monument)
-- "Rhin vs Rein" → "Traverse Strasbourg" (évident = RHIN, géographie basique)
-- "Rhin vs Rein" → "A une forme de haricot" (évident = REIN, cours de SVT)
-- "Rhin vs Rein" → "Sépare la France de l'Allemagne" (évident = RHIN, géographie)
-
-✅ ITEMS PIÈGES/CULTURELS (CE QU'ON VEUT) :
-- "Mer vs Mère" → "Jacques Cousteau" (piège : père de famille MAIS explorateur des mers)
-- "Graisse vs Grèce" → "Le canard" (piège : la graisse de canard, pas évident)
-- "Rhin vs Rein" → "Les calculs" (piège : on pense maths MAIS calculs rénaux)
-- "Rhin vs Rein" → "Victor Hugo" (piège : a écrit "Le Rhin", peu connu)
-- "Rhin vs Rein" → "Le coup" (expression : coup de rein)
-- "Rhin vs Rein" → "Le don" (don d'organe, subtil)
-
-🔴 EXEMPLE DÉTAILLÉ : "RHIN vs REIN" 🔴
-
-❌ ITEMS INTERDITS (réponse en <2 sec) :
-─────────────────────────────────────────────────────────────────────────
-| Item                              | Pourquoi INTERDIT                    |
-|-----------------------------------|--------------------------------------|
-| "Traverse Strasbourg"             | Géographie de CM2                    |
-| "A une forme de haricot"          | Cours de SVT, tout le monde sait     |
-| "Sépare la France de l'Allemagne" | Géographie basique                   |
-| "Prend sa source en Suisse"       | Géographie basique                   |
-| "Se jette dans la mer du Nord"    | Géographie basique                   |
-| "Organe filtrant le sang"         | Définition de dictionnaire           |
-| "La dialyse"                      | Mot-clé direct = REIN                |
-| "Affluent du Rhin"                | Contient "Rhin" = SPOILER            |
-─────────────────────────────────────────────────────────────────────────
-
-✅ ITEMS ACCEPTÉS (avec justification) :
-─────────────────────────────────────────────────────────────────────────
-| Item            | Réponse | Pourquoi c'est BON                       |
-|-----------------|---------|------------------------------------------|
-| "Les calculs"   | B       | PIÈGE! On pense maths, mais rénaux       |
-| "Victor Hugo"   | A       | PIÈGE! A écrit "Le Rhin", peu connu      |
-| "Le coup"       | B       | Expression "coup de rein" (sexuel/sport) |
-| "Le don"        | B       | Don d'organe, subtil                     |
-| "La Lorelei"    | A       | Rocher légendaire, culture allemande     |
-| "Le bassin"     | Both    | Bassin versant ET bassin rénal           |
-| "La chute"      | Both    | Chutes du Rhin ET insuffisance rénale    |
-| "La greffe"     | B       | Greffe de rein                           |
-| "Chabrol"       | A       | PIÈGE! Film tourné sur le Rhin           |
-| "Le tour"       | A       | Tour du Rhin (croisière), peu évident    |
-| "L'épuration"   | Both    | Station d'épuration ET fonction rénale   |
-| "Le greffier"   | B       | PIÈGE! Son greffier, comme le chat       |
-─────────────────────────────────────────────────────────────────────────
-
-ANALYSE :
-- 6 pièges sur 12 (50%) → BON RATIO ✅
-- 0 item de géographie basique → PARFAIT ✅
-- 3 items "Both" bien justifiés → OK ✅
-
-🔴 EXEMPLE DÉTAILLÉ : "BIÈRE vs BIÈRE" (boisson vs cercueil) 🔴
-
-⚠️ CAS SPÉCIAL : HOMONYMES IDENTIQUES
-Quand les deux mots sont IDENTIQUES, tu DOIS fournir optionADescription et optionBDescription !
-Exemple : optionA: "Bière", optionADescription: "la boisson", optionB: "Bière", optionBDescription: "le cercueil"
-
-❌ ITEMS INTERDITS (réponse en <2 sec) :
-─────────────────────────────────────────────────────────────────────────
-| Item                    | Pourquoi INTERDIT                          |
-|-------------------------|---------------------------------------------|
-| "Le houblon"            | Ingrédient de bière = MOT-CLÉ DIRECT        |
-| "Est souvent blonde"    | Définition littérale de la bière            |
-| "L'Abbaye"              | Type de bière trop connu                    |
-| "La pression"           | Bière pression = évident                    |
-| "Le cercueil"           | Synonyme de bière (cercueil) = SPOILER      |
-| "Les funérailles"       | Mot-clé direct = cercueil                   |
-| "Le malt"               | Ingrédient de bière = évident               |
-| "La fermentation"       | Processus de brassage = évident             |
-─────────────────────────────────────────────────────────────────────────
-
-✅ ITEMS ACCEPTÉS (avec justification) :
-─────────────────────────────────────────────────────────────────────────
-| Item                    | Réponse | Pourquoi c'est BON                   |
-|-------------------------|---------|--------------------------------------|
-| "Sent le sapin"         | B       | PIÈGE! Expression = mort imminente   |
-| "La mise en..."         | B       | "Mise en bière" = mettre au cercueil |
-| "La Mort Subite"        | Both    | Bière belge ET mort soudaine!        |
-| "On la descend"         | Both    | Boire une bière ET descendre cercueil|
-| "Le faux col"           | A       | Mousse de bière, moins évident       |
-| "Le capitaine Haddock"  | A       | PIÈGE! Perso Tintin alcoolique       |
-| "Homer Simpson"         | A       | PIÈGE! Pop culture, buveur de Duff   |
-| "Les pompes"            | Both    | Pompes funèbres ET pompe à bière!    |
-| "Le chêne"              | Both    | Tonneaux ET cercueils en chêne       |
-| "Le zinc"               | A       | Comptoir de bar, moins direct        |
-| "La veillée"            | B       | Veillée funèbre (mais on y boit!)    |
-| "Le demi"               | A       | Verre de bière, peut sembler autre   |
-─────────────────────────────────────────────────────────────────────────
-
-ANALYSE :
-- 4 pièges culturels (Haddock, Homer, sapin, mise en) → BON ✅
-- 4 items "Both" bien justifiés → EXCELLENT ✅
-- 0 ingrédient/définition de bière → PARFAIT ✅
-
-INTERDIT :
-- Catégories opposées (oui/non, vrai/faux, chaud/froid)
-- Notions subjectives (j'aime, c'est beau, bon/mauvais)
-- Calembours où la catégorie B est trop abstraite ou n'a pas de sens concret
-
-⚠️ HOMONYMES IDENTIQUES ⚠️
-Si optionA et optionB sont LE MÊME MOT avec des sens différents, tu DOIS fournir optionADescription et optionBDescription pour les différencier.
-Exemple :
-- optionA: "Financier", optionADescription: "le gâteau"
-- optionB: "Financier", optionBDescription: "le banquier"
-Si les mots sont différents (ex: "Mer" vs "Mère"), laisse les descriptions à null.
-
-⚠️ ITEMS AMBIGUS - RÉPONSES MULTIPLES ⚠️
-Certains items peuvent légitimement appartenir à PLUSIEURS catégories.
-Si un item est OBJECTIVEMENT ambigu (pas juste mal formulé), ajoute "acceptedAnswers" :
-Exemple :
-{
-  "text": "Opère sur les marchés",
-  "answer": "B",
-  "acceptedAnswers": ["B", "Both"],
-  "justification": "Le banquier opère sur les marchés financiers, mais les pâtisseries sont aussi vendues aux marchés de village"
-}
-ATTENTION : N'utilise acceptedAnswers que pour les VRAIES ambiguïtés factuelles.
-Maximum 2-3 items avec acceptedAnswers par set.
+ITEMS AMBIGUS (rare, max 2-3 par set) :
+→ Ajoute "acceptedAnswers": ["B", "Both"] si l'item fonctionne pour plusieurs catégories
 
 {PREVIOUS_FEEDBACK}
 
-FORMAT JSON (STRICTEMENT) :
+═══════════════════════════════════════════════════════════════════════
+FORMAT JSON
+═══════════════════════════════════════════════════════════════════════
 {
-  "optionA": "Catégorie courte (2-4 mots max)",
-  "optionB": "Calembour court (2-4 mots max)",
-  "optionADescription": "Description courte si optionA = optionB, sinon null",
-  "optionBDescription": "Description courte si optionA = optionB, sinon null",
-  "reasoning": "Transcription IPA: /.../ = /.../ - Explication de pourquoi les sons sont IDENTIQUES",
+  "optionA": "Catégorie courte (2-4 mots)",
+  "optionB": "Calembour court (2-4 mots)",
+  "optionADescription": "Si optionA=optionB, sinon null",
+  "optionBDescription": "Si optionA=optionB, sinon null",
+  "reasoning": "IPA: /.../ = /.../ - Pourquoi sons identiques",
   "items": [
-    { "text": "Item max 4 mots", "answer": "A", "justification": "Pourquoi cet item va dans A" },
-    { "text": "Item max 4 mots", "answer": "B", "justification": "Pourquoi cet item va dans B" },
-    { "text": "Item max 4 mots", "answer": "Both", "acceptedAnswers": ["Both", "A"], "justification": "Pourquoi cet item va dans Both (et aussi acceptable comme A)" }
+    { "text": "Item", "answer": "A", "justification": "Pourquoi A" },
+    { "text": "Item", "answer": "B", "justification": "Pourquoi B" },
+    { "text": "Item", "answer": "Both", "acceptedAnswers": ["Both", "A"], "justification": "Pourquoi Both" }
   ]
 }
 
