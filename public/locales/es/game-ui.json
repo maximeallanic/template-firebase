@@ -120,6 +120,8 @@
   },
   "phase4": {
     "phaseComplete": "PHASE 4 COMPLETE!",
+    "completed": "completado",
+    "timer": "Tiempo",
     "laNote": "The Note is served.",
     "question": "Question",
     "questionNumber": "Question {{current}}/{{total}}",

@@ -307,6 +307,18 @@ export function mapSoloStateToGameState(state: SoloGameState): import('./gameTyp
                     timestamp: Date.now()
                 }
             };
+
+            // Set phase4Winner if answer was correct
+            if (answerValue !== null && state.customQuestions.phase4) {
+                const question = state.customQuestions.phase4[currentIndex];
+                if (question && answerValue === question.correctIndex) {
+                    baseState.phase4Winner = {
+                        playerId: state.playerId,
+                        name: state.playerName,
+                        team: 'spicy', // Solo player is always spicy
+                    };
+                }
+            }
         }
     }
 
