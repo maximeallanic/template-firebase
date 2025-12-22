@@ -6,7 +6,6 @@
 import { useNavigate } from 'react-router-dom';
 import { AVATAR_LIST, type Avatar } from '../types/gameTypes';
 import { Play, Trophy, Zap, AlertCircle } from 'lucide-react';
-import { AvatarIcon } from '../components/AvatarIcon';
 import { UserBar } from '../components/auth/UserBar';
 import { Logo } from '../components/ui/Logo';
 import { useAuthUser } from '../hooks/useAuthUser';
@@ -86,19 +85,6 @@ export default function SoloSetup() {
                                 <p className="text-amber-200 text-sm">
                                     Configure ton profil pour jouer en solo ! Clique sur ton avatar en haut à droite.
                                 </p>
-                            </div>
-                        </div>
-                    )}
-
-                    {/* Profile preview */}
-                    {profileComplete && (
-                        <div className="bg-slate-800/50 rounded-xl p-4 flex items-center gap-4">
-                            <div className="bg-gradient-to-br from-orange-500 to-red-500 rounded-xl p-2">
-                                <AvatarIcon avatar={profile!.profileAvatar as Avatar} size={48} />
-                            </div>
-                            <div>
-                                <p className="text-white font-bold text-lg">{profile!.profileName}</p>
-                                <p className="text-gray-400 text-sm">Prêt à jouer</p>
                             </div>
                         </div>
                     )}

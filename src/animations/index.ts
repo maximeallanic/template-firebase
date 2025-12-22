@@ -359,6 +359,21 @@ export const flashIndicatorVariants: Variants = {
 };
 
 /**
+ * Wrong Answer Shake Variants - For immediate feedback on wrong answers
+ * Used in Phase 1 and Phase 4 when player clicks a wrong answer
+ */
+export const wrongAnswerShakeVariants: Variants = {
+    idle: { x: 0 },
+    shake: {
+        x: [0, -12, 12, -12, 12, -8, 8, 0],
+        transition: {
+            duration: durations.medium,
+            ease: "easeInOut"
+        }
+    }
+};
+
+/**
  * Helper: Create a custom transition with organic easing
  */
 export const createTransition = (

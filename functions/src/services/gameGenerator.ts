@@ -5,6 +5,8 @@ import {
     // Topic generation
     GENERATE_TOPIC_PROMPT,
     GENERATE_TOPIC_PHASE2_PROMPT,
+    // Subject + Angle generation (for deduplication) - buildSubjectAnglePrompt is used by _generateSubjectAngle
+    buildSubjectAnglePrompt,
     // Phase 1 dialogue prompts
     PHASE1_GENERATOR_PROMPT,
     PHASE1_DIALOGUE_REVIEWER_PROMPT,
@@ -28,7 +30,10 @@ import {
     // Fact-check prompts
     FACT_CHECK_BATCH_PROMPT,
     FACT_CHECK_NO_SEARCH_PROMPT,
-    FACT_CHECK_PHASE2_PROMPT
+    FACT_CHECK_PHASE2_PROMPT,
+    // Ambiguity check prompts
+    buildAmbiguityCheckPrompt,
+    type AmbiguityCheckResult
 } from '../prompts';
 import { calculateCost, formatCost } from '../utils/costCalculator';
 import {
@@ -37,6 +42,14 @@ import {
     storeQuestionsWithEmbeddings,
     type SemanticDuplicate
 } from '../utils/embeddingService';
+import {
+    hashCombo,
+    checkComboExists,
+    markComboUsed,
+    type SubjectAngle,
+    type SubjectType,
+    ANGLES_BY_TYPE
+} from './subjectAngleService';
 
 // --- CONSTANTS ---
 
@@ -57,6 +70,7 @@ interface Phase2Set {
     optionB: string;
     optionADescription?: string;  // Description pour différencier les homonymes
     optionBDescription?: string;  // Description pour différencier les homonymes
+    humorousDescription?: string; // Description humoristique des options (générée par IA)
     items: Array<{
         text: string;
         answer: 'A' | 'B' | 'Both';
@@ -72,6 +86,7 @@ interface Phase2GeneratorResponse {
     optionB: string;
     optionADescription?: string;  // Description pour différencier les homonymes
     optionBDescription?: string;  // Description pour différencier les homonymes
+    humorousDescription?: string; // Description humoristique des options (générée par IA)
     reasoning: string;
     items: Array<{
         text: string;
@@ -189,7 +204,7 @@ interface Phase3DialogueReview {
 // --- PHASE 4 DIALOGUE TYPES (MCQ Culture Générale) ---
 
 interface Phase4Question {
-    question: string;
+    text: string;           // Question text (same field name as Phase1 for consistency)
     options: string[];      // 4 options MCQ
     correctIndex: number;   // Index de la bonne réponse (0-3)
     anecdote?: string;      // Fait amusant optionnel
@@ -337,7 +352,7 @@ export const GameGenerationOutputSchema = z.object({
 async function callGemini(prompt: string, configType: 'creative' | 'factual' = 'creative'): Promise<string> {
     const baseConfig = MODEL_CONFIG[configType];
 
-    console.log(`🔧 Generator: gemini-3-pro-preview, config: ${configType}, grounding: ${isSearchAvailable ? 'googleSearch' : 'none'}`);
+    console.log(`🔧 Generator: ${GENERATOR_MODEL}, config: ${configType}, grounding: ${isSearchAvailable ? 'googleSearch' : 'none'}`);
 
     // Use native Google Search grounding instead of custom tool
     // This avoids thought_signature issues with Gemini 3 Pro
@@ -834,6 +849,174 @@ async function generateCreativeTopic(phase?: string): Promise<string> {
     return fallbackTopic;
 }
 
+// ============================================================================
+// SUBJECT + ANGLE GENERATION (for deduplication system)
+// ============================================================================
+
+/**
+ * Generate a unique subject + angle combination for question generation.
+ * This ensures that each question is on a unique topic+angle combo.
+ *
+ * @param category - Optional category filter (science, history, etc.)
+ * @param maxAttempts - Maximum attempts to find a unique combo (default: 10)
+ * @returns SubjectAngle object with unique subject, angle, category, and type
+ */
+// eslint-disable-next-line @typescript-eslint/no-unused-vars -- Reserved for future Subject+Angle deduplication system
+async function _generateSubjectAngle(
+    category?: string,
+    maxAttempts: number = 10
+): Promise<SubjectAngle> {
+    console.log('🎯 Generating unique subject + angle combo...');
+
+    const prompt = buildSubjectAnglePrompt(category);
+
+    for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+        try {
+            // Use REVIEWER_MODEL for stability (like topic generation)
+            const response = await ai.generate({
+                model: REVIEWER_MODEL,
+                prompt,
+                config: {
+                    ...MODEL_CONFIG.topic,
+                    temperature: 1.2 + (attempt * 0.05), // Slightly increase creativity with each attempt
+                },
+            });
+
+            const rawResponse = response.text;
+
+            // Parse JSON response
+            let subjectAngle: SubjectAngle;
+            try {
+                subjectAngle = parseJsonFromText(rawResponse) as SubjectAngle;
+            } catch {
+                console.warn(`⚠️ Attempt ${attempt}: Failed to parse JSON response`);
+                continue;
+            }
+
+            // Validate required fields
+            if (!subjectAngle.subject || !subjectAngle.angle || !subjectAngle.type) {
+                console.warn(`⚠️ Attempt ${attempt}: Missing required fields in response`);
+                continue;
+            }
+
+            // Validate angle is valid for the type
+            const validAngles = ANGLES_BY_TYPE[subjectAngle.type as SubjectType];
+            if (!validAngles) {
+                console.warn(`⚠️ Attempt ${attempt}: Invalid subject type "${subjectAngle.type}"`);
+                continue;
+            }
+
+            // Check if this combo already exists
+            const comboHash = hashCombo(subjectAngle.subject, subjectAngle.angle);
+            const exists = await checkComboExists(comboHash);
+
+            if (exists) {
+                console.log(`🔄 Attempt ${attempt}: Combo "${subjectAngle.subject}|${subjectAngle.angle}" already used, retrying...`);
+                continue;
+            }
+
+            console.log(`✨ Generated unique combo (attempt ${attempt}): "${subjectAngle.subject}" + "${subjectAngle.angle}"`);
+            return subjectAngle;
+
+        } catch (err) {
+            console.warn(`⚠️ Attempt ${attempt} failed:`, err);
+        }
+    }
+
+    // All attempts failed - throw error (caller should handle fallback)
+    throw new Error(`Failed to generate unique subject+angle after ${maxAttempts} attempts`);
+}
+
+/**
+ * Check a question for ambiguity issues.
+ * Uses Google Search to verify that the question has exactly one correct answer.
+ *
+ * @param question - The question text
+ * @param correctAnswer - The correct answer
+ * @param wrongAnswers - Array of wrong answer options
+ * @param anecdote - Optional anecdote/explanation
+ * @returns AmbiguityCheckResult with issues and suggestions
+ */
+// eslint-disable-next-line @typescript-eslint/no-unused-vars -- Reserved for future Subject+Angle deduplication system
+async function _checkAnswerAmbiguity(
+    question: string,
+    correctAnswer: string,
+    wrongAnswers: string[],
+    anecdote?: string
+): Promise<AmbiguityCheckResult> {
+    console.log('🔍 Checking answer ambiguity...');
+
+    const prompt = buildAmbiguityCheckPrompt(question, correctAnswer, wrongAnswers, anecdote);
+
+    try {
+        // Use FACTCHECK_MODEL with Google Search for verification
+        const response = await ai.generate({
+            model: FACTCHECK_MODEL,
+            prompt,
+            config: {
+                ...MODEL_CONFIG.factCheck,
+                temperature: 0.1, // Very conservative for accuracy
+            },
+            tools: isSearchAvailable ? [googleSearch] : undefined,
+        });
+
+        const rawResponse = response.text;
+
+        // Parse JSON response
+        const result = parseJsonFromText(rawResponse) as AmbiguityCheckResult;
+
+        // Ensure required fields have defaults
+        const ambiguityResult: AmbiguityCheckResult = {
+            hasIssues: result.hasIssues ?? false,
+            ambiguityScore: result.ambiguityScore ?? 10,
+            issues: result.issues ?? [],
+            suggestions: result.suggestions ?? [],
+            confidence: result.confidence ?? 100,
+            reasoning: result.reasoning ?? 'No issues detected'
+        };
+
+        // Log results
+        if (ambiguityResult.hasIssues) {
+            console.log(`⚠️ Ambiguity detected (score: ${ambiguityResult.ambiguityScore}/10):`);
+            ambiguityResult.issues.forEach(issue => {
+                console.log(`   - [${issue.severity}] ${issue.type}: ${issue.description}`);
+            });
+        } else {
+            console.log(`✅ No ambiguity detected (score: ${ambiguityResult.ambiguityScore}/10)`);
+        }
+
+        return ambiguityResult;
+
+    } catch (err) {
+        console.error('❌ Ambiguity check failed:', err);
+        // Return safe default (assume no issues if check fails)
+        return {
+            hasIssues: false,
+            ambiguityScore: 7,
+            issues: [],
+            suggestions: [],
+            confidence: 50,
+            reasoning: 'Ambiguity check failed, assuming no issues'
+        };
+    }
+}
+
+/**
+ * Mark a subject+angle combo as used after successful question generation.
+ * This should be called after a question passes all validation.
+ *
+ * @param subjectAngle - The subject+angle data
+ * @param questionId - The ID of the generated question
+ */
+// eslint-disable-next-line @typescript-eslint/no-unused-vars -- Reserved for future Subject+Angle deduplication system
+async function _markSubjectAngleUsed(
+    subjectAngle: SubjectAngle,
+    questionId: string
+): Promise<void> {
+    const comboHash = hashCombo(subjectAngle.subject, subjectAngle.angle);
+    await markComboUsed(comboHash, subjectAngle, questionId);
+}
+
 /**
  * Generate Phase 2 set using dialogue between Generator and Reviewer agents
  * The two agents iterate until the set passes quality criteria
@@ -852,25 +1035,51 @@ async function generatePhase2WithDialogue(
     let bestSet: Phase2Set | null = null;
     let bestScore = 0;
 
+    // Flag to skip generator and re-validate lastSet directly (after targeted regen)
+    let revalidateOnly = false;
+
     for (let i = 0; i < maxIterations; i++) {
         console.log(`\n🔄 === ITERATION ${i + 1}/${maxIterations} ===`);
 
-        // 1. Generator proposes a complete set
-        const generatorPrompt = PHASE2_GENERATOR_PROMPT
-            .replace('{TOPIC}', topic)
-            .replace('{DIFFICULTY}', difficulty)
-            .replace('{PREVIOUS_FEEDBACK}', previousFeedback);
-
-        console.log('🤖 Generator creating set...');
-        const proposalText = await callGemini(generatorPrompt, 'creative');
         let proposal: Phase2GeneratorResponse;
 
-        try {
-            proposal = parseJsonFromText(proposalText) as Phase2GeneratorResponse;
-        } catch (err) {
-            console.error('❌ Failed to parse generator response:', err);
-            console.log('Raw response:', proposalText.slice(0, 500));
-            continue; // Skip to next iteration
+        // OPTIMIZATION: After successful targeted regen, skip generator and re-validate
+        if (revalidateOnly && lastSet) {
+            console.log('🔄 Re-validating improved set (skipping generator)...');
+            revalidateOnly = false;
+
+            // Convert lastSet to proposal format for reviewer
+            proposal = {
+                optionA: lastSet.optionA,
+                optionB: lastSet.optionB,
+                optionADescription: lastSet.optionADescription,
+                optionBDescription: lastSet.optionBDescription,
+                humorousDescription: lastSet.humorousDescription,
+                items: lastSet.items.map(item => ({
+                    text: item.text,
+                    answer: item.answer,
+                    acceptedAnswers: item.acceptedAnswers,
+                    justification: item.justification || ''
+                })),
+                reasoning: 'Set amélioré après régénération ciblée'
+            };
+        } else {
+            // 1. Generator proposes a complete set
+            const generatorPrompt = PHASE2_GENERATOR_PROMPT
+                .replace('{TOPIC}', topic)
+                .replace('{DIFFICULTY}', difficulty)
+                .replace('{PREVIOUS_FEEDBACK}', previousFeedback);
+
+            console.log('🤖 Generator creating set...');
+            const proposalText = await callGemini(generatorPrompt, 'creative');
+
+            try {
+                proposal = parseJsonFromText(proposalText) as Phase2GeneratorResponse;
+            } catch (err) {
+                console.error('❌ Failed to parse generator response:', err);
+                console.log('Raw response:', proposalText.slice(0, 500));
+                continue; // Skip to next iteration
+            }
         }
 
         console.log(`🎯 Proposition: "${proposal.optionA}" vs "${proposal.optionB}"`);
@@ -882,6 +1091,7 @@ async function generatePhase2WithDialogue(
             optionB: proposal.optionB,
             optionADescription: proposal.optionADescription,
             optionBDescription: proposal.optionBDescription,
+            humorousDescription: proposal.humorousDescription,
             items: proposal.items.map(item => ({
                 text: item.text,
                 answer: item.answer,
@@ -1010,12 +1220,12 @@ Tu dois changer COMPLÈTEMENT de jeu de mots pour avoir un B CONCRET.
 
                 try {
                     const regenText = await callGemini(targetedPrompt, 'creative');
-                    const newItems = parseJsonFromText(regenText) as Array<{
+                    const newItems = parseJsonArrayFromText<{
                         text: string;
                         answer: 'A' | 'B' | 'Both';
                         acceptedAnswers?: ('A' | 'B' | 'Both')[];
                         justification: string;
-                    }>;
+                    }>(regenText);
 
                     const mergedItems = [
                         ...goodItems.map(item => ({
@@ -1032,17 +1242,14 @@ Tu dois changer COMPLÈTEMENT de jeu de mots pour avoir un B CONCRET.
                         optionB: proposal.optionB,
                         optionADescription: proposal.optionADescription,
                         optionBDescription: proposal.optionBDescription,
+                        humorousDescription: proposal.humorousDescription,
                         items: mergedItems.slice(0, 12)
                     };
 
                     console.log(`✅ Trap quality targeted regen: merged ${goodItems.length} good + ${newItems.length} new items`);
-                    previousFeedback = `
-⚠️ RÉGÉNÉRATION CIBLÉE (pièges trop évidents)
-
-Homophone conservé : "${proposal.optionA}" vs "${proposal.optionB}"
-${obviousIndices.length} items évidents remplacés par des pièges.
-Le reviewer va maintenant re-valider.
-`;
+                    // Set flag to skip generator and re-validate directly
+                    revalidateOnly = true;
+                    previousFeedback = '';  // Clear feedback since we're re-validating, not regenerating
                     continue;
                 } catch (err) {
                     console.warn('⚠️ Trap quality targeted regen failed:', err);
@@ -1136,12 +1343,12 @@ Tu dois REMPLACER au moins 4-5 items par des PIÈGES contre-intuitifs.
 
                         try {
                             const regenText = await callGemini(targetedPrompt, 'creative');
-                            const newItems = parseJsonFromText(regenText) as Array<{
+                            const newItems = parseJsonArrayFromText<{
                                 text: string;
                                 answer: 'A' | 'B' | 'Both';
                                 acceptedAnswers?: ('A' | 'B' | 'Both')[];
                                 justification: string;
-                            }>;
+                            }>(regenText);
 
                             const mergedItems = [
                                 ...goodItems.map(item => ({
@@ -1159,13 +1366,9 @@ Tu dois REMPLACER au moins 4-5 items par des PIÈGES contre-intuitifs.
                             };
 
                             console.log(`✅ Phase 2 fact-check targeted regen: merged ${goodItems.length} good + ${newItems.length} new items`);
-                            previousFeedback = `
-⚠️ RÉGÉNÉRATION CIBLÉE (fact-check)
-
-Homophone conservé : "${lastSet.optionA}" vs "${lastSet.optionB}"
-${failedIndices.length} items incorrects remplacés.
-Le reviewer va maintenant re-valider.
-`;
+                            // Set flag to skip generator and re-validate directly
+                            revalidateOnly = true;
+                            previousFeedback = '';  // Clear feedback since we're re-validating, not regenerating
                             continue;
                         } catch (err) {
                             console.warn('⚠️ Phase 2 fact-check targeted regen failed:', err);
@@ -1292,12 +1495,12 @@ Vérifie que chaque item appartient VRAIMENT à la catégorie assignée (A, B, o
 
             try {
                 const regenText = await callGemini(targetedPrompt, 'creative');
-                const newItems = parseJsonFromText(regenText) as Array<{
+                const newItems = parseJsonArrayFromText<{
                     text: string;
                     answer: 'A' | 'B' | 'Both';
                     acceptedAnswers?: ('A' | 'B' | 'Both')[];
                     justification: string;
-                }>;
+                }>(regenText);
 
                 // Merge: keep good items + add new items (preserve all fields)
                 const mergedItems = [
@@ -1321,21 +1524,15 @@ Vérifie que chaque item appartient VRAIMENT à la catégorie assignée (A, B, o
                     optionB: proposal.optionB,
                     optionADescription: proposal.optionADescription,
                     optionBDescription: proposal.optionBDescription,
+                    humorousDescription: proposal.humorousDescription,
                     items: mergedItems.slice(0, 12) // Ensure max 12 items
                 };
 
                 console.log(`✅ Targeted regen: merged ${goodItems.length} good + ${newItems.length} new items`);
 
-                // Continue to next iteration to re-validate
-                previousFeedback = `
-⚠️ RÉGÉNÉRATION CIBLÉE EFFECTUÉE
-
-Homophone conservé : "${proposal.optionA}" vs "${proposal.optionB}"
-Items gardés : ${goodItems.length}
-Nouveaux items : ${newItems.length}
-
-Le reviewer va maintenant re-valider le set complet.
-`;
+                // Set flag to skip generator and re-validate directly
+                revalidateOnly = true;
+                previousFeedback = '';  // Clear feedback since we're re-validating, not regenerating
                 continue;
             } catch (err) {
                 console.warn('⚠️ Targeted regeneration failed, falling back to full regen:', err);
@@ -1482,7 +1679,7 @@ async function performPhase4TargetedRegen(
 ): Promise<Phase4Question[] | null> {
     const goodQuestions = lastQuestions.filter((_, idx) => !badIndices.includes(idx));
     const badQuestionsText = badIndices.map(idx =>
-        `- Q${idx + 1}: "${lastQuestions[idx].question}" (REJETÉ)`
+        `- Q${idx + 1}: "${lastQuestions[idx].text}" (REJETÉ)`
     ).join('\n');
 
     const targetedPrompt = PHASE4_TARGETED_REGENERATION_PROMPT
@@ -1771,13 +1968,35 @@ Si plusieurs réponses pourraient être valides → reformule la question.
 
                         if (newQuestions) {
                             lastQuestions = newQuestions;
-                            previousFeedback = `
+
+                            // OPTIMIZATION: If original score was excellent (>= 9.0), skip iteration 2
+                            // Just re-run fact-check on the new questions and proceed if they pass
+                            if (review.overall_score >= 9.0) {
+                                console.log(`🚀 Score excellent (${review.overall_score}/10), vérification rapide des nouvelles questions...`);
+                                const recheck = await factCheckPhase1Questions(lastQuestions);
+
+                                if (recheck.failed.length === 0) {
+                                    console.log(`✅ Toutes les questions passent le fact-check, skip itération ${i + 2}`);
+                                    // Continue to deduplication below (don't use continue)
+                                } else {
+                                    console.log(`⚠️ Encore ${recheck.failed.length} échecs, nouvelle itération nécessaire`);
+                                    previousFeedback = `
 ⚠️ RÉGÉNÉRATION CIBLÉE EFFECTUÉE (échec fact-check)
 
 ${failedIndices.length} questions remplacées après échec de vérification factuelle.
 Le reviewer va maintenant re-valider le set complet.
 `;
-                            continue;
+                                    continue;
+                                }
+                            } else {
+                                previousFeedback = `
+⚠️ RÉGÉNÉRATION CIBLÉE EFFECTUÉE (échec fact-check)
+
+${failedIndices.length} questions remplacées après échec de vérification factuelle.
+Le reviewer va maintenant re-valider le set complet.
+`;
+                                continue;
+                            }
                         }
                         console.log('⚠️ Targeted regen failed, falling back to full regen');
                     }
@@ -2319,7 +2538,7 @@ async function generatePhase4WithDialogue(
             proposal = parseJsonArrayFromText<Phase4Question>(proposalText);
             // Validate MCQ format
             proposal = proposal.filter(q =>
-                q.question &&
+                q.text &&
                 Array.isArray(q.options) &&
                 q.options.length === 4 &&
                 typeof q.correctIndex === 'number' &&
@@ -2469,7 +2688,7 @@ RAPPEL : Les 4 options doivent être du MÊME REGISTRE et faire hésiter.
             console.log(`✅ MCQ Questions validated after ${i + 1} iteration(s)! (score: ${review.overall_score}/10)`);
 
             // Run semantic deduplication and generate embeddings in one pass
-            const questionsAsItems = lastQuestions.map(q => ({ text: q.question }));
+            const questionsAsItems = lastQuestions.map(q => ({ text: q.text }));
             let semanticDuplicates: SemanticDuplicate[] = [];
             let internalDuplicates: SemanticDuplicate[] = [];
             let finalEmbeddings: number[][] = [];
@@ -2549,7 +2768,7 @@ ${review.suggestions.map((s, idx) => `${idx + 1}. ${s}`).join('\n')}
     const fallbackQuestions = bestQuestions.length > 0 ? bestQuestions : lastQuestions;
     if (fallbackQuestions.length > 0) {
         console.warn(`⚠️ Max iterations reached. Using best questions (score: ${bestScore}/10).`);
-        const questionsAsItems = fallbackQuestions.map(q => ({ text: q.question }));
+        const questionsAsItems = fallbackQuestions.map(q => ({ text: q.text }));
 
         // Run deduplication and generate embeddings
         let finalEmbeddings: number[][] = [];
@@ -3029,3 +3248,13 @@ export const generateGameQuestionsFlow = ai.defineFlow(
         };
     }
 );
+
+// ============================================================================
+// EXPORTS FOR SUBJECT+ANGLE DEDUPLICATION SYSTEM
+// These functions are reserved for future integration
+// ============================================================================
+export {
+    _generateSubjectAngle as generateSubjectAngle,
+    _checkAnswerAmbiguity as checkAnswerAmbiguity,
+    _markSubjectAngleUsed as markSubjectAngleUsed
+};

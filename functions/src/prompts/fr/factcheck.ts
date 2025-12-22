@@ -225,3 +225,140 @@ RÈGLES DE CONFIANCE :
 ⚠️ Si l'item pourrait appartenir aux deux catégories, mets confidence <= 60 !
 
 Pas de markdown. JSON uniquement.`;
+
+// ============================================================================
+// AMBIGUITY CHECK PROMPT (dedicated check after fact-checking)
+// ============================================================================
+
+/**
+ * Prompt for checking answer ambiguity.
+ * This is a dedicated check that runs AFTER fact-checking to ensure
+ * the question has exactly ONE correct answer with no ambiguity.
+ *
+ * {QUESTION} - The question text
+ * {CORRECT_ANSWER} - The proposed correct answer
+ * {WRONG_ANSWERS} - Array of wrong answer options (for MCQ)
+ * {ANECDOTE} - Optional anecdote/explanation
+ */
+export const AMBIGUITY_CHECK_PROMPT = `Tu es un expert en contrôle qualité de questions de quiz.
+Ta mission : vérifier qu'une question n'a AUCUNE AMBIGUÏTÉ et qu'elle a UNE SEULE réponse correcte.
+
+QUESTION : {QUESTION}
+BONNE RÉPONSE : {CORRECT_ANSWER}
+MAUVAISES RÉPONSES : {WRONG_ANSWERS}
+ANECDOTE : {ANECDOTE}
+
+INSTRUCTIONS :
+1. UTILISE l'outil webSearch pour vérifier chaque point d'ambiguïté potentiel
+2. Recherche des cas où la réponse pourrait être contestée
+3. Vérifie si les mauvaises réponses pourraient être acceptables dans certains contextes
+
+⚠️ VÉRIFICATIONS CRITIQUES (toutes doivent passer) :
+
+1. UNICITÉ DE LA RÉPONSE
+   - La bonne réponse est-elle LA SEULE réponse possible ?
+   - Existe-t-il des controverses ou désaccords sur ce fait ?
+   - La question admet-elle plusieurs réponses valides selon les sources ?
+
+2. SYNONYMES ET ÉQUIVALENTS
+   - Une mauvaise option est-elle un SYNONYME de la bonne réponse ?
+   - Deux options signifient-elles la MÊME CHOSE ?
+   - Un terme pourrait-il être ÉQUIVALENT dans un autre contexte ?
+
+   Exemples de synonymes à détecter :
+   - Janitor / Concierge / Gardien
+   - Football / Soccer
+   - Aubergine / Eggplant
+   - Courgette / Zucchini
+   - Avocat (fruit) / Avocado
+   - Maïs / Blé d'Inde
+
+3. MAUVAISES RÉPONSES POTENTIELLEMENT CORRECTES
+   - Une mauvaise option pourrait-elle être correcte selon certaines sources ?
+   - Y a-t-il une controverse historique/scientifique ?
+   - Une mauvaise option serait-elle acceptable dans un contexte différent ?
+
+4. AMBIGUÏTÉ DE LA QUESTION
+   - La question peut-elle être interprétée de plusieurs façons ?
+   - Un mot a-t-il plusieurs sens possibles ?
+   - Le contexte est-il suffisant pour une réponse unique ?
+
+5. PRÉCISION FACTUELLE
+   - Les dates, chiffres, noms sont-ils EXACTS ?
+   - L'anecdote contient-elle des erreurs ?
+   - Les faits sont-ils vérifiables et non contestés ?
+
+RÉPONDS en JSON (STRICTEMENT ce format) :
+{
+  "hasIssues": true | false,
+  "ambiguityScore": 0-10,
+  "issues": [
+    {
+      "type": "synonym" | "multiple_answers" | "wrong_option_correct" | "unclear_question" | "factual_error",
+      "severity": "critical" | "major" | "minor",
+      "description": "Description du problème",
+      "evidence": "Source ou preuve du problème"
+    }
+  ],
+  "suggestions": [
+    "Suggestion pour corriger le problème..."
+  ],
+  "confidence": 0-100,
+  "reasoning": "Résumé de l'analyse"
+}
+
+ÉCHELLE D'AMBIGUÏTÉ (ambiguityScore) :
+- 10 : Parfait - question claire, réponse unique, pas d'ambiguïté
+- 8-9 : Excellent - très léger doute possible mais acceptable
+- 6-7 : Acceptable - petite ambiguïté mais réponse reste claire
+- 4-5 : Problématique - ambiguïté significative, à revoir
+- 0-3 : Rejeté - ambiguïté majeure, plusieurs réponses possibles
+
+RÈGLES :
+- hasIssues = true si ambiguityScore < 7
+- severity "critical" si la question doit être rejetée
+- severity "major" si la question doit être reformulée
+- severity "minor" si la question peut être acceptée avec une note
+
+Pas de markdown. JSON uniquement.`;
+
+/**
+ * Type definitions for ambiguity check results
+ */
+export interface AmbiguityIssue {
+  type: 'synonym' | 'multiple_answers' | 'wrong_option_correct' | 'unclear_question' | 'factual_error';
+  severity: 'critical' | 'major' | 'minor';
+  description: string;
+  evidence: string;
+}
+
+export interface AmbiguityCheckResult {
+  hasIssues: boolean;
+  ambiguityScore: number;
+  issues: AmbiguityIssue[];
+  suggestions: string[];
+  confidence: number;
+  reasoning: string;
+}
+
+/**
+ * Builds the ambiguity check prompt with question data.
+ *
+ * @param question - The question text
+ * @param correctAnswer - The correct answer
+ * @param wrongAnswers - Array of wrong answer options
+ * @param anecdote - Optional anecdote/explanation
+ * @returns The complete prompt string
+ */
+export function buildAmbiguityCheckPrompt(
+  question: string,
+  correctAnswer: string,
+  wrongAnswers: string[],
+  anecdote?: string
+): string {
+  return AMBIGUITY_CHECK_PROMPT
+    .replace('{QUESTION}', question)
+    .replace('{CORRECT_ANSWER}', correctAnswer)
+    .replace('{WRONG_ANSWERS}', JSON.stringify(wrongAnswers))
+    .replace('{ANECDOTE}', anecdote || 'Aucune');
+}

@@ -61,6 +61,8 @@
     "miam": "Yum"
   },
   "phase2": {
+    "elementNumber": "Item {{current}}/{{total}}",
+    "completed": "completed",
     "optionBoth": "Both",
     "swipeHint": "Swipe to classify each item in the correct category.",
     "homophoneHint": "These two expressions sound the same!",
@@ -137,7 +139,8 @@
     "youAnswered": "You answered",
     "waitingForPlayers": "Waiting for players...",
     "everyoneAnswered": "Everyone answered!",
-    "nextQuestionIn": "Next question in {{seconds}}s"
+    "nextQuestionIn": "Next question in {{seconds}}s",
+    "prepareForQuestion": "Get ready..."
   },
   "phase5": {
     "title": "Ultimate\nBurger",

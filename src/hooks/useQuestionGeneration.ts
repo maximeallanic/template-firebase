@@ -213,7 +213,7 @@ export function useQuestionGeneration({
 
                 // Fallback to filtered static questions
                 console.log('[QUESTION-GEN] 🔍 Phase 4: Filtering static fallback questions...');
-                const filtered = await filterUnseenQuestions(PHASE4_QUESTIONS, q => q.question);
+                const filtered = await filterUnseenQuestions(PHASE4_QUESTIONS, q => q.text);
                 console.log('[QUESTION-GEN] Phase 4: Fallback filter result', {
                     original: PHASE4_QUESTIONS.length,
                     filtered: filtered.length

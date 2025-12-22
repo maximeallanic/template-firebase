@@ -859,7 +859,7 @@ export const submitPhase2Answer = async (
         if (!phase2AutoAdvanceScheduled[advanceKey]) {
             phase2AutoAdvanceScheduled[advanceKey] = true;
             const hasAnecdote = item.anecdote;
-            const delay = hasAnecdote ? 7000 : 4000;
+            const delay = hasAnecdote ? 10000 : 4000;
             setTimeout(() => {
                 nextPhase2Item(roomId);
                 delete phase2AutoAdvanceScheduled[advanceKey]; // Cleanup after advance
@@ -897,7 +897,7 @@ export const endPhase2Round = async (roomCode: string) => {
     await update(ref(rtdb), updates);
 
     // Auto-advance
-    const delay = hasAnecdote ? 7000 : 4000;
+    const delay = hasAnecdote ? 10000 : 4000;
     setTimeout(() => nextPhase2Item(roomId), delay);
 };
 

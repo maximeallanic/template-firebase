@@ -28,10 +28,10 @@ export const ai = genkit({
 });
 
 /**
- * Generator model - Gemini 3 Pro Preview
- * Powerful reasoning model for game content generation with tool support
+ * Generator model - Gemini 3 Flash Preview
+ * Fast model for game content generation with tool support
  */
-export const GENERATOR_MODEL = googleAI.model('gemini-3-pro-preview');
+export const GENERATOR_MODEL = googleAI.model('gemini-3-flash-preview');
 
 /**
  * Reviewer model - Gemini 3 Flash Preview

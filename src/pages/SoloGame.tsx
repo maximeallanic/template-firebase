@@ -3,21 +3,23 @@
  * Main container for solo mode - wraps PhaseX components with solo context
  */
 
-import { useEffect, useMemo, useRef } from 'react';
+import { useEffect, useLayoutEffect, useMemo, useRef, useState, useCallback } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion } from 'framer-motion';
 import { AlertCircle, RotateCcw, Trophy } from 'lucide-react';
 import { FoodLoader } from '../components/ui/FoodLoader';
 import { submitScore } from '../services/leaderboardService';
 import { useAuthUser } from '../hooks/useAuthUser';
 import type { Room, Avatar } from '../types/gameTypes';
 import { SoloGameProvider, useSoloGame, createSoloHandlers } from '../contexts/SoloGameContext';
-import { mapSoloStateToGameState, SOLO_PHASE_NAMES, SOLO_MAX_SCORE } from '../types/soloTypes';
+import { mapSoloStateToGameState, SOLO_PHASE_NAMES, SOLO_MAX_SCORE, type SoloPhaseStatus } from '../types/soloTypes';
 import { Phase1Player } from '../components/phases/Phase1Player';
 import { Phase2Player } from '../components/phases/Phase2Player';
 import { Phase4Player } from '../components/phases/Phase4Player';
 import { SoloGameHeader } from '../components/solo/SoloGameHeader';
+import { PhaseTransition } from '../components/game/PhaseTransition';
 import { useReducedMotion } from '../hooks/useReducedMotion';
+import type { PhaseStatus } from '../services/gameService';
 
 // Inner component that uses the context
 function SoloGameInner() {
@@ -25,13 +27,23 @@ function SoloGameInner() {
     const prefersReducedMotion = useReducedMotion();
     const { user } = useAuthUser();
     const context = useSoloGame();
-    const { state, startGame, resetGame } = context;
+    const { state, startGame, resetGame, retryBackgroundGeneration } = context;
     const soloHandlers = useMemo(() => createSoloHandlers(context), [context]);
 
     // Ref to prevent double-calling startGame (React Strict Mode calls effects twice)
     const hasStartedRef = useRef(false);
     // Ref to prevent double-submitting score to leaderboard
     const hasSubmittedRef = useRef(false);
+
+    // Transition state (like GameRoom.tsx)
+    const [showTransition, setShowTransition] = useState(false);
+    const [transitionPhase, setTransitionPhase] = useState<PhaseStatus>('phase1');
+    const [displayStatus, setDisplayStatus] = useState<SoloPhaseStatus>(state.status);
+
+    // Refs for stable callback access during transitions
+    const prevStatusRef = useRef(state.status);
+    const isTransitioning = useRef(false);
+    const targetPhaseRef = useRef<PhaseStatus>('phase1');
 
     // Create a virtual Room object for PhaseX components
     const soloRoom: Room = useMemo(() => ({
@@ -89,6 +101,60 @@ function SoloGameInner() {
         }
     }, [state.status, user, state.totalQuestions, state.correctAnswers, state.playerName,
         state.playerAvatar, state.totalScore, state.phaseScores, state.totalTimeMs]);
+
+    // Phase Transition detection (synchronous before paint, like GameRoom.tsx)
+    useLayoutEffect(() => {
+        if (isTransitioning.current) return;
+
+        // Game phases + waiting + results (mapped to 'victory' for transition)
+        const transitionableStatuses = ['phase1', 'phase2', 'phase4', 'waiting_for_phase', 'results'];
+        const isTransitionable = transitionableStatuses.includes(state.status);
+        const wasTransitionable = transitionableStatuses.includes(prevStatusRef.current);
+        // Also trigger transition when starting the game (generating -> phase1)
+        const isGameStart = prevStatusRef.current === 'generating' && state.status === 'phase1';
+
+        if (state.status !== prevStatusRef.current && isTransitionable) {
+            if (wasTransitionable || isGameStart) {
+                // Transition between phases, to results, or game start
+                isTransitioning.current = true;
+                // Map special statuses for PhaseTransition component
+                let targetPhase: string;
+                if (state.status === 'results') {
+                    targetPhase = 'victory';
+                } else if (state.status === 'waiting_for_phase' && state.pendingPhase) {
+                    // Show the pending phase name in transition (even though questions aren't ready)
+                    targetPhase = state.pendingPhase;
+                } else {
+                    targetPhase = state.status;
+                }
+                targetPhaseRef.current = targetPhase as PhaseStatus;
+                setTransitionPhase(targetPhase as PhaseStatus);
+                setShowTransition(true);
+                // DON'T update displayStatus yet - wait for curtains to close
+            } else {
+                // Other cases - update directly (shouldn't happen in normal flow)
+                setDisplayStatus(state.status);
+            }
+        }
+
+        prevStatusRef.current = state.status;
+    }, [state.status, state.pendingPhase]);
+
+    // Callback when curtains are fully closed - update displayStatus before they open
+    const handleCurtainsClosed = useCallback(() => {
+        // Map 'victory' back to 'results' for displayStatus
+        // targetPhaseRef.current can only be 'phase1', 'phase2', 'phase4', or 'victory' in solo mode
+        const newStatus = targetPhaseRef.current === 'victory'
+            ? 'results'
+            : targetPhaseRef.current as SoloPhaseStatus;
+        setDisplayStatus(newStatus);
+    }, []);
+
+    // Callback when transition animation completes
+    const handleTransitionComplete = useCallback(() => {
+        setShowTransition(false);
+        isTransitioning.current = false;
+    }, []);
 
     // --- SETUP/GENERATING VIEW ---
     if (state.status === 'setup' || state.status === 'generating') {
@@ -161,8 +227,53 @@ function SoloGameInner() {
         );
     }
 
+    // --- WAITING FOR PHASE VIEW ---
+    if (displayStatus === 'waiting_for_phase' && state.pendingPhase) {
+        const phase = state.pendingPhase;
+        const genStatus = state.backgroundGeneration[phase];
+        const error = state.backgroundErrors[phase];
+        const phaseInfo = SOLO_PHASE_NAMES[phase];
+
+        return (
+            <div className="min-h-screen flex flex-col items-center justify-center p-4 text-white">
+                <motion.div
+                    initial={prefersReducedMotion ? { opacity: 0 } : { opacity: 0, scale: 0.9 }}
+                    animate={prefersReducedMotion ? { opacity: 1 } : { opacity: 1, scale: 1 }}
+                    className="bg-white/5 backdrop-blur-xl border border-white/10 rounded-3xl p-8 max-w-md w-full text-center"
+                >
+                    {genStatus === 'error' ? (
+                        <>
+                            <AlertCircle className="w-16 h-16 text-red-500 mx-auto mb-4" />
+                            <h2 className="text-2xl font-bold mb-2">Erreur de chargement</h2>
+                            <p className="text-gray-400 mb-6">{error || 'Une erreur est survenue'}</p>
+                            <button
+                                onClick={() => retryBackgroundGeneration(phase)}
+                                className="bg-orange-500 hover:bg-orange-400 px-6 py-3 rounded-xl font-bold flex items-center gap-2 mx-auto transition-colors"
+                            >
+                                <RotateCcw className="w-5 h-5" />
+                                Réessayer
+                            </button>
+                        </>
+                    ) : (
+                        <>
+                            <div className="flex justify-center mb-4">
+                                <FoodLoader size="xl" />
+                            </div>
+                            <h2 className="text-2xl font-bold mb-2">
+                                Préparation de {phaseInfo?.name}...
+                            </h2>
+                            <p className="text-gray-400">
+                                Les questions arrivent dans quelques secondes
+                            </p>
+                        </>
+                    )}
+                </motion.div>
+            </div>
+        );
+    }
+
     // --- RESULTS VIEW ---
-    if (state.status === 'results') {
+    if (displayStatus === 'results') {
         const accuracy = state.totalQuestions > 0
             ? Math.round((state.correctAnswers / state.totalQuestions) * 100)
             : 0;
@@ -252,7 +363,7 @@ function SoloGameInner() {
     }
 
     // --- GAME PHASE VIEWS ---
-    const currentPhase = SOLO_PHASE_NAMES[state.status as keyof typeof SOLO_PHASE_NAMES];
+    const currentPhase = SOLO_PHASE_NAMES[displayStatus as keyof typeof SOLO_PHASE_NAMES];
 
     return (
         <div className="min-h-screen flex flex-col">
@@ -264,61 +375,51 @@ function SoloGameInner() {
             />
 
             <div className="flex-1 flex items-center justify-center">
-                <AnimatePresence mode="wait">
-                    {state.status === 'phase1' && (
-                        <motion.div
-                            key="phase1"
-                            initial={{ opacity: 0, x: 100 }}
-                            animate={{ opacity: 1, x: 0 }}
-                            exit={{ opacity: 0, x: -100 }}
-                            className="w-full"
-                        >
-                            <Phase1Player
-                                room={soloRoom}
-                                playerId={state.playerId}
-                                isHost={true}
-                                mode="solo"
-                                soloHandlers={soloHandlers}
-                            />
-                        </motion.div>
-                    )}
+                {/* Phase Transition overlay (curtains + chalkboard) */}
+                <PhaseTransition
+                    phase={transitionPhase}
+                    isVisible={showTransition}
+                    onComplete={handleTransitionComplete}
+                    onCurtainsClosed={handleCurtainsClosed}
+                    isHost={false}
+                />
 
-                    {state.status === 'phase2' && (
-                        <motion.div
-                            key="phase2"
-                            initial={{ opacity: 0, x: 100 }}
-                            animate={{ opacity: 1, x: 0 }}
-                            exit={{ opacity: 0, x: -100 }}
-                            className="w-full"
-                        >
-                            <Phase2Player
-                                room={soloRoom}
-                                playerId={state.playerId}
-                                isHost={true}
-                                mode="solo"
-                                soloHandlers={soloHandlers}
-                            />
-                        </motion.div>
-                    )}
+                {/* Phase content - uses displayStatus (lags behind during transitions) */}
+                {displayStatus === 'phase1' && (
+                    <div className="w-full">
+                        <Phase1Player
+                            room={soloRoom}
+                            playerId={state.playerId}
+                            isHost={true}
+                            mode="solo"
+                            soloHandlers={soloHandlers}
+                        />
+                    </div>
+                )}
 
-                    {state.status === 'phase4' && (
-                        <motion.div
-                            key="phase4"
-                            initial={{ opacity: 0, x: 100 }}
-                            animate={{ opacity: 1, x: 0 }}
-                            exit={{ opacity: 0, x: -100 }}
-                            className="w-full"
-                        >
-                            <Phase4Player
-                                room={soloRoom}
-                                playerId={state.playerId}
-                                isHost={true}
-                                mode="solo"
-                                soloHandlers={soloHandlers}
-                            />
-                        </motion.div>
-                    )}
-                </AnimatePresence>
+                {displayStatus === 'phase2' && (
+                    <div className="w-full">
+                        <Phase2Player
+                            room={soloRoom}
+                            playerId={state.playerId}
+                            isHost={true}
+                            mode="solo"
+                            soloHandlers={soloHandlers}
+                        />
+                    </div>
+                )}
+
+                {displayStatus === 'phase4' && (
+                    <div className="w-full">
+                        <Phase4Player
+                            room={soloRoom}
+                            playerId={state.playerId}
+                            isHost={true}
+                            mode="solo"
+                            soloHandlers={soloHandlers}
+                        />
+                    </div>
+                )}
             </div>
         </div>
     );

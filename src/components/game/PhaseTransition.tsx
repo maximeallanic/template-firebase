@@ -436,6 +436,7 @@ export const PhaseTransition: React.FC<PhaseTransitionProps> = ({
 }) => {
     const [showContent, setShowContent] = useState(false);
     const [isSkipping, setIsSkipping] = useState(false);
+    const [curtainsOpen, setCurtainsOpen] = useState(false);
     // Capture the phase when transition starts to prevent changes during animation
     const capturedPhaseRef = useRef<PhaseStatus>(phase);
     const { getPhaseInfo } = usePhaseTranslation();
@@ -471,8 +472,9 @@ export const PhaseTransition: React.FC<PhaseTransitionProps> = ({
 
     useEffect(() => {
         if (isVisible) {
-            // Reset skip state
+            // Reset states
             setIsSkipping(false);
+            setCurtainsOpen(false);
             // Capture the phase at the START of the transition
             capturedPhaseRef.current = phase;
 
@@ -495,6 +497,11 @@ export const PhaseTransition: React.FC<PhaseTransitionProps> = ({
                 setShowContent(false);
             }, curtainClose + boardDuration);
 
+            // Enable pointer events when curtains start opening
+            const curtainsOpenTimer = setTimeout(() => {
+                setCurtainsOpen(true);
+            }, curtainClose + boardDuration);
+
             // Complete animation
             const completeTimer = setTimeout(() => {
                 onCompleteRef.current();
@@ -504,11 +511,13 @@ export const PhaseTransition: React.FC<PhaseTransitionProps> = ({
                 clearTimeout(curtainsClosedTimer);
                 clearTimeout(showContentTimer);
                 clearTimeout(hideContentTimer);
+                clearTimeout(curtainsOpenTimer);
                 clearTimeout(completeTimer);
             };
         } else {
             setShowContent(false);
             setIsSkipping(false);
+            setCurtainsOpen(false);
         }
     }, [isVisible, phase, curtainClose, boardDuration, totalDuration]);
 
@@ -516,7 +525,7 @@ export const PhaseTransition: React.FC<PhaseTransitionProps> = ({
         <AnimatePresence>
             {isVisible && (
                 <motion.div
-                    className="fixed inset-0 z-[200] flex items-center justify-center overflow-hidden"
+                    className={`fixed inset-0 z-[200] flex items-center justify-center overflow-hidden ${curtainsOpen ? 'pointer-events-none' : ''}`}
                     initial={{ opacity: 1 }}
                     animate={{ opacity: 1 }}
                     exit={{ opacity: 0 }}
@@ -525,7 +534,7 @@ export const PhaseTransition: React.FC<PhaseTransitionProps> = ({
                     {/* Skip Button for Host */}
                     {isHost && !isSkipping && (
                         <motion.button
-                            className="absolute top-4 right-4 z-[300] flex items-center gap-2 px-4 py-2 bg-white/10 hover:bg-white/20 backdrop-blur-sm border border-white/20 rounded-lg text-white/80 hover:text-white transition-colors"
+                            className="absolute top-4 right-4 z-[300] pointer-events-auto flex items-center gap-2 px-4 py-2 bg-white/10 hover:bg-white/20 backdrop-blur-sm border border-white/20 rounded-lg text-white/80 hover:text-white transition-colors"
                             onClick={handleSkip}
                             initial={{ opacity: 0, y: -20 }}
                             animate={{ opacity: 1, y: 0 }}

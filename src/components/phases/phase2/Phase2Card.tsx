@@ -1,12 +1,13 @@
-import { useEffect, useCallback } from 'react';
+import { useEffect, useCallback, useRef } from 'react';
 import { motion, useAnimation } from 'framer-motion';
 import type { PanInfo } from 'framer-motion';
 import { useTranslation } from 'react-i18next';
-import { ArrowLeft, ArrowRight, ArrowUp, Check, X } from 'lucide-react';
+import { ArrowLeft, ArrowRight, ArrowUp, Check, X, AlertCircle } from 'lucide-react';
 import { audioService } from '../../../services/audioService';
 import { useReducedMotion } from '../../../hooks/useReducedMotion';
 import { phase2CardVariants } from '../../../animations/phaseTransitions';
-import { organicEase, durations } from '../../../animations';
+import { organicEase, durations, bouncySpring } from '../../../animations';
+import type { Team, Phase2TeamAnswer } from '../../../types/gameTypes';
 
 export type Phase2Answer = 'A' | 'B' | 'Both';
 export type SwipeDirection = 'left' | 'right' | 'up';
@@ -25,6 +26,11 @@ interface Phase2CardProps {
     isRoundOver: boolean;
     didWin: boolean;
     onAnswer: (answer: Phase2Answer, direction: SwipeDirection) => void;
+    // New props for adjacent message
+    optionA?: string;
+    optionB?: string;
+    roundWinner?: Team | null;
+    myTeamAnswer?: Phase2TeamAnswer;
 }
 
 export function Phase2Card({
@@ -32,35 +38,52 @@ export function Phase2Card({
     hasAnswered,
     isRoundOver,
     didWin,
-    onAnswer
+    onAnswer,
+    optionA,
+    optionB,
+    roundWinner,
+    myTeamAnswer
 }: Phase2CardProps) {
     const { t } = useTranslation(['game-ui']);
     const prefersReducedMotion = useReducedMotion();
     const controls = useAnimation();
+    const hasPlayedAudioRef = useRef(false);
 
-    // Reset card position when item changes
+    // Determine result type
+    const noWinner = roundWinner === null;
+    const otherTeamWon = !didWin && roundWinner !== null;
+
+    // Reset card position and animate to visible when item changes
     useEffect(() => {
-        controls.set({ x: 0, y: 0, opacity: 1 });
-    }, [item.text, controls]);
-
-    // Animate card to correct position when result is shown
-    useEffect(() => {
-        if (isRoundOver && hasAnswered && !prefersReducedMotion) {
-            const correctX = item.answer === 'A' ? -150 : item.answer === 'B' ? 150 : 0;
-            const correctY = item.answer === 'Both' ? -80 : 0;
-
+        // First reset position, then animate to visible state
+        controls.set({ x: 0, y: 0 });
+        if (!prefersReducedMotion) {
             controls.start({
-                x: correctX,
-                y: correctY,
                 opacity: 1,
-                transition: {
-                    duration: 0.6,
-                    ease: organicEase,
-                    delay: 0.2
-                }
+                scale: 1,
+                rotateZ: 0,
+                y: 0,
             });
+        } else {
+            controls.set({ opacity: 1, scale: 1, rotateZ: 0, y: 0 });
         }
-    }, [isRoundOver, hasAnswered, item.answer, controls, prefersReducedMotion]);
+        hasPlayedAudioRef.current = false;
+    }, [item.text, controls, prefersReducedMotion]);
+
+    // Play audio feedback when result is shown
+    useEffect(() => {
+        if (!isRoundOver || !hasAnswered || hasPlayedAudioRef.current) return;
+        hasPlayedAudioRef.current = true;
+
+        if (didWin) {
+            audioService.playSuccess();
+            audioService.playWinRound();
+        } else if (otherTeamWon) {
+            audioService.playError();
+        }
+    }, [isRoundOver, hasAnswered, didWin, otherTeamWon]);
+
+    // Card stays at swipe position - no animation to "correct" position
 
     // Handle answer submission
     const handleAnswer = useCallback((choice: Phase2Answer, direction: SwipeDirection) => {
@@ -144,89 +167,224 @@ export function Phase2Card({
         return 'bg-gradient-to-r from-red-400 via-purple-400 to-pink-400';
     };
 
+    // Get message position based on correct answer
+    const getMessagePosition = () => {
+        switch (item.answer) {
+            case 'A': // Correct answer is left → message to the right of card
+                return 'left-full ml-4 top-1/2 -translate-y-1/2';
+            case 'B': // Correct answer is right → message to the left of card
+                return 'right-full mr-4 top-1/2 -translate-y-1/2';
+            case 'Both': // Correct answer is both → message below card
+                return 'top-full mt-4 left-1/2 -translate-x-1/2';
+        }
+    };
+
+    // Get result style based on outcome
+    const getResultStyle = () => {
+        if (didWin) {
+            return 'bg-gradient-to-br from-green-500 to-emerald-600 border-white text-white';
+        }
+        if (otherTeamWon) {
+            return 'bg-white border-red-500 text-red-500';
+        }
+        // No winner
+        return 'bg-white border-amber-500 text-amber-600';
+    };
+
+    // Get result message
+    const getResultMessage = () => {
+        if (didWin) {
+            return t('phase2.yourTeamWon', { defaultValue: 'Votre équipe gagne !' });
+        }
+        if (otherTeamWon) {
+            return t('phase2.yourTeamLost', { defaultValue: "L'équipe adverse a gagné" });
+        }
+        return t('phase2.nobodyWon', { defaultValue: "Aucune équipe n'a trouvé !" });
+    };
+
+    // Get result icon
+    const getResultIcon = () => {
+        if (didWin) return <Check className="w-8 h-8" />;
+        if (otherTeamWon) return <X className="w-8 h-8" />;
+        return <AlertCircle className="w-8 h-8" />;
+    };
+
+    // Get answer display text
+    const getAnswerText = (answer: Phase2Answer) => {
+        switch (answer) {
+            case 'A': return optionA || 'A';
+            case 'B': return optionB || 'B';
+            case 'Both': return t('phase2.optionBoth');
+        }
+    };
+
+    // Get team display name
+    const getTeamName = (team: Team | null | undefined) => {
+        if (!team) return '';
+        return team === 'spicy' ? '🌶️ Spicy' : '🍬 Sweet';
+    };
+
     return (
         <motion.div
             variants={prefersReducedMotion ? undefined : phase2CardVariants}
             initial={prefersReducedMotion ? { opacity: 0 } : "hidden"}
-            animate={prefersReducedMotion ? { opacity: 1 } : "visible"}
+            animate={controls}
             drag={!hasAnswered && !isRoundOver}
             dragConstraints={{ left: 0, right: 0, top: 0, bottom: 0 }}
             dragElastic={0.7}
             onDragEnd={hasAnswered || isRoundOver ? undefined : handleDragEnd}
-            style={prefersReducedMotion ? undefined : { x: 0, y: 0 }}
-            className={`
-                bg-white text-slate-900 w-full max-w-xs aspect-square rounded-3xl shadow-2xl
-                flex flex-col items-center justify-center p-6 text-center relative overflow-hidden
-                transition-shadow duration-300
-                ${!hasAnswered && !isRoundOver ? 'cursor-grab active:cursor-grabbing pointer-events-auto' : 'pointer-events-none'}
-                ${getRingClass()}
-            `}
-            role="button"
-            aria-label={t('phase2.swipeCard', { item: item.text })}
-            tabIndex={hasAnswered ? -1 : 0}
+            className="relative"
         >
-            {/* Top decorative bar */}
+            {/* The Card */}
             <div
-                className={`absolute top-0 left-0 right-0 h-2 transition-colors duration-300 ${getTopBarGradient()}`}
-                aria-hidden="true"
-            />
-
-            {/* Answer label badge (shows only during result phase) */}
-            {isRoundOver && hasAnswered && (
-                <motion.div
-                    initial={prefersReducedMotion ? { opacity: 0 } : { opacity: 0, y: -10 }}
-                    animate={prefersReducedMotion ? { opacity: 1 } : { opacity: 1, y: 0 }}
-                    transition={{ delay: durations.quick, duration: durations.quick, ease: organicEase }}
-                    className={`absolute -top-3 left-1/2 -translate-x-1/2 px-3 py-1 rounded-full text-xs font-bold text-white ${
-                        item.answer === 'A' ? 'bg-red-500' :
-                        item.answer === 'B' ? 'bg-pink-500' :
-                        'bg-purple-500'
-                    }`}
+                className={`
+                    bg-white text-slate-900 w-full max-w-xs aspect-square rounded-3xl shadow-2xl
+                    flex flex-col items-center justify-center p-6 text-center relative overflow-hidden
+                    transition-shadow duration-300
+                    ${!hasAnswered && !isRoundOver ? 'cursor-grab active:cursor-grabbing pointer-events-auto' : 'pointer-events-none'}
+                    ${getRingClass()}
+                `}
+                role="button"
+                aria-label={t('phase2.swipeCard', { item: item.text })}
+                tabIndex={hasAnswered ? -1 : 0}
+            >
+                {/* Top decorative bar */}
+                <div
+                    className={`absolute top-0 left-0 right-0 h-2 transition-colors duration-300 ${getTopBarGradient()}`}
                     aria-hidden="true"
                 />
-            )}
 
-            {/* Item text */}
-            <h1 className="text-3xl md:text-4xl font-black leading-tight text-slate-800">
-                {item.text}
-            </h1>
+                {/* Answer label badge (shows only during result phase) */}
+                {isRoundOver && hasAnswered && (
+                    <motion.div
+                        initial={prefersReducedMotion ? { opacity: 0 } : { opacity: 0, y: -10 }}
+                        animate={prefersReducedMotion ? { opacity: 1 } : { opacity: 1, y: 0 }}
+                        transition={{ delay: durations.quick, duration: durations.quick, ease: organicEase }}
+                        className={`absolute -top-3 left-1/2 -translate-x-1/2 px-3 py-1 rounded-full text-xs font-bold text-white ${
+                            item.answer === 'A' ? 'bg-red-500' :
+                            item.answer === 'B' ? 'bg-pink-500' :
+                            'bg-purple-500'
+                        }`}
+                        aria-hidden="true"
+                    />
+                )}
 
-            {/* Justification (shows during result) */}
-            {isRoundOver && item.justification && (
-                <motion.p
-                    initial={prefersReducedMotion ? { opacity: 0 } : { opacity: 0 }}
-                    animate={prefersReducedMotion ? { opacity: 1 } : { opacity: 1 }}
-                    transition={{ delay: durations.medium, duration: durations.quick, ease: organicEase }}
-                    className="text-xs text-slate-600 mt-3 px-2 italic leading-snug"
-                >
-                    {item.justification}
-                </motion.p>
-            )}
+                {/* Item text */}
+                <h1 className="text-3xl md:text-4xl font-black leading-tight text-slate-800">
+                    {item.text}
+                </h1>
 
-            {/* Swipe hint at bottom (only when not answered) */}
-            {!hasAnswered && !isRoundOver && (
-                <div
-                    className="text-xs text-slate-400 mt-6 flex items-center gap-2"
-                    aria-hidden="true"
-                >
-                    <ArrowLeft className="w-4 h-4" />
-                    <ArrowUp className="w-4 h-4" />
-                    <ArrowRight className="w-4 h-4" />
-                </div>
-            )}
+                {/* Swipe hint at bottom (only when not answered) */}
+                {!hasAnswered && !isRoundOver && (
+                    <div
+                        className="text-xs text-slate-400 mt-6 flex items-center gap-2"
+                        aria-hidden="true"
+                    >
+                        <ArrowLeft className="w-4 h-4" />
+                        <ArrowUp className="w-4 h-4" />
+                        <ArrowRight className="w-4 h-4" />
+                    </div>
+                )}
 
-            {/* Result icon overlay */}
+                {/* Result icon overlay */}
+                {isRoundOver && hasAnswered && (
+                    <motion.div
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        transition={{ delay: 0.4 }}
+                        aria-hidden="true"
+                        className={`absolute bottom-3 right-3 w-10 h-10 rounded-full flex items-center justify-center ${
+                            didWin ? 'bg-green-500 text-white' : 'bg-red-500 text-white'
+                        }`}
+                    >
+                        {didWin ? <Check className="w-6 h-6" /> : <X className="w-6 h-6" />}
+                    </motion.div>
+                )}
+            </div>
+
+            {/* Adjacent Result Message */}
             {isRoundOver && hasAnswered && (
                 <motion.div
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    transition={{ delay: 0.4 }}
-                    aria-hidden="true"
-                    className={`absolute bottom-3 right-3 w-10 h-10 rounded-full flex items-center justify-center ${
-                        didWin ? 'bg-green-500 text-white' : 'bg-red-500 text-white'
-                    }`}
+                    initial={prefersReducedMotion ? { opacity: 0 } : { opacity: 0, scale: 0.9 }}
+                    animate={prefersReducedMotion ? { opacity: 1 } : { opacity: 1, scale: 1 }}
+                    transition={{ delay: 0.3, ...bouncySpring }}
+                    role="alert"
+                    aria-live="assertive"
+                    className={`absolute ${getMessagePosition()} w-48 max-w-[200px] pointer-events-none`}
                 >
-                    {didWin ? <Check className="w-6 h-6" /> : <X className="w-6 h-6" />}
+                    <div className={`p-4 rounded-xl shadow-xl border-2 ${getResultStyle()}`}>
+                        {/* Result Icon */}
+                        <motion.div
+                            initial={prefersReducedMotion ? { opacity: 0 } : { scale: 0 }}
+                            animate={prefersReducedMotion ? { opacity: 1 } : { scale: 1 }}
+                            transition={{ delay: 0.5, ...bouncySpring }}
+                            className="flex justify-center mb-2"
+                            aria-hidden="true"
+                        >
+                            {getResultIcon()}
+                        </motion.div>
+
+                        {/* Result Text */}
+                        <div className="text-sm font-black tracking-wide uppercase text-center">
+                            {getResultMessage()}
+                        </div>
+
+                        {/* Winner team badge */}
+                        {roundWinner && (
+                            <div className="text-xs mt-1 text-center opacity-80">
+                                {getTeamName(roundWinner)}
+                            </div>
+                        )}
+
+                        {/* Who answered for my team */}
+                        {myTeamAnswer && (
+                            <div className={`text-xs mt-1 text-center ${didWin ? 'text-white/70' : 'text-current opacity-60'}`}>
+                                {myTeamAnswer.playerName}
+                            </div>
+                        )}
+
+                        {/* Correct answer (show if team lost or no winner) */}
+                        {!didWin && (
+                            <div className={`text-xs mt-2 ${noWinner ? 'text-amber-700' : 'text-red-400'}`}>
+                                {t('phase2.itWas')}{' '}
+                                <span className={`font-bold ${noWinner ? 'text-amber-800' : 'text-red-600'}`}>
+                                    {getAnswerText(item.answer)}
+                                </span>
+                            </div>
+                        )}
+
+                        {/* Justification */}
+                        {item.justification && (
+                            <motion.p
+                                initial={{ opacity: 0 }}
+                                animate={{ opacity: 1 }}
+                                transition={{ delay: 0.7, duration: durations.normal }}
+                                className={`text-xs mt-2 pt-2 border-t italic ${
+                                    didWin
+                                        ? 'border-white/20 text-white/90'
+                                        : noWinner
+                                        ? 'border-amber-200 text-amber-700'
+                                        : 'border-red-200 text-red-600'
+                                }`}
+                            >
+                                {item.justification}
+                            </motion.p>
+                        )}
+
+                        {/* Anecdote */}
+                        {item.anecdote && (
+                            <motion.p
+                                initial={{ opacity: 0 }}
+                                animate={{ opacity: 1 }}
+                                transition={{ delay: 0.9, duration: durations.normal }}
+                                className={`text-xs mt-2 italic ${
+                                    didWin ? 'text-white/70' : 'opacity-60'
+                                }`}
+                            >
+                                💡 {item.anecdote}
+                            </motion.p>
+                        )}
+                    </div>
                 </motion.div>
             )}
         </motion.div>

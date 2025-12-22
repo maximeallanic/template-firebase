@@ -14,7 +14,7 @@ import type { SoloPhaseHandlers } from '../../types/soloTypes';
 import { SOLO_SCORING } from '../../types/soloTypes';
 
 // Modular components
-import { Phase2Card, Phase2Zones, Phase2Result, Phase2Transition } from './phase2';
+import { Phase2Card, Phase2Zones, Phase2Transition } from './phase2';
 import type { Phase2Answer } from './phase2';
 
 interface Phase2PlayerProps {
@@ -48,6 +48,7 @@ export function Phase2Player({ room, playerId, isHost, mode = 'multiplayer', sol
         : (customQuestions?.phase2 as SimplePhase2Set[] | undefined)?.[setIndex] || PHASE2_SETS[setIndex];
     const currentItem = currentSet?.items[itemIndex];
     const totalItems = currentSet?.items.length || 0;
+    const currentAnecdote = currentItem?.anecdote;
 
     // Get current player's team (in solo mode, always 'spicy')
     const myTeam = isSolo ? 'spicy' : players[playerId]?.team;
@@ -127,6 +128,9 @@ export function Phase2Player({ room, playerId, isHost, mode = 'multiplayer', sol
     useEffect(() => {
         if (!isSolo || !soloAnswered || !soloResult || !soloHandlers) return;
 
+        // Longer delay when there's an anecdote to read
+        const delay = currentAnecdote ? 10000 : 4000;
+
         const timer = setTimeout(() => {
             if (itemIndex + 1 < SOLO_SCORING.phase2.maxItems && itemIndex + 1 < totalItems) {
                 soloHandlers.nextPhase2Item();
@@ -134,10 +138,10 @@ export function Phase2Player({ room, playerId, isHost, mode = 'multiplayer', sol
                 // Phase complete
                 soloHandlers.advanceToNextPhase();
             }
-        }, 1500); // Show result for 1.5 seconds
+        }, delay);
 
         return () => clearTimeout(timer);
-    }, [isSolo, soloAnswered, soloResult, soloHandlers, itemIndex, totalItems]);
+    }, [isSolo, soloAnswered, soloResult, soloHandlers, itemIndex, totalItems, currentAnecdote]);
 
     // Handle transition complete
     const handleTransitionComplete = useCallback(() => {
@@ -261,27 +265,13 @@ export function Phase2Player({ room, playerId, isHost, mode = 'multiplayer', sol
                 optionB={currentSet.optionB}
                 optionADescription={currentSet.optionADescription}
                 optionBDescription={currentSet.optionBDescription}
+                humorousDescription={currentSet.humorousDescription}
                 onZoneClick={canAnswer ? handleAnswer : undefined}
                 disabled={!canAnswer}
             />
 
             {/* CENTER: Card & Results */}
             <div className="absolute inset-0 flex flex-col items-center justify-center p-4 pointer-events-none">
-                {/* Result Overlay */}
-                <AnimatePresence>
-                    {isRoundOver && (
-                        <Phase2Result
-                            item={currentItem}
-                            optionA={currentSet.optionA}
-                            optionB={currentSet.optionB}
-                            didWin={didMyTeamWin}
-                            myTeam={myTeam}
-                            roundWinner={phase2RoundWinner}
-                            myTeamAnswer={myTeamAnswer}
-                        />
-                    )}
-                </AnimatePresence>
-
                 {/* Team Lock Overlay - When teammate answered but round not over (multiplayer only) */}
                 {!isSolo && (
                     <AnimatePresence>
@@ -315,13 +305,17 @@ export function Phase2Player({ room, playerId, isHost, mode = 'multiplayer', sol
                     </AnimatePresence>
                 )}
 
-                {/* The Drag Card */}
+                {/* The Drag Card with Adjacent Result Message */}
                 <Phase2Card
                     item={currentItem}
                     hasAnswered={hasMyTeamAnswered}
                     isRoundOver={isRoundOver}
                     didWin={didMyTeamWin}
                     onAnswer={handleAnswer}
+                    optionA={currentSet.optionA}
+                    optionB={currentSet.optionB}
+                    roundWinner={phase2RoundWinner}
+                    myTeamAnswer={myTeamAnswer}
                 />
 
                 {/* Waiting Feedback - When I answered and waiting for other team (multiplayer only) */}

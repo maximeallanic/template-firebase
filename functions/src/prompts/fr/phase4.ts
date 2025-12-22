@@ -26,7 +26,7 @@ IMPORTANT - VÉRIFICATION DES FAITS :
 JSON Format (STRICTEMENT ce format) :
 [
   {
-    "question": "Question claire et directe ?",
+    "text": "Question claire et directe ?",
     "options": ["Option A", "Option B", "Option C", "Option D"],
     "correctIndex": 0,
     "anecdote": "Fait amusant optionnel"
@@ -70,7 +70,7 @@ Répartition obligatoire :
 
 ✅ BON EXEMPLE :
 {
-  "question": "Quelle est la capitale de l'Australie ?",
+  "text": "Quelle est la capitale de l'Australie ?",
   "options": ["Sydney", "Melbourne", "Canberra", "Brisbane"],
   "correctIndex": 2,
   "anecdote": "Canberra a été construite spécialement pour être capitale !"
@@ -78,7 +78,7 @@ Répartition obligatoire :
 
 ❌ MAUVAIS EXEMPLE :
 {
-  "question": "Quelle est la capitale de l'Australie ?",
+  "text": "Quelle est la capitale de l'Australie ?",
   "options": ["Canberra", "Pizza", "42", "Le chat"],  // Distracteurs absurdes
   "correctIndex": 0
 }
@@ -108,7 +108,7 @@ Sur 10 questions, mélange obligatoire :
 FORMAT JSON (STRICTEMENT) :
 [
   {
-    "question": "Question claire (max 25 mots) ?",
+    "text": "Question claire (max 25 mots) ?",
     "options": ["Option A", "Option B", "Option C", "Option D"],
     "correctIndex": 0,
     "anecdote": "Fait amusant (optionnel)"
@@ -212,7 +212,7 @@ RÈGLES POUR LES NOUVELLES QUESTIONS :
 GÉNÈRE UNIQUEMENT les {COUNT} questions de remplacement en JSON :
 [
   {
-    "question": "Nouvelle question ?",
+    "text": "Nouvelle question ?",
     "options": ["A", "B", "C", "D"],
     "correctIndex": 0,
     "anecdote": "Fait intéressant optionnel"

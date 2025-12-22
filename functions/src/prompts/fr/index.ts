@@ -12,7 +12,9 @@ export {
 // Topic generation
 export {
     GENERATE_TOPIC_PROMPT,
-    GENERATE_TOPIC_PHASE2_PROMPT
+    GENERATE_TOPIC_PHASE2_PROMPT,
+    SUBJECT_ANGLE_PROMPT,
+    buildSubjectAnglePrompt
 } from './topic';
 
 // Phase 1 (Tenders)
@@ -64,5 +66,13 @@ export {
     FACT_CHECK_PROMPT,
     FACT_CHECK_BATCH_PROMPT,
     FACT_CHECK_NO_SEARCH_PROMPT,
-    FACT_CHECK_PHASE2_PROMPT
+    FACT_CHECK_PHASE2_PROMPT,
+    AMBIGUITY_CHECK_PROMPT,
+    buildAmbiguityCheckPrompt
+} from './factcheck';
+
+// Fact-checking types
+export type {
+    AmbiguityIssue,
+    AmbiguityCheckResult
 } from './factcheck';

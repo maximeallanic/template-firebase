@@ -6,6 +6,7 @@ import { FoodLoader } from '../ui/FoodLoader';
 import type { Room, Phase4Question as Phase4QuestionType } from '../../services/gameService';
 import { submitPhase4Answer, handlePhase4Timeout, nextPhase4Question, showPhaseResults } from '../../services/gameService';
 import { markQuestionAsSeen } from '../../services/historyService';
+import { audioService } from '../../services/audioService';
 import { useReducedMotion } from '../../hooks/useReducedMotion';
 import { PHASE4_QUESTIONS } from '../../data/phase4';
 import type { SoloPhaseHandlers } from '../../types/soloTypes';
@@ -56,6 +57,9 @@ export function Phase4Player({ room, playerId, isHost, mode = 'multiplayer', sol
     const [showTransition, setShowTransition] = useState(false);
     const previousQuestionIdxRef = useRef<number | null>(null);
 
+    // Immediate wrong answer feedback state
+    const [wrongFeedbackIndex, setWrongFeedbackIndex] = useState<number | null>(null);
+
     // Check if current player has answered
     const myAnswer = phase4Answers?.[playerId];
     const hasAnswered = myAnswer !== undefined;
@@ -67,10 +71,10 @@ export function Phase4Player({ room, playerId, isHost, mode = 'multiplayer', sol
 
     // Track question as seen when displayed
     useEffect(() => {
-        if (currentQuestion?.question) {
-            markQuestionAsSeen('', currentQuestion.question);
+        if (currentQuestion?.text) {
+            markQuestionAsSeen('', currentQuestion.text);
         }
-    }, [currentQuestion?.question]);
+    }, [currentQuestion?.text]);
 
     // Show transition when question index changes
     useEffect(() => {
@@ -151,16 +155,31 @@ export function Phase4Player({ room, playerId, isHost, mode = 'multiplayer', sol
 
     // Handle answer submission
     const handleAnswerClick = useCallback(async (answerIndex: number) => {
-        if (hasAnswered || phase4State !== 'questioning') return;
+        // Prevent interaction during wrong feedback animation
+        if (hasAnswered || phase4State !== 'questioning' || wrongFeedbackIndex !== null) return;
         // In multiplayer, need team. In solo, always allowed
         if (!isSolo && !team) return;
 
+        // Check if answer is wrong BEFORE submitting (for immediate visual feedback)
+        const isWrongAnswer = currentQuestion && answerIndex !== currentQuestion.correctIndex;
+
+        if (isWrongAnswer && !prefersReducedMotion) {
+            // Show immediate wrong answer feedback
+            setWrongFeedbackIndex(answerIndex);
+            audioService.playError();
+
+            // Wait for animation to complete before submitting
+            await new Promise(resolve => setTimeout(resolve, 800));
+            setWrongFeedbackIndex(null);
+        }
+
+        // Now submit the answer
         if (isSolo && soloHandlers) {
             soloHandlers.submitPhase4Answer(answerIndex);
         } else {
             await submitPhase4Answer(room.code, playerId, answerIndex);
         }
-    }, [hasAnswered, phase4State, team, room.code, playerId, isSolo, soloHandlers]);
+    }, [hasAnswered, phase4State, team, room.code, playerId, isSolo, soloHandlers, currentQuestion, prefersReducedMotion, wrongFeedbackIndex]);
 
     // Handle transition complete
     const handleTransitionComplete = useCallback(() => {
@@ -265,7 +284,7 @@ export function Phase4Player({ room, playerId, isHost, mode = 'multiplayer', sol
             <AnimatePresence mode="wait">
                 <Phase4Question
                     key={currentQuestionIdx}
-                    question={currentQuestion.question}
+                    question={currentQuestion.text}
                     questionNumber={currentQuestionIdx + 1}
                     totalQuestions={totalQuestions}
                 />
@@ -278,7 +297,8 @@ export function Phase4Player({ room, playerId, isHost, mode = 'multiplayer', sol
                     options={currentQuestion.options}
                     selectedAnswer={myAnswer?.answer}
                     onSelectAnswer={handleAnswerClick}
-                    disabled={hasAnswered}
+                    disabled={hasAnswered || wrongFeedbackIndex !== null}
+                    wrongFeedbackIndex={wrongFeedbackIndex}
                 />
             </AnimatePresence>
 

@@ -61,6 +61,8 @@
     "miam": "Miam"
   },
   "phase2": {
+    "elementNumber": "Élément {{current}}/{{total}}",
+    "completed": "terminé",
     "optionBoth": "Les Deux",
     "swipeHint": "Swipe pour classer chaque élément dans la bonne catégorie.",
     "homophoneHint": "Ces deux expressions se prononcent pareil !",
@@ -137,7 +139,8 @@
     "youAnswered": "Tu as répondu",
     "waitingForPlayers": "En attente des joueurs...",
     "everyoneAnswered": "Tout le monde a répondu !",
-    "nextQuestionIn": "Prochaine question dans {{seconds}}s"
+    "nextQuestionIn": "Prochaine question dans {{seconds}}s",
+    "prepareForQuestion": "Préparez-vous..."
   },
   "phase5": {
     "title": "Burger\nUltime",

@@ -116,6 +116,7 @@ export interface SimplePhase2Set {
     optionB: string;
     optionADescription?: string;  // Description pour différencier les homonymes (ex: "le gâteau")
     optionBDescription?: string;  // Description pour différencier les homonymes (ex: "le banquier")
+    humorousDescription?: string; // Description humoristique des deux options (générée par IA)
 }
 
 // Phase 2 - Team answer tracking (1 réponse par équipe)
@@ -227,7 +228,7 @@ export interface Phase3PlayerAnswer {
 }
 
 export interface Phase4Question {
-    question: string;
+    text: string;           // Question text (consistent with Phase 1)
     options: string[];      // 4 options MCQ
     correctIndex: number;   // Index de la bonne réponse (0-3)
     anecdote?: string;      // Fait amusant optionnel

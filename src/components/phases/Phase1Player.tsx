@@ -105,6 +105,7 @@ export function Phase1Player({ room, playerId, isHost, mode = 'multiplayer', sol
     const [myAnswer, setMyAnswer] = useState<number | null>(null);
     const [submitError, setSubmitError] = useState(false);
     const [showQuestionTransition, setShowQuestionTransition] = useState(false);
+    const [wrongFeedbackIndex, setWrongFeedbackIndex] = useState<number | null>(null);
 
     // Check if my team is blocked (disabled in solo mode)
     const myTeam = players[playerId]?.team;
@@ -123,6 +124,7 @@ export function Phase1Player({ room, playerId, isHost, mode = 'multiplayer', sol
         if (hasValidIndex && currentQuestionIndex !== prevIndex) {
             setMyAnswer(null);
             setSubmitError(false);
+            setWrongFeedbackIndex(null);
             // Only show transition animation for subsequent questions (not the first)
             if (prevIndex !== undefined) {
                 setShowQuestionTransition(true);
@@ -156,10 +158,26 @@ export function Phase1Player({ room, playerId, isHost, mode = 'multiplayer', sol
 
     const handleAnswer = async (index: number) => {
         // Also check if this option was already tried and wrong (rebond system)
-        if (phaseState === 'answering' && myAnswer === null && !isMyTeamBlocked && !triedWrongOptions.includes(index)) {
+        // Also prevent interaction during wrong feedback animation
+        if (phaseState === 'answering' && myAnswer === null && !isMyTeamBlocked && !triedWrongOptions.includes(index) && wrongFeedbackIndex === null) {
             audioService.playClick();
-            setMyAnswer(index);
             setSubmitError(false);
+
+            // Check if answer is wrong BEFORE submitting (for immediate visual feedback)
+            const isWrongAnswer = currentQuestion && index !== currentQuestion.correctIndex;
+
+            if (isWrongAnswer && !prefersReducedMotion) {
+                // Show immediate wrong answer feedback
+                setWrongFeedbackIndex(index);
+                audioService.playError();
+
+                // Wait for animation to complete before submitting
+                await new Promise(resolve => setTimeout(resolve, 800));
+                setWrongFeedbackIndex(null);
+            }
+
+            // Now submit the answer (the rest of the flow continues normally)
+            setMyAnswer(index);
             try {
                 if (isSolo && soloHandlers) {
                     soloHandlers.submitPhase1Answer(index);
@@ -429,10 +447,10 @@ export function Phase1Player({ room, playerId, isHost, mode = 'multiplayer', sol
                             const ShapeIcon = ICONS[idx];
                             // Rebond: check if this option was already tried and wrong
                             const isTriedWrong = triedWrongOptions.includes(idx);
-                            const isDisabled = !isAnswering || myAnswer !== null || isMyTeamBlocked || isTriedWrong;
+                            // Immediate wrong answer feedback (shake + X)
+                            const isShowingWrongFeedback = wrongFeedbackIndex === idx;
+                            const isDisabled = !isAnswering || myAnswer !== null || isMyTeamBlocked || isTriedWrong || wrongFeedbackIndex !== null;
                             const optionLabel = currentQuestion ? currentQuestion.options[idx] : `Option ${['A', 'B', 'C', 'D'][idx]}`;
-                            // Only animate shake for wrong answers during result phase (disabled for reduced motion)
-                            const shouldShake = !prefersReducedMotion && isResult && myAnswer === idx && idx !== currentQuestion?.correctIndex;
                             // Pulse animation when buttons become clickable (staggered by index)
                             const shouldPulse = !prefersReducedMotion && justBecameAnswering && !isMyTeamBlocked && !isTriedWrong;
                             const isGrayed = (!isAnswering && !isResult) || isMyTeamBlocked || isTriedWrong;
@@ -446,11 +464,11 @@ export function Phase1Player({ room, playerId, isHost, mode = 'multiplayer', sol
                             // Determine animation based on state
                             const shouldFadeOut = isResult && !isCorrectAnswer;
 
-                            // Determine animation: fade out, shake, pulse, or default
-                            const buttonAnimate = shouldFadeOut
-                                ? { opacity: 0, scale: 0.95 }
-                                : shouldShake
-                                    ? { x: [0, -10, 10, -10, 10, 0] }
+                            // Determine animation: wrong feedback shake > fade out > pulse > default
+                            const buttonAnimate = isShowingWrongFeedback
+                                ? { x: [0, -12, 12, -12, 12, -8, 8, 0], transition: { duration: 0.5, ease: "easeInOut" as const } }
+                                : shouldFadeOut
+                                    ? { opacity: 0, scale: 0.95 }
                                     : shouldPulse
                                         ? { scale: [1, 1.03, 1], transition: { duration: durations.quick, delay: idx * 0.05, ease: "easeInOut" as const } }
                                         : "visible";
@@ -561,8 +579,19 @@ export function Phase1Player({ room, playerId, isHost, mode = 'multiplayer', sol
                                         border-black/20 text-left
                                     `}
                                 >
+                                    {/* Immediate wrong answer feedback overlay */}
+                                    {isShowingWrongFeedback && (
+                                        <motion.div
+                                            initial={{ opacity: 0, scale: 0.5 }}
+                                            animate={{ opacity: 1, scale: 1 }}
+                                            transition={{ duration: 0.15 }}
+                                            className="absolute inset-0 flex items-center justify-center bg-black/60 rounded-xl z-20"
+                                        >
+                                            <XCircle className="w-16 h-16 text-red-500" aria-label={t('player.wrongAnswer', 'Mauvaise réponse')} />
+                                        </motion.div>
+                                    )}
                                     {/* Rebond: X overlay for eliminated options */}
-                                    {isTriedWrong && (
+                                    {isTriedWrong && !isShowingWrongFeedback && (
                                         <motion.div
                                             initial={{ opacity: 0, scale: 0.5 }}
                                             animate={{ opacity: 1, scale: 1 }}

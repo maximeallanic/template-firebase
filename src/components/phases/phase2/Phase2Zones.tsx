@@ -9,6 +9,7 @@ interface Phase2ZonesProps {
     optionB: string;
     optionADescription?: string;
     optionBDescription?: string;
+    humorousDescription?: string;
     onZoneClick?: (answer: Phase2Answer, direction: SwipeDirection) => void;
     disabled?: boolean;
 }
@@ -18,6 +19,7 @@ export function Phase2Zones({
     optionB,
     optionADescription,
     optionBDescription,
+    humorousDescription,
     onZoneClick,
     disabled = false
 }: Phase2ZonesProps) {
@@ -178,6 +180,13 @@ export function Phase2Zones({
                         <span className="text-purple-400">{t('phase2.optionBoth').toLowerCase()}</span>
                         <span className="text-white/50"> ?</span>
                     </p>
+
+                    {/* Humorous description of the options */}
+                    {humorousDescription && (
+                        <p className="text-white/60 text-sm md:text-base mt-3 italic max-w-lg mx-auto px-4">
+                            "{humorousDescription}"
+                        </p>
+                    )}
 
                     {/* Hint explaining the wordplay */}
                     <p className="text-white/40 text-xs md:text-sm mt-2 max-w-md mx-auto px-4">

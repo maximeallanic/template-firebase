@@ -1,7 +1,7 @@
 import { useCallback } from 'react';
 import { motion } from 'framer-motion';
 import { useTranslation } from 'react-i18next';
-import { Check } from 'lucide-react';
+import { Check, XCircle } from 'lucide-react';
 import { audioService } from '../../../services/audioService';
 import { useReducedMotion } from '../../../hooks/useReducedMotion';
 import {
@@ -16,13 +16,15 @@ interface Phase4OptionsProps {
     selectedAnswer: number | undefined;
     onSelectAnswer: (index: number) => void;
     disabled: boolean;
+    wrongFeedbackIndex?: number | null;
 }
 
 export function Phase4Options({
     options,
     selectedAnswer,
     onSelectAnswer,
-    disabled
+    disabled,
+    wrongFeedbackIndex
 }: Phase4OptionsProps) {
     const { t } = useTranslation(['game-ui']);
     const prefersReducedMotion = useReducedMotion();
@@ -61,12 +63,19 @@ export function Phase4Options({
             {options.map((option, index) => {
                 const letter = String.fromCharCode(65 + index); // A, B, C, D
                 const isSelected = selectedAnswer === index;
+                const isShowingWrongFeedback = wrongFeedbackIndex === index;
+
+                // Determine animation: wrong feedback shake or default
+                const buttonAnimate = isShowingWrongFeedback
+                    ? { x: [0, -12, 12, -12, 12, -8, 8, 0], transition: { duration: 0.5, ease: "easeInOut" as const } }
+                    : "visible";
 
                 return (
                     <motion.button
                         key={index}
                         data-cursor-target={`phase4:answer:${index}`}
                         variants={itemVariants}
+                        animate={buttonAnimate}
                         whileTap={!disabled && !prefersReducedMotion ? { scale: 0.98 } : undefined}
                         onClick={() => handleClick(index)}
                         onKeyDown={(e) => handleKeyDown(e, index)}
@@ -77,7 +86,7 @@ export function Phase4Options({
                         tabIndex={disabled ? -1 : 0}
                         className={`
                             w-full p-4 rounded-xl text-left font-semibold text-lg
-                            flex items-center gap-4 transition-colors
+                            flex items-center gap-4 transition-colors relative overflow-hidden
                             focus:outline-none focus:ring-2 focus:ring-blue-400 focus:ring-offset-2 focus:ring-offset-slate-900
                             ${disabled
                                 ? isSelected
@@ -87,6 +96,17 @@ export function Phase4Options({
                             }
                         `}
                     >
+                        {/* Immediate wrong answer feedback overlay */}
+                        {isShowingWrongFeedback && (
+                            <motion.div
+                                initial={{ opacity: 0, scale: 0.5 }}
+                                animate={{ opacity: 1, scale: 1 }}
+                                transition={{ duration: 0.15 }}
+                                className="absolute inset-0 flex items-center justify-center bg-black/60 rounded-xl z-20"
+                            >
+                                <XCircle className="w-16 h-16 text-red-500" aria-label={t('phase4.wrongAnswer', 'Mauvaise réponse')} />
+                            </motion.div>
+                        )}
                         {/* Letter Badge */}
                         <span
                             className={`

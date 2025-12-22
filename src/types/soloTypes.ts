@@ -8,7 +8,7 @@ import type { Avatar, Question, SimplePhase2Set, Phase4Question } from './gameTy
 
 // === SOLO GAME STATUS ===
 
-export type SoloPhaseStatus = 'setup' | 'generating' | 'phase1' | 'phase2' | 'phase4' | 'results';
+export type SoloPhaseStatus = 'setup' | 'generating' | 'phase1' | 'phase2' | 'phase4' | 'waiting_for_phase' | 'results';
 
 export interface SoloPhaseInfo {
     name: string;
@@ -17,7 +17,7 @@ export interface SoloPhaseInfo {
     maxScore: number;
 }
 
-export const SOLO_PHASE_NAMES: Record<Exclude<SoloPhaseStatus, 'setup' | 'generating' | 'results'>, SoloPhaseInfo> = {
+export const SOLO_PHASE_NAMES: Record<Exclude<SoloPhaseStatus, 'setup' | 'generating' | 'waiting_for_phase' | 'results'>, SoloPhaseInfo> = {
     phase1: { name: 'Tenders', subtitle: 'Réponds aux questions !', shortName: 'Tenders', maxScore: 10 },
     phase2: { name: 'Sucré Salé', subtitle: 'Classe les éléments !', shortName: 'Sucré Salé', maxScore: 12 },
     phase4: { name: 'La Note', subtitle: 'Réponds vite pour plus de points !', shortName: 'La Note', maxScore: 30 },
@@ -92,6 +92,17 @@ export interface SoloGameState {
         phase4: 'pending' | 'generating' | 'done' | 'error';
     };
     generationError: string | null;
+
+    // Background generation tracking (Phase 2 & 4 while playing Phase 1)
+    backgroundGeneration: {
+        phase2: 'idle' | 'generating' | 'done' | 'error';
+        phase4: 'idle' | 'generating' | 'done' | 'error';
+    };
+    backgroundErrors: {
+        phase2?: string;
+        phase4?: string;
+    };
+    pendingPhase?: 'phase2' | 'phase4'; // Phase waiting for questions
 
     // Timestamps
     startedAt: number | null;
@@ -216,6 +227,12 @@ export function createInitialSoloState(
             phase4: 'pending',
         },
         generationError: null,
+        backgroundGeneration: {
+            phase2: 'idle',
+            phase4: 'idle',
+        },
+        backgroundErrors: {},
+        pendingPhase: undefined,
         startedAt: null,
         endedAt: null,
     };

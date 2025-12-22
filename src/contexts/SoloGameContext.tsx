@@ -4,9 +4,9 @@
  */
 /* eslint-disable react-refresh/only-export-components */
 
-import { createContext, useContext, useReducer, useCallback, type ReactNode } from 'react';
+import { createContext, useContext, useReducer, useCallback, useRef, useEffect, type ReactNode } from 'react';
 import { ref, child, get } from 'firebase/database';
-import type { Avatar, Question, SimplePhase2Set, Phase4Question } from '../types/gameTypes';
+import type { Avatar, SimplePhase2Set } from '../types/gameTypes';
 import {
     type SoloGameState,
     type SoloPhaseStatus,
@@ -29,6 +29,11 @@ type SoloGameAction =
     | { type: 'SET_QUESTIONS'; phase: 'phase1' | 'phase2' | 'phase4'; questions: unknown }
     | { type: 'GENERATION_COMPLETE' }
     | { type: 'GENERATION_ERROR'; error: string }
+    | { type: 'PHASE1_READY' } // Start game immediately after Phase 1 is ready
+    | { type: 'BACKGROUND_GEN_START'; phase: 'phase2' | 'phase4' }
+    | { type: 'BACKGROUND_GEN_DONE'; phase: 'phase2' | 'phase4'; questions: unknown }
+    | { type: 'BACKGROUND_GEN_ERROR'; phase: 'phase2' | 'phase4'; error: string }
+    | { type: 'EXIT_WAITING' } // Transition from waiting_for_phase to actual phase
     | { type: 'START_PHASE'; phase: SoloPhaseStatus }
     | { type: 'SUBMIT_PHASE1_ANSWER'; answerIndex: number; isCorrect: boolean }
     | { type: 'NEXT_PHASE1_QUESTION' }
@@ -105,6 +110,97 @@ function soloGameReducer(state: SoloGameState, action: SoloGameAction): SoloGame
                 generationError: action.error,
                 status: 'setup',
             };
+
+        case 'PHASE1_READY':
+            return {
+                ...state,
+                isGenerating: false,
+                status: 'phase1',
+                startedAt: Date.now(),
+                phase1State: {
+                    currentQuestionIndex: 0,
+                    answers: [],
+                    correctCount: 0,
+                    questionStartTime: Date.now(),
+                },
+            };
+
+        case 'BACKGROUND_GEN_START':
+            return {
+                ...state,
+                backgroundGeneration: {
+                    ...state.backgroundGeneration,
+                    [action.phase]: 'generating',
+                },
+                backgroundErrors: {
+                    ...state.backgroundErrors,
+                    [action.phase]: undefined,
+                },
+            };
+
+        case 'BACKGROUND_GEN_DONE':
+            return {
+                ...state,
+                customQuestions: {
+                    ...state.customQuestions,
+                    [action.phase]: action.questions,
+                },
+                backgroundGeneration: {
+                    ...state.backgroundGeneration,
+                    [action.phase]: 'done',
+                },
+                generationProgress: {
+                    ...state.generationProgress,
+                    [action.phase]: 'done',
+                },
+            };
+
+        case 'BACKGROUND_GEN_ERROR':
+            return {
+                ...state,
+                backgroundGeneration: {
+                    ...state.backgroundGeneration,
+                    [action.phase]: 'error',
+                },
+                backgroundErrors: {
+                    ...state.backgroundErrors,
+                    [action.phase]: action.error,
+                },
+                generationProgress: {
+                    ...state.generationProgress,
+                    [action.phase]: 'error',
+                },
+            };
+
+        case 'EXIT_WAITING': {
+            const phase = state.pendingPhase;
+            if (!phase) return state;
+
+            const newState: SoloGameState = {
+                ...state,
+                status: phase,
+                pendingPhase: undefined,
+            };
+
+            // Initialize phase state
+            if (phase === 'phase2') {
+                newState.phase2State = {
+                    currentItemIndex: 0,
+                    answers: [],
+                    correctCount: 0,
+                };
+            } else if (phase === 'phase4') {
+                newState.phase4State = {
+                    currentQuestionIndex: 0,
+                    answers: [],
+                    timeTaken: [],
+                    score: 0,
+                    questionStartTime: Date.now(),
+                };
+            }
+
+            return newState;
+        }
 
         case 'START_PHASE': {
             const newState = { ...state, status: action.phase };
@@ -278,6 +374,22 @@ function soloGameReducer(state: SoloGameState, action: SoloGameAction): SoloGame
             }
 
             const nextPhase = SOLO_PHASE_ORDER[nextPhaseIndex];
+
+            // Check if questions are ready for next phase
+            // Note: nextPhase is 'phase1' | 'phase2' | 'phase4' from SOLO_PHASE_ORDER
+            const questionsReady = nextPhase && state.customQuestions[nextPhase] != null;
+
+            if (!questionsReady && (nextPhase === 'phase2' || nextPhase === 'phase4')) {
+                // Questions not ready - enter waiting state
+                return {
+                    ...state,
+                    status: 'waiting_for_phase',
+                    pendingPhase: nextPhase,
+                    currentPhaseIndex: nextPhaseIndex,
+                };
+            }
+
+            // Questions ready - proceed normally
             const newState: SoloGameState = {
                 ...state,
                 status: nextPhase,
@@ -342,6 +454,8 @@ interface SoloGameContextValue {
     // Phase transitions
     advanceToNextPhase: () => void;
     endGame: () => void;
+    // Background generation retry
+    retryBackgroundGeneration: (phase: 'phase2' | 'phase4') => Promise<void>;
 }
 
 const SoloGameContext = createContext<SoloGameContextValue | null>(null);
@@ -366,89 +480,172 @@ export function SoloGameProvider({
         createInitialSoloState(initialPlayerId, initialPlayerName, initialPlayerAvatar)
     );
 
+    // Ref for background generation abort controller
+    const backgroundAbortRef = useRef<AbortController | null>(null);
+    // Ref to store seenIds for retry
+    const seenIdsRef = useRef<Set<string>>(new Set());
+
+    // Helper: Generate a phase with retries (silent retry on failure)
+    const generatePhaseWithRetries = useCallback(async (
+        phase: 'phase1' | 'phase2' | 'phase4',
+        seenIds: Set<string>,
+        signal: AbortSignal,
+        maxRetries = 3
+    ): Promise<unknown> => {
+        let lastError: Error | null = null;
+
+        for (let attempt = 1; attempt <= maxRetries; attempt++) {
+            if (signal.aborted) throw new Error('Generation cancelled');
+
+            try {
+                // Try Firestore cache first (fast path)
+                const storedSet = await getRandomQuestionSet(phase, seenIds);
+                if (storedSet) {
+                    console.log(`[SOLO] ✅ Using Firestore questions for ${phase}`);
+                    return phase === 'phase2'
+                        ? storedSet.questions as unknown as SimplePhase2Set
+                        : storedSet.questions;
+                }
+
+                // Fall back to AI generation
+                console.log(`[SOLO] 🤖 AI generation for ${phase} (attempt ${attempt}/${maxRetries})`);
+                const result = await generateWithRetry({ phase, soloMode: true });
+                return result.data;
+            } catch (error) {
+                lastError = error as Error;
+                console.warn(`[SOLO] ${phase}: Attempt ${attempt} failed:`, error);
+
+                if (attempt < maxRetries && !signal.aborted) {
+                    await new Promise(r => setTimeout(r, 1000 * attempt)); // Exponential backoff
+                }
+            }
+        }
+
+        throw lastError || new Error(`${phase} generation failed after ${maxRetries} attempts`);
+    }, []);
+
+    // Helper: Load player history
+    const loadPlayerHistory = useCallback(async (playerId: string): Promise<Set<string>> => {
+        const seenIds = new Set<string>();
+        try {
+            const historySnap = await get(child(ref(rtdb), `userHistory/${playerId}`));
+            if (historySnap.exists()) {
+                Object.keys(historySnap.val()).forEach(id => seenIds.add(id));
+                console.log('[SOLO] Loaded player history:', seenIds.size, 'seen questions');
+            }
+        } catch (e) {
+            console.warn('[SOLO] Failed to get player history:', e);
+        }
+        return seenIds;
+    }, []);
+
+    // Start background generation for Phase 2 and Phase 4 (non-blocking, fire-and-forget)
+    const startBackgroundGeneration = useCallback((seenIds: Set<string>) => {
+        const abort = new AbortController();
+        backgroundAbortRef.current = abort;
+
+        // Phase 2 (fire-and-forget)
+        dispatch({ type: 'BACKGROUND_GEN_START', phase: 'phase2' });
+        generatePhaseWithRetries('phase2', seenIds, abort.signal, 3)
+            .then(questions => {
+                if (!abort.signal.aborted) {
+                    console.log('[SOLO] ✅ Background phase2 ready');
+                    dispatch({ type: 'BACKGROUND_GEN_DONE', phase: 'phase2', questions });
+                }
+            })
+            .catch(error => {
+                if (!abort.signal.aborted) {
+                    console.error('[SOLO] ❌ Background phase2 failed:', error);
+                    dispatch({ type: 'BACKGROUND_GEN_ERROR', phase: 'phase2', error: (error as Error).message });
+                }
+            });
+
+        // Phase 4 (fire-and-forget, runs in parallel with Phase 2)
+        dispatch({ type: 'BACKGROUND_GEN_START', phase: 'phase4' });
+        generatePhaseWithRetries('phase4', seenIds, abort.signal, 3)
+            .then(questions => {
+                if (!abort.signal.aborted) {
+                    console.log('[SOLO] ✅ Background phase4 ready');
+                    dispatch({ type: 'BACKGROUND_GEN_DONE', phase: 'phase4', questions });
+                }
+            })
+            .catch(error => {
+                if (!abort.signal.aborted) {
+                    console.error('[SOLO] ❌ Background phase4 failed:', error);
+                    dispatch({ type: 'BACKGROUND_GEN_ERROR', phase: 'phase4', error: (error as Error).message });
+                }
+            });
+    }, [generatePhaseWithRetries]);
+
     // Player setup
     const setPlayerInfo = useCallback((playerId: string, playerName: string, playerAvatar: Avatar) => {
         dispatch({ type: 'SET_PLAYER_INFO', playerId, playerName, playerAvatar });
     }, []);
 
-    // Start game with Firestore-first question loading (like multiplayer mode)
+    // Start game: Generate Phase 1 (blocking), then start background generation for Phase 2 & 4
     const startGame = useCallback(async () => {
         dispatch({ type: 'START_GENERATION' });
 
         try {
-            // Build seenIds from player history (like multiplayer mode)
-            const seenIds = new Set<string>();
-            try {
-                const historySnap = await get(child(ref(rtdb), `userHistory/${state.playerId}`));
-                if (historySnap.exists()) {
-                    Object.keys(historySnap.val()).forEach(id => seenIds.add(id));
-                    console.log('[SOLO] Loaded player history:', seenIds.size, 'seen questions');
-                }
-            } catch (e) {
-                console.warn('[SOLO] Failed to get player history:', e);
-            }
+            // Load player history
+            const seenIds = await loadPlayerHistory(state.playerId);
+            seenIdsRef.current = seenIds;
 
-            // Phase 1 - Try Firestore first, then AI
+            // Phase 1 only (blocking) - game starts as soon as this is ready
             dispatch({ type: 'SET_GENERATION_PROGRESS', phase: 'phase1', status: 'generating' });
-            let phase1Questions: Question[];
-            const storedPhase1 = await getRandomQuestionSet('phase1', seenIds);
-            if (storedPhase1) {
-                console.log('[SOLO] ✅ Using Firestore questions for phase1:', storedPhase1.questions.length);
-                phase1Questions = storedPhase1.questions as Question[];
-            } else {
-                console.log('[SOLO] 🤖 Generating AI questions for phase1...');
-                const result = await generateWithRetry({ phase: 'phase1', soloMode: true });
-                phase1Questions = result.data as Question[];
-            }
+            const phase1Questions = await generatePhaseWithRetries('phase1', seenIds, new AbortController().signal, 3);
             dispatch({ type: 'SET_GENERATION_PROGRESS', phase: 'phase1', status: 'done' });
             dispatch({ type: 'SET_QUESTIONS', phase: 'phase1', questions: phase1Questions });
 
-            // Phase 2 - Try Firestore first, then AI
-            dispatch({ type: 'SET_GENERATION_PROGRESS', phase: 'phase2', status: 'generating' });
-            let phase2Questions: SimplePhase2Set;
-            const storedPhase2 = await getRandomQuestionSet('phase2', seenIds);
-            if (storedPhase2) {
-                console.log('[SOLO] ✅ Using Firestore questions for phase2');
-                // getRandomQuestionSet returns SimplePhase2Set structure for phase2
-                phase2Questions = storedPhase2.questions as unknown as SimplePhase2Set;
-            } else {
-                console.log('[SOLO] 🤖 Generating AI questions for phase2...');
-                const result = await generateWithRetry({ phase: 'phase2', soloMode: true });
-                phase2Questions = result.data as unknown as SimplePhase2Set;
-            }
-            dispatch({ type: 'SET_GENERATION_PROGRESS', phase: 'phase2', status: 'done' });
-            dispatch({ type: 'SET_QUESTIONS', phase: 'phase2', questions: phase2Questions });
+            console.log('[SOLO] Phase 1 ready - starting game immediately');
 
-            // Phase 4 - Try Firestore first, then AI
-            dispatch({ type: 'SET_GENERATION_PROGRESS', phase: 'phase4', status: 'generating' });
-            let phase4Questions: Phase4Question[];
-            const storedPhase4 = await getRandomQuestionSet('phase4', seenIds);
-            if (storedPhase4) {
-                console.log('[SOLO] ✅ Using Firestore questions for phase4');
-                phase4Questions = storedPhase4.questions as Phase4Question[];
-            } else {
-                console.log('[SOLO] 🤖 Generating AI questions for phase4...');
-                const result = await generateWithRetry({ phase: 'phase4', soloMode: true });
-                phase4Questions = result.data as Phase4Question[];
-            }
-            dispatch({ type: 'SET_GENERATION_PROGRESS', phase: 'phase4', status: 'done' });
-            dispatch({ type: 'SET_QUESTIONS', phase: 'phase4', questions: phase4Questions });
+            // Start the game immediately with Phase 1
+            dispatch({ type: 'PHASE1_READY' });
 
-            console.log('[SOLO] Questions loaded successfully', {
-                phase1: phase1Questions.length,
-                phase2: phase2Questions?.items?.length ?? 0,
-                phase4: phase4Questions.length,
-            });
-
-            dispatch({ type: 'GENERATION_COMPLETE' });
+            // Start background generation for Phase 2 & 4 (non-blocking)
+            startBackgroundGeneration(seenIds);
         } catch (error) {
-            console.error('[SOLO] Question loading failed:', error);
+            console.error('[SOLO] Phase 1 generation failed:', error);
             dispatch({
                 type: 'GENERATION_ERROR',
                 error: 'Impossible de charger les questions. Veuillez réessayer.',
             });
         }
-    }, [state.playerId]);
+    }, [state.playerId, loadPlayerHistory, generatePhaseWithRetries, startBackgroundGeneration]);
+
+    // Retry background generation for a specific phase (used when waiting_for_phase with error)
+    const retryBackgroundGeneration = useCallback(async (phase: 'phase2' | 'phase4') => {
+        dispatch({ type: 'BACKGROUND_GEN_START', phase });
+
+        try {
+            const seenIds = seenIdsRef.current;
+            const questions = await generatePhaseWithRetries(phase, seenIds, new AbortController().signal, 3);
+            dispatch({ type: 'BACKGROUND_GEN_DONE', phase, questions });
+        } catch (error) {
+            dispatch({ type: 'BACKGROUND_GEN_ERROR', phase, error: (error as Error).message });
+        }
+    }, [generatePhaseWithRetries]);
+
+    // Effect: Auto-transition from waiting_for_phase when questions become available
+    useEffect(() => {
+        if (state.status === 'waiting_for_phase' && state.pendingPhase) {
+            const questionsReady = state.customQuestions[state.pendingPhase] != null;
+            if (questionsReady) {
+                console.log(`[SOLO] Questions ready for ${state.pendingPhase} - transitioning`);
+                dispatch({ type: 'EXIT_WAITING' });
+            }
+        }
+    }, [state.status, state.pendingPhase, state.customQuestions]);
+
+    // Effect: Cleanup background generation on unmount
+    useEffect(() => {
+        return () => {
+            if (backgroundAbortRef.current) {
+                backgroundAbortRef.current.abort();
+                backgroundAbortRef.current = null;
+            }
+        };
+    }, []);
 
     // Reset game
     const resetGame = useCallback(() => {
@@ -535,6 +732,7 @@ export function SoloGameProvider({
         handlePhase4Timeout,
         advanceToNextPhase,
         endGame,
+        retryBackgroundGeneration,
     };
 
     return (

@@ -119,6 +119,7 @@ Difficulté : {DIFFICULTY}
 GÉNÈRE UN SET COMPLET avec :
 1. Un JEU DE MOTS PHONÉTIQUE (optionA et optionB sonnent IDENTIQUES à l'oral)
 2. 12 items répartis : exactement 5 A, 5 B, 2 Both
+3. Une description humoristique présentant les deux options de façon décalée
 
 ═══════════════════════════════════════════════════════════════════════
 ⚠️ RÈGLES HOMOPHONES (CRITIQUE)
@@ -190,6 +191,20 @@ ITEMS AMBIGUS (rare, max 2-3 par set) :
 {PREVIOUS_FEEDBACK}
 
 ═══════════════════════════════════════════════════════════════════════
+📝 DESCRIPTION HUMORISTIQUE
+═══════════════════════════════════════════════════════════════════════
+
+Génère une phrase décalée (1-2 phrases max) présentant les deux options de façon fun/absurde.
+- Ton Burger Quiz : décalé, irrévérencieux, référence pop culture
+- Structure suggérée : "Entre [desc A fun] et [desc B fun]..."
+- Pas de répétition des noms des options, les décrire de façon créative
+
+✅ EXEMPLES :
+- "Sang" vs "Cent" → "Entre le liquide qui fait peur aux vampires et le chiffre qui fait pleurer ton banquier..."
+- "Cour" vs "Cours" → "Entre le terrain de jeu des monarques et le supplice matinal des lycéens..."
+- "Mer" vs "Mère" → "Entre l'immensité salée et celle qui t'a donné la vie (et des complexes)..."
+
+═══════════════════════════════════════════════════════════════════════
 FORMAT JSON
 ═══════════════════════════════════════════════════════════════════════
 {
@@ -197,6 +212,7 @@ FORMAT JSON
   "optionB": "Calembour court (2-4 mots)",
   "optionADescription": "Si optionA=optionB, sinon null",
   "optionBDescription": "Si optionA=optionB, sinon null",
+  "humorousDescription": "Entre [desc A fun] et [desc B fun]...",
   "reasoning": "IPA: /.../ = /.../ - Pourquoi sons identiques",
   "items": [
     { "text": "Item", "answer": "A", "justification": "Pourquoi A" },
