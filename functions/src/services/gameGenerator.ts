@@ -323,16 +323,22 @@ const FACT_CHECK_CONFIDENCE_THRESHOLD = 85;
 
 // --- SCHEMAS ---
 
+// Supported languages for question generation
+export type GenerationLanguage = 'fr' | 'en';
+const SUPPORTED_LANGUAGES: GenerationLanguage[] = ['fr']; // Only FR is implemented for now
+
 export const GameGenerationInputSchema = z.object({
     phase: z.enum(['phase1', 'phase2', 'phase3', 'phase4', 'phase5']),
     topic: z.string().optional().default('General Knowledge'),
-    difficulty: z.enum(['easy', 'normal', 'hard', 'wtf']).optional().default('normal')
+    difficulty: z.enum(['easy', 'normal', 'hard', 'wtf']).optional().default('normal'),
+    language: z.enum(['fr', 'en']).optional().default('fr')
 });
 
 export const GameGenerationOutputSchema = z.object({
     data: z.any(), // Flexible output based on phase
     phase: z.string(),
     topic: z.string(), // The topic used for generation (may be AI-generated)
+    language: z.string(), // The language used for generation
     embeddings: z.array(z.array(z.number())).optional(), // Embeddings for deduplication
     usage: z.object({
         totalTokens: z.number(),
@@ -794,12 +800,14 @@ function getRandomFallbackTopic(): string {
  * Generate a creative topic using AI
  * Fast call to get a fun, original theme for the quiz
  * @param phase - The game phase (phase2 uses special prompt for homophones)
+ * @param difficulty - The difficulty level (easy, normal, hard, wtf)
  */
-async function generateCreativeTopic(phase?: string): Promise<string> {
-    console.log('🎲 Generating creative topic with AI...');
+async function generateCreativeTopic(phase?: string, difficulty: string = 'normal'): Promise<string> {
+    console.log(`🎲 Generating creative topic with AI (difficulty: ${difficulty})...`);
 
     // Use specific prompt for Phase 2 (homophones need specific topics)
-    const prompt = phase === 'phase2' ? GENERATE_TOPIC_PHASE2_PROMPT : GENERATE_TOPIC_PROMPT;
+    const basePrompt = phase === 'phase2' ? GENERATE_TOPIC_PHASE2_PROMPT : GENERATE_TOPIC_PROMPT;
+    const prompt = basePrompt.replace('{DIFFICULTY}', difficulty.toUpperCase());
 
     // Try up to 3 times to get a non-generic topic
     const maxAttempts = 3;
@@ -3144,15 +3152,20 @@ export const generateGameQuestionsFlow = ai.defineFlow(
         outputSchema: GameGenerationOutputSchema,
     },
     async (input) => {
-        const { phase, difficulty } = input;
+        const { phase, difficulty, language = 'fr' } = input;
+
+        // Validate language is supported (only FR for now)
+        if (!SUPPORTED_LANGUAGES.includes(language as GenerationLanguage)) {
+            throw new Error(`Language '${language}' is not yet supported. Available languages: ${SUPPORTED_LANGUAGES.join(', ')}`);
+        }
 
         // Generate creative topic with AI if none provided or default
         // Phase 2 uses a specific prompt for topics that work well with homophones
         const topic = (!input.topic || input.topic === 'General Knowledge')
-            ? await generateCreativeTopic(phase)
+            ? await generateCreativeTopic(phase, difficulty)
             : input.topic;
 
-        console.log(`🎲 Generating ${phase} content on topic: "${topic}" (${difficulty})`);
+        console.log(`🎲 Generating ${phase} content on topic: "${topic}" (${difficulty}, lang: ${language})`);
 
         // Track start time for metrics
         const startTime = Date.now();
@@ -3239,6 +3252,7 @@ export const generateGameQuestionsFlow = ai.defineFlow(
             data: jsonData,
             phase,
             topic, // Include the generated/used topic
+            language, // Include the language used
             embeddings,
             usage: {
                 totalTokens: estimatedTokens,

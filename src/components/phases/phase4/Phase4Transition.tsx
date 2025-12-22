@@ -138,7 +138,7 @@ export function Phase4Transition({
                         }
                         transition={prefersReducedMotion
                             ? { duration: 0.1 }
-                            : bouncySpring
+                            : { duration: 0.25, ease: [0.34, 1.56, 0.64, 1] }
                         }
                         className="text-7xl font-black text-yellow-400"
                         aria-live="assertive"

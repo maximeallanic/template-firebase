@@ -6,8 +6,8 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState, useCallback } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { AlertCircle, RotateCcw, Trophy } from 'lucide-react';
-import { FoodLoader } from '../components/ui/FoodLoader';
+import { RotateCcw, Trophy } from 'lucide-react';
+import { GenerationLoadingCard } from '../components/ui/GenerationLoadingCard';
 import { submitScore } from '../services/leaderboardService';
 import { useAuthUser } from '../hooks/useAuthUser';
 import type { Room, Avatar } from '../types/gameTypes';
@@ -158,70 +158,17 @@ function SoloGameInner() {
 
     // --- SETUP/GENERATING VIEW ---
     if (state.status === 'setup' || state.status === 'generating') {
-        const progress = state.generationProgress;
-        const phases = ['phase1', 'phase2', 'phase4'] as const;
-
         return (
             <div className="min-h-screen flex flex-col items-center justify-center p-4 text-white">
                 <motion.div
                     initial={{ opacity: 0, scale: 0.9 }}
                     animate={{ opacity: 1, scale: 1 }}
-                    className="bg-white/5 backdrop-blur-xl border border-white/10 rounded-3xl p-8 max-w-md w-full text-center"
+                    className="bg-slate-900/95 backdrop-blur-xl border border-white/10 rounded-3xl p-6 shadow-2xl max-w-md w-full"
                 >
-                    {state.generationError ? (
-                        <>
-                            <AlertCircle className="w-16 h-16 text-red-500 mx-auto mb-4" />
-                            <h2 className="text-2xl font-bold mb-2">Erreur</h2>
-                            <p className="text-gray-400 mb-6">{state.generationError}</p>
-                            <button
-                                onClick={() => { hasSubmittedRef.current = false; resetGame(); startGame(); }}
-                                className="bg-orange-500 hover:bg-orange-400 px-6 py-3 rounded-xl font-bold flex items-center gap-2 mx-auto"
-                            >
-                                <RotateCcw className="w-5 h-5" />
-                                Réessayer
-                            </button>
-                        </>
-                    ) : (
-                        <>
-                            <div className="flex justify-center mb-4">
-                                <FoodLoader size="xl" />
-                            </div>
-                            <h2 className="text-2xl font-bold mb-2">Préparation du quiz...</h2>
-                            <p className="text-gray-400 mb-6">Génération des questions par IA</p>
-
-                            {/* Progress indicators */}
-                            <div className="space-y-3">
-                                {phases.map((phase) => {
-                                    const status = progress[phase];
-                                    const info = SOLO_PHASE_NAMES[phase];
-                                    return (
-                                        <div
-                                            key={phase}
-                                            className={`flex items-center justify-between p-3 rounded-lg ${
-                                                status === 'done' ? 'bg-green-500/20' :
-                                                status === 'generating' ? 'bg-orange-500/20' :
-                                                status === 'error' ? 'bg-red-500/20' :
-                                                'bg-slate-800/50'
-                                            }`}
-                                        >
-                                            <span className="font-medium">{info.name}</span>
-                                            <span className={`text-sm ${
-                                                status === 'done' ? 'text-green-400' :
-                                                status === 'generating' ? 'text-orange-400' :
-                                                status === 'error' ? 'text-red-400' :
-                                                'text-gray-500'
-                                            }`}>
-                                                {status === 'done' ? '✓' :
-                                                 status === 'generating' ? 'En cours...' :
-                                                 status === 'error' ? '✗' :
-                                                 'En attente'}
-                                            </span>
-                                        </div>
-                                    );
-                                })}
-                            </div>
-                        </>
-                    )}
+                    <GenerationLoadingCard
+                        error={state.generationError}
+                        onRetry={() => { hasSubmittedRef.current = false; resetGame(); startGame(); }}
+                    />
                 </motion.div>
             </div>
         );
@@ -232,41 +179,18 @@ function SoloGameInner() {
         const phase = state.pendingPhase;
         const genStatus = state.backgroundGeneration[phase];
         const error = state.backgroundErrors[phase];
-        const phaseInfo = SOLO_PHASE_NAMES[phase];
 
         return (
             <div className="min-h-screen flex flex-col items-center justify-center p-4 text-white">
                 <motion.div
                     initial={prefersReducedMotion ? { opacity: 0 } : { opacity: 0, scale: 0.9 }}
                     animate={prefersReducedMotion ? { opacity: 1 } : { opacity: 1, scale: 1 }}
-                    className="bg-white/5 backdrop-blur-xl border border-white/10 rounded-3xl p-8 max-w-md w-full text-center"
+                    className="bg-slate-900/95 backdrop-blur-xl border border-white/10 rounded-3xl p-6 shadow-2xl max-w-md w-full"
                 >
-                    {genStatus === 'error' ? (
-                        <>
-                            <AlertCircle className="w-16 h-16 text-red-500 mx-auto mb-4" />
-                            <h2 className="text-2xl font-bold mb-2">Erreur de chargement</h2>
-                            <p className="text-gray-400 mb-6">{error || 'Une erreur est survenue'}</p>
-                            <button
-                                onClick={() => retryBackgroundGeneration(phase)}
-                                className="bg-orange-500 hover:bg-orange-400 px-6 py-3 rounded-xl font-bold flex items-center gap-2 mx-auto transition-colors"
-                            >
-                                <RotateCcw className="w-5 h-5" />
-                                Réessayer
-                            </button>
-                        </>
-                    ) : (
-                        <>
-                            <div className="flex justify-center mb-4">
-                                <FoodLoader size="xl" />
-                            </div>
-                            <h2 className="text-2xl font-bold mb-2">
-                                Préparation de {phaseInfo?.name}...
-                            </h2>
-                            <p className="text-gray-400">
-                                Les questions arrivent dans quelques secondes
-                            </p>
-                        </>
-                    )}
+                    <GenerationLoadingCard
+                        error={genStatus === 'error' ? (error || 'Une erreur est survenue') : null}
+                        onRetry={() => retryBackgroundGeneration(phase)}
+                    />
                 </motion.div>
             </div>
         );

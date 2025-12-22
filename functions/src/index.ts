@@ -112,6 +112,7 @@ const GenerateQuestionsSchema = z.object({
     .regex(/^[\w\s\-'àâäéèêëïîôùûüÿçÀÂÄÉÈÊËÏÎÔÙÛÜŸÇ.,!?]+$/i, 'Invalid characters in topic')
     .optional(),
   difficulty: z.enum(['easy', 'normal', 'hard', 'wtf']).optional(),
+  language: z.enum(['fr', 'en']).optional().default('fr'),
   roomCode: z.string()
     .regex(/^[A-Z0-9]{4}$/, 'Room code must be 4 uppercase alphanumeric characters')
     .optional(),
@@ -479,7 +480,7 @@ export const generateGameQuestions = onCall(
       throw new HttpsError('invalid-argument', message);
     }
 
-    const { phase, topic, difficulty, roomCode, soloMode } = validatedData;
+    const { phase, topic, difficulty, language, roomCode, soloMode } = validatedData;
 
     // 2. Premium Check for phases 3, 4, 5 (BEFORE generation to save costs)
     // Solo mode bypasses premium check (free practice mode with no persistence)
@@ -517,6 +518,7 @@ export const generateGameQuestions = onCall(
         phase,
         topic: topic || 'General Knowledge',
         difficulty: difficulty || 'normal',
+        language: language || 'fr',
       });
 
       // 5. Shuffle options for MCQ questions (phase1) to randomize correct answer position
@@ -550,7 +552,7 @@ export const generateGameQuestions = onCall(
       try {
         if (phase === 'phase2') {
           // Phase 2: Save each item individually with its embedding
-          const setData = processedData as { optionA: string; optionB: string; items: Array<{ text: string; answer: string }> };
+          const setData = processedData as { optionA: string; optionB: string; optionADescription?: string; optionBDescription?: string; humorousDescription?: string; items: Array<{ text: string; answer: string }> };
           const batch = db.batch();
           const questionsRef = db.collection('questions');
 
@@ -563,6 +565,9 @@ export const generateGameQuestions = onCall(
               difficulty: difficulty || 'normal',
               optionA: setData.optionA,
               optionB: setData.optionB,
+              optionADescription: setData.optionADescription || null,
+              optionBDescription: setData.optionBDescription || null,
+              humorousDescription: setData.humorousDescription || null,
               text: item.text,
               answer: item.answer,
               embedding: embeddings[i] || null,
@@ -630,6 +635,7 @@ export const generateGameQuestions = onCall(
         success: true,
         data: processedData,
         topic: result.topic, // Return the AI-generated topic
+        language: result.language, // Return the language used
         usage: result.usage
       };
     } catch (e: unknown) {

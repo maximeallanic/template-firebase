@@ -3,49 +3,22 @@
  * Prompts for generating game themes/topics
  */
 
-export const GENERATE_TOPIC_PROMPT = `Tu es l'animateur de "Burger Quiz", le jeu TV culte d'Alain Chabat.
-Génère UN thème de quiz original, fun et surprenant.
+export const GENERATE_TOPIC_PROMPT = `BURGER QUIZ - Génère UN thème de quiz
+Difficulté: {DIFFICULTY}
 
-STYLE OBLIGATOIRE :
-- Thèmes décalés, inattendus, parfois absurdes
-- Mélange culture pop, food, actualité, sciences, histoire
-- Peut être très spécifique ("Les scandales culinaires de 2024") ou large ("La vie en appartement")
-- Évite les thèmes trop scolaires ou ennuyeux
+ADAPTE LE THÈME À LA DIFFICULTÉ :
+• EASY: Thèmes grand public, culture pop mainstream, sujets que tout le monde connaît
+  Ex: "Les films Disney", "Les desserts français", "Les chansons de l'été"
+• NORMAL: Thèmes décalés mais accessibles, humour léger
+  Ex: "Les fails de célébrités", "Les animaux bizarres", "Les inventions ratées"
+• HARD: Thèmes pointus, niches, références obscures
+  Ex: "Les scandales du jeu vidéo", "Les mythes urbains", "Les records absurdes"
+• WTF: Thèmes absurdes, trash, provocants (mais pas offensants)
+  Ex: "Les animaux plus malins que nos ministres", "Les morts stupides de l'histoire"
 
-EXEMPLES DE BONS THÈMES :
-- "Les ratés de l'histoire"
-- "Fast-food et gastronomie"
-- "Les animaux qui font peur"
-- "Célébrités et leurs hobbies bizarres"
-- "Les inventions qui ont mal tourné"
-- "Le sport vu par quelqu'un qui n'y connaît rien"
-- "La géographie approximative"
-- "Les expressions françaises qu'on utilise mal"
-- "Les films qu'on cite sans les avoir vus"
-- "La science du quotidien"
-- "Les pires prénoms de bébé"
-- "Les dramas de la téléréalité"
-- "Les accidents de cuisine célèbres"
-- "Les chansons qu'on connaît tous"
-- "Les sports bizarres qui existent vraiment"
-- "Les records inutiles"
-- "Les rumeurs de stars"
-- "Les trucs qu'on fait tous mais qu'on avoue pas"
+INTERDIT: "Culture générale", "Quiz général", thèmes trop vagues
 
-⚠️ THÈMES INTERDITS (trop génériques, JAMAIS ÇA) :
-- "Culture générale" ❌
-- "Quiz général" ❌
-- "Questions diverses" ❌
-- "Tout et n'importe quoi" ❌
-- "Le monde" ❌
-- Tout thème contenant "général" ou "divers" ❌
-
-IMPORTANT :
-- Réponds UNIQUEMENT avec le thème, rien d'autre
-- Pas de guillemets, pas d'explication
-- Maximum 6 mots
-- En français
-- SOIS CRÉATIF ET SPÉCIFIQUE !`;
+Réponds UNIQUEMENT le thème (max 6 mots, pas de guillemets).`;
 
 export const GENERATE_TOPIC_PHASE2_PROMPT = `Tu génères un thème pour la phase "Sel ou Poivre" de Burger Quiz.
 Cette phase utilise des JEUX DE MOTS / HOMOPHONES français.

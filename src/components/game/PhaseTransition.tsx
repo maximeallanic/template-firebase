@@ -146,139 +146,113 @@ const Scanlines: React.FC = () => (
     />
 );
 
-// Chalkboard Panel component - restaurant-style blackboard with wood frame
-interface ChalkboardPanelProps {
+// Restaurant Menu Panel component - elegant parchment menu with gold border
+interface RestaurantMenuPanelProps {
     children: React.ReactNode;
     isVisible: boolean;
     reducedMotion?: boolean;
     boardDuration?: number; // in ms
 }
 
-const ChalkboardPanel: React.FC<ChalkboardPanelProps> = ({
+const RestaurantMenuPanel: React.FC<RestaurantMenuPanelProps> = ({
     children,
     isVisible,
     reducedMotion = false,
     boardDuration = BOARD_ANIMATION_DURATION
 }) => {
-    const boardThickness = 30; // pixels - visible thickness when falling
     const durationSec = boardDuration / 1000;
 
-    // Simplified animation for reduced motion
-    const animateProps = reducedMotion
-        ? {
-            y: isVisible ? '35vh' : '-60vh',
-            opacity: isVisible ? 1 : 0,
-        }
-        : isVisible ? {
-            // Suspended descent - lowered gently like hanging from ropes
-            y: ['-60vh', '-30vh', '33vh', '36vh', '35vh', '35vh'],
-            // Subtle natural sway - like suspended from two ropes
-            rotateZ: [1.5, -1, 0.5, -0.3, 0.1, 0],
-            // Slight tension release when settled
-            scale: [0.98, 1, 1, 1, 1, 1],
-            // Gentle tilt at the end instead of full fall
-            rotateX: [0, 0, 0, 0, 0, 25],
-            // Shadow follows the descent
-            boxShadow: [
-                '0 -20px 40px rgba(0,0,0,0.2), inset 0 0 100px rgba(0,0,0,0.5)',
-                '0 -10px 30px rgba(0,0,0,0.25), inset 0 0 100px rgba(0,0,0,0.5)',
-                '0 8px 35px rgba(0,0,0,0.35), inset 0 0 100px rgba(0,0,0,0.5)',
-                '0 10px 30px rgba(0,0,0,0.4), inset 0 0 100px rgba(0,0,0,0.5)',
-                '0 8px 25px rgba(0,0,0,0.35), inset 0 0 100px rgba(0,0,0,0.5)',
-                '0 5px 20px rgba(0,0,0,0.3), inset 0 0 100px rgba(0,0,0,0.5)',
-            ],
-        } : { y: '-60vh', rotateX: 0, rotateZ: 1.5, scale: 0.98 };
+    // Simple lateral slide animation
+    const animateProps = isVisible
+        ? { x: 0, opacity: 1 }
+        : { x: '-100vw', opacity: 0 };
 
     const transitionProps = reducedMotion
         ? { duration: 0.3, ease: "easeOut" as const }
         : {
-            duration: durationSec,
-            // Suspended descent: slow start, acceleration, rope braking, settle, rest
-            times: [0, 0.25, 0.55, 0.70, 0.85, 1],
-            ease: [0.33, 0, 0.2, 1] as const,  // Slow start, soft landing
+            duration: durationSec * 0.3, // Faster slide (30% of original duration)
+            ease: [0.22, 1, 0.36, 1] as const, // Smooth ease-out
         };
 
     return (
         <motion.div
             className="relative p-8 md:p-12 max-w-2xl mx-4 rounded-sm"
             style={{
-                // Black chalkboard background
-                background: 'linear-gradient(145deg, #1a1a1a 0%, #0a0a0a 50%, #1a1a1a 100%)',
-                // Wood frame effect
-                border: '16px solid #8B4513',
-                borderImage: 'linear-gradient(135deg, #8B4513 0%, #D2691E 25%, #A0522D 50%, #D2691E 75%, #8B4513 100%) 1',
-                // Static shadow for reduced motion (animated shadow overrides in normal mode)
-                boxShadow: reducedMotion
-                    ? 'inset 0 0 100px rgba(0,0,0,0.5), 0 8px 25px rgba(0,0,0,0.35)'
-                    : undefined,
-                // Pivot point for fall animation - bottom edge
-                transformOrigin: 'bottom center',
-                transformStyle: reducedMotion ? undefined : 'preserve-3d',
+                // Cream parchment background
+                background: 'linear-gradient(145deg, #FDF8F0 0%, #F5EDE0 50%, #FDF8F0 100%)',
+                // Gold ornate frame effect
+                border: '12px solid transparent',
+                borderImage: 'linear-gradient(135deg, #C9A227 0%, #F4D03F 20%, #D4AF37 40%, #F4E04D 60%, #D4AF37 80%, #C9A227 100%) 1',
+                // Static gold glow shadow
+                boxShadow: '0 8px 30px rgba(0, 0, 0, 0.15), 0 0 20px rgba(212, 175, 55, 0.15)',
             }}
-            initial={{ y: '-60vh', rotateX: 0, rotateZ: reducedMotion ? 0 : 1.5, scale: reducedMotion ? 1 : 0.98, opacity: 1 }}
+            initial={{ x: '-100vw', opacity: 0 }}
             animate={animateProps}
-            exit={{ y: '100vh', rotateX: 0, opacity: 0 }}
+            exit={{ x: '100vw', opacity: 0 }}
             transition={transitionProps}
         >
-            {/* 3D THICKNESS - Bottom edge (visible when board falls forward) */}
+            {/* Paper fiber texture */}
             <div
-                className="absolute left-0 right-0 pointer-events-none"
+                className="absolute inset-0 opacity-[0.03] pointer-events-none rounded-sm"
                 style={{
-                    bottom: 0,
-                    height: `${boardThickness}px`,
-                    background: 'linear-gradient(180deg, #5D3A1A 0%, #3D2510 50%, #2D1A0A 100%)',
-                    transform: `translateY(100%) rotateX(-90deg)`,
-                    transformOrigin: 'top center',
-                    boxShadow: 'inset 0 -5px 15px rgba(0,0,0,0.5)',
+                    backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='paper'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.04' numOctaves='5' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23paper)'/%3E%3C/svg%3E")`,
+                    mixBlendMode: 'multiply',
                 }}
             />
 
-            {/* 3D THICKNESS - Left edge */}
-            <div
-                className="absolute top-0 bottom-0 pointer-events-none"
-                style={{
-                    left: 0,
-                    width: `${boardThickness}px`,
-                    background: 'linear-gradient(90deg, #3D2510 0%, #5D3A1A 100%)',
-                    transform: `translateX(-100%) rotateY(90deg)`,
-                    transformOrigin: 'right center',
-                    boxShadow: 'inset 5px 0 15px rgba(0,0,0,0.5)',
-                }}
-            />
+            {/* Corner ornaments - Top Left */}
+            <svg
+                className="absolute top-3 left-3 w-8 h-8 text-amber-600/30 pointer-events-none"
+                viewBox="0 0 40 40"
+                fill="none"
+            >
+                <path d="M4 4 Q 20 4, 20 20" stroke="currentColor" strokeWidth="1.5" fill="none" />
+                <path d="M4 4 Q 4 20, 20 20" stroke="currentColor" strokeWidth="1.5" fill="none" />
+                <circle cx="4" cy="4" r="2" fill="currentColor" />
+            </svg>
 
-            {/* 3D THICKNESS - Right edge */}
-            <div
-                className="absolute top-0 bottom-0 pointer-events-none"
-                style={{
-                    right: 0,
-                    width: `${boardThickness}px`,
-                    background: 'linear-gradient(90deg, #5D3A1A 0%, #3D2510 100%)',
-                    transform: `translateX(100%) rotateY(-90deg)`,
-                    transformOrigin: 'left center',
-                    boxShadow: 'inset -5px 0 15px rgba(0,0,0,0.5)',
-                }}
-            />
+            {/* Corner ornaments - Top Right */}
+            <svg
+                className="absolute top-3 right-3 w-8 h-8 text-amber-600/30 pointer-events-none"
+                viewBox="0 0 40 40"
+                fill="none"
+                style={{ transform: 'scaleX(-1)' }}
+            >
+                <path d="M4 4 Q 20 4, 20 20" stroke="currentColor" strokeWidth="1.5" fill="none" />
+                <path d="M4 4 Q 4 20, 20 20" stroke="currentColor" strokeWidth="1.5" fill="none" />
+                <circle cx="4" cy="4" r="2" fill="currentColor" />
+            </svg>
 
-            {/* Chalk dust texture */}
-            <div
-                className="absolute inset-0 opacity-10 pointer-events-none rounded-sm"
-                style={{
-                    backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E")`,
-                }}
-            />
-            {/* Erased chalk traces */}
-            <div
-                className="absolute inset-0 opacity-5 pointer-events-none"
-                style={{
-                    background: 'radial-gradient(ellipse at 30% 40%, rgba(255,255,255,0.15) 0%, transparent 50%), radial-gradient(ellipse at 70% 60%, rgba(255,255,255,0.1) 0%, transparent 40%)',
-                }}
-            />
+            {/* Corner ornaments - Bottom Left */}
+            <svg
+                className="absolute bottom-3 left-3 w-8 h-8 text-amber-600/30 pointer-events-none"
+                viewBox="0 0 40 40"
+                fill="none"
+                style={{ transform: 'scaleY(-1)' }}
+            >
+                <path d="M4 4 Q 20 4, 20 20" stroke="currentColor" strokeWidth="1.5" fill="none" />
+                <path d="M4 4 Q 4 20, 20 20" stroke="currentColor" strokeWidth="1.5" fill="none" />
+                <circle cx="4" cy="4" r="2" fill="currentColor" />
+            </svg>
+
+            {/* Corner ornaments - Bottom Right */}
+            <svg
+                className="absolute bottom-3 right-3 w-8 h-8 text-amber-600/30 pointer-events-none"
+                viewBox="0 0 40 40"
+                fill="none"
+                style={{ transform: 'scale(-1, -1)' }}
+            >
+                <path d="M4 4 Q 20 4, 20 20" stroke="currentColor" strokeWidth="1.5" fill="none" />
+                <path d="M4 4 Q 4 20, 20 20" stroke="currentColor" strokeWidth="1.5" fill="none" />
+                <circle cx="4" cy="4" r="2" fill="currentColor" />
+            </svg>
+
             {children}
         </motion.div>
     );
 };
 
-// Transition content component - displays phase info with chalk style
+// Transition content component - displays phase info with elegant menu style
 interface TransitionContentProps {
     phase: PhaseStatus;
     getPhaseInfo: (phase: PhaseStatus) => { name: string; subtitle: string };
@@ -290,100 +264,116 @@ const TransitionContent: React.FC<TransitionContentProps> = ({ phase, getPhaseIn
     const phaseNames = getPhaseInfo(phase);
     const isVictory = info.isVictory;
 
-    // Handwriting font style - natural chalk look
-    const handwritingFont = '"Segoe Script", "Bradley Hand", "Comic Sans MS", cursive';
-    // Chalk text shadow for realistic chalk effect
-    const chalkShadow = '1px 1px 2px rgba(255,255,255,0.3), 0 0 8px rgba(255,255,255,0.1)';
+    // Elegant menu typography
+    const menuTitleFont = '"Playfair Display", Georgia, "Times New Roman", serif';
+    const menuBodyFont = '"Cormorant Garamond", Garamond, Georgia, serif';
+    // Embossed text shadow for letterpress effect on paper
+    const embossShadow = '1px 1px 0 rgba(255,255,255,0.8), -1px -1px 0 rgba(0,0,0,0.05)';
 
     return (
         <div className="relative z-50 flex flex-col items-center text-center">
             {/* Icon container - no animation */}
             <div className="relative">
-                {/* Subtle chalk glow - gold for victory */}
-                <div className={`absolute inset-0 blur-2xl rounded-full ${isVictory ? 'bg-yellow-400/20' : 'bg-white/10'}`} />
+                {/* Subtle gold glow */}
+                <div className={`absolute inset-0 blur-2xl rounded-full ${isVictory ? 'bg-yellow-400/30' : 'bg-amber-600/15'}`} />
 
-                {/* Icon with chalk-style border */}
+                {/* Icon with elegant gold border */}
                 <div
-                    className={`relative rounded-full p-5 border-2 ${isVictory ? 'border-yellow-400/70' : 'border-white/50'}`}
+                    className={`relative rounded-full p-5 border-2 ${isVictory ? 'border-yellow-500' : 'border-amber-600/50'}`}
                     style={{
-                        background: isVictory ? 'rgba(234,179,8,0.1)' : 'rgba(255,255,255,0.03)',
+                        background: isVictory ? 'rgba(234,179,8,0.15)' : 'rgba(180,140,100,0.1)',
                     }}
                 >
                     {isVictory ? (
-                        <Trophy className="w-[60px] h-[60px] text-yellow-400" />
+                        <Trophy className="w-[60px] h-[60px] text-yellow-500" />
                     ) : (
                         <PhaseIcon phase={info.icon} size={60} />
                     )}
                 </div>
             </div>
 
-            {/* Phase Number - handwriting style (skip for victory) */}
+            {/* Phase Number - elegant serif style (skip for victory) */}
             {!isVictory && (
                 <div className="mt-4">
                     <span
-                        className="text-lg md:text-xl text-white/90 tracking-wider"
+                        className="text-lg md:text-xl text-amber-700 tracking-widest uppercase"
                         style={{
-                            fontFamily: handwritingFont,
-                            textShadow: chalkShadow,
+                            fontFamily: menuBodyFont,
+                            textShadow: embossShadow,
+                            fontWeight: 500,
                         }}
                     >
-                        ~ Phase {info.number} ~
+                        — Phase {info.number} —
                     </span>
                 </div>
             )}
 
-            {/* Title - large handwriting style */}
+            {/* Title - elegant serif display */}
             <h1
-                className={`text-5xl md:text-8xl ${isVictory ? 'mt-4' : 'mt-1'} ${isVictory ? 'text-yellow-400' : 'text-white'}`}
+                className={`text-5xl md:text-7xl ${isVictory ? 'mt-4' : 'mt-1'} ${isVictory ? 'text-yellow-600' : 'text-amber-900'}`}
                 style={{
-                    fontFamily: handwritingFont,
+                    fontFamily: menuTitleFont,
                     textShadow: isVictory
-                        ? '2px 2px 4px rgba(234,179,8,0.3), 0 0 20px rgba(234,179,8,0.2)'
-                        : '2px 2px 4px rgba(255,255,255,0.2), 0 0 15px rgba(255,255,255,0.1)',
-                    fontWeight: 400,
+                        ? '2px 2px 4px rgba(234,179,8,0.2), 0 0 20px rgba(234,179,8,0.15)'
+                        : '2px 2px 0 rgba(255,255,255,0.8), -1px -1px 0 rgba(0,0,0,0.03)',
+                    fontWeight: 700,
                     letterSpacing: '0.02em',
                 }}
             >
                 {phaseNames.name}
             </h1>
 
-            {/* Decorative chalk underline - hand-drawn style (gold for victory) */}
+            {/* Decorative flourish divider - elegant menu style */}
             <svg
-                className="w-56 h-3 mt-2"
-                viewBox="0 0 200 12"
+                className="w-56 h-4 mt-2"
+                viewBox="0 0 200 16"
                 fill="none"
                 xmlns="http://www.w3.org/2000/svg"
             >
+                {/* Center diamond */}
                 <path
-                    d="M5 6 Q 30 2, 60 7 T 100 5 T 140 8 T 195 5"
-                    stroke={isVictory ? 'rgba(234,179,8,0.6)' : 'rgba(255,255,255,0.5)'}
-                    strokeWidth="2"
-                    strokeLinecap="round"
+                    d="M100 2 L106 8 L100 14 L94 8 Z"
+                    fill={isVictory ? 'rgba(234,179,8,0.6)' : 'rgba(180,83,9,0.5)'}
+                />
+                {/* Left scroll */}
+                <path
+                    d="M90 8 C 70 8, 60 3, 30 8 C 20 10, 10 8, 5 8"
+                    stroke={isVictory ? 'rgba(234,179,8,0.5)' : 'rgba(180,83,9,0.4)'}
+                    strokeWidth="1.5"
+                    fill="none"
+                />
+                {/* Right scroll */}
+                <path
+                    d="M110 8 C 130 8, 140 3, 170 8 C 180 10, 190 8, 195 8"
+                    stroke={isVictory ? 'rgba(234,179,8,0.5)' : 'rgba(180,83,9,0.4)'}
+                    strokeWidth="1.5"
                     fill="none"
                 />
             </svg>
 
-            {/* Subtitle - handwriting style */}
+            {/* Subtitle - elegant italic */}
             <p
-                className={`text-xl md:text-2xl mt-3 ${isVictory ? 'text-yellow-200/90' : 'text-white/80'}`}
+                className={`text-xl md:text-2xl mt-3 ${isVictory ? 'text-yellow-700' : 'text-amber-800/80'}`}
                 style={{
-                    fontFamily: handwritingFont,
-                    textShadow: chalkShadow,
+                    fontFamily: menuBodyFont,
+                    textShadow: embossShadow,
                     fontStyle: 'italic',
+                    fontWeight: 400,
                 }}
             >
                 "{phaseNames.subtitle}"
             </p>
 
-            {/* Team names - handwriting style */}
+            {/* Team names - elegant serif */}
             <div className="flex items-center gap-8 mt-6">
                 <div className="flex items-center gap-2">
-                    <Flame className="w-5 h-5 text-red-400" />
+                    <Flame className="w-5 h-5 text-red-600" />
                     <span
-                        className="text-lg text-red-300"
+                        className="text-lg text-red-700"
                         style={{
-                            fontFamily: handwritingFont,
-                            textShadow: chalkShadow,
+                            fontFamily: menuBodyFont,
+                            textShadow: embossShadow,
+                            fontWeight: 600,
                         }}
                     >
                         {t('teams.spicy')}
@@ -391,23 +381,24 @@ const TransitionContent: React.FC<TransitionContentProps> = ({ phase, getPhaseIn
                 </div>
 
                 <span
-                    className="text-2xl text-white/60"
-                    style={{ fontFamily: handwritingFont }}
+                    className="text-2xl text-amber-700/60"
+                    style={{ fontFamily: menuTitleFont }}
                 >
                     vs
                 </span>
 
                 <div className="flex items-center gap-2">
                     <span
-                        className="text-lg text-pink-300"
+                        className="text-lg text-pink-700"
                         style={{
-                            fontFamily: handwritingFont,
-                            textShadow: chalkShadow,
+                            fontFamily: menuBodyFont,
+                            textShadow: embossShadow,
+                            fontWeight: 600,
                         }}
                     >
                         {t('teams.sweet')}
                     </span>
-                    <Candy className="w-5 h-5 text-pink-400" />
+                    <Candy className="w-5 h-5 text-pink-600" />
                 </div>
             </div>
         </div>
@@ -704,14 +695,11 @@ export const PhaseTransition: React.FC<PhaseTransitionProps> = ({
                         </div>
                     )}
 
-                    {/* Main Content - Chalkboard with 3D perspective for fall animation */}
-                    <div
-                        className="absolute inset-0 flex items-center justify-center z-50"
-                        style={{ perspective: prefersReducedMotion ? undefined : '1000px' }}
-                    >
+                    {/* Main Content - Restaurant Menu Panel */}
+                    <div className="absolute inset-0 flex items-center justify-center z-50">
                         <AnimatePresence>
                             {showContent && (
-                                <ChalkboardPanel
+                                <RestaurantMenuPanel
                                     isVisible={showContent}
                                     reducedMotion={prefersReducedMotion}
                                     boardDuration={boardDuration}
@@ -721,7 +709,7 @@ export const PhaseTransition: React.FC<PhaseTransitionProps> = ({
                                         getPhaseInfo={getPhaseInfo}
                                         t={t}
                                     />
-                                </ChalkboardPanel>
+                                </RestaurantMenuPanel>
                             )}
                         </AnimatePresence>
                     </div>

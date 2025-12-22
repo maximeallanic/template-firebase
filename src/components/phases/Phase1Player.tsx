@@ -7,7 +7,7 @@ import { markQuestionAsSeen } from '../../services/historyService';
 import { SimpleConfetti } from '../ui/SimpleConfetti';
 import { TeammateRoster } from '../game/TeammateRoster';
 import { QuestionTransition } from '../game/QuestionTransition';
-import { springConfig, organicEase, durations, flashIndicatorVariants, snappySpring } from '../../animations';
+import { springConfig, organicEase, durations, flashIndicatorVariants } from '../../animations';
 import { useReducedMotion } from '../../hooks/useReducedMotion';
 import type { SoloPhaseHandlers } from '../../types/soloTypes';
 import {
@@ -407,7 +407,7 @@ export function Phase1Player({ room, playerId, isHost, mode = 'multiplayer', sol
                                     initial={{ opacity: 0, y: -20, scale: 1.5 }}
                                     animate={{ opacity: 1, y: 0, scale: 1 }}
                                     exit={{ opacity: 0, y: 20, scale: 0.5 }}
-                                    transition={snappySpring}
+                                    transition={{ duration: 0.25, ease: [0.34, 1.56, 0.64, 1] }}
                                     className="inline-block min-w-[2ch] text-center tabular-nums"
                                 >
                                     {countdown}s

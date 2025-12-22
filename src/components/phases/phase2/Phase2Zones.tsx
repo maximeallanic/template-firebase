@@ -131,7 +131,7 @@ export function Phase2Zones({
                 initial={{ opacity: 0, y: -30 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.3, delay: 0.1 }}
-                className="absolute top-0 left-0 right-0 h-32 bg-gradient-to-b from-purple-500/10 to-transparent pointer-events-none flex justify-center pt-8"
+                className="absolute top-0 left-0 right-0 h-32 bg-gradient-to-b from-purple-500/20 to-transparent pointer-events-none flex justify-center pt-4 group"
                 role="button"
                 aria-label={t('phase2.selectBoth')}
                 tabIndex={disabled ? -1 : 0}
@@ -144,24 +144,28 @@ export function Phase2Zones({
                 }}
                 style={{ pointerEvents: disabled ? 'none' : 'auto' }}
             >
-                <div className="text-purple-400 font-bold tracking-widest uppercase opacity-20 text-xl flex flex-col items-center">
+                <div
+                    className="absolute inset-0 bg-purple-900/10 group-hover:bg-purple-900/20 transition-colors"
+                    aria-hidden="true"
+                />
+                <div className="text-purple-500 font-black tracking-tighter uppercase opacity-30 text-3xl md:text-5xl flex flex-col items-center z-10">
                     {!prefersReducedMotion ? (
                         <motion.div
                             animate={{ y: [0, -5, 0] }}
                             transition={{ duration: 1.5, repeat: Infinity, ease: "easeInOut" }}
                         >
-                            <ArrowUp className="w-8 h-8 mb-1" />
+                            <ArrowUp className="w-10 h-10 md:w-12 md:h-12 mb-1" />
                         </motion.div>
                     ) : (
-                        <ArrowUp className="w-8 h-8 mb-1" />
+                        <ArrowUp className="w-10 h-10 md:w-12 md:h-12 mb-1" />
                     )}
                     {t('phase2.optionBoth')}
                 </div>
             </motion.div>
 
-            {/* Options Text Legend - Above the card area */}
+            {/* Options Text Legend - Below the card */}
             {!disabled && (
-                <div className="absolute top-24 md:top-20 left-0 right-0 text-center pointer-events-none z-30">
+                <div className="absolute bottom-28 md:bottom-32 left-0 right-0 text-center pointer-events-none z-30">
                     <p className="text-white/80 text-lg md:text-xl font-medium">
                         <span className="text-red-400">
                             {optionA}

@@ -34,6 +34,9 @@ export interface StoredQuestion {
     answer?: string;   // For phase3, phase4, phase5
     optionA?: string;  // For phase2 (e.g., "Sucré")
     optionB?: string;  // For phase2 (e.g., "Salé")
+    optionADescription?: string;  // For phase2 homonyms
+    optionBDescription?: string;  // For phase2 homonyms
+    humorousDescription?: string; // For phase2 humorous description
     createdAt: Date;
     usageCount: number;
 }
@@ -179,11 +182,14 @@ export async function getRandomQuestionSet(
         })) as Question[];
     } else if (phase === 'phase2') {
         // Phase2: Reconstruct SimplePhase2Set from individual items
-        // All items share the same optionA/optionB from the same generation
+        // All items share the same optionA/optionB/humorousDescription from the same generation
         const firstQ = questions[0];
         gameQuestions = {
             optionA: firstQ.optionA || 'A',
             optionB: firstQ.optionB || 'B',
+            optionADescription: firstQ.optionADescription,
+            optionBDescription: firstQ.optionBDescription,
+            humorousDescription: firstQ.humorousDescription,
             items: questions.map(q => ({
                 text: q.text || '',
                 answer: q.answer || 'A',
