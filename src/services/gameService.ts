@@ -44,6 +44,10 @@ import { validatePhase3Answer as validatePhase3AnswerLLM } from './aiClient';
 // Import default Phase 3 themes
 import { PHASE3_DATA } from './data/phase3';
 
+// Module-level lock for Phase 2 auto-advance to prevent multiple setTimeout calls
+// Key format: `${roomId}_${currentPhase2Item}`
+const phase2AutoAdvanceScheduled: Record<string, boolean> = {};
+
 /**
  * Returns the initial state updates for a given phase.
  * Used by both setGameStatus and debugService.skipToPhase.
@@ -275,16 +279,27 @@ export const startNextQuestion = async (code: string, nextIndex: number) => {
 
     await update(ref(rtdb), updates);
 
-    // Auto-switch to answering mode after 3s reading time
+    // Auto-switch to answering mode after 3s reading time (with retry on failure)
     setTimeout(async () => {
-        try {
-            const answeringUpdates: Record<string, unknown> = {};
-            answeringUpdates[`rooms/${roomId}/state/phaseState`] = 'answering';
-            answeringUpdates[`rooms/${roomId}/state/questionStartTime`] = Date.now();
-            await update(ref(rtdb), answeringUpdates);
-        } catch (error) {
-            console.error('Failed to transition to answering state:', error);
+        let retries = 2;
+        while (retries >= 0) {
+            try {
+                const answeringUpdates: Record<string, unknown> = {};
+                answeringUpdates[`rooms/${roomId}/state/phaseState`] = 'answering';
+                answeringUpdates[`rooms/${roomId}/state/questionStartTime`] = Date.now();
+                await update(ref(rtdb), answeringUpdates);
+                return; // Success - exit retry loop
+            } catch (error) {
+                console.error('Failed to transition to answering state:', error);
+                retries--;
+                if (retries >= 0) {
+                    // Wait 500ms before retrying
+                    await new Promise(r => setTimeout(r, 500));
+                }
+            }
         }
+        // After all retries failed, log critical error
+        console.error('[CRITICAL] Unable to transition to answering state after 3 retries');
     }, 3000);
 };
 
@@ -838,11 +853,18 @@ export const submitPhase2Answer = async (
         });
     }
 
-    // Handle auto-advance if round ended
+    // Handle auto-advance if round ended (with lock to prevent multiple timers)
     if (newState?.phaseState === 'result') {
-        const hasAnecdote = item.anecdote;
-        const delay = hasAnecdote ? 7000 : 4000;
-        setTimeout(() => nextPhase2Item(roomId), delay);
+        const advanceKey = `${roomId}_${newState.currentPhase2Item ?? 0}`;
+        if (!phase2AutoAdvanceScheduled[advanceKey]) {
+            phase2AutoAdvanceScheduled[advanceKey] = true;
+            const hasAnecdote = item.anecdote;
+            const delay = hasAnecdote ? 7000 : 4000;
+            setTimeout(() => {
+                nextPhase2Item(roomId);
+                delete phase2AutoAdvanceScheduled[advanceKey]; // Cleanup after advance
+            }, delay);
+        }
     }
 };
 
@@ -1133,11 +1155,27 @@ export const submitPhase3Answer = async (
         });
         isCorrect = validationResult.isCorrect;
     } catch (error) {
-        console.error('[Phase3] LLM validation error:', error);
-        // Fallback to exact match on error
+        console.error('[Phase3] LLM validation error, using fallback:', error);
+        // Fallback: Check exact match first, then acceptable answers
         const normalizedAnswer = answer.toLowerCase().trim();
         const normalizedCorrect = question.answer.toLowerCase().trim();
         isCorrect = normalizedAnswer === normalizedCorrect;
+
+        // If exact match failed, check acceptable answers
+        if (!isCorrect && question.acceptableAnswers?.length) {
+            isCorrect = question.acceptableAnswers.some(alt =>
+                alt.toLowerCase().trim() === normalizedAnswer
+            );
+        }
+
+        // Log if answer was rejected in fallback mode (for debugging)
+        if (!isCorrect) {
+            console.warn('[Phase3] Answer rejected in fallback mode:', {
+                playerAnswer: answer,
+                expectedAnswer: question.answer,
+                acceptableCount: question.acceptableAnswers?.length || 0
+            });
+        }
     }
 
     if (!isCorrect) {

@@ -45,11 +45,21 @@ export function useGameRoom({ roomId, debugPlayerId }: UseGameRoomOptions): UseG
 
                 if (isPlayerInRoom) {
                     // Player is in the room - mark them as online (handles reconnection)
+                    const playerData = data.players[localId];
+
+                    // Reset flag if player went offline (for reconnection scenarios)
+                    // This allows markPlayerOnline to be called again when they reconnect
+                    if (playerData && !playerData.isOnline) {
+                        hasMarkedOnline.current = false;
+                    }
+
                     if (!hasMarkedOnline.current && localId) {
                         hasMarkedOnline.current = true;
                         markPlayerOnline(data.code, localId);
                     }
                 } else {
+                    // Reset flag when player leaves room (for future rejoins)
+                    hasMarkedOnline.current = false;
                     // User is NOT a recognized player
                     // Case A: Game is in Lobby -> Redirect to Join
                     if (data.state.status === 'lobby') {

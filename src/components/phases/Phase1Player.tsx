@@ -276,12 +276,13 @@ export function Phase1Player({ room, playerId, isHost, mode = 'multiplayer', sol
         }
     }, [isReading]);
 
-    // Auto-advance to next question after showing result (any player can trigger)
-    // This ensures the game doesn't get stuck if the host disconnects
+    // Auto-advance to next question after showing result (host only in multiplayer)
+    // Solo mode always advances; multiplayer requires host to prevent race conditions
     // Longer delay when there's an anecdote to read
     // Auto-transition to Phase 2 when all questions are done
     useEffect(() => {
-        if (isResult) {
+        // Solo mode: always advance; Multiplayer: only host advances
+        if (isResult && (isSolo || isHost)) {
             const hasAnecdote = currentQuestion?.anecdote;
             const delay = hasAnecdote ? 7000 : 5000; // 7s with anecdote, 5s without
             const timer = setTimeout(() => {
@@ -293,8 +294,7 @@ export function Phase1Player({ room, playerId, isHost, mode = 'multiplayer', sol
                         soloHandlers.nextPhase1Question();
                     }
                 } else {
-                    // Multiplayer: All players trigger this, but Firebase operations are idempotent
-                    // The first one to succeed advances the game, others will be no-ops
+                    // Multiplayer: Only host triggers transition (prevents race conditions)
                     if (isFinished) {
                         showPhaseResults(room.code);
                     } else {
@@ -304,7 +304,7 @@ export function Phase1Player({ room, playerId, isHost, mode = 'multiplayer', sol
             }, delay);
             return () => clearTimeout(timer);
         }
-    }, [isResult, isFinished, room.code, nextQIndex, currentQuestion?.anecdote, isSolo, soloHandlers]);
+    }, [isResult, isHost, isFinished, room.code, nextQIndex, currentQuestion?.anecdote, isSolo, soloHandlers]);
 
     // Show transition for question number display (1-indexed)
     const displayQuestionNumber = (currentQuestionIndex ?? 0) + 1;

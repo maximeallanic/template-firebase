@@ -11,6 +11,30 @@ import { PHASE5_QUESTIONS } from '../data/phase5';
 // Module-level lock to survive React StrictMode remounts
 // Keys are formatted as `${roomCode}_${phase}`
 const generationInProgress: Record<string, boolean> = {};
+// Track when locks were acquired to clean up stale locks (>5 minutes old)
+const generationStartTimes: Record<string, number> = {};
+
+// Stale lock threshold: 5 minutes
+const STALE_LOCK_THRESHOLD_MS = 5 * 60 * 1000;
+
+/**
+ * Clean up stale locks that are older than the threshold.
+ * This prevents locks from persisting indefinitely if a generation fails silently.
+ */
+function cleanupStaleLocks(): void {
+    const now = Date.now();
+    Object.keys(generationInProgress).forEach(key => {
+        const startTime = generationStartTimes[key];
+        if (startTime && now - startTime > STALE_LOCK_THRESHOLD_MS) {
+            console.warn('[QUESTION-GEN] 🧹 Cleaning up stale lock:', key, {
+                ageMs: now - startTime,
+                thresholdMs: STALE_LOCK_THRESHOLD_MS
+            });
+            delete generationInProgress[key];
+            delete generationStartTimes[key];
+        }
+    });
+}
 
 interface UseQuestionGenerationOptions {
     room: Room | null;
@@ -298,6 +322,10 @@ export function useQuestionGeneration({
         });
 
         const lockKey = `${currentRoom.code}_phase1`;
+
+        // Clean up any stale locks before checking
+        cleanupStaleLocks();
+
         if (generationInProgress[lockKey]) {
             console.log('[QUESTION-GEN] ⏸️ Phase 1 generation already in progress, skipping');
             return;
@@ -305,6 +333,7 @@ export function useQuestionGeneration({
 
         // CRITICAL: Set lock IMMEDIATELY after check to prevent race conditions
         generationInProgress[lockKey] = true;
+        generationStartTimes[lockKey] = Date.now(); // Track when lock was acquired
         setGenerationError(null);
 
         try {
@@ -385,6 +414,7 @@ export function useQuestionGeneration({
         } finally {
             // Always release lock and reset loading state in Firebase
             generationInProgress[lockKey] = false;
+            delete generationStartTimes[lockKey]; // Clean up start time tracking
             const finalRoom = roomRef.current;
             if (finalRoom) {
                 await setGeneratingState(finalRoom.code, false);

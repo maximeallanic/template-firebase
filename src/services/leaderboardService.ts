@@ -35,9 +35,55 @@ export interface LeaderboardEntry {
 const COLLECTION_NAME = 'soloLeaderboard';
 
 /**
+ * Validate score entry before submission
+ * Basic client-side validation to catch obvious errors
+ * Note: For real security, validation should happen in a Cloud Function
+ */
+function validateScoreEntry(entry: Omit<LeaderboardEntry, 'id' | 'createdAt'>): void {
+    // Validate total score
+    if (!Number.isInteger(entry.score) || entry.score < 0 || entry.score > 300) {
+        throw new Error(`Invalid score value: ${entry.score}`);
+    }
+
+    // Validate accuracy percentage
+    if (typeof entry.accuracy !== 'number' || entry.accuracy < 0 || entry.accuracy > 100) {
+        throw new Error(`Invalid accuracy value: ${entry.accuracy}`);
+    }
+
+    // Validate phase scores are non-negative integers
+    if (!Number.isInteger(entry.phase1Score) || entry.phase1Score < 0) {
+        throw new Error(`Invalid phase1Score: ${entry.phase1Score}`);
+    }
+    if (!Number.isInteger(entry.phase2Score) || entry.phase2Score < 0) {
+        throw new Error(`Invalid phase2Score: ${entry.phase2Score}`);
+    }
+    if (!Number.isInteger(entry.phase4Score) || entry.phase4Score < 0) {
+        throw new Error(`Invalid phase4Score: ${entry.phase4Score}`);
+    }
+
+    // Check score consistency (sum of phases should roughly equal total)
+    const sumPhaseScores = entry.phase1Score + entry.phase2Score + entry.phase4Score;
+    if (Math.abs(entry.score - sumPhaseScores) > 10) {
+        console.warn('[Leaderboard] Score mismatch detected:', {
+            totalScore: entry.score,
+            sumPhaseScores,
+            difference: Math.abs(entry.score - sumPhaseScores),
+        });
+    }
+
+    // Validate time is positive
+    if (typeof entry.totalTimeMs !== 'number' || entry.totalTimeMs < 0) {
+        throw new Error(`Invalid totalTimeMs: ${entry.totalTimeMs}`);
+    }
+}
+
+/**
  * Submit a new score to the leaderboard
  */
 export async function submitScore(entry: Omit<LeaderboardEntry, 'id' | 'createdAt'>): Promise<string> {
+    // Validate entry before submission
+    validateScoreEntry(entry);
+
     try {
         const docRef = await addDoc(collection(db, COLLECTION_NAME), {
             ...entry,

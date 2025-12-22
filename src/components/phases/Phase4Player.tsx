@@ -83,7 +83,21 @@ export function Phase4Player({ room, playerId, isHost, mode = 'multiplayer', sol
         previousQuestionIdxRef.current = currentQuestionIdx;
     }, [currentQuestionIdx, currentQuestion, prefersReducedMotion]);
 
-    // Timer countdown
+    // Refs for timeout handling to avoid unnecessary timer recreation
+    const isHostRef = useRef(isHost);
+    const roomCodeRef = useRef(room.code);
+    const isSoloRef = useRef(isSolo);
+    const soloHandlersRef = useRef(soloHandlers);
+
+    // Keep refs updated
+    useEffect(() => {
+        isHostRef.current = isHost;
+        roomCodeRef.current = room.code;
+        isSoloRef.current = isSolo;
+        soloHandlersRef.current = soloHandlers;
+    }, [isHost, room.code, isSolo, soloHandlers]);
+
+    // Timer countdown (minimal dependencies for performance)
     useEffect(() => {
         if (phase4State !== 'questioning' || !phase4QuestionStartTime || showTransition) {
             setTimeRemaining(QUESTION_TIMER);
@@ -96,14 +110,14 @@ export function Phase4Player({ room, playerId, isHost, mode = 'multiplayer', sol
             const remaining = Math.max(0, QUESTION_TIMER - elapsed);
             setTimeRemaining(remaining);
 
-            // Handle timeout: solo mode uses soloHandlers, multiplayer uses host
+            // Handle timeout using refs to avoid dependency on changing values
             if (remaining === 0 && !hasHandledTimeoutRef.current) {
-                if (isSolo && soloHandlers) {
+                if (isSoloRef.current && soloHandlersRef.current) {
                     hasHandledTimeoutRef.current = true;
-                    soloHandlers.handlePhase4Timeout();
-                } else if (isHost) {
+                    soloHandlersRef.current.handlePhase4Timeout();
+                } else if (isHostRef.current) {
                     hasHandledTimeoutRef.current = true;
-                    handlePhase4Timeout(room.code);
+                    handlePhase4Timeout(roomCodeRef.current);
                 }
             }
         };
@@ -116,7 +130,7 @@ export function Phase4Player({ room, playerId, isHost, mode = 'multiplayer', sol
                 clearInterval(timerRef.current);
             }
         };
-    }, [phase4State, phase4QuestionStartTime, isHost, room.code, showTransition, isSolo, soloHandlers]);
+    }, [phase4State, phase4QuestionStartTime, showTransition]); // Reduced from 7 to 3 dependencies
 
     // Auto-advance after result display (solo always auto-advances, multiplayer host only)
     useEffect(() => {
