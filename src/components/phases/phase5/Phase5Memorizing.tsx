@@ -167,28 +167,13 @@ export function Phase5Memorizing({ room, isHost }: Phase5MemorizingProps) {
                         {/* Question Card */}
                         <div className="bg-slate-800/80 backdrop-blur-xl rounded-3xl border border-white/10 shadow-2xl overflow-hidden">
                             {/* Question */}
-                            <div className="p-8 border-b border-white/5">
+                            <div className="p-8">
                                 <div className="text-slate-400 text-sm uppercase tracking-wider mb-3">
                                     {t('phase5.question')} {currentIdx + 1}
                                 </div>
                                 <p className="text-3xl md:text-4xl font-bold leading-tight select-none">
                                     {currentQ.question}
                                 </p>
-                            </div>
-
-                            {/* Answer */}
-                            <div className="p-8 bg-gradient-to-r from-yellow-500/10 to-orange-500/10">
-                                <div className="text-yellow-400 text-sm uppercase tracking-wider mb-3">
-                                    {t('phase5.answer')}
-                                </div>
-                                <motion.p
-                                    initial={{ opacity: 0, y: 10 }}
-                                    animate={{ opacity: 1, y: 0 }}
-                                    transition={{ delay: 0.3 }}
-                                    className="text-4xl md:text-5xl font-black text-yellow-400 select-none"
-                                >
-                                    {currentQ.answer}
-                                </motion.p>
                             </div>
                         </div>
                     </motion.div>

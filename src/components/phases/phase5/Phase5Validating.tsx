@@ -46,11 +46,17 @@ export function Phase5Validating({ room, isHost }: Phase5ValidatingProps) {
                 while (paddedSpicy.length < 10) paddedSpicy.push('');
                 while (paddedSweet.length < 10) paddedSweet.push('');
 
+                // Ensure we have exactly 10 questions (pad with defaults if needed)
+                const paddedQuestions = [...questions];
+                while (paddedQuestions.length < 10) {
+                    paddedQuestions.push(defaultQuestions[paddedQuestions.length % defaultQuestions.length]);
+                }
+
                 setValidationProgress(30);
 
                 // Call the validation Cloud Function
                 const results = await validatePhase5Answers({
-                    questions: questions.slice(0, 10),
+                    questions: paddedQuestions.slice(0, 10),
                     spicyAnswers: paddedSpicy.slice(0, 10),
                     sweetAnswers: paddedSweet.slice(0, 10),
                 });

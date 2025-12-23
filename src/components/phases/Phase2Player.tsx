@@ -199,11 +199,12 @@ export function Phase2Player({ room, playerId, isHost, mode = 'multiplayer', sol
     }, []);
 
     // Auto-trigger phase results when phase 2 is complete (multiplayer only)
+    // Guard: only trigger if we're still in phase2 (prevents re-triggering after phase3 starts)
     useEffect(() => {
-        if ((!currentSet || !currentItem) && isHost && !isSolo) {
+        if ((!currentSet || !currentItem) && isHost && !isSolo && room.state.status === 'phase2') {
             showPhaseResults(roomId);
         }
-    }, [currentSet, currentItem, isHost, isSolo, roomId]);
+    }, [currentSet, currentItem, isHost, isSolo, roomId, room.state.status]);
 
     // --- FINISHED VIEW ---
     // Phase 2 complete - show brief loading while auto-transitioning to results
@@ -227,7 +228,7 @@ export function Phase2Player({ room, playerId, isHost, mode = 'multiplayer', sol
         <div className="fixed inset-0 flex overflow-hidden">
             {/* Team Status Bar - Top (multiplayer only) */}
             {!isSolo && (
-                <div className="absolute top-4 left-1/2 -translate-x-1/2 z-50 flex flex-col items-center gap-3">
+                <div className="absolute top-4 left-1/2 -translate-x-1/2 z-10 flex flex-col items-center gap-3">
                     {/* Timer */}
                     {phaseState === 'answering' && (
                         <Phase4Timer
@@ -278,7 +279,7 @@ export function Phase2Player({ room, playerId, isHost, mode = 'multiplayer', sol
 
             {/* Solo Progress Indicator */}
             {isSolo && (
-                <div className="absolute top-4 left-1/2 -translate-x-1/2 z-50">
+                <div className="absolute top-4 left-1/2 -translate-x-1/2 z-10">
                     <div className="px-4 py-2 rounded-full text-sm font-bold bg-slate-800/80 text-white backdrop-blur flex items-center gap-2">
                         <span>{itemIndex + 1} / {totalItems}</span>
                         {soloResult && (
@@ -339,7 +340,7 @@ export function Phase2Player({ room, playerId, isHost, mode = 'multiplayer', sol
                         animate={{ opacity: 1 }}
                         exit={{ opacity: 0 }}
                         transition={{ duration: 0.3 }}
-                        className="absolute inset-0 flex flex-col items-center justify-center p-4 pointer-events-none z-30"
+                        className="absolute inset-0 flex flex-col items-center justify-center p-4 pb-32 md:pb-40 lg:pb-44 pointer-events-none z-30"
                     >
                         {/* Team Lock Overlay - When teammate answered but round not over (multiplayer only) */}
                         {!isSolo && (

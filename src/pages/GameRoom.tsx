@@ -1,7 +1,7 @@
 import { useEffect, useLayoutEffect, useState, useRef, useCallback } from 'react';
 import { useParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { type Player, type Difficulty, setGameStatus, updatePlayerTeam, updateRoomDifficulty, getRoomDifficulty, PREMIUM_PHASES } from '../services/gameService';
+import { type Player, type Difficulty, type PhaseStatus, setGameStatus, updatePlayerTeam, updateRoomDifficulty, getRoomDifficulty, PREMIUM_PHASES } from '../services/gameService';
 import { useGameRoom } from '../hooks/useGameRoom';
 import { useQuestionGeneration } from '../hooks/useQuestionGeneration';
 import { useHostSubscription } from '../hooks/useHostSubscription';
@@ -85,6 +85,7 @@ export default function GameRoom() {
     const prevStatus = useRef<string>('');
     const prevPlayerCount = useRef(0);
     const prevAudioStatus = useRef<string>('');
+    const phaseResultsPhaseRef = useRef<PhaseStatus | null>(null); // Captures phase when PhaseResults modal appears
     const isFirstRender = useRef(true);
     const isTransitioning = useRef(false);
     const targetPhaseRef = useRef<GameStatus>('lobby'); // Capture target phase when transition starts
@@ -335,6 +336,25 @@ export default function GameRoom() {
     // Check if we should show PhaseResults overlay
     const showPhaseResults = room?.state.phaseState === 'phase_results' && !showTransition;
 
+    // Capture the phase synchronously when PhaseResults becomes visible
+    // This prevents race condition where status changes before modal exits
+    if (showPhaseResults && room) {
+        phaseResultsPhaseRef.current = room.state.status;
+    }
+
+    // Get the captured phase for PhaseResults (uses captured value during exit animation)
+    const phaseResultsPhase = phaseResultsPhaseRef.current || room?.state.status;
+
+    // DEBUG: Log phase transition state
+    console.log('[PhaseResults Debug]', {
+        showPhaseResults,
+        showTransition,
+        'room.state.status': room?.state.status,
+        'room.state.phaseState': room?.state.phaseState,
+        'phaseResultsPhaseRef.current': phaseResultsPhaseRef.current,
+        phaseResultsPhase,
+    });
+
     // Single render point - PhaseTransition is ALWAYS rendered at the same place
     // This prevents mount/unmount issues when switching between lobby and phases
     return (
@@ -352,7 +372,7 @@ export default function GameRoom() {
                 {showPhaseResults && room && (
                     <PhaseResults
                         room={room}
-                        currentPhase={room.state.status}
+                        currentPhase={phaseResultsPhase}
                         isHost={isHost}
                         onContinue={handlePhaseResultsContinue}
                     />

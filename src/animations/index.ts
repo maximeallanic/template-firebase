@@ -405,6 +405,34 @@ export const wrongAnswerShakeVariants: Variants = {
 };
 
 /**
+ * Phase 1 Button Variants - Complete state machine for answer buttons
+ * Uses stable references to prevent animation restarts on re-render
+ */
+export const phase1ButtonVariants: Variants = {
+    visible: {
+        opacity: 1,
+        scale: 1,
+        x: 0,
+    },
+    shake: {
+        x: [0, -12, 12, -12, 12, -8, 8, 0],
+        transition: {
+            duration: durations.medium,
+            ease: "easeInOut"
+        }
+    },
+    fadeOut: {
+        opacity: 0,
+        scale: 0.95,
+        transition: {
+            duration: durations.quick,
+            ease: organicEase
+        }
+    },
+    // Pulse is handled dynamically due to staggered delay per button index
+};
+
+/**
  * Helper: Create a custom transition with organic easing
  */
 export const createTransition = (

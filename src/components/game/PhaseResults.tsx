@@ -35,6 +35,13 @@ export function PhaseResults({ room, currentPhase, isHost, onContinue }: PhaseRe
     const { getPhaseInfo } = usePhaseTranslation();
     const prefersReducedMotion = useReducedMotion();
 
+    // DEBUG: Log what phase we're displaying
+    console.log('[PhaseResults RENDER]', {
+        currentPhase,
+        'room.state.status': room.state.status,
+        'room.state.phaseState': room.state.phaseState,
+    });
+
     const players = Object.values(room.players);
     const phaseNumber = getPhaseNumber(currentPhase);
     const nextPhase = NEXT_PHASE[currentPhase];

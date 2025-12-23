@@ -1,17 +1,20 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useTranslation } from 'react-i18next';
-import { Send, Check, X, Flame, Candy, Trophy, Users } from 'lucide-react';
+import { Send, Check, X, Flame, Candy, Trophy, Users, Clock } from 'lucide-react';
 import { FoodLoader } from '../ui/FoodLoader';
 import type { Team, Phase3Theme, Phase3TeamProgress, Player } from '../../types/gameTypes';
 import type { SoloPhaseHandlers } from '../../types/soloTypes';
-import { submitPhase3Answer } from '../../services/gameService';
+import { submitPhase3Answer, skipPhase3Question } from '../../services/gameService';
 import { audioService } from '../../services/audioService';
 import { useReducedMotion } from '../../hooks/useReducedMotion';
 import { bouncySpring, durations } from '../../animations';
 
 // Max character limit for answers
 const MAX_ANSWER_LENGTH = 50;
+
+// Time limit per question in seconds
+const QUESTION_TIME_LIMIT = 60;
 
 interface Phase3QuestionInputProps {
     roomCode: string;
@@ -45,7 +48,10 @@ export const Phase3QuestionInput: React.FC<Phase3QuestionInputProps> = ({
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [feedback, setFeedback] = useState<AnswerFeedback>(null);
     const [lastQuestionIndex, setLastQuestionIndex] = useState(teamProgress.currentQuestionIndex);
+    const [timeLeft, setTimeLeft] = useState(QUESTION_TIME_LIMIT);
     const hasPlayedFeedbackRef = useRef(false);
+    const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+    const skipTriggeredRef = useRef(false);
 
     const currentQuestionIndex = teamProgress.currentQuestionIndex;
     const currentQuestion = theme.questions[currentQuestionIndex];
@@ -65,21 +71,98 @@ export const Phase3QuestionInput: React.FC<Phase3QuestionInputProps> = ({
             setFeedback(null);
             setIsSubmitting(false);
             setLastQuestionIndex(currentQuestionIndex);
+            setTimeLeft(QUESTION_TIME_LIMIT);
             hasPlayedFeedbackRef.current = false;
+            skipTriggeredRef.current = false;
         }
     }, [currentQuestionIndex, lastQuestionIndex]);
 
-    // Clear feedback after a delay for incorrect answers
+    // Timer countdown
     useEffect(() => {
-        if (feedback === 'incorrect') {
-            const timer = setTimeout(() => {
-                setFeedback(null);
-                // Reset so the user can try again and get audio feedback
-                hasPlayedFeedbackRef.current = false;
-            }, 2000);
-            return () => clearTimeout(timer);
+        // Clear any existing timer
+        if (timerRef.current) {
+            clearInterval(timerRef.current);
+            timerRef.current = null;
         }
-    }, [feedback]);
+
+        // Don't run timer if already answered or finished
+        if (feedback === 'correct' || feedback === 'already_answered' || isFinished) {
+            return;
+        }
+
+        // Start countdown
+        timerRef.current = setInterval(() => {
+            setTimeLeft(prev => {
+                if (prev <= 1) {
+                    // Time's up - clear timer and set feedback
+                    if (timerRef.current) {
+                        clearInterval(timerRef.current);
+                        timerRef.current = null;
+                    }
+                    audioService.playError();
+                    return 0;
+                }
+                return prev - 1;
+            });
+        }, 1000);
+
+        return () => {
+            if (timerRef.current) {
+                clearInterval(timerRef.current);
+                timerRef.current = null;
+            }
+        };
+    }, [currentQuestionIndex, feedback, isFinished]);
+
+    // Auto-skip to next question after incorrect answer or timeout (multiplayer only)
+    useEffect(() => {
+        // Only trigger skip once per question
+        if (skipTriggeredRef.current) return;
+
+        const shouldSkip = feedback === 'incorrect' && !isSolo && !isFinished;
+        if (!shouldSkip) return;
+
+        skipTriggeredRef.current = true;
+        console.log('[Phase3] Will skip question in 2s (incorrect answer)');
+
+        // Wait 2 seconds to show feedback, then skip to next question
+        const skipTimer = setTimeout(async () => {
+            try {
+                console.log('[Phase3] Skipping question now...');
+                const result = await skipPhase3Question(roomCode, playerTeam);
+                console.log('[Phase3] Skip result:', result);
+            } catch (error) {
+                console.error('[Phase3] Failed to skip question:', error);
+            }
+        }, 2000);
+
+        return () => clearTimeout(skipTimer);
+    }, [feedback, isSolo, roomCode, playerTeam, isFinished]);
+
+    // Auto-skip when time runs out (multiplayer only)
+    useEffect(() => {
+        // Only trigger skip once per question
+        if (skipTriggeredRef.current) return;
+
+        const shouldSkip = timeLeft === 0 && !isSolo && !isFinished && !feedback;
+        if (!shouldSkip) return;
+
+        skipTriggeredRef.current = true;
+        console.log('[Phase3] Will skip question in 2s (timeout)');
+
+        // Wait 2 seconds to show feedback, then skip to next question
+        const skipTimer = setTimeout(async () => {
+            try {
+                console.log('[Phase3] Skipping question now...');
+                const result = await skipPhase3Question(roomCode, playerTeam);
+                console.log('[Phase3] Skip result:', result);
+            } catch (error) {
+                console.error('[Phase3] Failed to skip question:', error);
+            }
+        }, 2000);
+
+        return () => clearTimeout(skipTimer);
+    }, [timeLeft, isSolo, roomCode, playerTeam, isFinished, feedback]);
 
     // Auto-advance to next question in solo mode after correct answer
     useEffect(() => {
@@ -112,7 +195,7 @@ export const Phase3QuestionInput: React.FC<Phase3QuestionInputProps> = ({
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-        if (!answer.trim() || isSubmitting || feedback === 'correct') return;
+        if (!answer.trim() || isSubmitting || feedback === 'correct' || feedback === 'incorrect' || feedback === 'already_answered') return;
 
         // Play click sound on submit
         audioService.playClick();
@@ -186,7 +269,17 @@ export const Phase3QuestionInput: React.FC<Phase3QuestionInputProps> = ({
                             </p>
                         </div>
                     </div>
-                    <div className="text-right">
+                    <div className="flex items-center gap-4">
+                        {/* Timer */}
+                        <div className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg ${
+                            timeLeft <= 10 ? 'bg-red-500/30 text-red-300' : 'bg-white/10 text-white/80'
+                        }`}>
+                            <Clock className={`w-4 h-4 ${timeLeft <= 10 && !prefersReducedMotion ? 'animate-pulse' : ''}`} />
+                            <span className="font-mono font-bold text-lg">
+                                {t('phase3.timeRemaining', { seconds: timeLeft })}
+                            </span>
+                        </div>
+                        {/* Score */}
                         <div className="flex items-center gap-2">
                             <Trophy className="w-5 h-5 text-yellow-400" />
                             <span className="text-2xl font-bold text-white">{teamProgress.score}</span>
@@ -236,7 +329,7 @@ export const Phase3QuestionInput: React.FC<Phase3QuestionInputProps> = ({
                             value={answer}
                             onChange={(e) => setAnswer(e.target.value.slice(0, MAX_ANSWER_LENGTH))}
                             placeholder={t('phase3.typeAnswer')}
-                            disabled={isSubmitting || feedback === 'correct' || feedback === 'already_answered'}
+                            disabled={isSubmitting || feedback === 'correct' || feedback === 'incorrect' || feedback === 'already_answered' || timeLeft === 0}
                             autoFocus
                             maxLength={MAX_ANSWER_LENGTH}
                             aria-label={t('phase3.typeAnswer')}
@@ -245,10 +338,12 @@ export const Phase3QuestionInput: React.FC<Phase3QuestionInputProps> = ({
                                 feedback === 'correct'
                                     ? 'border-green-500 bg-green-50 text-green-800'
                                     : feedback === 'incorrect'
-                                    ? 'border-red-400 bg-red-50'
+                                    ? 'border-red-400 bg-red-50 text-red-800'
                                     : feedback === 'already_answered'
-                                    ? 'border-orange-400 bg-orange-50'
-                                    : 'border-slate-200 focus:border-yellow-400'
+                                    ? 'border-orange-400 bg-orange-50 text-orange-800'
+                                    : timeLeft === 0
+                                    ? 'border-slate-300 bg-slate-100 text-slate-500'
+                                    : 'border-slate-200 focus:border-yellow-400 text-slate-800'
                             }`}
                         />
 
@@ -256,10 +351,10 @@ export const Phase3QuestionInput: React.FC<Phase3QuestionInputProps> = ({
                         <button
                             data-cursor-target="phase3:submit"
                             type="submit"
-                            disabled={!answer.trim() || isSubmitting || feedback === 'correct' || feedback === 'already_answered'}
+                            disabled={!answer.trim() || isSubmitting || feedback === 'correct' || feedback === 'incorrect' || feedback === 'already_answered' || timeLeft === 0}
                             aria-label={t('phase3.submitAnswer')}
                             className={`absolute right-2 top-1/2 -translate-y-1/2 p-3 rounded-xl transition-all ${
-                                !answer.trim() || isSubmitting || feedback === 'correct'
+                                !answer.trim() || isSubmitting || feedback === 'correct' || feedback === 'incorrect' || feedback === 'already_answered' || timeLeft === 0
                                     ? 'bg-slate-200 text-slate-400'
                                     : 'bg-yellow-400 hover:bg-yellow-300 text-slate-800'
                             }`}
@@ -314,7 +409,7 @@ export const Phase3QuestionInput: React.FC<Phase3QuestionInputProps> = ({
                         >
                             <div className="flex items-center justify-center gap-2 text-red-700 font-bold">
                                 <X className="w-5 h-5" aria-hidden="true" />
-                                {t('phase3.incorrectTryAgain')}
+                                {t('phase3.incorrectLocked')}
                             </div>
                         </motion.div>
                     )}
@@ -332,6 +427,23 @@ export const Phase3QuestionInput: React.FC<Phase3QuestionInputProps> = ({
                             <div className="flex items-center justify-center gap-2 text-orange-700 font-bold">
                                 <Users className="w-5 h-5" aria-hidden="true" />
                                 {t('phase3.teammateAnswered')}
+                            </div>
+                        </motion.div>
+                    )}
+
+                    {timeLeft === 0 && !feedback && (
+                        <motion.div
+                            initial={prefersReducedMotion ? { opacity: 0 } : { opacity: 0, scale: 0.9 }}
+                            animate={prefersReducedMotion ? { opacity: 1 } : { opacity: 1, scale: 1 }}
+                            exit={{ opacity: 0 }}
+                            transition={prefersReducedMotion ? { duration: durations.fast } : bouncySpring}
+                            className="mt-4 p-4 bg-slate-200 rounded-xl text-center"
+                            role="alert"
+                            aria-live="polite"
+                        >
+                            <div className="flex items-center justify-center gap-2 text-slate-700 font-bold">
+                                <Clock className="w-5 h-5" aria-hidden="true" />
+                                {t('phase3.timeUp')}
                             </div>
                         </motion.div>
                     )}

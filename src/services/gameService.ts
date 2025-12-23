@@ -3,6 +3,7 @@ import { doc, getDoc } from 'firebase/firestore';
 import { rtdb, auth, db, getUserSubscriptionDirect } from './firebase';
 import { type Question } from '../data/questions';
 import { PHASE2_SETS } from '../data/phase2';
+import { PHASE4_QUESTIONS } from '../data/phase4';
 
 // Re-export all types from centralized types file
 export type {
@@ -1371,6 +1372,89 @@ export const submitPhase3Answer = async (
 };
 
 /**
+ * Skip to the next Phase 3 question without awarding points.
+ * Called when time runs out or after an incorrect answer.
+ * @param code - Room code
+ * @param team - Team to advance
+ */
+export const skipPhase3Question = async (
+    code: string,
+    team: Team
+): Promise<{ success: boolean; error?: string }> => {
+    const roomId = code.toUpperCase();
+    console.log('[Phase3] skipPhase3Question called:', { roomId, team });
+
+    const stateRef = ref(rtdb, `rooms/${roomId}/state`);
+    const result = await runTransaction(stateRef, (currentState: GameState | null) => {
+        console.log('[Phase3] Transaction state:', {
+            hasState: !!currentState,
+            phase3State: currentState?.phase3State,
+            teamProgress: currentState?.phase3TeamProgress?.[team]
+        });
+
+        if (!currentState) {
+            console.log('[Phase3] No state, aborting');
+            return currentState;
+        }
+
+        // Allow skip if in playing state OR if phase3State is undefined (legacy)
+        if (currentState.phase3State !== 'playing' && currentState.phase3State !== undefined) {
+            console.log('[Phase3] Not in playing state, aborting:', currentState.phase3State);
+            return; // Abort
+        }
+
+        const progress = currentState.phase3TeamProgress?.[team];
+        if (!progress) {
+            console.log('[Phase3] No team progress found');
+            return; // Abort - team not found
+        }
+
+        if (progress.finished) {
+            console.log('[Phase3] Team already finished');
+            return; // Abort - team already finished
+        }
+
+        // Advance to next question without awarding points
+        const newProgress: Phase3TeamProgress = {
+            ...progress,
+            currentQuestionIndex: progress.currentQuestionIndex + 1,
+        };
+
+        // Check if team finished (5 questions)
+        if (newProgress.currentQuestionIndex >= 5) {
+            newProgress.finished = true;
+            newProgress.finishedAt = Date.now();
+        }
+
+        console.log('[Phase3] Advancing to question:', newProgress.currentQuestionIndex);
+
+        const newTeamProgress = {
+            ...currentState.phase3TeamProgress,
+            [team]: newProgress,
+        };
+
+        // Check if both teams finished
+        const otherTeam = team === 'spicy' ? 'sweet' : 'spicy';
+        const otherProgress = newTeamProgress[otherTeam];
+        const bothFinished = newProgress.finished && otherProgress?.finished;
+
+        return {
+            ...currentState,
+            phase3TeamProgress: newTeamProgress,
+            phase3State: bothFinished ? 'finished' : currentState.phase3State,
+        };
+    });
+
+    console.log('[Phase3] Transaction result:', { committed: result.committed });
+
+    if (!result.committed) {
+        return { success: false, error: 'Transaction failed or aborted' };
+    }
+
+    return { success: true };
+};
+
+/**
  * Get visible themes (excludes trap theme) for client display.
  * @param themes - Array of all themes
  * @returns Array of visible themes with their original indices
@@ -1450,7 +1534,7 @@ export const submitPhase4Answer = async (
     if (!player || !player.team) return;
 
     // Get current question
-    const questionsList = room.customQuestions?.phase4 || [];
+    const questionsList = room.customQuestions?.phase4 || PHASE4_QUESTIONS;
     const currentIdx = room.state.currentPhase4QuestionIndex ?? 0;
     const currentQuestion = questionsList[currentIdx];
     if (!currentQuestion) return;
@@ -1525,6 +1609,48 @@ export const submitPhase4Answer = async (
             });
         }
     }
+
+    // Check if all real players have answered (handles "all wrong" case)
+    const updatedSnapshot = await get(ref(rtdb, `rooms/${roomId}`));
+    if (!updatedSnapshot.exists()) return;
+    const updatedRoom = validateRoom(updatedSnapshot.val());
+
+    // Skip if already transitioned to result (e.g., someone got it right)
+    if (updatedRoom.state.phase4State !== 'questioning') return;
+
+    // Count real online players (exclude mock players)
+    const realPlayers = Object.values(updatedRoom.players).filter(
+        (p) => p.isOnline && !p.id.startsWith('mock_')
+    );
+
+    const allAnswers = updatedRoom.state.phase4Answers || {};
+    const realAnswerCount = Object.keys(allAnswers).filter(
+        pid => !pid.startsWith('mock_')
+    ).length;
+
+    // If all real players have answered
+    if (realAnswerCount >= realPlayers.length && realPlayers.length > 0) {
+        // Check if any answer is correct
+        const hasCorrectAnswer = Object.values(allAnswers).some(
+            (a) => (a as Phase4Answer).answer === currentQuestion.correctIndex
+        );
+
+        // If no correct answer, transition to result with no winner
+        if (!hasCorrectAnswer) {
+            const stateRef = ref(rtdb, `rooms/${roomId}/state`);
+            await runTransaction(stateRef, (currentState) => {
+                if (!currentState) return currentState;
+                // Double-check still in questioning (avoid race)
+                if (currentState.phase4State !== 'questioning') return;
+
+                return {
+                    ...currentState,
+                    phase4State: 'result',
+                    phase4Winner: null
+                };
+            });
+        }
+    }
 };
 
 /**
@@ -1596,18 +1722,68 @@ export const startPhase5 = async (roomCode: string) => {
 
 /**
  * Transition Phase 5 to a new state
+ * Handles auto-skip of voting for solo teams
  */
 export const setPhase5State = async (roomCode: string, newState: Phase5State) => {
     const roomId = roomCode.toUpperCase();
+
+    // Special handling for 'selecting' state - check for solo teams
+    if (newState === 'selecting') {
+        const snapshot = await get(ref(rtdb, `rooms/${roomId}`));
+        if (!snapshot.exists()) return;
+        const room = validateRoom(snapshot.val());
+
+        // Count real online players per team (exclude mock players)
+        const spicyPlayers = Object.values(room.players)
+            .filter(p => p.team === 'spicy' && p.isOnline && !p.id.startsWith('mock_'));
+        const sweetPlayers = Object.values(room.players)
+            .filter(p => p.team === 'sweet' && p.isOnline && !p.id.startsWith('mock_'));
+
+        // Determine auto-representatives for solo teams
+        const autoSpicyRep = spicyPlayers.length === 1 ? spicyPlayers[0].id : null;
+        const autoSweetRep = sweetPlayers.length === 1 ? sweetPlayers[0].id : null;
+
+        // If BOTH teams are solo → skip voting entirely, go to 'memorizing'
+        if (autoSpicyRep && autoSweetRep) {
+            await update(ref(rtdb), {
+                [`rooms/${roomId}/state/phase5State`]: 'memorizing',
+                [`rooms/${roomId}/state/phase5Votes`]: { spicy: {}, sweet: {} },
+                [`rooms/${roomId}/state/phase5Representatives`]: {
+                    spicy: autoSpicyRep,
+                    sweet: autoSweetRep
+                },
+                [`rooms/${roomId}/state/phase5QuestionIndex`]: 0,
+                [`rooms/${roomId}/state/phase5TimerStart`]: Date.now()
+            });
+            return;
+        }
+
+        // Initialize voting with auto-votes for solo teams
+        await update(ref(rtdb), {
+            [`rooms/${roomId}/state/phase5State`]: 'selecting',
+            [`rooms/${roomId}/state/phase5Votes`]: {
+                spicy: autoSpicyRep ? { [autoSpicyRep]: autoSpicyRep } : {},
+                sweet: autoSweetRep ? { [autoSweetRep]: autoSweetRep } : {}
+            },
+            [`rooms/${roomId}/state/phase5Representatives`]: {
+                spicy: autoSpicyRep,
+                sweet: autoSweetRep
+            }
+        });
+
+        // If one team is already complete, check if voting is done
+        if (autoSpicyRep || autoSweetRep) {
+            await checkPhase5VoteCompletion(roomCode);
+        }
+        return;
+    }
+
+    // Standard state transitions
     const updates: Record<string, unknown> = {
         [`rooms/${roomId}/state/phase5State`]: newState
     };
 
-    // Initialize state-specific data
-    if (newState === 'selecting') {
-        updates[`rooms/${roomId}/state/phase5Votes`] = { spicy: {}, sweet: {} };
-        updates[`rooms/${roomId}/state/phase5Representatives`] = { spicy: null, sweet: null };
-    } else if (newState === 'memorizing') {
+    if (newState === 'memorizing') {
         updates[`rooms/${roomId}/state/phase5QuestionIndex`] = 0;
         updates[`rooms/${roomId}/state/phase5TimerStart`] = Date.now();
     } else if (newState === 'answering') {

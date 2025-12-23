@@ -61,6 +61,9 @@ export function Phase4Player({ room, playerId, isHost, mode = 'multiplayer', sol
     // Immediate wrong answer feedback state
     const [wrongFeedbackIndex, setWrongFeedbackIndex] = useState<number | null>(null);
 
+    // Local state to immediately lock answers on submit (prevents race condition)
+    const [isSubmitting, setIsSubmitting] = useState(false);
+
     // Result reveal animation phase: 'idle' → 'shaking' → 'revealing'
     const [resultRevealPhase, setResultRevealPhase] = useState<'idle' | 'shaking' | 'revealing'>('idle');
 
@@ -91,6 +94,11 @@ export function Phase4Player({ room, playerId, isHost, mode = 'multiplayer', sol
         }
         previousQuestionIdxRef.current = currentQuestionIdx;
     }, [currentQuestionIdx, currentQuestion]);
+
+    // Reset isSubmitting when question changes (allows answering new question)
+    useEffect(() => {
+        setIsSubmitting(false);
+    }, [currentQuestionIdx]);
 
     // Result reveal animation sequence: first shake wrong answer, then reveal correct
     useEffect(() => {
@@ -195,10 +203,13 @@ export function Phase4Player({ room, playerId, isHost, mode = 'multiplayer', sol
 
     // Handle answer submission with parallel animations
     const handleAnswerClick = useCallback(async (answerIndex: number) => {
-        // Prevent interaction during wrong feedback animation
-        if (hasAnswered || phase4State !== 'questioning' || wrongFeedbackIndex !== null) return;
+        // Prevent interaction during wrong feedback animation or if already submitting
+        if (isSubmitting || hasAnswered || phase4State !== 'questioning' || wrongFeedbackIndex !== null) return;
         // In multiplayer, need team. In solo, always allowed
         if (!isSolo && !team) return;
+
+        // Lock immediately to prevent double-clicks (fixes race condition)
+        setIsSubmitting(true);
 
         // Check if answer is wrong BEFORE submitting (for immediate visual feedback)
         const isWrongAnswer = currentQuestion && answerIndex !== currentQuestion.correctIndex;
@@ -236,7 +247,7 @@ export function Phase4Player({ room, playerId, isHost, mode = 'multiplayer', sol
             // No animation needed, just submit
             await submitPromise;
         }
-    }, [hasAnswered, phase4State, team, room.code, playerId, isSolo, soloHandlers, currentQuestion, prefersReducedMotion, wrongFeedbackIndex]);
+    }, [isSubmitting, hasAnswered, phase4State, team, room.code, playerId, isSolo, soloHandlers, currentQuestion, prefersReducedMotion, wrongFeedbackIndex]);
 
     // Handle transition complete
     const handleTransitionComplete = useCallback(() => {
@@ -372,7 +383,7 @@ export function Phase4Player({ room, playerId, isHost, mode = 'multiplayer', sol
                     options={currentQuestion.options}
                     selectedAnswer={myAnswer?.answer}
                     onSelectAnswer={handleAnswerClick}
-                    disabled={hasAnswered || wrongFeedbackIndex !== null}
+                    disabled={hasAnswered || wrongFeedbackIndex !== null || isSubmitting}
                     wrongFeedbackIndex={wrongFeedbackIndex}
                 />
             </AnimatePresence>

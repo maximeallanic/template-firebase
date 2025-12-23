@@ -54,22 +54,35 @@ const answerGridReducedVariants: Variants = {
     exit: { opacity: 0, transition: { duration: durations.fast } }
 };
 
-// Static button variants for entrance animation only
+// Button variants for entrance animation and dynamic states
+// Using variants prevents animation restarts on re-render (stable references)
 const answerButtonVariants: Variants = {
     hidden: { opacity: 0, y: 20, scale: 0.95 },
     visible: {
         opacity: 1,
         y: 0,
         scale: 1,
+        x: 0,
         transition: { duration: durations.normal, ease: organicEase }
     },
-    exit: { opacity: 0, y: -10, transition: { duration: durations.fast } }
+    exit: { opacity: 0, y: -10, transition: { duration: durations.fast } },
+    shake: {
+        x: [0, -12, 12, -12, 12, -8, 8, 0],
+        transition: { duration: durations.medium, ease: "easeInOut" }
+    },
+    fadeOut: {
+        opacity: 0,
+        scale: 0.95,
+        transition: { duration: durations.quick, ease: organicEase }
+    }
 };
 
 const answerButtonReducedVariants: Variants = {
     hidden: { opacity: 0 },
     visible: { opacity: 1, transition: { duration: durations.fast } },
-    exit: { opacity: 0, transition: { duration: durations.fast } }
+    exit: { opacity: 0, transition: { duration: durations.fast } },
+    shake: { opacity: 1 }, // No shake animation for reduced motion
+    fadeOut: { opacity: 0, transition: { duration: durations.fast } }
 };
 
 // Question card variants (extracted to avoid recreation on each render)
@@ -513,7 +526,7 @@ export function Phase1Player({ room, playerId, isHost, mode = 'multiplayer', sol
                         animate={{ opacity: 1, y: 0 }}
                         exit={{ opacity: 0, y: -20 }}
                         transition={{ duration: durations.fast }}
-                        className="absolute top-2 left-1/2 -translate-x-1/2 z-40"
+                        className="w-full flex justify-center"
                     >
                         <Phase4Timer
                             timeRemaining={answeringTimeRemaining}
@@ -654,15 +667,15 @@ export function Phase1Player({ room, playerId, isHost, mode = 'multiplayer', sol
                             const shouldFadeOut = resultRevealPhase === 'revealing' && isResult && !isCorrectAnswer;
 
                             // Determine animation: wrong feedback shake > result shake > fade out > pulse > default
-                            const buttonAnimate = isShowingWrongFeedback
-                                ? { x: [0, -12, 12, -12, 12, -8, 8, 0], transition: { duration: 0.5, ease: "easeInOut" as const } }
-                                : isResultShaking
-                                    ? { x: [0, -12, 12, -12, 12, -8, 8, 0], transition: { duration: 0.5, ease: "easeInOut" as const } }
-                                    : shouldFadeOut
-                                        ? { opacity: 0, scale: 0.95 }
-                                        : shouldPulse
-                                            ? { scale: [1, 1.03, 1], transition: { duration: durations.quick, delay: idx * 0.05, ease: "easeInOut" as const } }
-                                            : "visible";
+                            // Using variant names for shake/fadeOut prevents animation restarts on re-render
+                            const buttonAnimate = isShowingWrongFeedback || isResultShaking
+                                ? "shake"
+                                : shouldFadeOut
+                                    ? "fadeOut"
+                                    : shouldPulse
+                                        // Pulse needs inline object for per-button staggered delay
+                                        ? { scale: [1, 1.03, 1], transition: { duration: durations.quick, delay: idx * 0.05, ease: "easeInOut" as const } }
+                                        : "visible";
 
                             // If this button should transform into result card (layout animation from button)
                             if (shouldTransformToResult) {

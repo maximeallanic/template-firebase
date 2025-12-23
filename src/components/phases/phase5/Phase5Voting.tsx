@@ -149,19 +149,14 @@ export function Phase5Voting({ room, currentPlayerId, currentPlayerTeam }: Phase
                                     ease: organicEase,
                                 }}
                                 onClick={() => {
-                                    if (!isCurrentPlayer) {
-                                        audioService.playClick();
-                                        setSelectedPlayerId(teammate.id);
-                                    }
+                                    audioService.playClick();
+                                    setSelectedPlayerId(teammate.id);
                                 }}
-                                disabled={isCurrentPlayer}
                                 className={`
                                     relative p-6 rounded-2xl border-2 transition-all duration-200
                                     ${isSelected
                                         ? 'border-yellow-500 bg-yellow-500/20 scale-105'
-                                        : isCurrentPlayer
-                                            ? 'border-slate-700 bg-slate-800/30 opacity-50 cursor-not-allowed'
-                                            : 'border-slate-600 bg-slate-800/50 hover:border-slate-500 hover:bg-slate-800'
+                                        : 'border-slate-600 bg-slate-800/50 hover:border-slate-500 hover:bg-slate-800'
                                     }
                                 `}
                             >
