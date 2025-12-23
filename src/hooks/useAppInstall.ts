@@ -36,20 +36,24 @@ export function useAppInstall(): UseAppInstallResult {
     const checkInstalled = () => {
       // Check display-mode for Android/Desktop PWA
       const standaloneQuery = window.matchMedia('(display-mode: standalone)');
+      // Check fullscreen mode (manifest can use "fullscreen" instead of "standalone")
+      const fullscreenQuery = window.matchMedia('(display-mode: fullscreen)');
       // Check iOS Safari standalone
       const isIOSStandalone = (window.navigator as Navigator & { standalone?: boolean }).standalone === true;
 
-      return standaloneQuery.matches || isIOSStandalone;
+      return standaloneQuery.matches || fullscreenQuery.matches || isIOSStandalone;
     };
 
     setIsInstalled(checkInstalled());
 
     // Listen for display-mode changes
     const standaloneQuery = window.matchMedia('(display-mode: standalone)');
-    const handleChange = (e: MediaQueryListEvent) => {
-      setIsInstalled(e.matches);
+    const fullscreenQuery = window.matchMedia('(display-mode: fullscreen)');
+    const handleChange = () => {
+      setIsInstalled(standaloneQuery.matches || fullscreenQuery.matches);
     };
     standaloneQuery.addEventListener('change', handleChange);
+    fullscreenQuery.addEventListener('change', handleChange);
 
     // Capture the beforeinstallprompt event
     const handleBeforeInstallPrompt = (e: Event) => {
@@ -69,6 +73,7 @@ export function useAppInstall(): UseAppInstallResult {
 
     return () => {
       standaloneQuery.removeEventListener('change', handleChange);
+      fullscreenQuery.removeEventListener('change', handleChange);
       window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
       window.removeEventListener('appinstalled', handleAppInstalled);
     };
