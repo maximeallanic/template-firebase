@@ -24,7 +24,7 @@ JSON:
   "optionA": "Catégorie (2-4 mots)",
   "optionB": "Calembour (2-4 mots)",
   "items": [
-    { "text": "Item (4 mots max)", "answer": "A|B|Both", "justification": "Pourquoi" }
+    { "text": "Item (4 mots max)", "answer": "A|B|Both", "justification": "Pourquoi", "anecdote": "Fait fun/surprenant (optionnel)" }
   ]
 }
 
@@ -114,7 +114,7 @@ JSON:
   "humorousDescription": "Phrase fun présentant les 2 options",
   "reasoning": "Explication rapide : pourquoi ces 2 catégories fonctionnent bien ensemble, comment tu as varié les styles d'items",
   "items": [
-    { "text": "Item (4 mots max)", "answer": "A|B|Both", "justification": "Pourquoi cet item va là (court)" }
+    { "text": "Item (4 mots max)", "answer": "A|B|Both", "justification": "Pourquoi cet item va là (court)", "anecdote": "Fait fun/insolite sur le sujet (15-20 mots)" }
   ]
 }
 
@@ -123,6 +123,7 @@ RAPPELS FINAUX :
 - Mix SÉRIEUX (fact-checkable) et DÉLIRANT (WTF mais vrai)
 - Items PIÈGES qui font hésiter
 - Justifications ULTRA-COURTES (10-15 mots MAX - va droit au but!)
+- Anecdotes FUN et SURPRENANTES (15-20 mots, faits insolites ou chiffres étonnants)
 - 12 items EXACTEMENT
 - Pas de ton encyclopédique ou professoral
 
@@ -156,9 +157,9 @@ RAPPEL DES RÈGLES PIÈGES :
 
 GÉNÈRE UNIQUEMENT les {COUNT} nouveaux items en JSON :
 [
-  { "text": "Nouvel item", "answer": "A", "justification": "Pourquoi" },
-  { "text": "Nouvel item", "answer": "B", "justification": "Pourquoi" },
-  { "text": "Item ambigu", "answer": "Both", "acceptedAnswers": ["Both", "A"], "justification": "Pourquoi (ambiguïté)" }
+  { "text": "Nouvel item", "answer": "A", "justification": "Pourquoi", "anecdote": "Fait fun/insolite" },
+  { "text": "Nouvel item", "answer": "B", "justification": "Pourquoi", "anecdote": "Fait fun/insolite" },
+  { "text": "Item ambigu", "answer": "Both", "acceptedAnswers": ["Both", "A"], "justification": "Pourquoi (ambiguïté)", "anecdote": "Fait fun/insolite" }
 ]
 
 Note: acceptedAnswers est OPTIONNEL, uniquement pour les items OBJECTIVEMENT ambigus.
@@ -224,4 +225,4 @@ Répartition : {NEEDED_A} A, {NEEDED_B} B, {NEEDED_BOTH} Both
 
 Règles : items pièges (contre-intuitifs), max 4 mots, faits vérifiables
 
-JSON: [{"text":"Item","answer":"A|B|Both","justification":"Pourquoi"}]`;
+JSON: [{"text":"Item","answer":"A|B|Both","justification":"Pourquoi","anecdote":"Fait fun/insolite"}]`;

@@ -254,6 +254,7 @@ export function validatePhase2Set(set: unknown): ValidationResult {
 
 /**
  * Validate a Phase 5 question
+ * Accepts multiple field name variants: question/q, answer/a/reponse
  */
 export function validatePhase5Question(q: unknown, index: number = 0): ValidationResult {
     const errors: string[] = [];
@@ -266,11 +267,15 @@ export function validatePhase5Question(q: unknown, index: number = 0): Validatio
 
     const question = q as Record<string, unknown>;
 
-    if (!question.question || typeof question.question !== 'string' || question.question.trim().length === 0) {
+    // Accept multiple field names for question: question, q
+    const questionText = question.question || question.q;
+    if (!questionText || typeof questionText !== 'string' || (questionText as string).trim().length === 0) {
         errors.push(`${prefix}: Missing or empty question field`);
     }
 
-    if (!question.answer || typeof question.answer !== 'string' || question.answer.trim().length === 0) {
+    // Accept multiple field names for answer: answer, a, reponse
+    const answerText = question.answer || question.a || question.reponse;
+    if (!answerText || typeof answerText !== 'string' || (answerText as string).trim().length === 0) {
         errors.push(`${prefix}: Missing or empty answer field`);
     }
 
@@ -282,22 +287,37 @@ export function validatePhase5Question(q: unknown, index: number = 0): Validatio
 
 /**
  * Validate and normalize an array of Phase 5 questions
+ * Handles wrapper objects like { theme, questions: [...] }
  */
 export function normalizePhase5Questions(questions: unknown[]): Phase5Question[] {
     const normalized: Phase5Question[] = [];
 
-    questions.forEach((q, idx) => {
+    // Check if we received a wrapper object instead of questions array
+    // AI sometimes returns { theme: "...", questions: [...] } or { questions: [...] }
+    let actualQuestions = questions;
+    if (questions.length === 1 && questions[0] && typeof questions[0] === 'object') {
+        const wrapper = questions[0] as Record<string, unknown>;
+        if (Array.isArray(wrapper.questions)) {
+            console.log('📦 Unwrapping Phase 5 questions from wrapper object');
+            actualQuestions = wrapper.questions;
+        }
+    }
+
+    actualQuestions.forEach((q, idx) => {
         const validation = validatePhase5Question(q, idx);
 
         if (validation.valid) {
             const question = q as Record<string, unknown>;
+            // Extract fields using the same logic as validation
+            const questionText = (question.question || question.q) as string;
+            const answerText = (question.answer || question.a || question.reponse) as string;
             normalized.push({
-                question: question.question as string,
-                answer: question.answer as string
+                question: questionText.trim(),
+                answer: answerText.trim()
             });
         } else {
             console.error(`❌ Invalid Phase 5 question:`, validation.errors);
-            console.warn(`⚠️ Skipping invalid Phase 5 question at index ${idx}:`, JSON.stringify(q, null, 2));
+            console.warn(`⚠️ Skipping invalid Phase 5 question at index ${idx}:`, JSON.stringify(q, null, 2).slice(0, 300));
         }
     });
 

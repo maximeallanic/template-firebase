@@ -67,6 +67,7 @@ export {
 export {
     startNextQuestion,
     submitAnswer,
+    handlePhase1Timeout,
 } from './game/phases/phase1Service';
 
 // Phase 2 functions
@@ -244,13 +245,19 @@ export const overwriteGameQuestions = async (
 
     // Note: We do NOT set status here - that's handled by setGameStatus()
     // which also schedules phase transitions. Only initialize data-related state.
+    // CRITICAL: Only initialize phase state if we're actually ON that phase.
+    // This prevents background pregen from corrupting the current phase's state.
+    const stateSnapshot = await get(ref(rtdb, `rooms/${roomId}/state/status`));
+    const currentStatus = stateSnapshot.exists() ? stateSnapshot.val() : null;
+
     const updates: Record<string, unknown> = {};
 
-    if (phase === 'phase3') {
+    // Only apply phase-specific state initialization if we're actually on that phase
+    if (phase === 'phase3' && currentStatus === 'phase3') {
         updates[`rooms/${roomId}/state/phase3CompletedMenus`] = [];
         updates[`rooms/${roomId}/state/phase3MenuSelection`] = {};
         updates[`rooms/${roomId}/state/phaseState`] = 'menu_selection';
-    } else if (phase === 'phase4') {
+    } else if (phase === 'phase4' && currentStatus === 'phase4') {
         updates[`rooms/${roomId}/state/currentPhase4QuestionIndex`] = 0;
         updates[`rooms/${roomId}/state/phase4State`] = 'idle';
         updates[`rooms/${roomId}/state/buzzedTeam`] = null;

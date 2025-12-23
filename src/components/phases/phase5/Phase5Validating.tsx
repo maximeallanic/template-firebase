@@ -1,7 +1,7 @@
-import { useEffect, useState, useMemo } from 'react';
+import { useEffect, useState, useMemo, useRef } from 'react';
 import { motion } from 'framer-motion';
 import { useTranslation } from 'react-i18next';
-import { type Room, type Phase5Question, setPhase5State, setPhase5Results } from '../../../services/gameService';
+import { type Room, type Phase5Question, setPhase5Results } from '../../../services/gameService';
 import { validatePhase5Answers } from '../../../services/aiClient';
 import { Brain, Sparkles } from 'lucide-react';
 import { FoodLoader } from '../../ui/FoodLoader';
@@ -18,10 +18,22 @@ export function Phase5Validating({ room, isHost }: Phase5ValidatingProps) {
     const [validationProgress, setValidationProgress] = useState(0);
     const [error, setError] = useState<string | null>(null);
 
-    // Get questions and answers
-    const defaultQuestions = t('game-content:phase5.questions', { returnObjects: true }) as Phase5Question[];
-    const questions: Phase5Question[] = (room.customQuestions?.phase5 as Phase5Question[]) || defaultQuestions;
+    // Ref to track if validation has been triggered (prevents multiple calls)
+    const hasTriggeredValidation = useRef(false);
 
+    // Memoize default questions to prevent re-creation every render
+    const defaultQuestions = useMemo(
+        () => t('game-content:phase5.questions', { returnObjects: true }) as Phase5Question[],
+        [t]
+    );
+
+    // Memoize questions list
+    const questions = useMemo(
+        () => (room.customQuestions?.phase5 as Phase5Question[]) || defaultQuestions,
+        [room.customQuestions?.phase5, defaultQuestions]
+    );
+
+    // Memoize answers
     const spicyAnswers = useMemo(
         () => room.state.phase5Answers?.spicy || [],
         [room.state.phase5Answers?.spicy]
@@ -31,9 +43,15 @@ export function Phase5Validating({ room, isHost }: Phase5ValidatingProps) {
         [room.state.phase5Answers?.sweet]
     );
 
-    // Host triggers validation
+    // Host triggers validation - runs ONCE
     useEffect(() => {
-        if (!isHost) return;
+        // Skip if not host or validation already triggered
+        if (!isHost || hasTriggeredValidation.current) return;
+
+        // Mark as triggered immediately to prevent duplicate calls
+        hasTriggeredValidation.current = true;
+
+        console.log('[Phase5Validating] Starting validation (single call)');
 
         const validate = async () => {
             try {
@@ -54,7 +72,7 @@ export function Phase5Validating({ room, isHost }: Phase5ValidatingProps) {
 
                 setValidationProgress(30);
 
-                // Call the validation Cloud Function
+                // Call the validation Cloud Function (ONCE)
                 const results = await validatePhase5Answers({
                     questions: paddedQuestions.slice(0, 10),
                     spicyAnswers: paddedSpicy.slice(0, 10),
@@ -63,18 +81,19 @@ export function Phase5Validating({ room, isHost }: Phase5ValidatingProps) {
 
                 setValidationProgress(80);
 
-                // Store results
+                // Store results (this also transitions to 'result' state)
                 await setPhase5Results(room.code, results);
 
                 setValidationProgress(100);
                 audioService.playSuccess();
 
-                // Transition to result state
-                await setPhase5State(room.code, 'result');
+                console.log('[Phase5Validating] Validation complete');
             } catch (err) {
-                console.error('Validation failed:', err);
+                console.error('[Phase5Validating] Validation failed:', err);
                 setError(err instanceof Error ? err.message : 'Validation failed');
                 audioService.playError();
+                // Reset flag on error to allow retry
+                hasTriggeredValidation.current = false;
             }
         };
 

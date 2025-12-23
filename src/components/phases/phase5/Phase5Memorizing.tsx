@@ -2,7 +2,7 @@ import { useEffect, useState, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useTranslation } from 'react-i18next';
 import { type Room, type Phase5Question, nextPhase5MemoryQuestion, setPhase5State } from '../../../services/gameService';
-import { Brain, Clock, ChevronRight, Lightbulb } from 'lucide-react';
+import { Brain, Clock, Lightbulb } from 'lucide-react';
 import { audioService } from '../../../services/audioService';
 import { markQuestionAsSeen } from '../../../services/historyService';
 import { organicEase, durations } from '../../../animations';
@@ -179,20 +179,6 @@ export function Phase5Memorizing({ room, isHost }: Phase5MemorizingProps) {
                     </motion.div>
                 </AnimatePresence>
 
-                {/* Manual Advance Button (Host only, for accessibility/testing) */}
-                {isHost && (
-                    <motion.button
-                        initial={{ opacity: 0 }}
-                        animate={{ opacity: 1 }}
-                        transition={{ delay: 1 }}
-                        onClick={handleAdvance}
-                        disabled={isTransitioning}
-                        className="mt-8 flex items-center gap-2 px-6 py-3 bg-slate-700/50 hover:bg-slate-700 rounded-xl text-slate-300 transition-colors"
-                    >
-                        {isLastQuestion ? t('phase5.startAnsweringPhase') : t('phase5.nextQuestionManual')}
-                        <ChevronRight className="w-5 h-5" />
-                    </motion.button>
-                )}
             </div>
 
             {/* Cognitive Hint */}

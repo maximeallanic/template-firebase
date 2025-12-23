@@ -85,7 +85,8 @@ export async function generatePhase2WithDialogue(
                     text: item.text,
                     answer: item.answer,
                     acceptedAnswers: item.acceptedAnswers,
-                    justification: item.justification || ''
+                    justification: item.justification || '',
+                    anecdote: item.anecdote
                 })),
                 reasoning: 'Set amélioré après régénération ciblée'
             };
@@ -130,7 +131,8 @@ export async function generatePhase2WithDialogue(
                 text: item.text,
                 answer: item.answer,
                 acceptedAnswers: item.acceptedAnswers,
-                justification: item.justification
+                justification: item.justification,
+                anecdote: item.anecdote
             }))
         };
 
@@ -259,6 +261,7 @@ Tu dois changer COMPLÈTEMENT de jeu de mots pour avoir un B CONCRET.
                         answer: 'A' | 'B' | 'Both';
                         acceptedAnswers?: ('A' | 'B' | 'Both')[];
                         justification: string;
+                        anecdote?: string;
                     }>(regenText);
 
                     const mergedItems = [
@@ -266,7 +269,8 @@ Tu dois changer COMPLÈTEMENT de jeu de mots pour avoir un B CONCRET.
                             text: item.text,
                             answer: item.answer,
                             acceptedAnswers: item.acceptedAnswers,
-                            justification: item.justification
+                            justification: item.justification,
+                            anecdote: item.anecdote
                         })),
                         ...newItems
                     ];
@@ -382,6 +386,7 @@ Tu dois REMPLACER au moins 4-5 items par des PIÈGES contre-intuitifs.
                                 answer: 'A' | 'B' | 'Both';
                                 acceptedAnswers?: ('A' | 'B' | 'Both')[];
                                 justification: string;
+                                anecdote?: string;
                             }>(regenText);
 
                             const mergedItems = [
@@ -389,7 +394,8 @@ Tu dois REMPLACER au moins 4-5 items par des PIÈGES contre-intuitifs.
                                     text: item.text,
                                     answer: item.answer,
                                     acceptedAnswers: item.acceptedAnswers,
-                                    justification: item.justification
+                                    justification: item.justification,
+                                    anecdote: item.anecdote
                                 })),
                                 ...newItems
                             ];
@@ -534,6 +540,7 @@ Vérifie que chaque item appartient VRAIMENT à la catégorie assignée (A, B, o
                     answer: 'A' | 'B' | 'Both';
                     acceptedAnswers?: ('A' | 'B' | 'Both')[];
                     justification: string;
+                    anecdote?: string;
                 }>(regenText);
 
                 // Merge: keep good items + add new items (preserve all fields)
@@ -542,13 +549,15 @@ Vérifie que chaque item appartient VRAIMENT à la catégorie assignée (A, B, o
                         text: item.text,
                         answer: item.answer,
                         acceptedAnswers: item.acceptedAnswers,
-                        justification: item.justification
+                        justification: item.justification,
+                        anecdote: item.anecdote
                     })),
                     ...newItems.map(item => ({
                         text: item.text,
                         answer: item.answer,
                         acceptedAnswers: item.acceptedAnswers,
-                        justification: item.justification
+                        justification: item.justification,
+                        anecdote: item.anecdote
                     }))
                 ];
 

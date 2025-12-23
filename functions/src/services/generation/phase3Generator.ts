@@ -240,13 +240,81 @@ Recommence la génération complète en vérifiant le compte.
                 continue; // Force regeneration
             }
 
-            // Fact-check all questions
-            for (const menu of lastMenus) {
+            // Fact-check all questions and regenerate failed ones
+            const factCheckFailures: Array<{ menu_index: number; question_index: number; reason: string }> = [];
+
+            for (let menuIdx = 0; menuIdx < lastMenus.length; menuIdx++) {
+                const menu = lastMenus[menuIdx];
                 const factCheckResult = await factCheckSimpleQuestions(menu.questions);
+
                 if (factCheckResult.failed.length > 0) {
                     console.warn(`⚠️ Menu "${menu.title}": ${factCheckResult.failed.length} questions failed fact-check`);
-                    menu.questions = factCheckResult.passed;
+
+                    for (const failed of factCheckResult.failed) {
+                        // Find the question index in the menu
+                        const qIdx = menu.questions.findIndex(q =>
+                            q.question === failed.question.question && q.answer === failed.question.answer
+                        );
+                        if (qIdx !== -1) {
+                            factCheckFailures.push({
+                                menu_index: menuIdx,
+                                question_index: qIdx,
+                                reason: `fact-check: ${failed.reason}`
+                            });
+                            console.warn(`   - Q${qIdx + 1}: "${failed.question.question}" → "${failed.question.answer}" (${failed.reason})`);
+                        }
+                    }
                 }
+            }
+
+            // If there are fact-check failures, try targeted regeneration
+            if (factCheckFailures.length > 0 && factCheckFailures.length <= 8) {
+                console.log(`🔧 Fact-check targeted regeneration: replacing ${factCheckFailures.length} questions`);
+
+                const menusStructure = lastMenus.map(m => ({
+                    title: m.title,
+                    description: m.description,
+                    question_count: m.questions.length
+                }));
+
+                const badQuestionsText = factCheckFailures.map(bq =>
+                    `- Menu ${bq.menu_index + 1} Q${bq.question_index + 1}: "${lastMenus[bq.menu_index].questions[bq.question_index].question}" (${bq.reason})`
+                ).join('\n');
+
+                const rejectionReasons = factCheckFailures.map(bq => bq.reason).join('; ');
+
+                const targetedPrompt = PHASE3_TARGETED_REGENERATION_PROMPT
+                    .replace('{MENUS_STRUCTURE}', JSON.stringify(menusStructure, null, 2))
+                    .replace('{BAD_QUESTIONS}', badQuestionsText)
+                    .replace('{REJECTION_REASONS}', rejectionReasons);
+
+                try {
+                    const regenText = await callGemini(targetedPrompt, 'creative');
+                    interface ReplacementItem {
+                        menu_index: number;
+                        question_index: number;
+                        new_question: string;
+                        new_answer: string;
+                    }
+                    const replacements = parseJsonFromText(regenText) as { replacements: ReplacementItem[] };
+
+                    // Apply replacements
+                    for (const repl of replacements.replacements) {
+                        if (lastMenus[repl.menu_index] && lastMenus[repl.menu_index].questions[repl.question_index]) {
+                            console.log(`   ✓ Replaced Menu ${repl.menu_index + 1} Q${repl.question_index + 1}`);
+                            lastMenus[repl.menu_index].questions[repl.question_index] = {
+                                question: repl.new_question,
+                                answer: repl.new_answer
+                            };
+                        }
+                    }
+
+                    console.log(`✅ Applied ${replacements.replacements.length} fact-check replacements`);
+                } catch (err) {
+                    console.warn('⚠️ Fact-check targeted regeneration failed, keeping original questions:', err);
+                }
+            } else if (factCheckFailures.length > 8) {
+                console.warn(`⚠️ Too many fact-check failures (${factCheckFailures.length}), keeping original questions`);
             }
 
             // Run semantic deduplication and generate embeddings in one pass
@@ -375,6 +443,13 @@ ${review.suggestions.map((s, idx) => `${idx + 1}. ${s}`).join('\n')}
     let fallbackMenus = bestMenus.length > 0 ? bestMenus : lastMenus;
     if (fallbackMenus.length > 0) {
         console.warn(`⚠️ Max iterations reached. Using best menus (score: ${bestScore}/10).`);
+
+        // CRITICAL: Ensure we have exactly 4 menus (3 normal + 1 trap)
+        // If we don't have 4 menus, throw an error so frontend uses default PHASE3_DATA
+        if (fallbackMenus.length !== 4) {
+            console.error(`❌ FALLBACK FAILED: Only ${fallbackMenus.length} menus generated, need exactly 4`);
+            throw new Error(`Insufficient menus generated: ${fallbackMenus.length}/4 - frontend will use default data`);
+        }
 
         // CRITICAL: Ensure each menu has exactly 5 questions
         // If some menus are incomplete, pad them with placeholder questions

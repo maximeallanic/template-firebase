@@ -155,7 +155,8 @@
     "nextQuestionIn": "Next question in {{seconds}}s",
     "prepareForQuestion": "Get ready...",
     "solo": {
-      "noWinner": "Time's up!"
+      "noWinner": "Time's up!",
+      "wrongAnswer": "Wrong answer!"
     }
   },
   "phase5": {

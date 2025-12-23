@@ -155,7 +155,8 @@
     "nextQuestionIn": "Prochaine question dans {{seconds}}s",
     "prepareForQuestion": "Préparez-vous...",
     "solo": {
-      "noWinner": "Temps écoulé !"
+      "noWinner": "Temps écoulé !",
+      "wrongAnswer": "Mauvaise réponse !"
     }
   },
   "phase5": {

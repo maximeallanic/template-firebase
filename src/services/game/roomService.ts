@@ -8,7 +8,6 @@ import { rtdb, auth, getUserSubscriptionDirect } from '../firebase';
 import type {
     Avatar, Team, Player, GameState, Room, Difficulty
 } from '../../types/gameTypes';
-import { clearQuestionHistory } from '../historyService';
 
 // ============================================================================
 // UTILITY FUNCTIONS
@@ -86,14 +85,9 @@ export const createRoom = async (hostName: string, avatar: Avatar): Promise<{ co
     // Use Firebase Auth UID as player ID for security
     const playerId = getAuthUserId();
 
-    // Clear question history to ensure fresh questions for the new game
-    try {
-        await clearQuestionHistory();
-        console.log('[createRoom] ✅ Question history cleared for new game');
-    } catch (error) {
-        // Non-critical error - log and continue
-        console.warn('[createRoom] Failed to clear question history (non-critical):', error);
-    }
+    // NOTE: We no longer clear question history on room creation
+    // The history is used to filter out already-seen questions during generation
+    // Clearing it here would defeat the purpose of the deduplication system
 
     const code = generateRoomCode();
     const roomId = code;

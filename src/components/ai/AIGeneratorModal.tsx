@@ -6,7 +6,7 @@ import { generateGameQuestions } from '../../services/aiClient';
 import { overwriteGameQuestions } from '../../services/gameService';
 
 type Difficulty = 'easy' | 'normal' | 'hard' | 'wtf';
-type Phase = 'phase1' | 'phase2' | 'phase5';
+type Phase = 'phase1' | 'phase2' | 'phase3' | 'phase4' | 'phase5';
 type GeneratedData = Record<string, unknown> | unknown[] | null;
 
 interface AIGeneratorModalProps {
@@ -32,8 +32,10 @@ export const AIGeneratorModal: React.FC<AIGeneratorModalProps> = ({ isOpen, onCl
     const [allPhasesProgress, setAllPhasesProgress] = useState<{
         phase1: 'pending' | 'generating' | 'done' | 'error';
         phase2: 'pending' | 'generating' | 'done' | 'error';
+        phase3: 'pending' | 'generating' | 'done' | 'error';
+        phase4: 'pending' | 'generating' | 'done' | 'error';
         phase5: 'pending' | 'generating' | 'done' | 'error';
-    }>({ phase1: 'pending', phase2: 'pending', phase5: 'pending' });
+    }>({ phase1: 'pending', phase2: 'pending', phase3: 'pending', phase4: 'pending', phase5: 'pending' });
 
     const handleGenerate = useCallback(async () => {
         const startTime = performance.now();
@@ -101,9 +103,9 @@ export const AIGeneratorModal: React.FC<AIGeneratorModalProps> = ({ isOpen, onCl
         setIsGeneratingAll(true);
         setError(null);
         setSuccessMessage(null);
-        setAllPhasesProgress({ phase1: 'pending', phase2: 'pending', phase5: 'pending' });
+        setAllPhasesProgress({ phase1: 'pending', phase2: 'pending', phase3: 'pending', phase4: 'pending', phase5: 'pending' });
 
-        const phases: Phase[] = ['phase1', 'phase2', 'phase5'];
+        const phases: Phase[] = ['phase1', 'phase2', 'phase3', 'phase4', 'phase5'];
         let hasError = false;
 
         for (const p of phases) {
@@ -148,7 +150,7 @@ export const AIGeneratorModal: React.FC<AIGeneratorModalProps> = ({ isOpen, onCl
         const totalDuration = Math.round(performance.now() - totalStartTime);
         console.log(`[AI-MODAL] 🏁 handleGenerateAll completed in ${totalDuration}ms`, {
             hasError,
-            phases: ['phase1', 'phase2', 'phase5']
+            phases: ['phase1', 'phase2', 'phase3', 'phase4', 'phase5']
         });
 
         setIsGeneratingAll(false);
@@ -181,7 +183,7 @@ export const AIGeneratorModal: React.FC<AIGeneratorModalProps> = ({ isOpen, onCl
             }
             hasAutoTriggered.current = false;
             // Reset progress when modal closes
-            setAllPhasesProgress({ phase1: 'pending', phase2: 'pending', phase5: 'pending' });
+            setAllPhasesProgress({ phase1: 'pending', phase2: 'pending', phase3: 'pending', phase4: 'pending', phase5: 'pending' });
         }
     }, [isOpen, autoTrigger, autoGenerateAll, handleGenerate, handleGenerateAll]);
 
@@ -344,7 +346,7 @@ export const AIGeneratorModal: React.FC<AIGeneratorModalProps> = ({ isOpen, onCl
                                     <span className="font-bold text-white">Génération de toutes les phases...</span>
                                 </div>
                                 <div className="space-y-2">
-                                    {(['phase1', 'phase2', 'phase5'] as const).map((p) => (
+                                    {(['phase1', 'phase2', 'phase3', 'phase4', 'phase5'] as const).map((p) => (
                                         <div key={p} className="flex items-center gap-3">
                                             {allPhasesProgress[p] === 'pending' && (
                                                 <div className="w-5 h-5 rounded-full border-2 border-slate-600" />

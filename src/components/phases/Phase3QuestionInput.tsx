@@ -52,6 +52,7 @@ export const Phase3QuestionInput: React.FC<Phase3QuestionInputProps> = ({
     const hasPlayedFeedbackRef = useRef(false);
     const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
     const skipTriggeredRef = useRef(false);
+    const inputRef = useRef<HTMLInputElement>(null);
 
     const currentQuestionIndex = teamProgress.currentQuestionIndex;
     const currentQuestion = theme.questions[currentQuestionIndex];
@@ -74,6 +75,8 @@ export const Phase3QuestionInput: React.FC<Phase3QuestionInputProps> = ({
             setTimeLeft(QUESTION_TIME_LIMIT);
             hasPlayedFeedbackRef.current = false;
             skipTriggeredRef.current = false;
+            // Re-focus the input for the next question
+            setTimeout(() => inputRef.current?.focus(), 100);
         }
     }, [currentQuestionIndex, lastQuestionIndex]);
 
@@ -274,12 +277,6 @@ export const Phase3QuestionInput: React.FC<Phase3QuestionInputProps> = ({
         return (
             <div className="text-center text-white">
                 <p>{t('phase3.noMoreQuestions')}</p>
-                {/* Debug info in development */}
-                {import.meta.env.DEV && (
-                    <p className="text-xs text-red-400 mt-2">
-                        Debug: currentQuestion={JSON.stringify(currentQuestion)} | index={currentQuestionIndex}
-                    </p>
-                )}
             </div>
         );
     }
@@ -353,6 +350,7 @@ export const Phase3QuestionInput: React.FC<Phase3QuestionInputProps> = ({
                 <form onSubmit={handleSubmit} className="space-y-2">
                     <div className="relative">
                         <input
+                            ref={inputRef}
                             data-cursor-target="phase3:input"
                             type="text"
                             value={answer}

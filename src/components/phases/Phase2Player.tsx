@@ -13,10 +13,9 @@ import { useHaptic } from '../../hooks/useHaptic';
 import { SimpleConfetti } from '../ui/SimpleConfetti';
 import type { SoloPhaseHandlers } from '../../types/soloTypes';
 import { SOLO_SCORING } from '../../types/soloTypes';
-import { Phase4Timer } from './phase4/Phase4Timer';
 
 // Modular components
-import { Phase2Card, Phase2Zones, Phase2Transition } from './phase2';
+import { Phase2Card, Phase2Zones, Phase2Transition, Phase2Timer } from './phase2';
 import type { Phase2Answer } from './phase2';
 
 // Timer constants for parallel mode (multiplayer)
@@ -232,14 +231,12 @@ export function Phase2Player({ room, playerId, isHost, mode = 'multiplayer', sol
             {/* Team Status Bar - Top (multiplayer only) */}
             {!isSolo && (
                 <div className="absolute top-4 left-1/2 -translate-x-1/2 z-10 flex flex-col items-center gap-3">
-                    {/* Timer */}
-                    {phaseState === 'answering' && (
-                        <Phase4Timer
-                            timeRemaining={timeRemaining}
-                            totalTime={PHASE2_TIMER_SECONDS}
-                            isActive={!isRoundOver}
-                        />
-                    )}
+                    {/* Discreet Timer */}
+                    <Phase2Timer
+                        timeRemaining={timeRemaining}
+                        totalTime={PHASE2_TIMER_SECONDS}
+                        isActive={!isRoundOver && phaseState === 'answering'}
+                    />
 
                     {/* Team Status Indicators */}
                     <div className="flex gap-4">

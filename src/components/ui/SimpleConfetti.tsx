@@ -142,7 +142,7 @@ class Particle {
         this.rotation = Math.random() * 360;
         this.rotationSpeed = (Math.random() - 0.5) * 10;
         this.size = Math.random() * 6 + 4;
-        this.shape = Math.random() > 0.5 ? 'rect' : 'circle';
+        this.shape = 'circle';
     }
 
     draw(ctx: CanvasRenderingContext2D) {

@@ -394,14 +394,14 @@ export const skipPhase3Question = async (
 };
 
 /**
- * Get visible themes (excludes trap theme) for client display.
+ * Get all themes for client display during selection.
+ * Trap menus are included - they look like normal menus but have harder questions.
+ * The trap is only revealed after selection (or during gameplay).
  * @param themes - Array of all themes
- * @returns Array of visible themes with their original indices
+ * @returns Array of all themes with their original indices
  */
 export function getPhase3VisibleThemes(themes: Phase3Theme[]): { theme: Phase3Theme; originalIndex: number }[] {
-    return themes
-        .map((theme, index) => ({ theme, originalIndex: index }))
-        .filter(({ theme }) => !theme.isTrap);
+    return themes.map((theme, index) => ({ theme, originalIndex: index }));
 }
 
 /**

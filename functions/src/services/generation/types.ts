@@ -65,6 +65,7 @@ export interface Phase2Set {
         answer: 'A' | 'B' | 'Both';
         acceptedAnswers?: ('A' | 'B' | 'Both')[];  // Réponses alternatives valides
         justification?: string;
+        anecdote?: string;  // Anecdote fun/surprising about the item
     }>;
 }
 
@@ -80,6 +81,7 @@ export interface Phase2GeneratorResponse {
         answer: 'A' | 'B' | 'Both';
         acceptedAnswers?: ('A' | 'B' | 'Both')[];  // Réponses alternatives valides
         justification: string;
+        anecdote?: string;  // Anecdote fun/surprising about the item
     }>;
 }
 

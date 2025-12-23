@@ -259,13 +259,24 @@ function soloGameReducer(state: SoloGameState, action: SoloGameAction): SoloGame
         case 'NEXT_PHASE1_QUESTION': {
             if (!state.phase1State) return state;
 
+            // Add null for timed-out question to keep answers array aligned with currentQuestionIndex
+            const currentIdx = state.phase1State.currentQuestionIndex;
+            const currentAnswers = state.phase1State.answers;
+            const needsNullEntry = currentAnswers.length <= currentIdx;
+            const newAnswers = needsNullEntry
+                ? [...currentAnswers, null]
+                : currentAnswers;
+
             return {
                 ...state,
                 phase1State: {
                     ...state.phase1State,
+                    answers: newAnswers,
                     currentQuestionIndex: state.phase1State.currentQuestionIndex + 1,
                     questionStartTime: Date.now(),
                 },
+                // Increment totalQuestions for timeout (unanswered question counts)
+                totalQuestions: needsNullEntry ? state.totalQuestions + 1 : state.totalQuestions,
             };
         }
 
@@ -530,14 +541,81 @@ export function SoloGameProvider({
                 if (phase === 'phase1' && Array.isArray(filteredData)) {
                     filteredData = await filterUnseenQuestions(filteredData as { text: string }[], (q: { text: string }) => q.text);
                     console.log(`[SOLO] Filtered phase1 questions: ${(result.data as unknown[]).length} -> ${(filteredData as unknown[]).length}`);
+
+                    // Check if we need completion after filtering
+                    const minRequired = MINIMUM_QUESTION_COUNTS.phase1;
+                    const currentCount = (filteredData as unknown[]).length;
+                    if (currentCount < minRequired) {
+                        const missingCount = minRequired - currentCount;
+                        console.log(`[SOLO] ⚠️ Phase1 needs completion: ${currentCount}/${minRequired} (missing: ${missingCount})`);
+                        const completionResult = await generateWithRetry({
+                            phase: 'phase1',
+                            soloMode: true,
+                            difficulty,
+                            completeCount: missingCount,
+                            existingQuestions: filteredData as unknown[]
+                        });
+                        if (Array.isArray(completionResult.data)) {
+                            const completionFiltered = await filterUnseenQuestions(
+                                completionResult.data as { text: string }[],
+                                (q: { text: string }) => q.text
+                            );
+                            filteredData = [...(filteredData as unknown[]), ...completionFiltered];
+                            console.log(`[SOLO] ✅ Phase1 completed: ${(filteredData as unknown[]).length} questions`);
+                        }
+                    }
                 } else if (phase === 'phase2' && (filteredData as { items?: unknown[] })?.items) {
                     const setData = filteredData as { items: { text: string }[] };
                     const filteredItems = await filterUnseenQuestions(setData.items, (item: { text: string }) => item.text);
                     filteredData = { ...setData, items: filteredItems };
                     console.log(`[SOLO] Filtered phase2 items: ${setData.items.length} -> ${filteredItems.length}`);
+
+                    // Check if we need completion after filtering
+                    const minRequired = MINIMUM_QUESTION_COUNTS.phase2;
+                    const currentCount = filteredItems.length;
+                    if (currentCount < minRequired) {
+                        const missingCount = minRequired - currentCount;
+                        console.log(`[SOLO] ⚠️ Phase2 needs completion: ${currentCount}/${minRequired} (missing: ${missingCount})`);
+                        const completionResult = await generateWithRetry({
+                            phase: 'phase2',
+                            soloMode: true,
+                            difficulty,
+                            completeCount: missingCount,
+                            existingQuestions: filteredItems
+                        });
+                        if ((completionResult.data as { items?: unknown[] })?.items) {
+                            const completionItems = (completionResult.data as { items: { text: string }[] }).items;
+                            const completionFiltered = await filterUnseenQuestions(completionItems, (item: { text: string }) => item.text);
+                            filteredData = { ...setData, items: [...filteredItems, ...completionFiltered] };
+                            console.log(`[SOLO] ✅ Phase2 completed: ${(filteredData as { items: unknown[] }).items.length} items`);
+                        }
+                    }
                 } else if (phase === 'phase4' && Array.isArray(filteredData)) {
                     filteredData = await filterUnseenQuestions(filteredData as { text: string }[], (q: { text: string }) => q.text);
                     console.log(`[SOLO] Filtered phase4 questions: ${(result.data as unknown[]).length} -> ${(filteredData as unknown[]).length}`);
+
+                    // Check if we need completion after filtering
+                    const minRequired = MINIMUM_QUESTION_COUNTS.phase4;
+                    const currentCount = (filteredData as unknown[]).length;
+                    if (currentCount < minRequired) {
+                        const missingCount = minRequired - currentCount;
+                        console.log(`[SOLO] ⚠️ Phase4 needs completion: ${currentCount}/${minRequired} (missing: ${missingCount})`);
+                        const completionResult = await generateWithRetry({
+                            phase: 'phase4',
+                            soloMode: true,
+                            difficulty,
+                            completeCount: missingCount,
+                            existingQuestions: filteredData as unknown[]
+                        });
+                        if (Array.isArray(completionResult.data)) {
+                            const completionFiltered = await filterUnseenQuestions(
+                                completionResult.data as { text: string }[],
+                                (q: { text: string }) => q.text
+                            );
+                            filteredData = [...(filteredData as unknown[]), ...completionFiltered];
+                            console.log(`[SOLO] ✅ Phase4 completed: ${(filteredData as unknown[]).length} questions`);
+                        }
+                    }
                 }
 
                 return filteredData;

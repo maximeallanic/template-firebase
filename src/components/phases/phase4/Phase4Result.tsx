@@ -110,7 +110,11 @@ export function Phase4Result({
                             className="text-2xl font-bold text-gray-400"
                             aria-live="polite"
                         >
-                            {isSolo ? t('phase4.solo.noWinner') : t('phase4.noWinner')}
+                            {isSolo
+                                ? (myAnswer !== undefined
+                                    ? t('phase4.solo.wrongAnswer')
+                                    : t('phase4.solo.noWinner'))
+                                : t('phase4.noWinner')}
                         </div>
                     </motion.div>
                 )}

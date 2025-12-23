@@ -2,6 +2,7 @@ import { useEffect, useState, useRef, useCallback } from 'react';
 import { ref, get, child } from 'firebase/database';
 import { rtdb } from '../services/firebase';
 import { type Room, setGameStatus, overwriteGameQuestions, setGeneratingState, setPhase2GeneratingState, getPhase2GeneratingState } from '../services/gameService';
+import { getRoomDifficulty } from '../services/game/roomService';
 import { type Question, hasEnoughQuestions, getMissingQuestionCount, MINIMUM_QUESTION_COUNTS } from '../types/gameTypes';
 import { generateWithRetry } from '../services/aiClient';
 import { filterUnseenQuestions } from '../services/historyService';
@@ -65,6 +66,7 @@ export function useQuestionGeneration({
     const isGenerating = room?.state.isGenerating ?? false;
 
     const hasCheckedExhaustion = useRef(false);
+    const hasFilteredPhase3 = useRef(false);
     const hasFilteredPhase4 = useRef(false);
     const hasFilteredPhase5 = useRef(false);
 
@@ -156,6 +158,7 @@ export function useQuestionGeneration({
                     const result = await generateWithRetry({
                         phase: 'phase2',
                         roomCode: currentRoom.code,
+                        difficulty: getRoomDifficulty(currentRoom),
                         completeCount: missingCount,
                         existingQuestions: existingItems
                     });
@@ -191,9 +194,19 @@ export function useQuestionGeneration({
             });
 
             try {
-                const result = await generateWithRetry({ phase: 'phase2', roomCode: currentRoom.code });
+                const result = await generateWithRetry({ phase: 'phase2', roomCode: currentRoom.code, difficulty: getRoomDifficulty(currentRoom) });
+
+                // Filter out already-seen items (Phase 2 has items array inside the object)
+                let filteredData = result.data;
+                if ((filteredData as { items?: unknown[] })?.items) {
+                    const setData = filteredData as { items: { text: string }[] };
+                    const filteredItems = await filterUnseenQuestions(setData.items, (item: { text: string }) => item.text);
+                    filteredData = [{ ...setData, items: filteredItems }];
+                    console.log(`[QUESTION-GEN] 🔍 Filtered phase2 items: ${setData.items.length} -> ${filteredItems.length}`);
+                }
+
                 console.log('[QUESTION-GEN] Phase 2: Saving generated questions to Firebase...');
-                await overwriteGameQuestions(currentRoom.code, 'phase2', result.data as unknown[]);
+                await overwriteGameQuestions(currentRoom.code, 'phase2', filteredData as unknown[]);
                 console.log('[QUESTION-GEN] ✅ Phase 2: Generation complete!');
             } catch (err) {
                 console.error('[QUESTION-GEN] ❌ Phase 2: Generation failed:', {
@@ -209,6 +222,88 @@ export function useQuestionGeneration({
         };
 
         generatePhase2Questions();
+    }, [roomStatus]);
+
+    // Automatic Phase 3 Generation (AI-generated menus)
+    useEffect(() => {
+        if (roomStatus !== 'phase3') return;
+
+        const generatePhase3Questions = async () => {
+            const currentRoom = roomRef.current;
+            const currentMyId = myIdRef.current;
+            if (!currentRoom) return;
+            if (hasFilteredPhase3.current) return;
+
+            // Check if we have Phase 3 custom questions (menus)
+            const existingPhase3 = currentRoom.customQuestions?.phase3;
+
+            console.log('[QUESTION-GEN] 📍 Phase 3 entered, checking generation needs...', {
+                roomCode: currentRoom.code,
+                hasCustomQuestions: !!existingPhase3,
+                menuCount: Array.isArray(existingPhase3) ? existingPhase3.length : 0,
+                isHost: currentRoom.hostId === currentMyId
+            });
+
+            // If we already have menus, skip generation
+            if (existingPhase3 && Array.isArray(existingPhase3) && existingPhase3.length >= 4) {
+                console.log('[QUESTION-GEN] Phase 3: Already has menus, skipping generation', {
+                    menuCount: existingPhase3.length
+                });
+                return;
+            }
+
+            const currentIsHost = currentRoom.hostId === currentMyId;
+            if (!currentIsHost) {
+                console.log('[QUESTION-GEN] Phase 3: Not host, waiting for host to generate...');
+                return;
+            }
+
+            hasFilteredPhase3.current = true;
+
+            // Set visible generation state for loading UI
+            await setGeneratingState(currentRoom.code, true);
+
+            // Full generation (Phase 3 always generates all 4 menus)
+            console.log('[QUESTION-GEN] 🎯 Phase 3: Starting full AI generation...', {
+                roomCode: currentRoom.code,
+                timestamp: new Date().toISOString()
+            });
+
+            try {
+                const result = await generateWithRetry({ phase: 'phase3', roomCode: currentRoom.code, difficulty: getRoomDifficulty(currentRoom) });
+
+                // Filter out already-seen questions from each menu
+                let filteredData = result.data;
+                if (Array.isArray(filteredData)) {
+                    const menus = filteredData as Array<{ title: string; description: string; isTrap?: boolean; questions: { question: string; answer: string }[] }>;
+                    for (const menu of menus) {
+                        if (menu.questions && Array.isArray(menu.questions)) {
+                            const filteredQuestions = await filterUnseenQuestions(
+                                menu.questions,
+                                (q: { question: string }) => q.question
+                            );
+                            console.log(`[QUESTION-GEN] 🔍 Filtered phase3 menu "${menu.title}": ${menu.questions.length} -> ${filteredQuestions.length}`);
+                            menu.questions = filteredQuestions;
+                        }
+                    }
+                    filteredData = menus;
+                }
+
+                console.log('[QUESTION-GEN] ✅ Phase 3 generation successful', {
+                    menuCount: Array.isArray(filteredData) ? filteredData.length : 0
+                });
+
+                await overwriteGameQuestions(currentRoom.code, 'phase3', filteredData as unknown[]);
+            } catch (err) {
+                console.error('[QUESTION-GEN] ❌ Phase 3: AI generation failed:', err);
+                setGenerationError('Phase 3 generation failed - using default menus');
+                // Phase 3 will fallback to PHASE3_DATA in the component
+            } finally {
+                await setGeneratingState(currentRoom.code, false);
+            }
+        };
+
+        generatePhase3Questions();
     }, [roomStatus]);
 
     // Automatic Phase 4 Generation (AI or fallback to static questions)
@@ -264,6 +359,7 @@ export function useQuestionGeneration({
                     const result = await generateWithRetry({
                         phase: 'phase4',
                         roomCode: currentRoom.code,
+                        difficulty: getRoomDifficulty(currentRoom),
                         completeCount: missingCount,
                         existingQuestions: existingPhase4
                     });
@@ -291,9 +387,17 @@ export function useQuestionGeneration({
             });
 
             try {
-                const result = await generateWithRetry({ phase: 'phase4', roomCode: currentRoom.code });
+                const result = await generateWithRetry({ phase: 'phase4', roomCode: currentRoom.code, difficulty: getRoomDifficulty(currentRoom) });
+
+                // Filter out already-seen questions
+                let filteredData = result.data;
+                if (Array.isArray(filteredData)) {
+                    filteredData = await filterUnseenQuestions(filteredData as { text: string }[], (q: { text: string }) => q.text);
+                    console.log(`[QUESTION-GEN] 🔍 Filtered phase4: ${(result.data as unknown[]).length} -> ${(filteredData as unknown[]).length}`);
+                }
+
                 console.log('[QUESTION-GEN] Phase 4: Saving generated questions to Firebase...');
-                await overwriteGameQuestions(currentRoom.code, 'phase4', result.data as unknown[]);
+                await overwriteGameQuestions(currentRoom.code, 'phase4', filteredData as unknown[]);
                 console.log('[QUESTION-GEN] ✅ Phase 4: AI generation complete!');
             } catch (err) {
                 console.error('[QUESTION-GEN] ❌ Phase 4: AI generation failed, using fallback:', {
@@ -321,6 +425,9 @@ export function useQuestionGeneration({
 
     // Automatic Phase 5 Filtering
     const roomCode = room?.code;
+    const hasPhase2CustomQuestions = !!room?.customQuestions?.phase2;
+    const hasPhase3CustomQuestions = !!room?.customQuestions?.phase3;
+    const hasPhase4CustomQuestions = !!room?.customQuestions?.phase4;
     const hasPhase5CustomQuestions = !!room?.customQuestions?.phase5;
     useEffect(() => {
         const filterPhase5Questions = async () => {
@@ -355,46 +462,133 @@ export function useQuestionGeneration({
         filterPhase5Questions();
     }, [roomStatus, hasPhase5CustomQuestions, roomCode, isHost]);
 
-    // Helper function to trigger Phase 2 pre-generation in background (non-blocking)
-    // Uses Firebase lock to prevent double generation race condition
-    const hasPhase2CustomQuestions = !!room?.customQuestions?.phase2;
+    // Helper function to trigger background pre-generation for all phases (non-blocking)
+    // Chains Phase 2 -> Phase 3 -> Phase 4 -> Phase 5 generation
     const triggerPhase2Pregen = useCallback(async (pregenRoomCode: string) => {
-        if (hasPhase2CustomQuestions) {
+        // ===== PHASE 2 =====
+        if (!hasPhase2CustomQuestions) {
+            // Check Firebase lock before starting
+            const isAlreadyGenerating = await getPhase2GeneratingState(pregenRoomCode);
+            if (!isAlreadyGenerating) {
+                // Take the Firebase lock
+                await setPhase2GeneratingState(pregenRoomCode, true);
+
+                console.log('[QUESTION-GEN] 🎯 Phase 2: Starting background pre-generation...', {
+                    roomCode: pregenRoomCode,
+                    timestamp: new Date().toISOString()
+                });
+
+                try {
+                    const result = await generateWithRetry({ phase: 'phase2', roomCode: pregenRoomCode, difficulty: getRoomDifficulty(roomRef.current) });
+                    console.log('[QUESTION-GEN] Phase 2: Pregen result received, filtering and saving...');
+
+                    let filteredData = result.data;
+                    if ((filteredData as { items?: unknown[] })?.items) {
+                        const setData = filteredData as { items: { text: string }[] };
+                        const filteredItems = await filterUnseenQuestions(setData.items, (item: { text: string }) => item.text);
+                        filteredData = [{ ...setData, items: filteredItems }];
+                        console.log(`[QUESTION-GEN] 🔍 Filtered phase2 pregen items: ${setData.items.length} -> ${filteredItems.length}`);
+                    }
+
+                    await overwriteGameQuestions(pregenRoomCode, 'phase2', filteredData as unknown[]);
+                    console.log('[QUESTION-GEN] ✅ Phase 2: Pre-generation successful!');
+                } catch (err) {
+                    console.warn('[QUESTION-GEN] ❌ Phase 2: Pre-generation failed:', (err as Error).message);
+                } finally {
+                    await setPhase2GeneratingState(pregenRoomCode, false);
+                }
+            }
+        } else {
             console.log('[QUESTION-GEN] Phase 2: Skipping pregen - already has custom questions');
-            return;
         }
 
-        // Check Firebase lock before starting
-        const isAlreadyGenerating = await getPhase2GeneratingState(pregenRoomCode);
-        if (isAlreadyGenerating) {
-            console.log('[QUESTION-GEN] Phase 2: Skipping pregen - already generating (Firebase lock)');
-            return;
-        }
-
-        // Take the Firebase lock
-        await setPhase2GeneratingState(pregenRoomCode, true);
-
-        console.log('[QUESTION-GEN] 🎯 Phase 2: Starting background pre-generation after game start...', {
-            roomCode: pregenRoomCode,
-            timestamp: new Date().toISOString()
-        });
-
-        try {
-            const result = await generateWithRetry({ phase: 'phase2', roomCode: pregenRoomCode });
-            console.log('[QUESTION-GEN] Phase 2: Pregen result received, saving to Firebase...');
-            await overwriteGameQuestions(pregenRoomCode, 'phase2', result.data as unknown[]);
-            console.log('[QUESTION-GEN] ✅ Phase 2: Pre-generation successful!');
-        } catch (err) {
-            console.warn('[QUESTION-GEN] ❌ Phase 2: Pre-generation failed:', {
-                error: (err as Error).message,
-                willRetryOnPhaseEntry: true
+        // ===== PHASE 3 =====
+        if (!hasPhase3CustomQuestions) {
+            console.log('[QUESTION-GEN] 🎯 Phase 3: Starting background pre-generation...', {
+                roomCode: pregenRoomCode,
+                timestamp: new Date().toISOString()
             });
-            // Don't throw - pregen failure is not critical, fallback will happen on Phase 2 entry
-        } finally {
-            // Always release the Firebase lock
-            await setPhase2GeneratingState(pregenRoomCode, false);
+
+            try {
+                const result = await generateWithRetry({ phase: 'phase3', roomCode: pregenRoomCode, difficulty: getRoomDifficulty(roomRef.current) });
+                console.log('[QUESTION-GEN] Phase 3: Pregen result received, filtering and saving...');
+
+                let filteredData = result.data;
+                if (Array.isArray(filteredData)) {
+                    const menus = filteredData as Array<{ title: string; description: string; isTrap?: boolean; questions: { question: string; answer: string }[] }>;
+                    for (const menu of menus) {
+                        if (menu.questions && Array.isArray(menu.questions)) {
+                            const filteredQuestions = await filterUnseenQuestions(
+                                menu.questions,
+                                (q: { question: string }) => q.question
+                            );
+                            menu.questions = filteredQuestions;
+                        }
+                    }
+                    filteredData = menus;
+                }
+
+                await overwriteGameQuestions(pregenRoomCode, 'phase3', filteredData as unknown[]);
+                console.log('[QUESTION-GEN] ✅ Phase 3: Pre-generation successful!');
+            } catch (err) {
+                console.warn('[QUESTION-GEN] ❌ Phase 3: Pre-generation failed:', (err as Error).message);
+            }
+        } else {
+            console.log('[QUESTION-GEN] Phase 3: Skipping pregen - already has custom questions');
         }
-    }, [hasPhase2CustomQuestions]);
+
+        // ===== PHASE 4 =====
+        if (!hasPhase4CustomQuestions) {
+            console.log('[QUESTION-GEN] 🎯 Phase 4: Starting background pre-generation...', {
+                roomCode: pregenRoomCode,
+                timestamp: new Date().toISOString()
+            });
+
+            try {
+                const result = await generateWithRetry({ phase: 'phase4', roomCode: pregenRoomCode, difficulty: getRoomDifficulty(roomRef.current) });
+                console.log('[QUESTION-GEN] Phase 4: Pregen result received, filtering and saving...');
+
+                let filteredData = result.data;
+                if (Array.isArray(filteredData)) {
+                    filteredData = await filterUnseenQuestions(filteredData as { text: string }[], (q: { text: string }) => q.text);
+                }
+
+                await overwriteGameQuestions(pregenRoomCode, 'phase4', filteredData as unknown[]);
+                console.log('[QUESTION-GEN] ✅ Phase 4: Pre-generation successful!');
+            } catch (err) {
+                console.warn('[QUESTION-GEN] ❌ Phase 4: Pre-generation failed:', (err as Error).message);
+            }
+        } else {
+            console.log('[QUESTION-GEN] Phase 4: Skipping pregen - already has custom questions');
+        }
+
+        // ===== PHASE 5 =====
+        if (!hasPhase5CustomQuestions) {
+            console.log('[QUESTION-GEN] 🎯 Phase 5: Starting background pre-generation...', {
+                roomCode: pregenRoomCode,
+                timestamp: new Date().toISOString()
+            });
+
+            try {
+                const result = await generateWithRetry({ phase: 'phase5', roomCode: pregenRoomCode, difficulty: getRoomDifficulty(roomRef.current) });
+                console.log('[QUESTION-GEN] Phase 5: Pregen result received, filtering and saving...');
+
+                let filteredData = result.data;
+                if (Array.isArray(filteredData)) {
+                    filteredData = await filterUnseenQuestions(filteredData as { text: string }[], (q: { text: string }) => q.text);
+                }
+
+                await overwriteGameQuestions(pregenRoomCode, 'phase5', filteredData as unknown[]);
+                console.log('[QUESTION-GEN] ✅ Phase 5: Pre-generation successful!');
+            } catch (err) {
+                console.warn('[QUESTION-GEN] ❌ Phase 5: Pre-generation failed:', (err as Error).message);
+            }
+        } else {
+            console.log('[QUESTION-GEN] Phase 5: Skipping pregen - already has custom questions');
+        }
+
+        console.log('[QUESTION-GEN] 🏁 All phases pre-generation complete!');
+    }, [hasPhase2CustomQuestions, hasPhase3CustomQuestions, hasPhase4CustomQuestions, hasPhase5CustomQuestions]);
 
     // Handler for starting the game with automatic AI generation if needed
     const handleStartGame = useCallback(async () => {
@@ -458,6 +652,7 @@ export function useQuestionGeneration({
                     const result = await generateWithRetry({
                         phase: 'phase1',
                         roomCode: currentRoom.code,
+                        difficulty: getRoomDifficulty(currentRoom),
                         completeCount: missingCount,
                         existingQuestions: existingPhase1
                     });
@@ -528,13 +723,20 @@ export function useQuestionGeneration({
 
             // No suitable stored set found - generate new ones
             console.log('[QUESTION-GEN] 🤖 No stored questions available, starting AI generation...');
-            const result = await generateWithRetry({ phase: 'phase1', roomCode: currentRoom.code });
+            const result = await generateWithRetry({ phase: 'phase1', roomCode: currentRoom.code, difficulty: getRoomDifficulty(currentRoom) });
+
+            // Filter out already-seen questions (same logic as solo mode)
+            let filteredData = result.data;
+            if (Array.isArray(filteredData)) {
+                filteredData = await filterUnseenQuestions(filteredData as { text: string }[], (q: { text: string }) => q.text);
+                console.log(`[QUESTION-GEN] 🔍 Filtered phase1: ${(result.data as unknown[]).length} -> ${(filteredData as unknown[]).length}`);
+            }
 
             console.log('[QUESTION-GEN] 💾 Saving AI-generated questions to Firebase...', {
-                questionCount: Array.isArray(result.data) ? result.data.length : 'N/A',
+                questionCount: Array.isArray(filteredData) ? filteredData.length : 'N/A',
                 topic: result.topic
             });
-            await overwriteGameQuestions(currentRoom.code, 'phase1', result.data as unknown[]);
+            await overwriteGameQuestions(currentRoom.code, 'phase1', filteredData as unknown[]);
             console.log('[QUESTION-GEN] ✅ AI questions saved successfully!');
 
             // CRITICAL: Clear loading state BEFORE starting game

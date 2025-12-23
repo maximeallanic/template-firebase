@@ -1,7 +1,7 @@
 import { useRef, useState, useEffect, useCallback, memo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { motion, AnimatePresence, LayoutGroup, type Variants } from 'framer-motion';
-import { submitAnswer, startNextQuestion, showPhaseResults, type Room } from '../../services/gameService';
+import { submitAnswer, startNextQuestion, showPhaseResults, handlePhase1Timeout, type Room } from '../../services/gameService';
 import { audioService } from '../../services/audioService';
 import { markQuestionAsSeen } from '../../services/historyService';
 import { SimpleConfetti } from '../ui/SimpleConfetti';
@@ -68,9 +68,9 @@ const answerButtonVariants: Variants = {
     },
     exit: { opacity: 0, y: -10, transition: { duration: durations.fast } },
     shake: {
-        x: [0, -12, 12, -12, 12, -8, 8, 0],
-        scale: 1, // Prevent scale interpolation when transitioning between variants
-        transition: { duration: durations.medium, ease: "easeInOut" }
+        x: [0, -8, 8, -8, 8, 0],
+        scale: 1,
+        transition: { duration: 0.3, ease: "easeInOut" }
     },
     fadeOut: {
         opacity: 0,
@@ -378,7 +378,7 @@ export function Phase1Player({ room, playerId, isHost, mode = 'multiplayer', sol
                 const remaining = Math.max(0, PHASE1_TIMER_SECONDS - elapsed);
                 setAnsweringTimeRemaining(remaining);
 
-                // Handle timeout (host triggers next question, solo mode always advances)
+                // Handle timeout (host triggers transition to result state)
                 if (remaining === 0 && !hasHandledTimeoutRef.current) {
                     hasHandledTimeoutRef.current = true;
 
@@ -390,12 +390,9 @@ export function Phase1Player({ room, playerId, isHost, mode = 'multiplayer', sol
                             soloHandlers.nextPhase1Question();
                         }
                     } else if (isHost) {
-                        // Multiplayer: only host triggers next question
-                        if (!isFinished) {
-                            startNextQuestion(room.code, nextQIndex);
-                        } else {
-                            showPhaseResults(room.code);
-                        }
+                        // Multiplayer: host sets phaseState to 'result' (timeout)
+                        // The existing isResult effect will then handle advancing to next question
+                        handlePhase1Timeout(room.code);
                     }
                 }
             };
@@ -707,7 +704,8 @@ export function Phase1Player({ room, playerId, isHost, mode = 'multiplayer', sol
                             const optionLabel = displayedQuestion ? displayedQuestion.options[idx] : `Option ${['A', 'B', 'C', 'D'][idx]}`;
                             // Pulse animation when buttons become clickable (staggered by index)
                             const shouldPulse = !prefersReducedMotion && justBecameAnswering && !isMyTeamBlocked && !isTriedWrong;
-                            const isGrayed = (!isAnswering && !isResult) || isMyTeamBlocked || isTriedWrong;
+                            // Gray out when: not answering, team blocked, tried wrong, OR showing wrong feedback
+                            const isGrayed = (!isAnswering && !isResult) || isMyTeamBlocked || isTriedWrong || isShowingWrongFeedback;
                             const isSelected = myAnswer === idx;
                             const isFaded = myAnswer !== null && !isSelected;
 
@@ -839,37 +837,23 @@ export function Phase1Player({ room, playerId, isHost, mode = 'multiplayer', sol
                                         border-black/20 text-left
                                     `}
                                 >
-                                    {/* Immediate wrong answer feedback overlay */}
+                                    {/* Immediate wrong answer feedback - simple X icon (no animation) */}
                                     {isShowingWrongFeedback && (
-                                        <motion.div
-                                            initial={{ opacity: 0, scale: 0.5 }}
-                                            animate={{ opacity: 1, scale: 1 }}
-                                            transition={{ duration: 0.15 }}
-                                            className="absolute inset-0 flex items-center justify-center bg-black/60 rounded-xl z-20"
-                                        >
-                                            <XCircle className="w-16 h-16 text-red-500" aria-label={t('player.wrongAnswer', 'Mauvaise réponse')} />
-                                        </motion.div>
+                                        <div className="absolute inset-0 flex items-center justify-center rounded-xl z-20 pointer-events-none">
+                                            <XCircle className="w-16 h-16 text-red-500 drop-shadow-lg" aria-label={t('player.wrongAnswer', 'Mauvaise réponse')} />
+                                        </div>
                                     )}
-                                    {/* Result phase: shake animation for player's wrong answer before revealing correct */}
+                                    {/* Result phase: X icon for player's wrong answer */}
                                     {isResultShaking && (
-                                        <motion.div
-                                            initial={{ opacity: 0, scale: 0.5 }}
-                                            animate={{ opacity: 1, scale: 1 }}
-                                            transition={{ duration: 0.15 }}
-                                            className="absolute inset-0 flex items-center justify-center bg-black/60 rounded-xl z-20"
-                                        >
-                                            <XCircle className="w-16 h-16 text-red-500" aria-label={t('player.wrongAnswer', 'Mauvaise réponse')} />
-                                        </motion.div>
+                                        <div className="absolute inset-0 flex items-center justify-center rounded-xl z-20 pointer-events-none">
+                                            <XCircle className="w-16 h-16 text-red-500 drop-shadow-lg" aria-label={t('player.wrongAnswer', 'Mauvaise réponse')} />
+                                        </div>
                                     )}
                                     {/* Rebond: X overlay for eliminated options */}
                                     {isTriedWrong && !isShowingWrongFeedback && (
-                                        <motion.div
-                                            initial={{ opacity: 0, scale: 0.5 }}
-                                            animate={{ opacity: 1, scale: 1 }}
-                                            className="absolute inset-0 flex items-center justify-center bg-black/50 rounded-xl z-10"
-                                        >
-                                            <XCircle className="w-12 h-12 text-red-500" aria-label={t('player.optionEliminated', 'Option éliminée')} />
-                                        </motion.div>
+                                        <div className="absolute inset-0 flex items-center justify-center rounded-xl z-10 pointer-events-none">
+                                            <XCircle className="w-12 h-12 text-red-500 drop-shadow-lg" aria-label={t('player.optionEliminated', 'Option éliminée')} />
+                                        </div>
                                     )}
                                     <div className="flex-shrink-0 w-12 h-12 flex items-center justify-center bg-black/20 rounded-full text-2xl text-white">
                                         <ShapeIcon fill="currentColor" className="w-6 h-6" aria-hidden="true" />

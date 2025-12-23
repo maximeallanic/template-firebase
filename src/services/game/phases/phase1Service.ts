@@ -60,6 +60,30 @@ export const startNextQuestion = async (code: string, nextIndex: number): Promis
 };
 
 /**
+ * Handle Phase 1 timeout (timer expired with no correct answer)
+ * Sets phaseState to 'result' with no winner, allowing normal flow to continue
+ * @param code - Room code
+ */
+export const handlePhase1Timeout = async (code: string): Promise<void> => {
+    const roomId = code.toUpperCase();
+    const snapshot = await get(ref(rtdb, `rooms/${roomId}/state`));
+    if (!snapshot.exists()) return;
+
+    const state = snapshot.val() as GameState;
+
+    // Only handle timeout if currently in 'answering' state
+    if (state.phaseState !== 'answering') {
+        return;
+    }
+
+    // Transition to 'result' with no winner (timeout)
+    await update(ref(rtdb, `rooms/${roomId}/state`), {
+        phaseState: 'result',
+        roundWinner: null
+    });
+};
+
+/**
  * Submit an answer for Phase 1
  * First correct answer from a team wins the round
  * Implements "rebond" logic: wrong answer blocks team, other team gets a chance
@@ -149,8 +173,9 @@ export const submitAnswer = async (code: string, playerId: string, answerIndex: 
             newState.phase1TriedWrongOptions = newTriedWrongOptions;
             newState.phase1LastWrongTeam = player.team;
 
-            // 2. Check if all 4 options exhausted
-            if (newTriedWrongOptions.length >= 4) {
+            // 2. Check if only 1 option remains (3 wrong options tried = only correct answer left)
+            // In this case, no team gets a point (the answer is obvious)
+            if (newTriedWrongOptions.length >= 3) {
                 newState.roundWinner = null;
                 newState.phaseState = 'result';
                 return newState;
