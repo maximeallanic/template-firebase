@@ -25,40 +25,55 @@ JSON:
 
 10 questions. Pas de markdown.`;
 
-export const PHASE4_GENERATOR_PROMPT = `BURGER QUIZ Phase 4 "La Note" - Générateur QCM
-Thème : {TOPIC} | Difficulté : {DIFFICULTY}
+export const PHASE4_GENERATOR_PROMPT = `BURGER QUIZ Phase 4 "La Note" - QCM Culture Générale
+Thème suggéré : {TOPIC} | Difficulté : {DIFFICULTY}
 
-🎯 CONCEPT : Course de rapidité, 30s par question.
+🎯 CONCEPT : Course de rapidité QCM - Culture générale variée comme au Burger Quiz TV !
 
-⚠️ RÈGLE #1 - FORMAT QCM
+⚠️ RÈGLE #1 - VARIÉTÉ THÉMATIQUE (CRITIQUE !)
+ATTENTION : Le thème ci-dessus n'est qu'une SUGGESTION pour 2-3 questions maximum.
+Les 10 questions DOIVENT impérativement couvrir des domaines VARIÉS :
+
+RÉPARTITION OBLIGATOIRE :
+- 2-3 questions Histoire / Géographie (dates, pays, personnages historiques)
+- 2-3 questions Sciences / Nature / Animaux (biologie, physique, astronomie)
+- 2-3 questions Arts / Musique / Cinéma (œuvres, artistes, films)
+- 2-3 questions Sport / Pop culture / Vie quotidienne (records, célébrités, traditions)
+
+INTERDIT : Plus de 3 questions sur le même sujet. Varie à fond !
+
+⚠️ RÈGLE #2 - FORMAT QCM
 - 4 options (1 correcte, 3 distracteurs PLAUSIBLES du même registre)
-- Questions claires, max 25 mots
-- Anecdote optionnelle (max 30 mots)
+- Questions claires et directes (max 25 mots)
+- Anecdote courte et percutante (max 30 mots)
 
-⚠️ RÈGLE #2 - RÉPARTITION
-- 3 FACILES (80% des gens connaissent)
-- 4 MOYENNES (50% des gens)
-- 3 DIFFICILES (20% des gens)
+⚠️ RÈGLE #3 - RÉPARTITION DIFFICULTÉ
+- 3 FACILES (connaissance commune : capitales, dates célèbres, films cultes)
+- 4 MOYENNES (culture générale solide nécessaire)
+- 3 DIFFICILES (anecdotes pointues, détails méconnus)
 
-⚠️ RÈGLE #3 - VARIÉTÉ
-Mix obligatoire : Histoire/Géo, Sciences, Arts/Musique, Sport/Pop culture
+⚠️ RÈGLE #4 - STYLE BURGER QUIZ
+- Mix questions classiques ET anecdotes décalées/WTF
+- Certaines réponses peuvent surprendre (mais TOUJOURS vraies !)
+- Ton léger, parfois humoristique, toujours vérifiable
 
-⚠️ RÈGLE #4 - VÉRIFICATION
-UTILISE Google pour vérifier CHAQUE réponse. Doit être indiscutable.
+⚠️ RÈGLE #5 - EXACTITUDE ABSOLUE
+UTILISE Google pour vérifier CHAQUE réponse avant de l'écrire.
+Aucune ambiguïté, aucun débat possible. Si tu hésites, change de question.
 
 {PREVIOUS_FEEDBACK}
 
 JSON:
 [
   {
-    "text": "Question claire ?",
+    "text": "Question précise ?",
     "options": ["A", "B", "C", "D"],
     "correctIndex": 0,
-    "anecdote": "Fait amusant"
+    "anecdote": "Fait vérifié et percutant"
   }
 ]
 
-10 questions. Pas de markdown.`;
+10 questions VARIÉES. Pas de markdown.`;
 
 export const PHASE4_DIALOGUE_REVIEWER_PROMPT = `REVIEWER Phase 4 "La Note" (QCM)
 

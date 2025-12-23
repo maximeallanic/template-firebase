@@ -71,6 +71,17 @@ export {
     buildAmbiguityCheckPrompt
 } from './factcheck';
 
+// Difficulty helpers
+export {
+    getDifficultyInstructions,
+    getDifficultyLabel,
+    getFullDifficultyContext
+} from './difficulty';
+
+export type {
+    DifficultyLevel
+} from './difficulty';
+
 // Fact-checking types
 export type {
     AmbiguityIssue,

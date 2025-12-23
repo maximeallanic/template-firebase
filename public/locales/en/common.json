@@ -61,7 +61,8 @@
   "teams": {
     "spicy": "Spicy",
     "sweet": "Sweet",
-    "neutral": "Neutral"
+    "neutral": "Neutral",
+    "yourTeam": "Your Team"
   },
   "subscription": {
     "premium": "Premium",

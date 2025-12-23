@@ -175,6 +175,28 @@ export const Phase3QuestionInput: React.FC<Phase3QuestionInputProps> = ({
         }
     }, [feedback, isSolo, soloHandlers]);
 
+    // Auto-reset state after correct answer in multiplayer mode
+    useEffect(() => {
+        if (feedback === 'correct' && !isSolo && !isFinished) {
+            // Only trigger skip once per question
+            if (skipTriggeredRef.current) return;
+
+            skipTriggeredRef.current = true;
+            console.log('[Phase3] Will reset after correct answer in 2s');
+
+            // Wait 2 seconds to show feedback, then reset state
+            // The question index will be incremented by the backend
+            const resetTimer = setTimeout(() => {
+                console.log('[Phase3] Resetting state after correct answer');
+                setAnswer('');
+                setFeedback(null);
+                setIsSubmitting(false);
+            }, 2000);
+
+            return () => clearTimeout(resetTimer);
+        }
+    }, [feedback, isSolo, isFinished]);
+
     // Play audio feedback when feedback changes
     useEffect(() => {
         if (hasPlayedFeedbackRef.current) return;
@@ -247,10 +269,17 @@ export const Phase3QuestionInput: React.FC<Phase3QuestionInputProps> = ({
         return null; // Parent component will show Phase3Spectator
     }
 
-    if (!currentQuestion) {
+    // Validate that question exists and has text
+    if (!currentQuestion || !currentQuestion.question) {
         return (
             <div className="text-center text-white">
                 <p>{t('phase3.noMoreQuestions')}</p>
+                {/* Debug info in development */}
+                {import.meta.env.DEV && (
+                    <p className="text-xs text-red-400 mt-2">
+                        Debug: currentQuestion={JSON.stringify(currentQuestion)} | index={currentQuestionIndex}
+                    </p>
+                )}
             </div>
         );
     }
@@ -317,7 +346,7 @@ export const Phase3QuestionInput: React.FC<Phase3QuestionInputProps> = ({
                 className="w-full bg-white rounded-3xl p-8 shadow-2xl"
             >
                 <h2 className="text-2xl font-bold text-slate-800 mb-8 text-center select-none">
-                    {currentQuestion.question}
+                    {currentQuestion.question || '[Question manquante]'}
                 </h2>
 
                 {/* Answer Input Form */}

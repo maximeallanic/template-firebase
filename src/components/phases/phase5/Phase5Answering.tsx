@@ -5,6 +5,7 @@ import { type Room, type Team, submitPhase5Answer, checkPhase5AnswerCompletion }
 import { Send, Check } from 'lucide-react';
 import { FoodLoader } from '../../ui/FoodLoader';
 import { audioService } from '../../../services/audioService';
+import { useHaptic } from '../../../hooks/useHaptic';
 import { organicEase, durations } from '../../../animations';
 
 interface Phase5AnsweringProps {
@@ -15,6 +16,7 @@ interface Phase5AnsweringProps {
 
 export function Phase5Answering({ room, currentPlayerId, currentPlayerTeam }: Phase5AnsweringProps) {
     const { t } = useTranslation(['game-ui', 'common']);
+    const haptic = useHaptic();
     const [currentAnswer, setCurrentAnswer] = useState('');
     const [isSubmitting, setIsSubmitting] = useState(false);
     const inputRef = useRef<HTMLInputElement>(null);
@@ -40,6 +42,7 @@ export function Phase5Answering({ room, currentPlayerId, currentPlayerTeam }: Ph
 
         setIsSubmitting(true);
         audioService.playClick();
+        haptic.tap();
 
         try {
             await submitPhase5Answer(room.code, currentPlayerId, currentAnswer.trim(), currentPlayerTeam);
@@ -49,9 +52,11 @@ export function Phase5Answering({ room, currentPlayerId, currentPlayerTeam }: Ph
             await checkPhase5AnswerCompletion(room.code);
 
             audioService.playSuccess();
+            haptic.success();
         } catch (error) {
             console.error('Failed to submit answer:', error);
             audioService.playError();
+            haptic.error();
         } finally {
             setIsSubmitting(false);
         }

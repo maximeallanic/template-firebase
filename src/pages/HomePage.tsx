@@ -14,6 +14,7 @@ import { safeStorage } from '../utils/storage';
 import { saveProfile } from '../services/profileService';
 import { useAuthUser } from '../hooks/useAuthUser';
 import { useAppInstall } from '../hooks/useAppInstall';
+import { useHaptic } from '../hooks/useHaptic';
 import { Users, Zap, Trophy, ChefHat, Flame, Candy, X, Crown, Star, Lock, Download, Smartphone } from 'lucide-react';
 import { createCheckoutSession } from '../services/firebase';
 import { useCurrentUserSubscription } from '../hooks/useHostSubscription';
@@ -48,6 +49,9 @@ export default function HomePage() {
 
   // PWA install detection
   const { isInstalled, canInstall, promptInstall, isDismissed, dismiss } = useAppInstall();
+
+  // Haptic feedback
+  const haptic = useHaptic();
 
   // Handle Firebase email action links (verification, password reset)
   const mode = searchParams.get('mode');
@@ -112,6 +116,8 @@ export default function HomePage() {
 
   // Handle "Create Room" - if user has profile AND is authenticated, create directly; otherwise go to /host
   const handleCreateRoom = async () => {
+    haptic.tap();
+
     // Must have profile AND be authenticated to create room directly
     if (!profile?.profileName || !user || profileLoading) {
       // No profile or not authenticated - go to /host (AuthRequired will handle login)
@@ -146,6 +152,7 @@ export default function HomePage() {
   // Handle "Join Room" - requires profile and auth
   const handleJoinRoom = async () => {
     if (joinCode.length !== 4) return;
+    haptic.tap();
     setJoinError(null);
 
     // If not authenticated, save code and redirect to login page

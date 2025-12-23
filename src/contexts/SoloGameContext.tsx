@@ -510,7 +510,7 @@ export function SoloGameProvider({
             if (signal.aborted) throw new Error('Generation cancelled');
 
             try {
-                // Try Firestore cache first (fast path)
+                // Try Firestore cache first (fast path) - this already filters by seenIds
                 const storedSet = await getRandomQuestionSet(phase, seenIds);
                 if (storedSet) {
                     console.log(`[SOLO] ✅ Using Firestore questions for ${phase}`);
@@ -520,9 +520,27 @@ export function SoloGameProvider({
                 }
 
                 // Fall back to AI generation with difficulty
-                console.log(`[SOLO] 🤖 AI generation for ${phase} (difficulty: ${difficulty}, attempt ${attempt}/${maxRetries})`);
+                console.log(`[SOLO] 🤖 AI generation for ${phase} (difficulty: ${difficulty}, seenIds: ${seenIds.size}, attempt ${attempt}/${maxRetries})`);
                 const result = await generateWithRetry({ phase, soloMode: true, difficulty });
-                return result.data;
+
+                // Filter generated questions by seenIds (client-side safety filter)
+                const { filterUnseenQuestions } = await import('../services/historyService');
+                let filteredData = result.data;
+
+                if (phase === 'phase1' && Array.isArray(filteredData)) {
+                    filteredData = await filterUnseenQuestions(filteredData as { text: string }[], (q: { text: string }) => q.text);
+                    console.log(`[SOLO] Filtered phase1 questions: ${(result.data as unknown[]).length} -> ${(filteredData as unknown[]).length}`);
+                } else if (phase === 'phase2' && (filteredData as { items?: unknown[] })?.items) {
+                    const setData = filteredData as { items: { text: string }[] };
+                    const filteredItems = await filterUnseenQuestions(setData.items, (item: { text: string }) => item.text);
+                    filteredData = { ...setData, items: filteredItems };
+                    console.log(`[SOLO] Filtered phase2 items: ${setData.items.length} -> ${filteredItems.length}`);
+                } else if (phase === 'phase4' && Array.isArray(filteredData)) {
+                    filteredData = await filterUnseenQuestions(filteredData as { text: string }[], (q: { text: string }) => q.text);
+                    console.log(`[SOLO] Filtered phase4 questions: ${(result.data as unknown[]).length} -> ${(filteredData as unknown[]).length}`);
+                }
+
+                return filteredData;
             } catch (error) {
                 lastError = error as Error;
                 console.warn(`[SOLO] ${phase}: Attempt ${attempt} failed:`, error);

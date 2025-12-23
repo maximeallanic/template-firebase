@@ -52,6 +52,7 @@ export interface Player {
     score: number;
     joinedAt: number;
     isOnline: boolean;
+    phase5Scored?: boolean; // Prevents duplicate scoring in Phase 5
 }
 
 // === GAME STATE ===
@@ -62,6 +63,7 @@ export interface GameState {
     isGenerating?: boolean; // True when AI is generating questions (visible to all players)
     phase2Generating?: boolean; // Lock for Phase 2 generation (prevents double generation)
     currentQuestionIndex?: number;
+    questionStartTime?: number; // Timestamp when question answering started (Phase 1)
     phase1Answers?: Record<string, boolean>;
     phase1BlockedTeams?: Team[]; // Teams blocked after wrong answer
     phase1TriedWrongOptions?: number[]; // Options already tried and wrong (for rebond system)

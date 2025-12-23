@@ -1,7 +1,7 @@
 import { useEffect, useLayoutEffect, useState, useRef, useCallback } from 'react';
 import { useParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { type Player, type Difficulty, type PhaseStatus, setGameStatus, updatePlayerTeam, updateRoomDifficulty, getRoomDifficulty, PREMIUM_PHASES } from '../services/gameService';
+import { type Player, type Difficulty, type PhaseStatus, setGameStatus, restartGame, updatePlayerTeam, updateRoomDifficulty, getRoomDifficulty, PREMIUM_PHASES } from '../services/gameService';
 import { useGameRoom } from '../hooks/useGameRoom';
 import { useQuestionGeneration } from '../hooks/useQuestionGeneration';
 import { useHostSubscription } from '../hooks/useHostSubscription';
@@ -664,7 +664,7 @@ function VictoryScreen({ room, isHost }: { room: NonNullable<ReturnType<typeof u
                         transition={{ delay: 1.2 }}
                         whileHover={{ scale: 1.05 }}
                         whileTap={{ scale: 0.95 }}
-                        onClick={() => setGameStatus(room.code, 'lobby')}
+                        onClick={() => restartGame(room.code)}
                         className="mt-8 bg-gradient-to-r from-yellow-400 to-orange-500 text-black px-12 py-4 rounded-xl text-xl font-black shadow-lg hover:shadow-yellow-500/30"
                     >
                         {t('common:buttons.playAgain')}

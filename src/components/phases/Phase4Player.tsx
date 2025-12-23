@@ -1,6 +1,6 @@
 import { useEffect, useState, useCallback, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion } from 'framer-motion';
 import { ChevronRight, Check } from 'lucide-react';
 import { FoodLoader } from '../ui/FoodLoader';
 import type { Room, Phase4Question as Phase4QuestionType } from '../../services/gameService';
@@ -8,6 +8,7 @@ import { submitPhase4Answer, handlePhase4Timeout, nextPhase4Question, showPhaseR
 import { markQuestionAsSeen } from '../../services/historyService';
 import { audioService } from '../../services/audioService';
 import { useReducedMotion } from '../../hooks/useReducedMotion';
+import { useHaptic } from '../../hooks/useHaptic';
 import { getTransitionDuration } from '../../animations';
 import { PHASE4_QUESTIONS } from '../../data/phase4';
 import type { SoloPhaseHandlers } from '../../types/soloTypes';
@@ -17,7 +18,6 @@ import { Phase4Timer } from './phase4/Phase4Timer';
 import { Phase4Question } from './phase4/Phase4Question';
 import { Phase4Options } from './phase4/Phase4Options';
 import { Phase4Result } from './phase4/Phase4Result';
-import { Phase4Transition } from './phase4/Phase4Transition';
 
 // Constants
 const QUESTION_TIMER = 30;
@@ -35,6 +35,7 @@ interface Phase4PlayerProps {
 export function Phase4Player({ room, playerId, isHost, mode = 'multiplayer', soloHandlers }: Phase4PlayerProps) {
     const { t } = useTranslation(['game-ui', 'common']);
     const prefersReducedMotion = useReducedMotion();
+    const haptic = useHaptic();
     const isSolo = mode === 'solo';
 
     const player = room.players[playerId];
@@ -53,10 +54,6 @@ export function Phase4Player({ room, playerId, isHost, mode = 'multiplayer', sol
     const [timeRemaining, setTimeRemaining] = useState(QUESTION_TIMER);
     const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
     const hasHandledTimeoutRef = useRef(false);
-
-    // Transition state
-    const [showTransition, setShowTransition] = useState(false);
-    const previousQuestionIdxRef = useRef<number | null>(null);
 
     // Immediate wrong answer feedback state
     const [wrongFeedbackIndex, setWrongFeedbackIndex] = useState<number | null>(null);
@@ -83,21 +80,11 @@ export function Phase4Player({ room, playerId, isHost, mode = 'multiplayer', sol
         }
     }, [currentQuestion?.text]);
 
-    // Show transition when question index changes
-    // Always show transition - Phase4Transition handles reduced motion internally
-    useEffect(() => {
-        if (previousQuestionIdxRef.current !== null &&
-            previousQuestionIdxRef.current !== currentQuestionIdx &&
-            currentQuestion) {
-            setShowTransition(true);
-            setResultRevealPhase('idle'); // Reset reveal phase on new question
-        }
-        previousQuestionIdxRef.current = currentQuestionIdx;
-    }, [currentQuestionIdx, currentQuestion]);
-
-    // Reset isSubmitting when question changes (allows answering new question)
+    // Reset interaction states when question changes (allows answering new question)
     useEffect(() => {
         setIsSubmitting(false);
+        setWrongFeedbackIndex(null);
+        setResultRevealPhase('idle'); // Reset reveal phase on new question
     }, [currentQuestionIdx]);
 
     // Result reveal animation sequence: first shake wrong answer, then reveal correct
@@ -144,7 +131,7 @@ export function Phase4Player({ room, playerId, isHost, mode = 'multiplayer', sol
 
     // Timer countdown (minimal dependencies for performance)
     useEffect(() => {
-        if (phase4State !== 'questioning' || !phase4QuestionStartTime || showTransition) {
+        if (phase4State !== 'questioning' || !phase4QuestionStartTime) {
             setTimeRemaining(QUESTION_TIMER);
             hasHandledTimeoutRef.current = false;
             return;
@@ -175,7 +162,7 @@ export function Phase4Player({ room, playerId, isHost, mode = 'multiplayer', sol
                 clearInterval(timerRef.current);
             }
         };
-    }, [phase4State, phase4QuestionStartTime, showTransition]); // Reduced from 7 to 3 dependencies
+    }, [phase4State, phase4QuestionStartTime]); // Uses refs to avoid recreating timer unnecessarily
 
     // Auto-advance after result display (solo always auto-advances, multiplayer host only)
     useEffect(() => {
@@ -201,6 +188,17 @@ export function Phase4Player({ room, playerId, isHost, mode = 'multiplayer', sol
         }
     }, [isFinished, isSolo, soloHandlers]);
 
+    // Auto-advance to Phase 5 when Phase 4 finishes in multiplayer mode
+    useEffect(() => {
+        if (isFinished && !isSolo && isHost) {
+            const delay = RESULT_DISPLAY_TIME;
+            const timer = setTimeout(() => {
+                showPhaseResults(room.code);
+            }, delay);
+            return () => clearTimeout(timer);
+        }
+    }, [isFinished, isSolo, isHost, room.code]);
+
     // Handle answer submission with parallel animations
     const handleAnswerClick = useCallback(async (answerIndex: number) => {
         // Prevent interaction during wrong feedback animation or if already submitting
@@ -210,6 +208,7 @@ export function Phase4Player({ room, playerId, isHost, mode = 'multiplayer', sol
 
         // Lock immediately to prevent double-clicks (fixes race condition)
         setIsSubmitting(true);
+        haptic.buzzer();
 
         // Check if answer is wrong BEFORE submitting (for immediate visual feedback)
         const isWrongAnswer = currentQuestion && answerIndex !== currentQuestion.correctIndex;
@@ -234,6 +233,7 @@ export function Phase4Player({ room, playerId, isHost, mode = 'multiplayer', sol
             // Show immediate wrong answer feedback
             setWrongFeedbackIndex(answerIndex);
             audioService.playError();
+            haptic.error();
 
             // Animation and network call run in PARALLEL (no blocking)
             const feedbackDuration = getTransitionDuration('wrongFeedback', prefersReducedMotion);
@@ -247,25 +247,14 @@ export function Phase4Player({ room, playerId, isHost, mode = 'multiplayer', sol
             // No animation needed, just submit
             await submitPromise;
         }
-    }, [isSubmitting, hasAnswered, phase4State, team, room.code, playerId, isSolo, soloHandlers, currentQuestion, prefersReducedMotion, wrongFeedbackIndex]);
-
-    // Handle transition complete
-    const handleTransitionComplete = useCallback(() => {
-        setShowTransition(false);
-    }, []);
-
-    // --- TRANSITION VIEW ---
-    if (showTransition && currentQuestion) {
-        return (
-            <Phase4Transition
-                questionNumber={currentQuestionIdx + 1}
-                totalQuestions={totalQuestions}
-                onComplete={handleTransitionComplete}
-            />
-        );
-    }
+    }, [isSubmitting, hasAnswered, phase4State, team, room.code, playerId, isSolo, soloHandlers, currentQuestion, prefersReducedMotion, wrongFeedbackIndex, haptic]);
 
     // --- FINISHED VIEW ---
+    // En mode solo, on ne montre pas cette vue car le rideau gère la transition vers results
+    if (isFinished && isSolo) {
+        return null; // Le rideau couvre l'écran pendant la transition
+    }
+
     if (isFinished) {
         return (
             <div className="flex flex-col items-center justify-center p-8 space-y-6 max-h-screen overflow-y-auto w-full text-white">
@@ -280,7 +269,7 @@ export function Phase4Player({ room, playerId, isHost, mode = 'multiplayer', sol
                 <div className="text-2xl text-gray-300">{t('phase4.laNote')}</div>
 
                 {/* Multiplayer mode: host starts Phase 5 */}
-                {!isSolo && isHost && (
+                {isHost && (
                     <motion.button
                         initial={prefersReducedMotion ? { opacity: 0 } : { opacity: 0, y: 20 }}
                         animate={prefersReducedMotion ? { opacity: 1 } : { opacity: 1, y: 0 }}
@@ -293,7 +282,7 @@ export function Phase4Player({ room, playerId, isHost, mode = 'multiplayer', sol
                     </motion.button>
                 )}
 
-                {!isSolo && !isHost && (
+                {!isHost && (
                     <motion.p
                         initial={{ opacity: 0 }}
                         animate={{ opacity: 0.7 }}
@@ -367,26 +356,20 @@ export function Phase4Player({ room, playerId, isHost, mode = 'multiplayer', sol
             </div>
 
             {/* Question Card */}
-            <AnimatePresence>
-                <Phase4Question
-                    key={currentQuestionIdx}
-                    question={currentQuestion.text}
-                    questionNumber={currentQuestionIdx + 1}
-                    totalQuestions={totalQuestions}
-                />
-            </AnimatePresence>
+            <Phase4Question
+                question={currentQuestion.text}
+                questionNumber={currentQuestionIdx + 1}
+                totalQuestions={totalQuestions}
+            />
 
             {/* MCQ Options */}
-            <AnimatePresence mode="wait">
-                <Phase4Options
-                    key={`options-${currentQuestionIdx}`}
-                    options={currentQuestion.options}
-                    selectedAnswer={myAnswer?.answer}
-                    onSelectAnswer={handleAnswerClick}
-                    disabled={hasAnswered || wrongFeedbackIndex !== null || isSubmitting}
-                    wrongFeedbackIndex={wrongFeedbackIndex}
-                />
-            </AnimatePresence>
+            <Phase4Options
+                options={currentQuestion.options}
+                selectedAnswer={myAnswer?.answer}
+                onSelectAnswer={handleAnswerClick}
+                disabled={hasAnswered || wrongFeedbackIndex !== null || isSubmitting}
+                wrongFeedbackIndex={wrongFeedbackIndex}
+            />
 
             {/* Status Footer */}
             <div className="w-full max-w-lg pt-4 border-t border-slate-700">

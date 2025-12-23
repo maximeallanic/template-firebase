@@ -9,6 +9,7 @@ import type { SimplePhase2Set } from '../../types/gameTypes';
 import { PHASE2_SETS } from '../../data/phase2';
 import { markQuestionAsSeen } from '../../services/historyService';
 import { useReducedMotion } from '../../hooks/useReducedMotion';
+import { useHaptic } from '../../hooks/useHaptic';
 import { SimpleConfetti } from '../ui/SimpleConfetti';
 import type { SoloPhaseHandlers } from '../../types/soloTypes';
 import { SOLO_SCORING } from '../../types/soloTypes';
@@ -32,6 +33,7 @@ interface Phase2PlayerProps {
 export function Phase2Player({ room, playerId, isHost, mode = 'multiplayer', soloHandlers }: Phase2PlayerProps) {
     const { t } = useTranslation(['game-ui', 'game-phases', 'common']);
     const prefersReducedMotion = useReducedMotion();
+    const haptic = useHaptic();
     const controls = useAnimation();
     const isSolo = mode === 'solo';
 
@@ -159,6 +161,7 @@ export function Phase2Player({ room, playerId, isHost, mode = 'multiplayer', sol
     // Handle answer submission
     const handleAnswer = useCallback((choice: Phase2Answer) => {
         if (!canAnswer || !currentItem) return;
+        haptic.tap();
 
         if (isSolo && soloHandlers) {
             // Solo mode: use solo handlers
@@ -172,7 +175,7 @@ export function Phase2Player({ room, playerId, isHost, mode = 'multiplayer', sol
             // Multiplayer mode: submit to room
             submitPhase2AnswerToRoom(roomId, playerId, choice);
         }
-    }, [canAnswer, currentItem, isSolo, soloHandlers, roomId, playerId]);
+    }, [canAnswer, currentItem, isSolo, soloHandlers, roomId, playerId, haptic]);
 
     // Auto-advance for solo mode
     useEffect(() => {
@@ -327,6 +330,7 @@ export function Phase2Player({ room, playerId, isHost, mode = 'multiplayer', sol
                         humorousDescription={currentSet.humorousDescription}
                         onZoneClick={canAnswer ? handleAnswer : undefined}
                         disabled={!canAnswer}
+                        isSolo={isSolo}
                     />
                 )}
             </AnimatePresence>

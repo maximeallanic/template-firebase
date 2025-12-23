@@ -43,6 +43,7 @@ interface Phase2ZonesProps {
     humorousDescription?: string;
     onZoneClick?: (answer: Phase2Answer, direction: SwipeDirection) => void;
     disabled?: boolean;
+    isSolo?: boolean;
 }
 
 export function Phase2Zones({
@@ -52,7 +53,8 @@ export function Phase2Zones({
     optionBDescription,
     humorousDescription,
     onZoneClick,
-    disabled = false
+    disabled = false,
+    isSolo = false
 }: Phase2ZonesProps) {
     const { t } = useTranslation(['game-ui']);
     const prefersReducedMotion = useReducedMotion();
@@ -165,7 +167,7 @@ export function Phase2Zones({
                 initial={prefersReducedMotion ? { opacity: 0 } : "initial"}
                 animate={prefersReducedMotion ? { opacity: 1 } : "animate"}
                 exit={prefersReducedMotion ? { opacity: 0 } : "exit"}
-                className="absolute top-0 left-0 right-0 h-32 bg-gradient-to-b from-purple-500/20 to-transparent pointer-events-none flex justify-center pt-4 group z-20"
+                className={`absolute left-0 right-0 h-32 bg-gradient-to-b from-purple-500/20 to-transparent pointer-events-none flex justify-center group z-20 ${isSolo ? 'top-14 pt-0' : 'top-0 pt-4'}`}
                 role="button"
                 aria-label={t('phase2.selectBoth')}
                 tabIndex={disabled ? -1 : 0}

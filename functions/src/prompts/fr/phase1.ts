@@ -7,79 +7,185 @@
 export const PHASE1_PROMPT = `BURGER QUIZ - 10 questions Tenders
 Thème: {TOPIC} | Difficulté: {DIFFICULTY}
 
-STYLE ALAIN CHABAT - Question drôle, réponses sérieuses :
-• "Quel rappeur français porte le même blaze qu'un gros singe poilu ?" → Booba/Maître Gims/Soprano/Nekfeu
-• "Quelle chanteuse a plus de streams que de douches par semaine ?" → Aya Nakamura/Angèle/Clara Luciani/Pomme
-• "Quel animal passe sa vie à dormir et à manger du bambou comme ton coloc ?" → Panda/Koala/Paresseux/Marmotte
+STYLE : Question DRÔLE et INATTENDUE, options SÉRIEUSES et CRÉDIBLES
 
-RÈGLES :
-1. HUMOUR dans la FORMULATION, pas dans les options
-2. 4 options CRÉDIBLES du même registre (on hésite vraiment)
-3. Questions courtes (10-15 mots max)
-4. Anecdote WTF sur la bonne réponse (20 mots max)
-5. Réponse vérifiable sur Google
+RÈGLES IMPÉRATIVES :
+1. HUMOUR uniquement dans la FORMULATION de la question (ton décalé, absurde, irrévérencieux)
+2. 4 options ULTRA-CRÉDIBLES du même registre → le joueur doit HÉSITER vraiment
+3. UNE SEULE réponse correcte, les 3 autres sont FAUSSES mais plausibles
+4. Questions COURTES (15 mots max), percutantes
+5. Anecdote WTF VRAIE sur la bonne réponse (20 mots max)
+6. VÉRIFIE chaque réponse sur Google avant de l'écrire
+7. VARIÉTÉ : alterne sujets sérieux et légers, styles d'écriture différents
+8. Parfois une réponse WTF mais vraie pour surprendre
 
-INTERDIT : Option blague évidente, réponse dans la question, markdown
+❌ INTERDIT : jeux de mots dans les options, réponse devinable, doublons, questions similaires
 
 JSON: [{"text":"Question?","options":["A","B","C","D"],"correctIndex":0,"anecdote":"Fait insolite"}]`;
 
-export const PHASE1_GENERATOR_PROMPT = `BURGER QUIZ - 10 questions Tenders DRÔLES
-Thème: {TOPIC} | Difficulté: {DIFFICULTY}
+export const PHASE1_GENERATOR_PROMPT = `Tu es un créateur de questions BURGER QUIZ pour la phase "Tenders" (Speed MCQ).
 
-🎯 RÈGLE #1 - HUMOUR OBLIGATOIRE
-Chaque question doit faire SOURIRE grâce à :
-- Formulations DÉCALÉES ("C'est quoi déjà...", "Quel génie a pensé...")
-- DÉTAILS ABSURDES qui font sourire
-- Comparaisons POP CULTURE inattendues
+📋 CONTEXTE
+Thème imposé: {TOPIC}
+Difficulté: {DIFFICULTY}
+Nombre de questions: 10
 
-🎯 RÈGLE #2 - QUESTIONS COURTES (max 20 mots)
-❌ INTERDIT : Questions à rallonge ennuyeuses
-✅ BON : Questions percutantes et mémorables
+🎯 RÈGLE #0 - COHÉRENCE THÉMATIQUE STRICTE
+TOUTES les 10 questions DOIVENT porter sur le thème "{TOPIC}".
+Explore 10 angles DIFFÉRENTS du même thème.
+❌ ZÉRO question hors-sujet tolérée.
 
-🎯 RÈGLE #3 - PRÉCISION FACTUELLE
-VÉRIFIE avec Google AVANT d'écrire :
-✓ Bonne réponse = FAIT établi
-✓ 3 mauvaises réponses = vraiment FAUSSES
-✓ Anecdote = VRAIE et vérifiable
+🎯 RÈGLE #1 - EXACTITUDE FACTUELLE ABSOLUE
+Chaque question doit avoir UNE SEULE réponse correcte 100% vérifiable.
+VÉRIFIE mentalement chaque fait AVANT de l'écrire.
+Les 3 mauvaises réponses doivent être FAUSSES mais crédibles.
+❌ Pas d'ambiguïté possible entre les réponses.
 
-🎯 RÈGLE #4 - OPTIONS DISTINCTES
-4 réponses du MÊME registre, aucun synonyme !
+🎯 RÈGLE #2 - OPTIONS ULTRA CRÉDIBLES
+Les 4 options sont du MÊME registre sémantique - toutes semblent vraies.
+Le joueur doit DOUTER sincèrement entre les options.
+❌ INTERDIT : jeux de mots évidents, options ridicules, 4 options trop similaires (ex: 4 mots en "-isme")
+✅ OBLIGATOIRE : Variété de formats (noms, chiffres, dates, lieux, concepts)
+✅ INCLURE 1-2 réponses WTF/absurdes qui SONNENT vraies (piège pour le joueur)
+
+🎯 RÈGLE #3 - HUMOUR & STYLE
+Questions COURTES (max 15 mots) avec formulation DÉCALÉE, ABSURDE ou IRRÉVÉRENCIEUSE.
+VARIE absolument les styles d'écriture :
+- Questions directes : "Quel est X ?"
+- Affirmations interrogatives : "X est connu pour Y, mais combien Z ?"
+- Formulations provocantes : "Étonnamment, X..."
+- Tournures inattendues : "Si X était Y, combien Z ?"
+❌ Ne pas répéter la même structure de phrase entre questions.
+
+🎯 RÈGLE #4 - DIVERSITÉ DES SUJETS
+Alterne intelligemment entre :
+- Sujets SÉRIEUX (sciences, histoire, géographie)
+- Sujets LÉGERS (culture pop, insolite, records bizarres)
+- Faits contre-intuitifs ou surprenants
+❌ Pas de questions similaires ou redondantes.
+
+🎯 RÈGLE #5 - ANECDOTES OBLIGATOIRES
+Chaque question DOIT avoir une anecdote WTF/insolite de 20 mots max.
+L'anecdote enrichit la réponse correcte avec un détail surprenant VÉRIFIABLE.
+❌ L'anecdote ne doit PAS être vide ou générique.
 
 {PREVIOUS_FEEDBACK}
 
-JSON: [{"text":"Question drôle et courte?","options":["A","B","C","D"],"correctIndex":0,"anecdote":"Fait WTF vérifiable"}]
+FORMAT DE SORTIE (JSON pur, pas de markdown) :
+[
+  {
+    "text": "Question décalée ici ?",
+    "options": ["Option A", "Option B", "Option C", "Option D"],
+    "correctIndex": 2,
+    "anecdote": "Fait WTF surprenant et vérifiable."
+  }
+]
 
-10 questions DRÔLES, COURTES et PRÉCISES. Pas de markdown.`;
+Génère 10 questions DIFFÉRENTES sur le thème "{TOPIC}".`;
 
-export const PHASE1_DIALOGUE_REVIEWER_PROMPT = `REVIEWER BURGER QUIZ Phase 1
+export const PHASE1_DIALOGUE_REVIEWER_PROMPT = `Tu es un reviewer STRICT pour des questions BURGER QUIZ Phase 1.
 
+THÈME ATTENDU : {TOPIC}
+
+QUESTIONS À ÉVALUER :
 {QUESTIONS}
 
-🔍 VÉRIFICATION EN 4 POINTS :
+🔍 GRILLE D'ÉVALUATION STRICTE (10 critères) :
 
-1. HUMOUR : Questions DRÔLES ? Formulations qui font sourire ?
-2. LONGUEUR : Questions COURTES (max 20 mots) ?
-3. EXACTITUDE (CRITIQUE) : Utilise Google pour vérifier CHAQUE réponse !
-4. OPTIONS : 4 réponses distinctes, pas de synonymes ?
+1. COHÉRENCE THÉMATIQUE (score sur 10)
+   - TOUTES les questions portent-elles sur "{TOPIC}" ?
+   - ZÉRO tolérance pour questions hors-sujet
+   - Score < 8 = REJET IMMÉDIAT
 
-⚠️ REJETER SI :
-- Question ennuyeuse ou trop longue
-- Erreur factuelle (même mineure)
-- Options avec synonymes
+2. EXACTITUDE FACTUELLE (score sur 10)
+   - Chaque réponse correcte est-elle 100% vraie et vérifiable ?
+   - Y a-t-il UNE SEULE réponse correcte sans ambiguïté ?
+   - Les mauvaises réponses sont-elles vraiment fausses ?
+   - Score < 8 = REJET IMMÉDIAT
 
-SEUILS : factual_accuracy ≥ 8, humor ≥ 6, overall ≥ 7
+3. QUALITÉ DES OPTIONS (score sur 10)
+   - Les 4 options sonnent-elles toutes plausibles ?
+   - Formats variés (pas 4 noms en "-isme" ou 4 dates similaires) ?
+   - Présence d'1-2 options WTF/absurdes qui sonnent vraies ?
+   - ❌ Jeux de mots évidents, inventions comiques
+   - Score < 7 = REJET
 
-JSON:
+4. HUMOUR & STYLE (score sur 10)
+   - Formulations décalées, absurdes, irrévérencieuses ?
+   - Les questions font-elles sourire ?
+   - Score < 6 = REJET
+
+5. DIVERSITÉ DES STYLES (score sur 10)
+   - Structures de phrases VARIÉES entre questions ?
+   - Mix de questions directes, affirmatives, provocantes ?
+   - Score < 7 = REJET
+
+6. CLARTÉ (score sur 10)
+   - Questions courtes (≤ 15 mots) ?
+   - Pas d'ambiguïté dans la formulation ?
+   - Score < 7 = REJET
+
+7. VARIÉTÉ DES SUJETS (score sur 10)
+   - Mix sérieux/légers ?
+   - Pas de doublons ou questions similaires ?
+   - Score < 7 = REJET
+
+8. ANECDOTES (score sur 10)
+   - Chaque question a une anecdote WTF vérifiable ?
+   - Anecdotes surprenantes et non génériques ?
+   - Longueur raisonnable (≤ 20 mots) ?
+
+9. ORIGINALITÉ (score sur 10)
+   - Questions inattendues et fraîches ?
+   - Pas de clichés ou questions vues 1000 fois ?
+
+10. PIÉGEABILITÉ (score sur 10)
+    - Les questions font-elles vraiment hésiter ?
+    - Le joueur peut-il se tromper facilement ?
+
+⚠️ CRITÈRES DE REJET AUTOMATIQUE :
+- 1+ question hors-sujet → approved: false
+- 1+ erreur factuelle → approved: false
+- 1+ ambiguïté → approved: false
+- Options ridicules/trop similaires → approved: false
+- Doublons internes → approved: false
+- Anecdotes manquantes → approved: false
+- Pas assez drôle (humor < 6) → approved: false
+
+✅ SEUILS D'APPROBATION (TOUS requis) :
+- factual_accuracy ≥ 8
+- options_quality ≥ 7
+- humor ≥ 6
+- clarity ≥ 7
+- variety ≥ 7
+- overall_score ≥ 7
+
+FORMAT DE SORTIE (JSON pur, pas de markdown) :
 {
   "approved": true|false,
-  "scores": {"factual_accuracy":1-10,"humor":1-10,"clarity":1-10,"variety":1-10,"options_quality":1-10},
+  "scores": {
+    "factual_accuracy": 1-10,
+    "humor": 1-10,
+    "clarity": 1-10,
+    "variety": 1-10,
+    "options_quality": 1-10
+  },
   "overall_score": 1-10,
-  "questions_feedback": [{"index":0,"text":"...","ok":true|false,"funny":true|false,"issue":"...","issue_type":"factual_error"|"not_funny"|"too_long"|"ambiguous"|"duplicate_options"|null}],
-  "global_feedback": "...",
-  "suggestions": ["..."]
+  "questions_feedback": [
+    {
+      "index": 0,
+      "text": "Texte de la question",
+      "ok": true|false,
+      "funny": true|false,
+      "issue": "Description du problème si ok=false",
+      "issue_type": "factual_error"|"off_topic"|"ambiguous"|"not_funny"|"too_long"|"duplicate"|"implausible_options"|"missing_anecdote"|null
+    }
+  ],
+  "global_feedback": "Feedback détaillé sur l'ensemble des questions",
+  "suggestions": ["Suggestion 1", "Suggestion 2", "..."]
 }
 
-Pas de markdown.`;
+Sois IMPITOYABLE. Mieux vaut rejeter et itérer que valider des questions moyennes.`;
 
 export const PHASE1_TARGETED_REGENERATION_PROMPT = `REMPLACEMENT - Génère {COUNT} question(s) Burger Quiz
 Thème: {TOPIC} | Difficulté: {DIFFICULTY}

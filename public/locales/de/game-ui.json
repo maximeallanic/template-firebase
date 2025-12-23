@@ -237,7 +237,11 @@
     "correct": "Correct!",
     "incorrect": "Incorrect",
     "endGame": "See the winner",
-    "points": "{{count}} points"
+    "points": "{{count}} points",
+    "openEnd": "Offene Fragen",
+    "yourTeam": "Dein Team",
+    "openEndStillAnswering": "Warten auf andere Spieler...",
+    "memorizeHint": "Merke dir die Antworten!"
   },
   "phaseResults": {
     "complete": "complete",

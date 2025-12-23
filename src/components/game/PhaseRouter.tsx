@@ -5,10 +5,12 @@ import { Phase3Player } from '../phases/Phase3Player';
 import { Phase4Player } from '../phases/Phase4Player';
 import { Phase5Player } from '../phases/Phase5Player';
 import { GameHeader } from './GameHeader';
+import { TeamIndicator } from './TeamIndicator';
 import { DebugPanel } from './DebugPanel';
 import { GenerationLoadingCard } from '../ui/GenerationLoadingCard';
 import { TeammateCursors } from './TeammateCursors';
 import { useTeammateCursors } from '../../hooks/useTeammateCursors';
+import { AnimatePresence } from 'framer-motion';
 
 type GameStatus = 'lobby' | 'phase1' | 'phase2' | 'phase3' | 'phase4' | 'phase5' | 'victory';
 
@@ -64,6 +66,10 @@ function GamePhaseLayout({
                 playerId={playerId}
                 onProfileUpdate={onProfileUpdate}
             />
+            {/* Team Indicator - shows player's team affiliation */}
+            <AnimatePresence>
+                {currentPlayer?.team && <TeamIndicator team={currentPlayer.team} />}
+            </AnimatePresence>
             <div
                 data-cursor-container
                 className="flex-1 w-full max-w-7xl mx-auto flex flex-col items-center justify-center p-4 pt-20"

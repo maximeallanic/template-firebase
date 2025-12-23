@@ -9,11 +9,13 @@ import { Logo } from '../components/ui/Logo';
 import { safeStorage } from '../utils/storage';
 import { saveProfile } from '../services/profileService';
 import { useAuthUser } from '../hooks/useAuthUser';
+import { useHaptic } from '../hooks/useHaptic';
 
 export default function HostLobby() {
     const { t } = useTranslation(['lobby', 'common']);
     const navigate = useNavigate();
     const { profile, loading: profileLoading } = useAuthUser();
+    const haptic = useHaptic();
     const [hostName, setHostName] = useState('');
     const [hostAvatar, setHostAvatar] = useState<Avatar>('chili');
     const [isCreating, setIsCreating] = useState(false);
@@ -103,6 +105,7 @@ export default function HostLobby() {
     const handleCreateRoom = async (e: React.FormEvent) => {
         e.preventDefault();
         if (!hostName.trim()) return;
+        haptic.tap();
         setIsCreating(true);
 
         // Check for pending join code - if exists, join instead of create
@@ -203,7 +206,7 @@ export default function HostLobby() {
                                 <button
                                     key={av}
                                     type="button"
-                                    onClick={() => setHostAvatar(av as Avatar)}
+                                    onClick={() => { haptic.tap(); setHostAvatar(av as Avatar); }}
                                     className={`
                                         aspect-square rounded-xl p-1 flex items-center justify-center transition-all duration-300
                                         ${hostAvatar === av

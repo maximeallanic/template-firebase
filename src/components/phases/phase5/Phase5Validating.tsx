@@ -79,7 +79,7 @@ export function Phase5Validating({ room, isHost }: Phase5ValidatingProps) {
         };
 
         validate();
-    }, [isHost, room.code, questions, spicyAnswers, sweetAnswers]);
+    }, [isHost, room.code, questions, spicyAnswers, sweetAnswers, defaultQuestions]);
 
     // Simulated progress animation
     useEffect(() => {

@@ -16,5 +16,11 @@
   "plans": {
     "free": "Plan Gratuito",
     "pro": "Plan Pro"
+  },
+  "teams": {
+    "spicy": "Spicy",
+    "sweet": "Sweet",
+    "neutral": "Neutral",
+    "yourTeam": "Tu Equipo"
   }
 }

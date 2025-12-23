@@ -11,8 +11,7 @@ import {
     type Avatar,
     type Room,
     AVATAR_LIST,
-    getPhaseInitialUpdates,
-    schedulePhase1Transition
+    getPhaseInitialUpdates
 } from './gameService';
 import type { PhaseStatus } from '../types/gameTypes';
 
@@ -132,10 +131,7 @@ export async function skipToPhase(code: string, phase: PhaseStatus): Promise<voi
 
     await update(ref(rtdb), updates);
 
-    // For phase1, auto-transition to answering after reading delay
-    if (phase === 'phase1') {
-        schedulePhase1Transition(roomId);
-    }
+    // Note: Phase 1 now starts directly in 'answering' state (no reading delay)
 }
 
 /**

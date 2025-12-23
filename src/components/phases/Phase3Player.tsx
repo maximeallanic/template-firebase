@@ -83,6 +83,16 @@ export const Phase3Player: React.FC<Phase3PlayerProps> = ({ room, playerId, isHo
         }
     }, [phase3State, ownTheme, ownProgress]);
 
+    // Auto-trigger transition to phase 4 when phase 3 is finished
+    useEffect(() => {
+        if (phase3State === 'finished' && isHost && !isSolo) {
+            const timer = setTimeout(() => {
+                showPhaseResults(room.code);
+            }, 2000); // 2 second delay to show final scores
+            return () => clearTimeout(timer);
+        }
+    }, [phase3State, isHost, room.code, isSolo]);
+
     // Loading state
     if (!phase3State || !phase3SelectionOrder) {
         return (

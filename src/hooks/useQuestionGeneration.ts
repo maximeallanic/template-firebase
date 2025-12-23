@@ -471,6 +471,8 @@ export function useQuestionGeneration({
                     });
 
                     await overwriteGameQuestions(currentRoom.code, 'phase1', mergedQuestions);
+                    // CRITICAL: Clear loading state BEFORE starting game
+                    await setGeneratingState(currentRoom.code, false);
                     await setGameStatus(currentRoom.code, 'phase1');
                     triggerPhase2Pregen(currentRoom.code);
                     return;
@@ -484,7 +486,7 @@ export function useQuestionGeneration({
             const players = Object.values(currentRoom.players);
             console.log('[QUESTION-GEN] 🤖 Starting AI generation for Phase 1...', { playerCount: players.length });
 
-            // Show loading state in Firebase (visible to all)
+            // Show loading state in Firebase (visible to all) - CRITICAL: Set BEFORE starting generation
             console.log('[QUESTION-GEN] 📡 Setting generation state to true (visible to all players)...');
             await setGeneratingState(currentRoom.code, true);
 
@@ -516,6 +518,8 @@ export function useQuestionGeneration({
                     topic: storedSet.topic
                 });
                 await overwriteGameQuestions(currentRoom.code, 'phase1', storedSet.questions);
+                // CRITICAL: Clear loading state BEFORE starting game
+                await setGeneratingState(currentRoom.code, false);
                 await setGameStatus(currentRoom.code, 'phase1');
                 triggerPhase2Pregen(currentRoom.code);
                 console.log(`[QUESTION-GEN] 🎮 Game started in ${Math.round(performance.now() - startTime)}ms (Firestore questions)`);
@@ -533,6 +537,8 @@ export function useQuestionGeneration({
             await overwriteGameQuestions(currentRoom.code, 'phase1', result.data as unknown[]);
             console.log('[QUESTION-GEN] ✅ AI questions saved successfully!');
 
+            // CRITICAL: Clear loading state BEFORE starting game
+            await setGeneratingState(currentRoom.code, false);
             await setGameStatus(currentRoom.code, 'phase1');
             triggerPhase2Pregen(currentRoom.code);
             console.log(`[QUESTION-GEN] 🎮 Game started in ${Math.round(performance.now() - startTime)}ms (AI-generated questions)`);

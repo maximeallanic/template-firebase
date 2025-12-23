@@ -39,15 +39,26 @@ Thème : {TOPIC} | Difficulté : {DIFFICULTY}
 - Descriptions ACCROCHEUSES qui donnent envie
 - Chaque menu = un ANGLE DIFFÉRENT du thème
 
-⚠️ RÈGLE #2 - QUESTIONS
-- Formulation DÉCALÉE et drôle (pas scolaire)
-- Réponses = FAITS VÉRIFIABLES (utilise Google)
-- Réponses courtes : 1-3 mots max
+⚠️ RÈGLE #2 - QUESTIONS (CRITIQUE !)
+- EXACTEMENT 5 QUESTIONS par menu (OBLIGATOIRE - Vérifie avant de soumettre)
+- Formulation VARIÉE : Mélange "C'est quoi ?", "Combien ?", "Qui ?", "Où ?", "Quand ?", "Quel ?" (pas plus de 2 fois la même formulation par menu)
+- Style DÉCALÉ et drôle (pas scolaire)
+- Réponses = FAITS 100% VÉRIFIABLES (cherche sur Google/Wikipedia avant de proposer)
+- Réponses PRÉCISES : 1 seul mot ou 2-3 mots max (JAMAIS de réponses vagues)
+- Si la question demande un nom précis, la réponse doit être précise et non générique
+- ZÉRO ambiguïté : une seule réponse possible
 
-⚠️ RÈGLE #3 - MENU PIÈGE (1 sur 4)
+⚠️ RÈGLE #3 - FACT-CHECK OBLIGATOIRE
+- VÉRIFIE chaque fait sur Google AVANT de l'inclure
+- Si tu n'es pas SÛR à 100%, NE L'UTILISE PAS
+- Préfère des faits DOCUMENTÉS (interviews, articles, Wikipedia)
+- INTERDIT : réponses vagues ou génériques, faits non vérifiables
+
+⚠️ RÈGLE #4 - MENU PIÈGE (1 sur 4)
 - Apparence NORMALE (titre/description identiques aux autres)
-- Questions BEAUCOUP plus difficiles (faits obscurs)
+- Questions BEAUCOUP plus difficiles (faits obscurs, détails précis)
 - Marque avec isTrap: true
+- Doit rester cohérent avec le thème
 
 📊 DIFFICULTÉ :
 - easy : Faits très connus
@@ -64,26 +75,41 @@ JSON:
     "description": "Accroche fun",
     "isTrap": false,
     "questions": [
-      { "question": "Question décalée ?", "answer": "Réponse 1-3 mots" }
+      { "question": "Question 1 ?", "answer": "Réponse" },
+      { "question": "Question 2 ?", "answer": "Réponse" },
+      { "question": "Question 3 ?", "answer": "Réponse" },
+      { "question": "Question 4 ?", "answer": "Réponse" },
+      { "question": "Question 5 ?", "answer": "Réponse" }
     ]
   }
 ]
 
-4 menus × 5 questions. Pas de markdown.`;
+⚠️ IMPORTANT : 4 menus × 5 questions CHACUN (total = 20 questions). Vérifie que chaque menu a EXACTEMENT 5 questions avant de soumettre !
+Pas de markdown.`;
 
 export const PHASE3_DIALOGUE_REVIEWER_PROMPT = `REVIEWER Phase 3 "La Carte"
 
 {MENUS}
 
-🔍 VÉRIFICATION EN 5 POINTS :
+🔍 VÉRIFICATION EN 10 POINTS (SOIS STRICT !) :
 
-1. TITRES & DESCRIPTIONS : Créatifs ? Thématiques ? Accrocheurs ?
-2. EXACTITUDE (CRITIQUE) : Réponses vérifiables ? Utilise Google !
-3. FORMULATION : Style décalé (pas scolaire) ?
-4. MENU PIÈGE : 1 menu isTrap:true avec questions plus dures ?
-5. RÉPONSES : 1-3 mots max ?
+1. NOMBRE DE QUESTIONS : CHAQUE menu a EXACTEMENT 5 questions ? (CRITIQUE - REFUSE si un menu a 4 ou 6 questions)
+2. TITRES & DESCRIPTIONS : Créatifs ? Thématiques ? Accrocheurs ?
+3. EXACTITUDE (CRITIQUE) : Chaque réponse est-elle vérifiable sur Google/Wikipedia ? REFUSE si tu as le moindre doute
+4. PRÉCISION DES RÉPONSES : Réponse = 1 seul mot ou 2-3 mots MAX ? REFUSE "Meubles anciens", "Un chien", "Nourriture parlante", etc.
+5. ZÉRO AMBIGUÏTÉ : Une seule réponse possible ? REFUSE si plusieurs réponses valides
+6. FORMULATION VARIÉE : Pas plus de 2 fois la même formulation par menu ? (ex: "C'est quoi ?" répété 5 fois = REFUSE)
+7. STYLE DÉCALÉ : Pas scolaire ? Drôle ?
+8. MENU PIÈGE : 1 menu isTrap:true avec questions VRAIMENT plus difficiles ?
+9. PAS DE DOUBLONS : Aucune question identique entre les 4 menus ?
+10. THÈME COHÉRENT : Toutes les questions restent liées au thème ?
 
-SEUILS : factual_accuracy ≥ 7, title_creativity ≥ 5, trap_menu ≥ 5
+⚠️ SOIS PARTICULIÈREMENT STRICT SUR :
+- Réponses vagues (ex: "Meubles", "Objets", "Nourriture")
+- Phobies inventées ou non documentées
+- Questions répétitives ("C'est quoi ?" × 5)
+
+SEUILS : factual_accuracy ≥ 8, clarity ≥ 8, answer_length ≥ 7, trap_menu ≥ 6
 
 JSON:
 {
@@ -96,12 +122,12 @@ JSON:
       "title": "...",
       "title_ok": true|false,
       "questions_feedback": [
-        {"index":0,"question":"...","answer":"...","ok":true|false,"issues":[],"correction":null}
+        {"index":0,"question":"...","answer":"...","ok":true|false,"issues":["Réponse trop vague", "Formulation répétitive", "Fact-check impossible"],"correction":"Réponse corrigée ou null"}
       ]
     }
   ],
   "global_feedback": "...",
-  "suggestions": ["..."]
+  "suggestions": ["Varier les formulations", "Vérifier les faits sur Google", "Réponses plus précises"]
 }
 
 Pas de markdown.`;

@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, maximum-scale=1.0, user-scalable=no" />
 
     <!-- SEO Meta Tags -->
     <meta name="description" content="Spicy vs Sweet - Jeu de quiz multijoueur en equipes inspire des jeux TV de quiz ! Creez une room, formez vos equipes Spicy vs Sweet, et affrontez-vous en 5 phases delirantes avec questions generees par IA." />
@@ -60,7 +60,8 @@
     <link rel="manifest" href="/manifest.webmanifest" />
     <link rel="apple-touch-icon" href="/icon-192.png" />
     <meta name="mobile-web-app-capable" content="yes" />
-    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <meta name="apple-mobile-web-app-title" content="Spicy vs Sweet" />
 
     <!-- Performance Optimization: DNS Prefetch & Preconnect -->
@@ -83,8 +84,9 @@
     <style>
       /* Only absolute essentials for FCP - everything else loads with main CSS */
       *{box-sizing:border-box;margin:0;padding:0}
-      body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;-webkit-font-smoothing:antialiased;background:#0f172a;min-height:100vh;color:#f8fafc}
-      #root{min-height:100vh}
+      html{height:100%}
+      body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;-webkit-font-smoothing:antialiased;background:#0f172a;color:#f8fafc;height:100%;overflow-x:hidden}
+      #root{min-height:100%}
       /* Tailwind utilities for static hero */
       .container{width:100%;margin-left:auto;margin-right:auto}
       @media (min-width:640px){.container{max-width:640px}}
@@ -100,7 +102,7 @@
       .mt-12{margin-top:3rem}
       .relative{position:relative}
       .z-10{z-index:10}
-      .min-h-screen{min-height:100vh}
+      .h-screen{height:100vh;height:100dvh}
       .bg-gradient-to-br{background-image:linear-gradient(to bottom right,var(--tw-gradient-stops))}
       .from-slate-50{--tw-gradient-from:#f8fafc;--tw-gradient-stops:var(--tw-gradient-from),var(--tw-gradient-to,rgba(248,250,252,0))}
       .via-blue-50{--tw-gradient-stops:var(--tw-gradient-from),#eff6ff,var(--tw-gradient-to,rgba(239,246,255,0))}

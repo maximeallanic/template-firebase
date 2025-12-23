@@ -1,4 +1,4 @@
-import { useRef, useState, useEffect, useCallback } from 'react';
+import { useRef, useState, useEffect, useCallback, memo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { motion, AnimatePresence, LayoutGroup, type Variants } from 'framer-motion';
 import { submitAnswer, startNextQuestion, showPhaseResults, type Room } from '../../services/gameService';
@@ -10,6 +10,7 @@ import { QuestionTransition } from '../game/QuestionTransition';
 import { Phase4Timer } from './phase4/Phase4Timer';
 import { springConfig, organicEase, durations, flashIndicatorVariants, transitionDurations, getTransitionDuration } from '../../animations';
 import { useReducedMotion } from '../../hooks/useReducedMotion';
+import { useHaptic } from '../../hooks/useHaptic';
 import type { SoloPhaseHandlers } from '../../types/soloTypes';
 import {
     Triangle, Diamond, Circle, Square,
@@ -68,11 +69,11 @@ const answerButtonVariants: Variants = {
     exit: { opacity: 0, y: -10, transition: { duration: durations.fast } },
     shake: {
         x: [0, -12, 12, -12, 12, -8, 8, 0],
+        scale: 1, // Prevent scale interpolation when transitioning between variants
         transition: { duration: durations.medium, ease: "easeInOut" }
     },
     fadeOut: {
         opacity: 0,
-        scale: 0.95,
         transition: { duration: durations.quick, ease: organicEase }
     }
 };
@@ -103,9 +104,35 @@ const questionReducedVariants: Variants = {
     exit: { opacity: 0, transition: { duration: durations.fast } }
 };
 
+// Memoized question card to prevent re-animation when timer state changes
+interface QuestionCardProps {
+    questionText: string;
+    questionIndex: number | undefined;
+    prefersReducedMotion: boolean;
+}
+
+const QuestionCard = memo(({ questionText, questionIndex, prefersReducedMotion }: QuestionCardProps) => {
+    return (
+        <motion.div
+            key={questionIndex}
+            layoutId={`question-card-${questionIndex}`}
+            variants={prefersReducedMotion ? questionReducedVariants : questionVariants}
+            initial="hidden"
+            animate="visible"
+            exit="exit"
+            className="bg-slate-800/80 p-6 rounded-xl backdrop-blur-sm border border-slate-700 shadow-xl"
+        >
+            <p className="text-white font-bold text-xl md:text-2xl leading-relaxed text-left select-none">
+                {questionText}
+            </p>
+        </motion.div>
+    );
+});
+
 export function Phase1Player({ room, playerId, isHost, mode = 'multiplayer', soloHandlers }: Phase1PlayerProps) {
     const { t } = useTranslation(['game-ui', 'common']);
     const prefersReducedMotion = useReducedMotion();
+    const haptic = useHaptic();
     const isSolo = mode === 'solo';
     const { state, players } = room;
     const { phaseState, currentQuestionIndex, phase1Answers, phase1BlockedTeams, phase1TriedWrongOptions } = state;
@@ -131,6 +158,8 @@ export function Phase1Player({ room, playerId, isHost, mode = 'multiplayer', sol
     // Track if we already showed wrong feedback animation (to avoid double shake)
     // Using state instead of ref to ensure proper React lifecycle synchronization
     const [hasShownWrongFeedback, setHasShownWrongFeedback] = useState(false);
+    // Solo mode: delay showing result state while wrong feedback animation plays
+    const [soloDelayingResult, setSoloDelayingResult] = useState(false);
 
     // Check if my team is blocked (disabled in solo mode)
     const myTeam = players[playerId]?.team;
@@ -173,6 +202,11 @@ export function Phase1Player({ room, playerId, isHost, mode = 'multiplayer', sol
                 // The actual index update happens in handleContentHidden
                 pendingQuestionRef.current = currentQuestionIndex;
                 setShowQuestionTransition(true);
+                // FIX: Reset myAnswer immediately to unblock clicks during transition
+                // (displayed question is still old until handleContentHidden, but input is unblocked)
+                setMyAnswer(null);
+                setHasShownWrongFeedback(false);
+                setSoloDelayingResult(false);
             }
         }
     }, [currentQuestionIndex, displayedQuestionIndex]);
@@ -186,6 +220,7 @@ export function Phase1Player({ room, playerId, isHost, mode = 'multiplayer', sol
             setWrongFeedbackIndex(null);
             setResultRevealPhase('idle');
             setHasShownWrongFeedback(false); // Reset for next question
+            setSoloDelayingResult(false); // Reset solo delay for next question
             pendingQuestionRef.current = undefined;
         }
     }, []);
@@ -208,11 +243,13 @@ export function Phase1Player({ room, playerId, isHost, mode = 'multiplayer', sol
         if (showQuestionTransition) {
             const baseDuration = getTransitionDuration('questionTransition', prefersReducedMotion);
             const safetyTimer = setTimeout(() => {
+                // FIX: Also call handleContentHidden to reset state if callback was never called
+                handleContentHidden();
                 setShowQuestionTransition(false);
             }, baseDuration + transitionDurations.safetyMargin);
             return () => clearTimeout(safetyTimer);
         }
-    }, [showQuestionTransition, prefersReducedMotion]);
+    }, [showQuestionTransition, prefersReducedMotion, handleContentHidden]);
 
     const handleAnswer = async (index: number) => {
         // Also check if this option was already tried and wrong (rebond system)
@@ -223,6 +260,7 @@ export function Phase1Player({ room, playerId, isHost, mode = 'multiplayer', sol
         }
 
         audioService.playClick();
+        haptic.tap();
         setSubmitError(false);
 
         // Check if answer is wrong BEFORE submitting (for immediate visual feedback)
@@ -249,6 +287,12 @@ export function Phase1Player({ room, playerId, isHost, mode = 'multiplayer', sol
             setWrongFeedbackIndex(index);
             setHasShownWrongFeedback(true); // Mark that we showed the animation
             audioService.playError();
+            haptic.error();
+
+            // Solo mode: delay result state to let animation play
+            if (isSolo) {
+                setSoloDelayingResult(true);
+            }
 
             // Run animation and network call in PARALLEL (not sequential)
             const feedbackDuration = getTransitionDuration('wrongFeedback', prefersReducedMotion);
@@ -258,6 +302,10 @@ export function Phase1Player({ room, playerId, isHost, mode = 'multiplayer', sol
             ]);
 
             setWrongFeedbackIndex(null);
+            // Solo mode: animation done, allow result state now
+            if (isSolo) {
+                setSoloDelayingResult(false);
+            }
 
             if (!networkResult.success) {
                 setSubmitError(true);
@@ -293,7 +341,8 @@ export function Phase1Player({ room, playerId, isHost, mode = 'multiplayer', sol
     };
 
     const isAnswering = phaseState === 'answering';
-    const isResult = phaseState === 'result';
+    // In solo mode, delay showing result state while wrong feedback animation plays
+    const isResult = phaseState === 'result' && !soloDelayingResult;
     const isReading = phaseState === 'reading';
 
     // Countdown Logic (reading phase - 3 second countdown)
@@ -309,37 +358,51 @@ export function Phase1Player({ room, playerId, isHost, mode = 'multiplayer', sol
     }, [isReading]);
 
     // Answering phase timer (60 seconds countdown)
+    // Now synchronized with Firebase server timestamp for consistency across all players
     const [answeringTimeRemaining, setAnsweringTimeRemaining] = useState(PHASE1_TIMER_SECONDS);
     const answeringTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
     const hasHandledTimeoutRef = useRef(false);
-    const questionStartTimeRef = useRef<number | null>(null);
+
+    // Reset timeout handler ref when question changes (critical for solo mode progression)
+    useEffect(() => {
+        hasHandledTimeoutRef.current = false;
+    }, [currentQuestionIndex]);
 
     useEffect(() => {
         // Start timer when entering answering phase
-        if (isAnswering && !isMyTeamBlocked && myAnswer === null) {
-            // Track start time for accurate countdown
-            if (questionStartTimeRef.current === null) {
-                questionStartTimeRef.current = Date.now();
-            }
-
+        // Timer continues running even after player answers (for other players to see)
+        if (isAnswering && state.questionStartTime) {
             const updateTimer = () => {
-                const elapsed = Math.floor((Date.now() - (questionStartTimeRef.current ?? Date.now())) / 1000);
+                // Use Firebase server timestamp for accurate countdown (not local time)
+                const elapsed = Math.floor((Date.now() - (state.questionStartTime ?? Date.now())) / 1000);
                 const remaining = Math.max(0, PHASE1_TIMER_SECONDS - elapsed);
                 setAnsweringTimeRemaining(remaining);
 
-                // Handle timeout (host triggers next question)
-                if (remaining === 0 && !hasHandledTimeoutRef.current && isHost && !isSolo) {
+                // Handle timeout (host triggers next question, solo mode always advances)
+                if (remaining === 0 && !hasHandledTimeoutRef.current) {
                     hasHandledTimeoutRef.current = true;
-                    // No one answered in time - skip to next question
-                    if (!isFinished) {
-                        startNextQuestion(room.code, nextQIndex);
-                    } else {
-                        showPhaseResults(room.code);
+
+                    if (isSolo && soloHandlers) {
+                        // Solo mode: use handlers to advance
+                        if (isFinished) {
+                            soloHandlers.advanceToNextPhase();
+                        } else {
+                            soloHandlers.nextPhase1Question();
+                        }
+                    } else if (isHost) {
+                        // Multiplayer: only host triggers next question
+                        if (!isFinished) {
+                            startNextQuestion(room.code, nextQIndex);
+                        } else {
+                            showPhaseResults(room.code);
+                        }
                     }
                 }
             };
 
+            // Initial update
             updateTimer();
+            // Update every second
             answeringTimerRef.current = setInterval(updateTimer, 1000);
 
             return () => {
@@ -353,14 +416,12 @@ export function Phase1Player({ room, playerId, isHost, mode = 'multiplayer', sol
         // Reset timer when phase changes
         if (!isAnswering) {
             setAnsweringTimeRemaining(PHASE1_TIMER_SECONDS);
-            hasHandledTimeoutRef.current = false;
-            questionStartTimeRef.current = null;
             if (answeringTimerRef.current) {
                 clearInterval(answeringTimerRef.current);
                 answeringTimerRef.current = null;
             }
         }
-    }, [isAnswering, isMyTeamBlocked, myAnswer, isHost, isSolo, isFinished, room.code, nextQIndex]);
+    }, [isAnswering, state.questionStartTime, isHost, isSolo, isFinished, room.code, nextQIndex, soloHandlers]);
 
     // Track when buttons become clickable for activation feedback
     const [justBecameAnswering, setJustBecameAnswering] = useState(false);
@@ -394,14 +455,9 @@ export function Phase1Player({ room, playerId, isHost, mode = 'multiplayer', sol
 
                 return () => clearTimeout(timer);
             } else if (isWrongAnswer && hasShownWrongFeedback) {
-                // Already showed feedback via wrongFeedbackIndex - add delay to ensure shake completes
-                // before showing the correct answer (prevents parallel animations)
-                const shakeDuration = getTransitionDuration('wrongFeedback', prefersReducedMotion);
-                const timer = setTimeout(() => {
-                    setResultRevealPhase('revealing');
-                }, shakeDuration);
-
-                return () => clearTimeout(timer);
+                // Already showed feedback via wrongFeedbackIndex - go directly to revealing
+                // (the shake animation has already completed since wrongFeedbackIndex is managed separately)
+                setResultRevealPhase('revealing');
             } else {
                 // Correct answer or reduced motion: go directly to revealing
                 setResultRevealPhase('revealing');
@@ -431,11 +487,13 @@ export function Phase1Player({ room, playerId, isHost, mode = 'multiplayer', sol
         } else if (winnerTeam && winnerTeam !== 'neutral') {
             resultMessage = t('results.teamWins', { team: t(`common:teams.${winnerTeam}`) });
             resultIcon = <XCircle className="w-8 h-8 text-white" />;
-        } else if (!state.roundWinner) {
-            resultMessage = isSolo ? t('results.solo.timeout') : t('results.nobodyFound');
-            resultIcon = <XCircle className="w-8 h-8 text-white" />;
         } else if (myAnswer !== null) {
+            // Player answered but was wrong - check this BEFORE !state.roundWinner
             resultMessage = t('results.wrongAnswer');
+            resultIcon = <XCircle className="w-8 h-8 text-white" />;
+        } else if (!state.roundWinner) {
+            // No winner and player didn't answer (timeout)
+            resultMessage = isSolo ? t('results.solo.timeout') : t('results.nobodyFound');
             resultIcon = <XCircle className="w-8 h-8 text-white" />;
         } else {
             resultMessage = t('results.roundOver');
@@ -451,15 +509,19 @@ export function Phase1Player({ room, playerId, isHost, mode = 'multiplayer', sol
 
             if (state.roundWinner?.playerId === playerId) {
                 audioService.playWinRound();
+                haptic.success();
             } else if (didMyTeamWin) {
                 audioService.playSuccess();
+                haptic.success();
             } else if (winnerTeam && winnerTeam !== 'neutral') {
                 audioService.playError(); // Other team won
+                haptic.error();
             } else {
                 audioService.playError(); // No winner
+                haptic.error();
             }
         }
-    }, [isResult, state.roundWinner, playerId, myTeam]);
+    }, [isResult, state.roundWinner, playerId, myTeam, haptic]);
 
     // Timer Tick Audio
     useEffect(() => {
@@ -576,20 +638,14 @@ export function Phase1Player({ room, playerId, isHost, mode = 'multiplayer', sol
             {/* Context Header */}
             <div className="space-y-4 w-full">
                 {/* Question Text - Uses displayedQuestion to prevent flash during transition */}
+                {/* Memoized to prevent re-animation when timer state changes (e.g. hurry mode at 5s) */}
                 <AnimatePresence mode="popLayout">
                     {displayedQuestion && (
-                        <motion.div
-                            key={displayedQuestionIndex}
-                            variants={prefersReducedMotion ? questionReducedVariants : questionVariants}
-                            initial="hidden"
-                            animate="visible"
-                            exit="exit"
-                            className="bg-slate-800/80 p-6 rounded-xl backdrop-blur-sm border border-slate-700 shadow-xl"
-                        >
-                            <p className="text-white font-bold text-xl md:text-2xl leading-relaxed text-left select-none">
-                                {displayedQuestion.text}
-                            </p>
-                        </motion.div>
+                        <QuestionCard
+                            questionText={displayedQuestion.text}
+                            questionIndex={displayedQuestionIndex}
+                            prefersReducedMotion={prefersReducedMotion}
+                        />
                     )}
                 </AnimatePresence>
 

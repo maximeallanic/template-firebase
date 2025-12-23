@@ -175,7 +175,7 @@ export function PWAHomePage() {
   };
 
   return (
-    <div className="min-h-screen flex flex-col relative overflow-hidden">
+    <div className="h-screen flex flex-col relative overflow-hidden">
       {/* Background */}
       <PWABackground />
 
@@ -211,7 +211,7 @@ export function PWAHomePage() {
         }}
       >
         {/* Header with settings */}
-        <header className="flex items-center justify-between p-4">
+        <header className="flex items-center justify-between p-4 bg-slate-900/80 backdrop-blur-sm">
           <QuickSettings onEditProfile={() => setShowProfileEdit(true)} />
           {/* Logo small */}
           <div className="w-10 h-10">
@@ -227,8 +227,8 @@ export function PWAHomePage() {
           <PlayButton onPress={() => setIsMenuOpen(true)} />
         </div>
 
-        {/* Bottom spacer for action menu */}
-        <div className="h-20" />
+        {/* Bottom spacer for action menu - minimal to prevent content overlap */}
+        <div className="h-4" />
       </div>
 
       {/* Action menu */}

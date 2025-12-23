@@ -30,44 +30,103 @@ JSON:
 
 12 items. Pas de markdown.`;
 
-export const PHASE2_GENERATOR_PROMPT = `BURGER QUIZ Phase 2 "Sel ou Poivre" - Jeux de mots phonétiques
+export const PHASE2_GENERATOR_PROMPT = `BURGER QUIZ Phase 2 "Sel ou Poivre" - Choix binaire délirant
 Domaine : {TOPIC} | Difficulté : {DIFFICULTY}
 
-🎯 OBJECTIF : Créer un JEU DE MOTS où 2 expressions SE PRONONCENT IDENTIQUEMENT mais ont des sens différents
+🎯 CONCEPT : Créer 2 CATÉGORIES OPPOSÉES ou JOUANT SUR LES MOTS où des items doivent être classés. Les items peuvent appartenir à A, B, ou les DEUX !
 
-⚠️ RÈGLE #1 - HOMOPHONES STRICTS
-Les 2 options doivent avoir la MÊME prononciation IPA en français.
-Pas de mots anglais. Vérifie avec la transcription phonétique.
+⚠️ RÈGLE #0 - BURGER QUIZ MINDSET (CRITIQUE!)
+TU N'ES PAS un prof qui fait réviser.
+TU ES l'animateur délirant de Burger Quiz !
+CHAQUE ITEM doit faire SOURIRE ou SURPRENDRE.
+Si un item est "neutre" ou "informatif", c'est un ÉCHEC.
 
-⚠️ RÈGLE #2 - CATÉGORIES CONCRÈTES
-- Option A = sens littéral (on peut facilement lister 5+ items)
-- Option B = calembour/sens détourné MAIS aussi utilisable (5+ items possibles)
+⚠️ RÈGLE #1 - CATÉGORIES GÉNIALES
+Les 2 options doivent :
+- Être COURTES : 2-4 MOTS MAX (CRITIQUE! Plus de 4 mots = REJET AUTOMATIQUE)
+- Être CONCRÈTES : on doit pouvoir lister facilement 5+ items pour chaque
+- Être AMUSANTES : jeu de mots, opposition drôle, ou concepts décalés
+- Exemples d'approches : homophones ("Sel" vs "Celle"), opposés ("Chaud" vs "Froid"), catégories décalées ("Trucs rouges" vs "Trucs qui font peur")
 
-⚠️ RÈGLE #3 - ITEMS PIÈGES (5-6 sur 12)
-❌ INTERDITS : mots-clés directs, géographie scolaire, définitions évidentes
-✅ OBLIGATOIRES : items qui SEMBLENT aller dans une catégorie mais vont dans l'autre
-Préférer : références culturelles, célébrités, expressions détournées
+LONGUEUR DES OPTIONS - EXEMPLES :
+✅ "Le Cœur" (2 mots)
+✅ "Le Chœur" (2 mots)
+✅ "Les Contes" (2 mots)
+✅ "Les Comptes" (2 mots)
+❌ "Un mec qui a la gastro" (6 mots - TROP LONG!)
 
-📊 DISTRIBUTION : 5 A + 5 B + 2 Both
+⚠️ RÈGLE #2 - ITEMS DÉLIRANTS (LE PLUS IMPORTANT!)
+ÉTAT D'ESPRIT : On est dans BURGER QUIZ, pas dans un quiz scolaire ! Chaque item doit SURPRENDRE.
 
-🎭 DESCRIPTION : Une phrase fun style Burger Quiz présentant les 2 options
+DIVERSITÉ DE STYLE (varier ABSOLUMENT - JAMAIS 2 fois la même formulation!) :
+- 3 items : RÉFÉRENCES CULTURELLES décalées (célébrités, films, marques avec un angle fun)
+- 3 items : SITUATIONS ABSURDES du quotidien ("Ce qu'on fait quand...", "Celui qui...", "Le truc bizarre que...")
+- 3 items : WTF PLAUSIBLES (trucs absurdes mais VRAIS - "un phoque enragé", "ta grand-mère en rollers", "un croissant qui parle")
+- 3 items : DÉTOURNEMENTS/EXPRESSIONS (jeux de mots, double sens, contre-pieds)
+
+FORMULATIONS VARIÉES - EXEMPLES CONCRETS :
+✅ "Ce qu'on fait après 3 mojitos"
+✅ "Le cauchemar récurrent d'un prof de gym"
+✅ "Un truc louche au fond du frigo"
+✅ "Ce que ton ex raconte sur toi"
+✅ "Celui qui a raté son permis 7 fois"
+✅ "Le truc bizarre que fait ton voisin à 3h du mat"
+✅ "Ce qu'on regrette le lendemain d'une soirée"
+
+❌ ANTI-EXEMPLES (JAMAIS ça!) :
+❌ "Cendrillon" (sans contexte - TROP SIMPLE!)
+❌ "Son ancêtre s'appelait la Visitandine" (COURS D'HISTOIRE!)
+❌ "Il se situe entre X et Y" (SCOLAIRE!)
+❌ "Un virement SEPA" (TECHNIQUE!)
+❌ "Il possède généralement..." (TON PROFESSORAL!)
+❌ "C'est caractérisé par..." (ENCYCLOPÉDIQUE!)
+
+RÈGLE D'OR DES FORMULATIONS :
+Si ton item pourrait figurer dans un manuel scolaire ou Wikipédia, RECOMMENCE.
+Si ton item fait sourire ou dire "WTF?", c'est BON.
+
+PIÈGES OBLIGATOIRES (7-8 items sur 12) :
+❌ INTERDITS : définitions wikipédia, listes scolaires, classifications
+✅ OBLIGATOIRES : items qui font DOUTER ("Attends... ça va où ça ?!")
+Le joueur doit vraiment se gratter la tête et parfois rire de l'absurdité
+
+MIX SÉRIEUX/LÉGER :
+- 30% items "normaux" (mais formulés de façon fun)
+- 70% items délirants/décalés/absurdes/WTF (mais VRAIS!)
+
+⚠️ RÈGLE #3 - RÉPONSES CORRECTES & BOTH
+- Chaque réponse doit être FACT-CHECKABLE et VRAIE
+- "Both" = fonctionne VRAIMENT pour les 2 catégories (pas juste un maybe)
+- Si tu mets "Both", explique POURQUOI dans la justification
+
+📊 DISTRIBUTION STRICTE : 5 A + 5 B + 2 Both (EXACTEMENT)
+
+🎭 DESCRIPTION : Une phrase courte et fun présentant les 2 options, style Burger Quiz
 
 {PREVIOUS_FEEDBACK}
 
 JSON:
 {
   "optionA": "Catégorie (2-4 mots)",
-  "optionB": "Calembour (2-4 mots)",
+  "optionB": "Catégorie/Jeu de mots (2-4 mots)",
   "optionADescription": "Si A=B textuellement, sinon null",
   "optionBDescription": "Si A=B textuellement, sinon null",
-  "humorousDescription": "Description fun des 2 options",
-  "reasoning": "IPA: /.../ = /.../",
+  "humorousDescription": "Phrase fun présentant les 2 options",
+  "reasoning": "Explication rapide : pourquoi ces 2 catégories fonctionnent bien ensemble, comment tu as varié les styles d'items",
   "items": [
-    { "text": "Item (4 mots max)", "answer": "A|B|Both", "justification": "Pourquoi" }
+    { "text": "Item (4 mots max)", "answer": "A|B|Both", "justification": "Pourquoi cet item va là (court)" }
   ]
 }
 
-12 items. Pas de markdown.`;
+RAPPELS FINAUX :
+- VARIER les formulations (pas 12 fois le même type d'item!)
+- Mix SÉRIEUX (fact-checkable) et DÉLIRANT (WTF mais vrai)
+- Items PIÈGES qui font hésiter
+- Justifications ULTRA-COURTES (10-15 mots MAX - va droit au but!)
+- 12 items EXACTEMENT
+- Pas de ton encyclopédique ou professoral
+
+Pas de markdown dans le JSON.`;
 
 export const PHASE2_TARGETED_REGENERATION_PROMPT = `Tu dois REMPLACER certains items d'un set Phase 2 "Sel ou Poivre".
 
@@ -111,8 +170,10 @@ export const PHASE2_DIALOGUE_REVIEWER_PROMPT = `REVIEWER Phase 2 "Sel ou Poivre"
 
 🔍 VÉRIFICATION EN 4 POINTS :
 
-1. PHONÉTIQUE (CRITIQUE) : A et B ont-ils la MÊME prononciation IPA ?
-   Si les sons diffèrent → phonetic < 5 → REJET DU SET
+1. PHONÉTIQUE (CRITIQUE) : A et B ont-ils la MÊME prononciation IPA syllabe par syllabe ?
+   - Décompose chaque option en syllabes IPA
+   - Les 2 expressions sont-elles NATURELLES en français ? (pas d'articles forcés, pas d'inventions)
+   Si les sons diffèrent OU expressions forcées → phonetic < 5 → REJET DU SET
 
 2. CATÉGORIES UTILISABLES : Peut-on lister 5+ items pour A ET pour B ?
    Si B inutilisable → b_concrete < 5 → REJET

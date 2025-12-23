@@ -196,9 +196,9 @@ export async function getRandomQuestionSet(
             })),
         } as unknown as Question[];
     } else if (phase === 'phase4') {
-        // Phase4: MCQ format with question, options, correctIndex
+        // Phase4: MCQ format with text, options, correctIndex
         gameQuestions = questions.map(q => ({
-            question: q.question || q.text || '',
+            text: q.question || q.text || '',
             options: q.options || [],
             correctIndex: q.correctIndex ?? 0,
             anecdote: q.anecdote,

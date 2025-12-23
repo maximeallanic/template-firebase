@@ -284,6 +284,7 @@ export function mapSoloStateToGameState(state: SoloGameState): import('./gameTyp
     if (state.status === 'phase1' && state.phase1State) {
         const currentIdx = state.phase1State.currentQuestionIndex;
         baseState.currentQuestionIndex = currentIdx;
+        baseState.questionStartTime = state.phase1State.questionStartTime; // Timer sync for solo mode
         // Check if current question has been answered
         const currentAnswered = state.phase1State.answers.length > currentIdx;
         baseState.phaseState = currentAnswered ? 'result' : 'answering';

@@ -1,4 +1,4 @@
-import { ref, get, update, child } from 'firebase/database';
+import { ref, get, update, child, remove } from 'firebase/database';
 import { rtdb, auth } from './firebase';
 import { generateQuestionHash } from '../utils/hash';
 
@@ -113,4 +113,26 @@ export async function filterUnseenQuestions<T>(
 
     // If all questions have been seen, return all to allow cycling
     return unseen.length > 0 ? unseen : questions;
+}
+
+/**
+ * Clears all question history for the current authenticated user.
+ * This should be called when starting a new game to ensure fresh questions.
+ */
+export async function clearQuestionHistory(): Promise<void> {
+    const user = auth.currentUser;
+    if (!user) {
+        console.log('[HISTORY-SVC] clearQuestionHistory: No authenticated user');
+        return;
+    }
+
+    try {
+        const historyRef = ref(rtdb, `userHistory/${user.uid}`);
+        // Remove the entire user history node to clear all seen questions
+        await remove(historyRef);
+        console.log('[HISTORY-SVC] ✅ Question history cleared for user:', user.uid);
+    } catch (error) {
+        console.error('[HISTORY-SVC] ❌ Error clearing question history:', error);
+        throw error;
+    }
 }

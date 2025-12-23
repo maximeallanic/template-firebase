@@ -57,7 +57,8 @@
   "teams": {
     "spicy": "Spicy",
     "sweet": "Sweet",
-    "neutral": "Neutre"
+    "neutral": "Neutre",
+    "yourTeam": "Ton équipe"
   },
   "time": {
     "seconds": "secondes",
