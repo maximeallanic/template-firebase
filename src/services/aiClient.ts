@@ -7,6 +7,9 @@ export interface GameGenerationInput {
     difficulty?: 'easy' | 'normal' | 'hard' | 'wtf';
     roomCode?: string; // For server-side idempotency check
     soloMode?: boolean; // Bypass premium check for solo practice mode
+    // Completion mode: generate only missing questions
+    completeCount?: number; // Number of questions to generate (for completion)
+    existingQuestions?: unknown[]; // Existing questions to avoid duplicates
 }
 
 export interface GameGenerationOutput {
@@ -40,6 +43,8 @@ export const generateGameQuestions = async (input: GameGenerationInput): Promise
         topic: input.topic || '(auto)',
         difficulty: input.difficulty || 'normal',
         roomCode: input.roomCode || '(none)',
+        completeCount: input.completeCount || '(full)',
+        existingCount: input.existingQuestions?.length || 0,
         timestamp: new Date().toISOString()
     });
 
@@ -100,6 +105,8 @@ export const generateWithRetry = async (
         topic: input.topic || '(auto)',
         difficulty: input.difficulty || 'normal',
         roomCode: input.roomCode,
+        completeCount: input.completeCount || '(full)',
+        existingCount: input.existingQuestions?.length || 0,
         maxRetries,
         timestamp: new Date().toISOString()
     });

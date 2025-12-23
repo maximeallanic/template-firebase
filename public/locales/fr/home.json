@@ -64,5 +64,27 @@
     "title": "Installez l'app !",
     "subtitle": "Accès rapide depuis votre écran d'accueil",
     "button": "Installer"
-  }
+  },
+  "pwa": {
+    "play": "JOUER",
+    "settings": "Réglages",
+    "sound": "Son",
+    "soundOn": "Activé",
+    "soundOff": "Désactivé",
+    "language": "Langue",
+    "profile": "Profil",
+    "rotateDevice": "Tournez votre appareil",
+    "portraitRequired": "Ce jeu se joue en mode portrait"
+  },
+  "createGame": "Créer une partie",
+  "joinGame": "Rejoindre",
+  "soloMode": "Mode Solo",
+  "hostDescription": "Invitez vos amis",
+  "joinDescription": "Entrez un code",
+  "soloDescription": "Jouez seul",
+  "enterCode": "Entrez le code",
+  "joining": "Connexion...",
+  "creatingRoom": "Création...",
+  "joiningRoom": "Connexion...",
+  "editProfile": "Modifier le profil"
 }

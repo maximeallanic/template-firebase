@@ -60,6 +60,37 @@ export const loadingDurations = {
 };
 
 /**
+ * Transition Durations (in milliseconds)
+ * Standardized timing for all phase and question transitions
+ */
+export const transitionDurations = {
+    questionTransition: { normal: 800, reduced: 300 },
+    phaseTransition: { normal: 5000, reduced: 2000 },
+    countdownTick: { normal: 800, reduced: 300 },
+    wrongFeedback: { normal: 500, reduced: 100 },
+    safetyMargin: 700,
+} as const;
+
+/**
+ * Countdown easing curve - intentional overshoot for bouncy number animation
+ * Used in Phase 1 and Phase 4 countdown displays
+ */
+export const countdownEase = [0.34, 1.56, 0.64, 1] as const;
+
+/**
+ * Helper to get transition duration based on reduced motion preference
+ */
+export const getTransitionDuration = (
+    type: keyof typeof transitionDurations,
+    reducedMotion: boolean
+): number => {
+    const config = transitionDurations[type];
+    return typeof config === 'number'
+        ? config
+        : (reducedMotion ? config.reduced : config.normal);
+};
+
+/**
  * Cooking Dots Loader Variants
  * For the unified FoodLoader component - 3 dots pulsing sequentially
  */

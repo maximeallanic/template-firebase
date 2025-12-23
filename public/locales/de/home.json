@@ -1,0 +1,90 @@
+{
+  "hero": {
+    "tagline": "Das kulinarische Quiz-Spiel mit Freunden!",
+    "description": "Kämpft in Teams <spicy>Spicy</spicy> vs <sweet>Sweet</sweet> in lustigen Herausforderungen!"
+  },
+  "features": {
+    "players": "2-20 Spieler",
+    "challenges": "5 lustige Herausforderungen",
+    "winner": "1 Gewinnerteam"
+  },
+  "create": {
+    "title": "SPIEL ERSTELLEN",
+    "subtitle": "Öffne deine Küche und lade Freunde ein!",
+    "button": "Koch werden"
+  },
+  "join": {
+    "title": "BEITRETEN",
+    "subtitle": "Gib den Code ein und wähle dein Team!",
+    "placeholder": "CODE",
+    "button": "Beitreten",
+    "invalidCode": "Ungültiger Code"
+  },
+  "phases": {
+    "title": "5 Lustige Herausforderungen",
+    "tenders": {
+      "name": "Tenders",
+      "description": "Sei der Schnellste beim Buzzen!"
+    },
+    "sucreSale": {
+      "name": "Süß & Salzig",
+      "description": "A oder B?"
+    },
+    "laCarte": {
+      "name": "Die Speisekarte",
+      "description": "Merke dir so viele Gerichte wie möglich!"
+    },
+    "laNote": {
+      "name": "Die Rechnung",
+      "description": "Allgemeinwissen-Fragen!"
+    },
+    "burgerUltime": {
+      "name": "Ultimate Burger",
+      "description": "Die finale Herausforderung für den Sieg!"
+    }
+  },
+  "loading": {
+    "joining": "Trete dem Spiel bei...",
+    "creating": "Öffne die Küche..."
+  },
+  "premium": {
+    "badge": "PREMIUM",
+    "title": "Alle Phasen freischalten",
+    "description": "Werde Premium für Zugang zu Phase 3, 4 und 5 mit deinem Team!",
+    "features": {
+      "laCarte": "Die Speisekarte",
+      "laNote": "Die Rechnung",
+      "burgerUltime": "Ultimate Burger"
+    },
+    "price": "4,99 €/Monat",
+    "cta": "Premium werden",
+    "hostOnly": "Nur der Gastgeber benötigt ein Abonnement"
+  },
+  "install": {
+    "title": "App installieren!",
+    "subtitle": "Schneller Zugriff vom Startbildschirm",
+    "button": "Installieren"
+  },
+  "pwa": {
+    "play": "SPIELEN",
+    "settings": "Einstellungen",
+    "sound": "Ton",
+    "soundOn": "An",
+    "soundOff": "Aus",
+    "language": "Sprache",
+    "profile": "Profil",
+    "rotateDevice": "Gerät drehen",
+    "portraitRequired": "Dieses Spiel wird im Hochformat gespielt"
+  },
+  "createGame": "Spiel erstellen",
+  "joinGame": "Beitreten",
+  "soloMode": "Solo-Modus",
+  "hostDescription": "Lade Freunde ein",
+  "joinDescription": "Code eingeben",
+  "soloDescription": "Alleine spielen",
+  "enterCode": "Code eingeben",
+  "joining": "Verbinde...",
+  "creatingRoom": "Erstelle...",
+  "joiningRoom": "Verbinde...",
+  "editProfile": "Profil bearbeiten"
+}

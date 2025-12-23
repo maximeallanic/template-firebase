@@ -7,13 +7,17 @@ import { markQuestionAsSeen } from '../../services/historyService';
 import { SimpleConfetti } from '../ui/SimpleConfetti';
 import { TeammateRoster } from '../game/TeammateRoster';
 import { QuestionTransition } from '../game/QuestionTransition';
-import { springConfig, organicEase, durations, flashIndicatorVariants } from '../../animations';
+import { Phase4Timer } from './phase4/Phase4Timer';
+import { springConfig, organicEase, durations, flashIndicatorVariants, transitionDurations, getTransitionDuration } from '../../animations';
 import { useReducedMotion } from '../../hooks/useReducedMotion';
 import type { SoloPhaseHandlers } from '../../types/soloTypes';
 import {
     Triangle, Diamond, Circle, Square,
     Clock, Trophy, XCircle, Play, AlertTriangle
 } from 'lucide-react';
+
+// Phase 1 answering timer (60 seconds)
+const PHASE1_TIMER_SECONDS = 60;
 
 
 interface Phase1PlayerProps {
@@ -106,33 +110,72 @@ export function Phase1Player({ room, playerId, isHost, mode = 'multiplayer', sol
     const [submitError, setSubmitError] = useState(false);
     const [showQuestionTransition, setShowQuestionTransition] = useState(false);
     const [wrongFeedbackIndex, setWrongFeedbackIndex] = useState<number | null>(null);
+    // Separate displayed index from incoming index to prevent flash
+    const [displayedQuestionIndex, setDisplayedQuestionIndex] = useState<number | undefined>(undefined);
+    const pendingQuestionRef = useRef<number | undefined>(undefined);
+    // Result reveal animation phase: 'idle' → 'shaking' → 'revealing'
+    const [resultRevealPhase, setResultRevealPhase] = useState<'idle' | 'shaking' | 'revealing'>('idle');
+    // Track if we already showed wrong feedback animation (to avoid double shake)
+    // Using state instead of ref to ensure proper React lifecycle synchronization
+    const [hasShownWrongFeedback, setHasShownWrongFeedback] = useState(false);
 
     // Check if my team is blocked (disabled in solo mode)
     const myTeam = players[playerId]?.team;
     const blockedTeams = phase1BlockedTeams || [];
     const isMyTeamBlocked = isSolo ? false : (myTeam ? blockedTeams.includes(myTeam) : false);
 
-    // Track previous question index to detect actual changes
-    const prevQuestionIndexRef = useRef<number | undefined>(undefined);
+    // Reset myAnswer when team becomes unblocked (rebond in favor)
+    // This allows the player to answer again after their team is unblocked
+    const wasBlockedRef = useRef(isMyTeamBlocked);
+    useEffect(() => {
+        // Detect transition from blocked → unblocked while still in answering phase
+        if (wasBlockedRef.current && !isMyTeamBlocked && phaseState === 'answering') {
+            // Team was blocked but is now unblocked (rebond) - allow answering again
+            setMyAnswer(null);
+            setWrongFeedbackIndex(null);
+        }
+        wasBlockedRef.current = isMyTeamBlocked;
+    }, [isMyTeamBlocked, phaseState]);
+
+    // Get the displayed question (uses displayedQuestionIndex to prevent flash during transition)
+    const displayedQuestion = (displayedQuestionIndex !== undefined && displayedQuestionIndex >= 0 && questionsList.length > 0)
+        ? questionsList[displayedQuestionIndex]
+        : null;
 
     // Trigger transition effect only when question actually changes
-    // Proper useEffect pattern - no mutation during render
+    // NEW: Don't update displayedQuestionIndex immediately - wait for transition to hide content
     useEffect(() => {
-        const prevIndex = prevQuestionIndexRef.current;
         const hasValidIndex = currentQuestionIndex !== undefined && currentQuestionIndex >= 0;
 
-        if (hasValidIndex && currentQuestionIndex !== prevIndex) {
+        if (hasValidIndex) {
+            if (displayedQuestionIndex === undefined) {
+                // First question - display immediately (no transition needed)
+                setDisplayedQuestionIndex(currentQuestionIndex);
+                setMyAnswer(null);
+                setSubmitError(false);
+                setWrongFeedbackIndex(null);
+                setHasShownWrongFeedback(false);
+            } else if (currentQuestionIndex !== displayedQuestionIndex) {
+                // Subsequent question - store pending and show transition
+                // The actual index update happens in handleContentHidden
+                pendingQuestionRef.current = currentQuestionIndex;
+                setShowQuestionTransition(true);
+            }
+        }
+    }, [currentQuestionIndex, displayedQuestionIndex]);
+
+    // Callback called when transition overlay is fully opaque - NOW we can swap content
+    const handleContentHidden = useCallback(() => {
+        if (pendingQuestionRef.current !== undefined) {
+            setDisplayedQuestionIndex(pendingQuestionRef.current);
             setMyAnswer(null);
             setSubmitError(false);
             setWrongFeedbackIndex(null);
-            // Only show transition animation for subsequent questions (not the first)
-            if (prevIndex !== undefined) {
-                setShowQuestionTransition(true);
-            }
-            // Update ref INSIDE useEffect, not during render
-            prevQuestionIndexRef.current = currentQuestionIndex;
+            setResultRevealPhase('idle');
+            setHasShownWrongFeedback(false); // Reset for next question
+            pendingQuestionRef.current = undefined;
         }
-    }, [currentQuestionIndex]);
+    }, []);
 
     // Track question as seen when displayed (each player marks on their own device)
     useEffect(() => {
@@ -147,50 +190,79 @@ export function Phase1Player({ room, playerId, isHost, mode = 'multiplayer', sol
 
     // Safety timeout: force hide transition if it stays visible too long
     // This prevents the UI from being stuck if onComplete callback fails
+    // Adaptive based on reduced motion preference
     useEffect(() => {
         if (showQuestionTransition) {
+            const baseDuration = getTransitionDuration('questionTransition', prefersReducedMotion);
             const safetyTimer = setTimeout(() => {
                 setShowQuestionTransition(false);
-            }, 1500); // Max 1.5s before force-hiding
+            }, baseDuration + transitionDurations.safetyMargin);
             return () => clearTimeout(safetyTimer);
         }
-    }, [showQuestionTransition]);
+    }, [showQuestionTransition, prefersReducedMotion]);
 
     const handleAnswer = async (index: number) => {
         // Also check if this option was already tried and wrong (rebond system)
         // Also prevent interaction during wrong feedback animation
-        if (phaseState === 'answering' && myAnswer === null && !isMyTeamBlocked && !triedWrongOptions.includes(index) && wrongFeedbackIndex === null) {
-            audioService.playClick();
-            setSubmitError(false);
+        if (phaseState !== 'answering' || myAnswer !== null || isMyTeamBlocked ||
+            triedWrongOptions.includes(index) || wrongFeedbackIndex !== null) {
+            return;
+        }
 
-            // Check if answer is wrong BEFORE submitting (for immediate visual feedback)
-            const isWrongAnswer = currentQuestion && index !== currentQuestion.correctIndex;
+        audioService.playClick();
+        setSubmitError(false);
 
-            if (isWrongAnswer && !prefersReducedMotion) {
-                // Show immediate wrong answer feedback
-                setWrongFeedbackIndex(index);
-                audioService.playError();
+        // Check if answer is wrong BEFORE submitting (for immediate visual feedback)
+        // Use displayedQuestion (what user sees) not currentQuestion (which may have changed)
+        const isWrongAnswer = displayedQuestion && index !== displayedQuestion.correctIndex;
 
-                // Wait for animation to complete before submitting
-                await new Promise(resolve => setTimeout(resolve, 800));
-                setWrongFeedbackIndex(null);
-            }
-
-            // Now submit the answer (the rest of the flow continues normally)
-            setMyAnswer(index);
+        // Start the network submission immediately (optimistic UI)
+        const submitPromise = (async () => {
             try {
                 if (isSolo && soloHandlers) {
                     soloHandlers.submitPhase1Answer(index);
                 } else {
                     await submitAnswer(room.code, playerId, index);
                 }
+                return { success: true };
             } catch (error) {
                 console.error('Failed to submit answer:', error);
-                setMyAnswer(null); // Reset UI so player can try again
+                return { success: false, error };
+            }
+        })();
+
+        if (isWrongAnswer && !prefersReducedMotion) {
+            // Show immediate wrong answer feedback
+            setWrongFeedbackIndex(index);
+            setHasShownWrongFeedback(true); // Mark that we showed the animation
+            audioService.playError();
+
+            // Run animation and network call in PARALLEL (not sequential)
+            const feedbackDuration = getTransitionDuration('wrongFeedback', prefersReducedMotion);
+            const [, networkResult] = await Promise.all([
+                new Promise<void>(resolve => setTimeout(resolve, feedbackDuration)),
+                submitPromise
+            ]);
+
+            setWrongFeedbackIndex(null);
+
+            if (!networkResult.success) {
                 setSubmitError(true);
                 audioService.playError();
+                return; // Don't lock answer, allow retry
+            }
+        } else {
+            // Correct answer or reduced motion: just wait for network
+            const networkResult = await submitPromise;
+            if (!networkResult.success) {
+                setSubmitError(true);
+                audioService.playError();
+                return;
             }
         }
+
+        // Success: lock the answer
+        setMyAnswer(index);
     };
 
     // HOST LOGIC
@@ -211,7 +283,7 @@ export function Phase1Player({ room, playerId, isHost, mode = 'multiplayer', sol
     const isResult = phaseState === 'result';
     const isReading = phaseState === 'reading';
 
-    // Countdown Logic
+    // Countdown Logic (reading phase - 3 second countdown)
     const [countdown, setCountdown] = useState(3);
     useEffect(() => {
         if (isReading) {
@@ -222,6 +294,60 @@ export function Phase1Player({ room, playerId, isHost, mode = 'multiplayer', sol
             return () => clearInterval(timer);
         }
     }, [isReading]);
+
+    // Answering phase timer (60 seconds countdown)
+    const [answeringTimeRemaining, setAnsweringTimeRemaining] = useState(PHASE1_TIMER_SECONDS);
+    const answeringTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+    const hasHandledTimeoutRef = useRef(false);
+    const questionStartTimeRef = useRef<number | null>(null);
+
+    useEffect(() => {
+        // Start timer when entering answering phase
+        if (isAnswering && !isMyTeamBlocked && myAnswer === null) {
+            // Track start time for accurate countdown
+            if (questionStartTimeRef.current === null) {
+                questionStartTimeRef.current = Date.now();
+            }
+
+            const updateTimer = () => {
+                const elapsed = Math.floor((Date.now() - (questionStartTimeRef.current ?? Date.now())) / 1000);
+                const remaining = Math.max(0, PHASE1_TIMER_SECONDS - elapsed);
+                setAnsweringTimeRemaining(remaining);
+
+                // Handle timeout (host triggers next question)
+                if (remaining === 0 && !hasHandledTimeoutRef.current && isHost && !isSolo) {
+                    hasHandledTimeoutRef.current = true;
+                    // No one answered in time - skip to next question
+                    if (!isFinished) {
+                        startNextQuestion(room.code, nextQIndex);
+                    } else {
+                        showPhaseResults(room.code);
+                    }
+                }
+            };
+
+            updateTimer();
+            answeringTimerRef.current = setInterval(updateTimer, 1000);
+
+            return () => {
+                if (answeringTimerRef.current) {
+                    clearInterval(answeringTimerRef.current);
+                    answeringTimerRef.current = null;
+                }
+            };
+        }
+
+        // Reset timer when phase changes
+        if (!isAnswering) {
+            setAnsweringTimeRemaining(PHASE1_TIMER_SECONDS);
+            hasHandledTimeoutRef.current = false;
+            questionStartTimeRef.current = null;
+            if (answeringTimerRef.current) {
+                clearInterval(answeringTimerRef.current);
+                answeringTimerRef.current = null;
+            }
+        }
+    }, [isAnswering, isMyTeamBlocked, myAnswer, isHost, isSolo, isFinished, room.code, nextQIndex]);
 
     // Track when buttons become clickable for activation feedback
     const [justBecameAnswering, setJustBecameAnswering] = useState(false);
@@ -236,6 +362,44 @@ export function Phase1Player({ room, playerId, isHost, mode = 'multiplayer', sol
         }
         wasAnsweringRef.current = isAnswering;
     }, [isAnswering]);
+
+    // Result reveal animation sequence: first shake wrong answer, then reveal correct
+    useEffect(() => {
+        if (isResult && myAnswer !== null) {
+            const isWrongAnswer = displayedQuestion && myAnswer !== displayedQuestion.correctIndex;
+
+            // Only show shake animation if we haven't already shown it via wrongFeedbackIndex
+            if (isWrongAnswer && !prefersReducedMotion && !hasShownWrongFeedback) {
+                // Step 1: Show shake animation on wrong answer
+                setResultRevealPhase('shaking');
+
+                // Step 2: After shake duration, reveal the correct answer
+                const shakeDuration = getTransitionDuration('wrongFeedback', false);
+                const timer = setTimeout(() => {
+                    setResultRevealPhase('revealing');
+                }, shakeDuration);
+
+                return () => clearTimeout(timer);
+            } else if (isWrongAnswer && hasShownWrongFeedback) {
+                // Already showed feedback via wrongFeedbackIndex - add delay to ensure shake completes
+                // before showing the correct answer (prevents parallel animations)
+                const shakeDuration = getTransitionDuration('wrongFeedback', prefersReducedMotion);
+                const timer = setTimeout(() => {
+                    setResultRevealPhase('revealing');
+                }, shakeDuration);
+
+                return () => clearTimeout(timer);
+            } else {
+                // Correct answer or reduced motion: go directly to revealing
+                setResultRevealPhase('revealing');
+            }
+        } else if (isResult && myAnswer === null) {
+            // Player didn't answer - go directly to revealing
+            setResultRevealPhase('revealing');
+        } else if (!isResult) {
+            setResultRevealPhase('idle');
+        }
+    }, [isResult, myAnswer, displayedQuestion, prefersReducedMotion, hasShownWrongFeedback]);
 
     // Determining feedback if result is shown
     let resultMessage = t('common:labels.waiting');
@@ -255,7 +419,7 @@ export function Phase1Player({ room, playerId, isHost, mode = 'multiplayer', sol
             resultMessage = t('results.teamWins', { team: t(`common:teams.${winnerTeam}`) });
             resultIcon = <XCircle className="w-8 h-8 text-white" />;
         } else if (!state.roundWinner) {
-            resultMessage = t('results.nobodyFound');
+            resultMessage = isSolo ? t('results.solo.timeout') : t('results.nobodyFound');
             resultIcon = <XCircle className="w-8 h-8 text-white" />;
         } else if (myAnswer !== null) {
             resultMessage = t('results.wrongAnswer');
@@ -338,7 +502,27 @@ export function Phase1Player({ room, playerId, isHost, mode = 'multiplayer', sol
                 totalQuestions={questionsList.length}
                 isVisible={showQuestionTransition}
                 onComplete={handleTransitionComplete}
+                onContentHidden={handleContentHidden}
             />
+
+            {/* Answering Phase Timer - Shows countdown during answering phase */}
+            <AnimatePresence>
+                {isAnswering && !isResult && (
+                    <motion.div
+                        initial={{ opacity: 0, y: -20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: -20 }}
+                        transition={{ duration: durations.fast }}
+                        className="absolute top-2 left-1/2 -translate-x-1/2 z-40"
+                    >
+                        <Phase4Timer
+                            timeRemaining={answeringTimeRemaining}
+                            totalTime={PHASE1_TIMER_SECONDS}
+                            isActive={isAnswering && myAnswer === null && !isMyTeamBlocked}
+                        />
+                    </motion.div>
+                )}
+            </AnimatePresence>
 
             {/* Top Bar: Progress & Roster */}
             <div className="w-full flex items-center justify-between bg-slate-800/50 p-2 rounded-xl border border-white/5 mb-2">
@@ -378,26 +562,27 @@ export function Phase1Player({ room, playerId, isHost, mode = 'multiplayer', sol
 
             {/* Context Header */}
             <div className="space-y-4 w-full">
-                {/* Question Text - Always render when question exists, transition overlay shows on top */}
+                {/* Question Text - Uses displayedQuestion to prevent flash during transition */}
                 <AnimatePresence mode="popLayout">
-                    {currentQuestion && (
+                    {displayedQuestion && (
                         <motion.div
-                            key={currentQuestionIndex}
+                            key={displayedQuestionIndex}
                             variants={prefersReducedMotion ? questionReducedVariants : questionVariants}
                             initial="hidden"
                             animate="visible"
                             exit="exit"
                             className="bg-slate-800/80 p-6 rounded-xl backdrop-blur-sm border border-slate-700 shadow-xl"
                         >
-                            <p className="text-white font-bold text-xl md:text-2xl leading-relaxed text-left">
-                                {currentQuestion.text}
+                            <p className="text-white font-bold text-xl md:text-2xl leading-relaxed text-left select-none">
+                                {displayedQuestion.text}
                             </p>
                         </motion.div>
                     )}
                 </AnimatePresence>
 
                 <h3 className="text-xl font-bold text-white opacity-80 flex items-center justify-center gap-2" aria-live="polite">
-                    {isReading && (
+                    {/* Reading countdown - only show during reading phase AND when countdown is active */}
+                    {isReading && phaseState === 'reading' && countdown > 0 && (
                         <>
                             <Clock className="w-6 h-6 animate-pulse" aria-hidden="true" />
                             {t('player.reading')}{' '}
@@ -429,9 +614,9 @@ export function Phase1Player({ room, playerId, isHost, mode = 'multiplayer', sol
             <div className={`w-full ${isResult ? 'overflow-hidden' : 'max-h-[50vh] overflow-y-auto'} ${isHost ? 'mb-16' : ''}`}>
                 <LayoutGroup>
                 <AnimatePresence mode="popLayout">
-                    {currentQuestion && (
+                    {displayedQuestion && (
                         <motion.div
-                            key={currentQuestionIndex}
+                            key={displayedQuestionIndex}
                             role="radiogroup"
                             aria-label={t('options.answerOptions')}
                             className="grid grid-cols-1 gap-3 w-full px-3 relative"
@@ -450,7 +635,7 @@ export function Phase1Player({ room, playerId, isHost, mode = 'multiplayer', sol
                             // Immediate wrong answer feedback (shake + X)
                             const isShowingWrongFeedback = wrongFeedbackIndex === idx;
                             const isDisabled = !isAnswering || myAnswer !== null || isMyTeamBlocked || isTriedWrong || wrongFeedbackIndex !== null;
-                            const optionLabel = currentQuestion ? currentQuestion.options[idx] : `Option ${['A', 'B', 'C', 'D'][idx]}`;
+                            const optionLabel = displayedQuestion ? displayedQuestion.options[idx] : `Option ${['A', 'B', 'C', 'D'][idx]}`;
                             // Pulse animation when buttons become clickable (staggered by index)
                             const shouldPulse = !prefersReducedMotion && justBecameAnswering && !isMyTeamBlocked && !isTriedWrong;
                             const isGrayed = (!isAnswering && !isResult) || isMyTeamBlocked || isTriedWrong;
@@ -458,20 +643,26 @@ export function Phase1Player({ room, playerId, isHost, mode = 'multiplayer', sol
                             const isFaded = myAnswer !== null && !isSelected;
 
                             // Check if this is the correct answer during result phase
-                            const isCorrectAnswer = currentQuestion && idx === currentQuestion.correctIndex;
-                            const shouldTransformToResult = isResult && isCorrectAnswer;
+                            const isCorrectAnswer = displayedQuestion && idx === displayedQuestion.correctIndex;
+                            // Only transform to result card after the shake animation is done
+                            const shouldTransformToResult = isResult && isCorrectAnswer && resultRevealPhase === 'revealing';
 
-                            // Determine animation based on state
-                            const shouldFadeOut = isResult && !isCorrectAnswer;
+                            // Animation during result shake phase (only if immediate feedback wasn't shown)
+                            // Skip result shake if we already showed immediate feedback OR if immediate feedback is currently showing
+                            const isResultShaking = resultRevealPhase === 'shaking' && myAnswer === idx && !isCorrectAnswer && !hasShownWrongFeedback && wrongFeedbackIndex === null;
+                            // Fade out only after the shake animation is complete
+                            const shouldFadeOut = resultRevealPhase === 'revealing' && isResult && !isCorrectAnswer;
 
-                            // Determine animation: wrong feedback shake > fade out > pulse > default
+                            // Determine animation: wrong feedback shake > result shake > fade out > pulse > default
                             const buttonAnimate = isShowingWrongFeedback
                                 ? { x: [0, -12, 12, -12, 12, -8, 8, 0], transition: { duration: 0.5, ease: "easeInOut" as const } }
-                                : shouldFadeOut
-                                    ? { opacity: 0, scale: 0.95 }
-                                    : shouldPulse
-                                        ? { scale: [1, 1.03, 1], transition: { duration: durations.quick, delay: idx * 0.05, ease: "easeInOut" as const } }
-                                        : "visible";
+                                : isResultShaking
+                                    ? { x: [0, -12, 12, -12, 12, -8, 8, 0], transition: { duration: 0.5, ease: "easeInOut" as const } }
+                                    : shouldFadeOut
+                                        ? { opacity: 0, scale: 0.95 }
+                                        : shouldPulse
+                                            ? { scale: [1, 1.03, 1], transition: { duration: durations.quick, delay: idx * 0.05, ease: "easeInOut" as const } }
+                                            : "visible";
 
                             // If this button should transform into result card (layout animation from button)
                             if (shouldTransformToResult) {
@@ -494,7 +685,7 @@ export function Phase1Player({ room, playerId, isHost, mode = 'multiplayer', sol
                                             className="flex items-center gap-3 bg-black/20 px-5 py-3 rounded-full"
                                         >
                                             <ShapeIcon fill="currentColor" className="w-6 h-6 text-white" aria-hidden="true" />
-                                            <span className="text-white font-bold text-lg">{currentQuestion.options[idx]}</span>
+                                            <span className="text-white font-bold text-lg select-none">{displayedQuestion.options[idx]}</span>
                                         </motion.div>
 
                                         {/* Result Header - Icon + Message */}
@@ -522,7 +713,7 @@ export function Phase1Player({ room, playerId, isHost, mode = 'multiplayer', sol
                                         )}
 
                                         {/* Highlighted Anecdote Card */}
-                                        {currentQuestion?.anecdote && (
+                                        {displayedQuestion?.anecdote && (
                                             <motion.div
                                                 initial={{ opacity: 0, y: 10 }}
                                                 animate={{ opacity: 1, y: 0 }}
@@ -536,8 +727,8 @@ export function Phase1Player({ room, playerId, isHost, mode = 'multiplayer', sol
 
                                                     <div className="flex items-start gap-2">
                                                         <span className="text-amber-400 text-lg flex-shrink-0" aria-hidden="true">💡</span>
-                                                        <p className="text-sm text-amber-100/90 italic leading-relaxed text-left">
-                                                            {currentQuestion.anecdote}
+                                                        <p className="text-sm text-amber-100/90 italic leading-relaxed text-left select-none">
+                                                            {displayedQuestion.anecdote}
                                                         </p>
                                                     </div>
                                                 </div>
@@ -590,6 +781,17 @@ export function Phase1Player({ room, playerId, isHost, mode = 'multiplayer', sol
                                             <XCircle className="w-16 h-16 text-red-500" aria-label={t('player.wrongAnswer', 'Mauvaise réponse')} />
                                         </motion.div>
                                     )}
+                                    {/* Result phase: shake animation for player's wrong answer before revealing correct */}
+                                    {isResultShaking && (
+                                        <motion.div
+                                            initial={{ opacity: 0, scale: 0.5 }}
+                                            animate={{ opacity: 1, scale: 1 }}
+                                            transition={{ duration: 0.15 }}
+                                            className="absolute inset-0 flex items-center justify-center bg-black/60 rounded-xl z-20"
+                                        >
+                                            <XCircle className="w-16 h-16 text-red-500" aria-label={t('player.wrongAnswer', 'Mauvaise réponse')} />
+                                        </motion.div>
+                                    )}
                                     {/* Rebond: X overlay for eliminated options */}
                                     {isTriedWrong && !isShowingWrongFeedback && (
                                         <motion.div
@@ -605,12 +807,12 @@ export function Phase1Player({ room, playerId, isHost, mode = 'multiplayer', sol
                                     </div>
                                     <div className="flex-1">
                                         {/* Option Text */}
-                                        {currentQuestion ? (
-                                            <span className="text-white font-bold text-lg leading-tight block">
-                                                {currentQuestion.options[idx]}
+                                        {displayedQuestion ? (
+                                            <span className="text-white font-bold text-lg leading-tight block select-none">
+                                                {displayedQuestion.options[idx]}
                                             </span>
                                         ) : (
-                                            <span className="text-white/60 font-bold text-lg">Option {['A', 'B', 'C', 'D'][idx]}</span>
+                                            <span className="text-white/60 font-bold text-lg select-none">Option {['A', 'B', 'C', 'D'][idx]}</span>
                                         )}
                                     </div>
                                 </motion.button>

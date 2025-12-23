@@ -23,81 +23,76 @@ INTERDIT : Option blague évidente, réponse dans la question, markdown
 
 JSON: [{"text":"Question?","options":["A","B","C","D"],"correctIndex":0,"anecdote":"Fait insolite"}]`;
 
-export const PHASE1_GENERATOR_PROMPT = `BURGER QUIZ - Génère 10 questions Tenders
+export const PHASE1_GENERATOR_PROMPT = `BURGER QUIZ - 10 questions Tenders DRÔLES
 Thème: {TOPIC} | Difficulté: {DIFFICULTY}
 
-🎤 STYLE ALAIN CHABAT - VARIE LES FORMULATIONS !
+🎯 RÈGLE #1 - HUMOUR OBLIGATOIRE
+Chaque question doit faire SOURIRE grâce à :
+- Formulations DÉCALÉES ("C'est quoi déjà...", "Quel génie a pensé...")
+- DÉTAILS ABSURDES qui font sourire
+- Comparaisons POP CULTURE inattendues
 
-⚡ STRUCTURES DE QUESTIONS (alterne entre TOUTES) :
-1. FAUSSE NAÏVETÉ : "Comment ça s'appelle déjà, le truc qui..."
-2. DESCRIPTION ABSURDE : "Quel bidule à 4 pattes fait 'wouf' et bave sur tes chaussures ?"
-3. COMPARAISON DÉCALÉE : "Quel animal dort plus que ton ado le dimanche ?"
-4. QUESTION RHÉTORIQUE : "Qui a eu la brillante idée d'inventer..."
-5. PERSONNIFICATION : "Quel objet a décidé de se rebeller contre..."
-6. EUPHÉMISME IRONIQUE : "Quel événement a légèrement perturbé..."
-7. ANTIPHRASE : "Quel génie a pensé que ce serait malin de..."
-8. ÉNUMÉRATION TRONQUÉE : "Pain, salade, tomate et... quel fromage ?"
+🎯 RÈGLE #2 - QUESTIONS COURTES (max 20 mots)
+❌ INTERDIT : Questions à rallonge ennuyeuses
+✅ BON : Questions percutantes et mémorables
 
-EXEMPLES VARIÉS (chaque question = style différent) :
-• [Naïveté] "C'est quoi déjà le nom du bonhomme vert qui habite dans les marais ?" → Shrek
-• [Absurde] "Quel mammifère à rayures ressemble à un cheval qui aurait testé un filtre Instagram ?" → Zèbre
-• [Rhétorique] "Qui a eu l'idée lumineuse de coller des ailes à un cheval ?" → Pégase
-• [Euphémisme] "Quel iceberg a légèrement gêné la croisière du Titanic ?" → Celui de l'Atlantique Nord
-• [Antiphrase] "Quel génie a décidé de goûter une pomme random dans un jardin ?" → Ève
-• [Énumération] "Astérix, Obélix, Idéfix et... quel druide ?" → Panoramix
+🎯 RÈGLE #3 - PRÉCISION FACTUELLE
+VÉRIFIE avec Google AVANT d'écrire :
+✓ Bonne réponse = FAIT établi
+✓ 3 mauvaises réponses = vraiment FAUSSES
+✓ Anecdote = VRAIE et vérifiable
 
-⚠️ RÉPONSES - 3 crédibles + 1 qui fait sourire mais reste plausible
-
-RÈGLES : Fait vérifiable, une seule bonne réponse, pas de spoiler dans la question.
+🎯 RÈGLE #4 - OPTIONS DISTINCTES
+4 réponses du MÊME registre, aucun synonyme !
 
 {PREVIOUS_FEEDBACK}
 
-JSON: [{"text":"Question?","options":["A","B","C","D"],"correctIndex":0,"anecdote":"Fait WTF 20 mots max"}]
+JSON: [{"text":"Question drôle et courte?","options":["A","B","C","D"],"correctIndex":0,"anecdote":"Fait WTF vérifiable"}]
 
-10 questions variées. Pas de markdown.`;
+10 questions DRÔLES, COURTES et PRÉCISES. Pas de markdown.`;
 
-export const PHASE1_DIALOGUE_REVIEWER_PROMPT = `REVIEWER BURGER QUIZ - Évalue ces questions Phase 1
+export const PHASE1_DIALOGUE_REVIEWER_PROMPT = `REVIEWER BURGER QUIZ Phase 1
 
 {QUESTIONS}
 
-🔍 VÉRIFICATION (par question) :
+🔍 VÉRIFICATION EN 4 POINTS :
 
-1. FACT-CHECK : Réponse vraie ? Mauvaises réponses fausses ? Pas d'ambiguïté ?
+1. HUMOUR : Questions DRÔLES ? Formulations qui font sourire ?
+2. LONGUEUR : Questions COURTES (max 20 mots) ?
+3. EXACTITUDE (CRITIQUE) : Utilise Google pour vérifier CHAQUE réponse !
+4. OPTIONS : 4 réponses distinctes, pas de synonymes ?
 
-2. STYLE : Question drôle style Burger Quiz ? Pas Wikipedia/exam ?
+⚠️ REJETER SI :
+- Question ennuyeuse ou trop longue
+- Erreur factuelle (même mineure)
+- Options avec synonymes
 
-3. RÉPONSES : 3 crédibles + 1 fun mais plausible ? On hésite vraiment ?
-
-4. VARIÉTÉ DES FORMULATIONS (CRITIQUE) :
-   ❌ Si toutes les questions utilisent le même pattern → variety < 5
-   ✓ Mélange : naïveté, absurde, comparaison, rhétorique, personnification, euphémisme...
-
-5. ANTI-SPOILER : Réponse pas dans la question ?
-
-⚠️ REJETS : Fait douteux, question plate, réponses évidentes, manque de variété
-
-SEUILS : factual_accuracy ≥ 8, clarity ≥ 7, burger_quiz_style ≥ 7, variety ≥ 6, overall ≥ 7
+SEUILS : factual_accuracy ≥ 8, humor ≥ 6, overall ≥ 7
 
 JSON:
 {
   "approved": true|false,
-  "scores": {"factual_accuracy":1-10,"clarity":1-10,"burger_quiz_style":1-10,"variety":1-10,"anecdotes":1-10},
+  "scores": {"factual_accuracy":1-10,"humor":1-10,"clarity":1-10,"variety":1-10,"options_quality":1-10},
   "overall_score": 1-10,
-  "questions_feedback": [{"index":0,"text":"...","ok":true|false,"issue":"...","issue_type":"factual_error"|"boring_question"|"obvious_answers"|"repetitive_style"|"ambiguous"|null}],
+  "questions_feedback": [{"index":0,"text":"...","ok":true|false,"funny":true|false,"issue":"...","issue_type":"factual_error"|"not_funny"|"too_long"|"ambiguous"|"duplicate_options"|null}],
   "global_feedback": "...",
   "suggestions": ["..."]
-}`;
+}
+
+Pas de markdown.`;
 
 export const PHASE1_TARGETED_REGENERATION_PROMPT = `REMPLACEMENT - Génère {COUNT} question(s) Burger Quiz
 Thème: {TOPIC} | Difficulté: {DIFFICULTY}
 
-REJETÉES (indices {BAD_INDICES}): {BAD_QUESTIONS}
+REJETÉES: {BAD_QUESTIONS}
 RAISONS: {REJECTION_REASONS}
-GARDER: {GOOD_QUESTIONS}
 
-CORRIGE les erreurs mentionnées. Style fun, réponses vérifiables, 4 options crédibles.
+🎯 RAPPEL ANTI-SPOILER :
+• Ne JAMAIS mettre le trait distinctif dans la question
+• Utiliser des CONSÉQUENCES ou ACTIONS indirectes
+• 4 options DISTINCTES (pas de synonymes)
 
-JSON: [{"text":"Question?","options":["A","B","C","D"],"correctIndex":0,"anecdote":"Fait WTF"}]`;
+JSON: [{"text":"Question sans spoiler?","options":["A","B","C","D"],"correctIndex":0,"anecdote":"Fait vérifiable"}]`;
 
 export const REVIEW_PHASE1_PROMPT = `FACT-CHECK Phase 1: {QUESTIONS}
 

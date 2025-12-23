@@ -171,7 +171,7 @@ export function Phase5Memorizing({ room, isHost }: Phase5MemorizingProps) {
                                 <div className="text-slate-400 text-sm uppercase tracking-wider mb-3">
                                     {t('phase5.question')} {currentIdx + 1}
                                 </div>
-                                <p className="text-3xl md:text-4xl font-bold leading-tight">
+                                <p className="text-3xl md:text-4xl font-bold leading-tight select-none">
                                     {currentQ.question}
                                 </p>
                             </div>
@@ -185,7 +185,7 @@ export function Phase5Memorizing({ room, isHost }: Phase5MemorizingProps) {
                                     initial={{ opacity: 0, y: 10 }}
                                     animate={{ opacity: 1, y: 0 }}
                                     transition={{ delay: 0.3 }}
-                                    className="text-4xl md:text-5xl font-black text-yellow-400"
+                                    className="text-4xl md:text-5xl font-black text-yellow-400 select-none"
                                 >
                                     {currentQ.answer}
                                 </motion.p>

@@ -120,7 +120,7 @@ export function Phase4Options({
                         </span>
 
                         {/* Option Text */}
-                        <span className="flex-1 text-white">{option}</span>
+                        <span className="flex-1 text-white select-none">{option}</span>
 
                         {/* Selected Indicator */}
                         {isSelected && (

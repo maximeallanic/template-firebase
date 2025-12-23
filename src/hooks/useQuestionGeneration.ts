@@ -2,6 +2,7 @@ import { useEffect, useState, useRef, useCallback } from 'react';
 import { ref, get, child } from 'firebase/database';
 import { rtdb } from '../services/firebase';
 import { type Room, setGameStatus, overwriteGameQuestions, setGeneratingState, setPhase2GeneratingState, getPhase2GeneratingState } from '../services/gameService';
+import { type Question, hasEnoughQuestions, getMissingQuestionCount, MINIMUM_QUESTION_COUNTS } from '../types/gameTypes';
 import { generateWithRetry } from '../services/aiClient';
 import { filterUnseenQuestions } from '../services/historyService';
 import { getRandomQuestionSet } from '../services/questionStorageService';
@@ -118,9 +119,13 @@ export function useQuestionGeneration({
                 return;
             }
 
-            if (currentRoom.customQuestions?.phase2) {
-                console.log('[QUESTION-GEN] Phase 2: Using existing custom questions', {
-                    questionCount: Array.isArray(currentRoom.customQuestions.phase2) ? currentRoom.customQuestions.phase2.length : 'N/A'
+            // Check if we have enough Phase 2 questions (items in set)
+            const hasEnough = hasEnoughQuestions(currentRoom.customQuestions, 'phase2');
+            const existingPhase2 = currentRoom.customQuestions?.phase2;
+
+            if (hasEnough) {
+                console.log('[QUESTION-GEN] Phase 2: Enough questions, skipping generation', {
+                    itemCount: Array.isArray(existingPhase2) ? existingPhase2[0]?.items?.length : (existingPhase2 as { items?: unknown[] })?.items?.length
                 });
                 return;
             }
@@ -135,7 +140,52 @@ export function useQuestionGeneration({
             await setPhase2GeneratingState(currentRoom.code, true);
             // Also set visible generation state for loading UI
             await setGeneratingState(currentRoom.code, true);
-            console.log('[QUESTION-GEN] 🎯 Phase 2: Starting automatic generation...', {
+
+            // Check for completion mode (partial questions exist)
+            const missingCount = getMissingQuestionCount(currentRoom.customQuestions, 'phase2');
+            const existingItems = Array.isArray(existingPhase2) ? existingPhase2[0]?.items : (existingPhase2 as { items?: unknown[] })?.items;
+
+            if (existingItems && existingItems.length > 0 && missingCount > 0) {
+                console.log('[QUESTION-GEN] 🔧 Phase 2: Completion mode - generating missing items', {
+                    existing: existingItems.length,
+                    missing: missingCount,
+                    required: MINIMUM_QUESTION_COUNTS.phase2
+                });
+
+                try {
+                    const result = await generateWithRetry({
+                        phase: 'phase2',
+                        roomCode: currentRoom.code,
+                        completeCount: missingCount,
+                        existingQuestions: existingItems
+                    });
+
+                    // Merge items into existing set structure
+                    const newItems = Array.isArray(result.data)
+                        ? (result.data[0] as { items?: unknown[] })?.items || result.data
+                        : (result.data as { items?: unknown[] })?.items || [];
+                    const existingSet = Array.isArray(existingPhase2) ? existingPhase2[0] : existingPhase2;
+                    const mergedSet = {
+                        ...existingSet,
+                        items: [...(existingItems || []), ...newItems]
+                    };
+
+                    console.log('[QUESTION-GEN] ✅ Phase 2 completion successful', {
+                        existing: existingItems?.length || 0,
+                        generated: newItems.length,
+                        total: mergedSet.items.length
+                    });
+
+                    await overwriteGameQuestions(currentRoom.code, 'phase2', [mergedSet]);
+                    return;
+                } catch (err) {
+                    console.error('[QUESTION-GEN] ❌ Phase 2: Completion failed, trying full generation:', err);
+                    // Fall through to full generation
+                }
+            }
+
+            // Full generation
+            console.log('[QUESTION-GEN] 🎯 Phase 2: Starting full generation...', {
                 roomCode: currentRoom.code,
                 timestamp: new Date().toISOString()
             });
@@ -171,15 +221,22 @@ export function useQuestionGeneration({
             if (!currentRoom) return;
             if (hasFilteredPhase4.current) return;
 
+            // Check if we have enough Phase 4 questions
+            const existingPhase4 = currentRoom.customQuestions?.phase4 || [];
+            const missingCount = getMissingQuestionCount(currentRoom.customQuestions, 'phase4');
+
             console.log('[QUESTION-GEN] 📍 Phase 4 entered, checking generation needs...', {
                 roomCode: currentRoom.code,
-                hasCustomQuestions: !!currentRoom.customQuestions?.phase4,
+                existingCount: existingPhase4.length,
+                missingCount,
                 isHost: currentRoom.hostId === currentMyId
             });
 
-            if (currentRoom.customQuestions?.phase4) {
-                console.log('[QUESTION-GEN] Phase 4: Using existing custom questions', {
-                    questionCount: Array.isArray(currentRoom.customQuestions.phase4) ? currentRoom.customQuestions.phase4.length : 'N/A'
+            // Fast path: enough questions
+            if (missingCount === 0 && existingPhase4.length > 0) {
+                console.log('[QUESTION-GEN] Phase 4: Enough questions, skipping generation', {
+                    count: existingPhase4.length,
+                    required: MINIMUM_QUESTION_COUNTS.phase4
                 });
                 return;
             }
@@ -194,7 +251,41 @@ export function useQuestionGeneration({
 
             // Set visible generation state for loading UI
             await setGeneratingState(currentRoom.code, true);
-            console.log('[QUESTION-GEN] 🎯 Phase 4: Starting AI generation...', {
+
+            // Completion mode: we have some questions but not enough
+            if (existingPhase4.length > 0 && missingCount > 0) {
+                console.log('[QUESTION-GEN] 🔧 Phase 4: Completion mode - generating missing questions', {
+                    existing: existingPhase4.length,
+                    missing: missingCount,
+                    required: MINIMUM_QUESTION_COUNTS.phase4
+                });
+
+                try {
+                    const result = await generateWithRetry({
+                        phase: 'phase4',
+                        roomCode: currentRoom.code,
+                        completeCount: missingCount,
+                        existingQuestions: existingPhase4
+                    });
+
+                    // Merge existing + new questions
+                    const mergedQuestions = [...existingPhase4, ...(result.data as unknown[])];
+                    console.log('[QUESTION-GEN] ✅ Phase 4 completion successful', {
+                        existing: existingPhase4.length,
+                        generated: Array.isArray(result.data) ? result.data.length : 0,
+                        total: mergedQuestions.length
+                    });
+
+                    await overwriteGameQuestions(currentRoom.code, 'phase4', mergedQuestions);
+                    return;
+                } catch (err) {
+                    console.error('[QUESTION-GEN] ❌ Phase 4: Completion failed, trying full generation:', err);
+                    // Fall through to full generation
+                }
+            }
+
+            // Full generation
+            console.log('[QUESTION-GEN] 🎯 Phase 4: Starting full AI generation...', {
                 roomCode: currentRoom.code,
                 timestamp: new Date().toISOString()
             });
@@ -337,17 +428,59 @@ export function useQuestionGeneration({
         setGenerationError(null);
 
         try {
-            // Fast path: if custom questions exist, just start
-            if (currentRoom.customQuestions?.phase1) {
-                console.log('[QUESTION-GEN] ⚡ Fast path: Using existing custom questions', {
-                    questionCount: Array.isArray(currentRoom.customQuestions.phase1) ? currentRoom.customQuestions.phase1.length : 'N/A'
+            // Check if we have enough Phase 1 questions
+            const existingPhase1 = currentRoom.customQuestions?.phase1 || [];
+            const missingCount = getMissingQuestionCount(currentRoom.customQuestions, 'phase1');
+
+            // Fast path: if we have enough questions, just start
+            if (missingCount === 0 && existingPhase1.length > 0) {
+                console.log('[QUESTION-GEN] ⚡ Fast path: Enough questions', {
+                    count: existingPhase1.length,
+                    required: MINIMUM_QUESTION_COUNTS.phase1
                 });
                 await setGameStatus(currentRoom.code, 'phase1');
                 triggerPhase2Pregen(currentRoom.code);
                 return;
             }
 
-            // Always use AI generation for Phase 1 (no static questions)
+            // Completion mode: we have some questions but not enough
+            if (existingPhase1.length > 0 && missingCount > 0) {
+                console.log('[QUESTION-GEN] 🔧 Completion mode: generating missing Phase 1 questions', {
+                    existing: existingPhase1.length,
+                    missing: missingCount,
+                    required: MINIMUM_QUESTION_COUNTS.phase1
+                });
+
+                // Show loading state
+                await setGeneratingState(currentRoom.code, true);
+
+                try {
+                    const result = await generateWithRetry({
+                        phase: 'phase1',
+                        roomCode: currentRoom.code,
+                        completeCount: missingCount,
+                        existingQuestions: existingPhase1
+                    });
+
+                    // Merge existing + new questions
+                    const mergedQuestions = [...existingPhase1, ...(result.data as Question[])];
+                    console.log('[QUESTION-GEN] ✅ Phase 1 completion successful', {
+                        existing: existingPhase1.length,
+                        generated: Array.isArray(result.data) ? result.data.length : 0,
+                        total: mergedQuestions.length
+                    });
+
+                    await overwriteGameQuestions(currentRoom.code, 'phase1', mergedQuestions);
+                    await setGameStatus(currentRoom.code, 'phase1');
+                    triggerPhase2Pregen(currentRoom.code);
+                    return;
+                } catch (err) {
+                    console.error('[QUESTION-GEN] ❌ Phase 1 completion failed:', err);
+                    // Continue to try full generation as fallback
+                }
+            }
+
+            // Full generation: no questions at all
             const players = Object.values(currentRoom.players);
             console.log('[QUESTION-GEN] 🤖 Starting AI generation for Phase 1...', { playerCount: players.length });
 

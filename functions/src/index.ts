@@ -117,6 +117,9 @@ const GenerateQuestionsSchema = z.object({
     .regex(/^[A-Z0-9]{4}$/, 'Room code must be 4 uppercase alphanumeric characters')
     .optional(),
   soloMode: z.boolean().optional().default(false),
+  // Completion mode: generate only missing questions
+  completeCount: z.number().int().min(1).max(20).optional(),
+  existingQuestions: z.array(z.unknown()).optional(),
 });
 
 const ValidatePhase3Schema = z.object({
@@ -480,7 +483,7 @@ export const generateGameQuestions = onCall(
       throw new HttpsError('invalid-argument', message);
     }
 
-    const { phase, topic, difficulty, language, roomCode, soloMode } = validatedData;
+    const { phase, topic, difficulty, language, roomCode, soloMode, completeCount, existingQuestions } = validatedData;
 
     // 2. Premium Check for phases 3, 4, 5 (BEFORE generation to save costs)
     // Solo mode bypasses premium check (free practice mode with no persistence)
@@ -513,12 +516,15 @@ export const generateGameQuestions = onCall(
     }
 
     try {
-      // 4. Call Genkit Flow
+      // 4. Call Genkit Flow (with optional completion mode)
       const result = await generateGameQuestionsFlow({
         phase,
         topic: topic || 'General Knowledge',
         difficulty: difficulty || 'normal',
         language: language || 'fr',
+        // Completion mode parameters
+        completeCount,
+        existingQuestions,
       });
 
       // 5. Shuffle options for MCQ questions (phase1) to randomize correct answer position

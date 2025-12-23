@@ -171,60 +171,47 @@ RÉPONDS en JSON (STRICTEMENT ce format) :
 
 Pas de markdown. JSON uniquement.`;
 
-export const FACT_CHECK_PHASE2_PROMPT = `Tu es un vérificateur de faits STRICT pour un jeu de catégorisation.
+export const FACT_CHECK_PHASE2_PROMPT = `FACT-CHECK Phase 2 - Vérification BATCH
 
 JEU DE MOTS :
 - Catégorie A : {OPTION_A}
 - Catégorie B : {OPTION_B}
 
-ITEM À VÉRIFIER :
-- Texte : {ITEM_TEXT}
-- Catégorie assignée : {ASSIGNED_CATEGORY}
-- Justification fournie : {JUSTIFICATION}
+ITEMS À VÉRIFIER :
+{ITEMS_JSON}
 
 INSTRUCTIONS :
-1. UTILISE l'outil webSearch pour vérifier si l'item appartient VRAIMENT à la catégorie assignée
-2. Vérifie si l'item pourrait AUSSI appartenir à l'autre catégorie (auquel cas = Both)
-3. Vérifie si la justification est CORRECTE et FACTUELLE
+1. UTILISE webSearch pour vérifier CHAQUE item
+2. Vérifie si l'item appartient à la catégorie assignée
+3. Vérifie s'il pourrait appartenir à l'AUTRE catégorie (→ Both)
 
-CRITÈRES :
-- L'item appartient-il CLAIREMENT à la catégorie assignée ?
-- Pourrait-il appartenir à l'AUTRE catégorie aussi ?
-- La justification est-elle un FAIT vérifiable ?
+CRITÈRES PAR ITEM :
+- Assignation correcte ?
+- Justification factuelle ?
+- Exclusion de l'autre catégorie vérifiée ?
 
-⚠️ VÉRIFICATION DE L'EXCLUSION (CRITIQUE) :
-Tu DOIS vérifier que l'item n'appartient VRAIMENT PAS à l'autre catégorie :
-- Si l'item pourrait appartenir aux deux catégories → shouldBe = "Both"
-- Si l'item est mal catégorisé → signaler l'erreur
-- Ne te fie pas aux apparences - vérifie les FAITS
-
-Exemples de pièges à détecter :
-- Chauve-souris : mammifère, PAS un oiseau (malgré qu'elle vole)
-- Tomate : fruit botaniquement, mais légume culinairement → Both possible
-- Pingouin : oiseau, PAS un mammifère (malgré qu'il ne vole pas)
-- Baleine : mammifère, PAS un poisson (malgré qu'elle vit dans l'eau)
-
-RÉPONDS en JSON (STRICTEMENT ce format) :
+JSON:
 {
-  "isCorrectlyAssigned": true | false,
-  "confidence": 0-100,
-  "shouldBe": "A" | "B" | "Both",
-  "source": "Source de vérification",
-  "reasoning": "Pourquoi l'assignation est correcte ou incorrecte",
-  "factualIssue": "Si la justification contient une erreur factuelle (null sinon)",
-  "exclusionVerified": true | false,
-  "exclusionReasoning": "Pourquoi l'item n'appartient PAS à l'autre catégorie (ou pourquoi il pourrait y appartenir)"
+  "results": [
+    {
+      "index": 0,
+      "text": "Item text",
+      "assignedCategory": "A",
+      "isCorrect": true|false,
+      "confidence": 0-100,
+      "shouldBe": "A"|"B"|"Both",
+      "reasoning": "Explication courte"
+    }
+  ],
+  "summary": {
+    "total": 12,
+    "correct": 10,
+    "incorrect": 2
+  }
 }
 
-RÈGLES DE CONFIANCE :
-- 95-100 : Item clairement dans une seule catégorie, exclusion vérifiée
-- 80-94 : Probablement correct, exclusion probable
-- 60-79 : Doute significatif OU pourrait appartenir aux deux catégories
-- 0-59 : Probablement mal catégorisé OU appartient clairement aux deux
-
-⚠️ Si l'item pourrait appartenir aux deux catégories, mets confidence <= 60 !
-
-Pas de markdown. JSON uniquement.`;
+Confiance : 90+ = certain, 70-89 = probable, <70 = doute.
+Pas de markdown.`;
 
 // ============================================================================
 // AMBIGUITY CHECK PROMPT (dedicated check after fact-checking)

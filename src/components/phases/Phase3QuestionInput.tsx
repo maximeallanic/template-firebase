@@ -223,7 +223,7 @@ export const Phase3QuestionInput: React.FC<Phase3QuestionInputProps> = ({
                 transition={prefersReducedMotion ? { duration: durations.fast } : bouncySpring}
                 className="w-full bg-white rounded-3xl p-8 shadow-2xl"
             >
-                <h2 className="text-2xl font-bold text-slate-800 mb-8 text-center">
+                <h2 className="text-2xl font-bold text-slate-800 mb-8 text-center select-none">
                     {currentQuestion.question}
                 </h2>
 

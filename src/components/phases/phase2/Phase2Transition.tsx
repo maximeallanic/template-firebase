@@ -53,7 +53,7 @@ export function Phase2Transition({
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             transition={{ duration: durations.fast }}
-            className="fixed inset-0 z-50 flex items-center justify-center bg-gradient-to-b from-slate-900 to-slate-800"
+            className="fixed inset-0 z-10 flex items-center justify-center bg-gradient-to-b from-slate-900 to-slate-800"
         >
             <div className="flex flex-col items-center space-y-8">
                 {/* Stacked Cards Animation */}

@@ -9,6 +9,8 @@ interface QuestionTransitionProps {
     totalQuestions: number;
     isVisible: boolean;
     onComplete: () => void;
+    /** Called when overlay is fully opaque - use this to swap content behind the overlay */
+    onContentHidden?: () => void;
 }
 
 // Pre-computed particle data interface
@@ -72,17 +74,20 @@ const Ripple: React.FC<{ delay: number; reducedMotion: boolean }> = ({ delay, re
     );
 };
 
-// Transition duration constant
-const TRANSITION_DURATION = 800; // ms - reduced from 1200ms for snappier feel
+// Transition duration constant - exported for consumers
+export const TRANSITION_DURATION = 800; // ms - reduced from 1200ms for snappier feel
 
 export const QuestionTransition: React.FC<QuestionTransitionProps> = ({
     questionNumber,
     totalQuestions,
     isVisible,
     onComplete,
+    onContentHidden,
 }) => {
     const onCompleteRef = useRef(onComplete);
     onCompleteRef.current = onComplete;
+    const onContentHiddenRef = useRef(onContentHidden);
+    onContentHiddenRef.current = onContentHidden;
     const prefersReducedMotion = useReducedMotion();
 
     // Memoize particles to avoid recalculating random positions on each render
@@ -102,13 +107,26 @@ export const QuestionTransition: React.FC<QuestionTransitionProps> = ({
 
     useEffect(() => {
         if (isVisible) {
-            // Auto-complete after animation (faster if reduced motion)
+            // Timing for when overlay is fully opaque (content can be swapped)
+            const contentHiddenDelay = prefersReducedMotion ? 50 : 200;
+
+            // Auto-complete after full animation (faster if reduced motion)
             const duration = prefersReducedMotion ? 300 : TRANSITION_DURATION;
-            const timer = setTimeout(() => {
+
+            // Call onContentHidden when overlay is opaque - this is when content swap should happen
+            const contentHiddenTimer = setTimeout(() => {
+                onContentHiddenRef.current?.();
+            }, contentHiddenDelay);
+
+            // Call onComplete when animation is done
+            const completeTimer = setTimeout(() => {
                 onCompleteRef.current();
             }, duration);
 
-            return () => clearTimeout(timer);
+            return () => {
+                clearTimeout(contentHiddenTimer);
+                clearTimeout(completeTimer);
+            };
         }
     }, [isVisible, prefersReducedMotion]);
 

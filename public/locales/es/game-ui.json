@@ -37,7 +37,11 @@
     "correctAnswer": "Correct answer:",
     "winner": "Winner:",
     "noWinner": "No winner for this round.",
-    "yum": "Yum"
+    "yum": "Yum",
+    "solo": {
+      "timeout": "¡Tiempo agotado!",
+      "missed": "¡Fallaste!"
+    }
   },
   "status": {
     "reading": "Reading time... ⏳",
@@ -81,7 +85,13 @@
     "nobodyWon": "No team found it!",
     "otherTeamTurn": "The other team can try!",
     "answeredFor": "answered for",
-    "waitingForOtherTeam": "Waiting for the other team..."
+    "waitingForOtherTeam": "Waiting for the other team...",
+    "lockedIn": "¡Respuesta bloqueada!",
+    "solo": {
+      "correct": "¡Correcto!",
+      "incorrect": "¡Incorrecto!",
+      "timeout": "¡Tiempo agotado!"
+    }
   },
   "phase3": {
     "chooseMenu": "Choose a menu",
@@ -129,6 +139,7 @@
     "questionNumber": "Question {{current}}/{{total}}",
     "answer": "Answer:",
     "timeRemaining": "{{seconds}}s",
+    "hurry": "¡Date prisa!",
     "selectAnswer": "Select your answer",
     "answered": "Answered!",
     "waiting": "Waiting...",
@@ -140,7 +151,10 @@
     "waitingForPlayers": "Waiting for players...",
     "everyoneAnswered": "Everyone answered!",
     "nextQuestionIn": "Next question in {{seconds}}s",
-    "prepareForQuestion": "Prepárate..."
+    "prepareForQuestion": "Prepárate...",
+    "solo": {
+      "noWinner": "¡Tiempo agotado!"
+    }
   },
   "phase5": {
     "title": "Ultimate\nBurger",
@@ -243,5 +257,12 @@
   "options": {
     "answerOptions": "Answer options",
     "answerLetter": "Answer {{letter}}: {{label}}"
+  },
+  "difficulty": {
+    "label": "Dificultad",
+    "easy": "Fácil",
+    "normal": "Normal",
+    "hard": "Difícil",
+    "wtf": "WTF"
   }
 }

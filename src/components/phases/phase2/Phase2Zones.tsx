@@ -2,7 +2,38 @@ import { motion } from 'framer-motion';
 import { useTranslation } from 'react-i18next';
 import { ArrowLeft, ArrowRight, ArrowUp } from 'lucide-react';
 import { useReducedMotion } from '../../../hooks/useReducedMotion';
+import { durations, organicEase } from '../../../animations';
 import type { Phase2Answer, SwipeDirection } from './Phase2Card';
+
+// Animation variants for zone split effect
+const zoneTransition = {
+    duration: durations.normal,
+    ease: organicEase,
+};
+
+const leftZoneVariants = {
+    initial: { opacity: 0, x: '-50%' },
+    animate: { opacity: 1, x: 0, transition: zoneTransition },
+    exit: { opacity: 0, x: '-100%', transition: zoneTransition },
+};
+
+const rightZoneVariants = {
+    initial: { opacity: 0, x: '50%' },
+    animate: { opacity: 1, x: 0, transition: zoneTransition },
+    exit: { opacity: 0, x: '100%', transition: zoneTransition },
+};
+
+const topZoneVariants = {
+    initial: { opacity: 0, y: '-100%' },
+    animate: { opacity: 1, y: 0, transition: { ...zoneTransition, delay: 0.1 } },
+    exit: { opacity: 0, y: '-100%', transition: zoneTransition },
+};
+
+const legendVariants = {
+    initial: { opacity: 0 },
+    animate: { opacity: 1, transition: { ...zoneTransition, delay: 0.2 } },
+    exit: { opacity: 0, transition: { duration: durations.fast } },
+};
 
 interface Phase2ZonesProps {
     optionA: string;
@@ -46,10 +77,11 @@ export function Phase2Zones({
         <>
             {/* LEFT ZONE (Option A) */}
             <motion.div
-                initial={{ opacity: 0, x: -50 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ duration: 0.3 }}
-                className="absolute left-0 top-0 bottom-0 w-1/2 bg-red-600/20 border-r border-white/10 flex items-center justify-start pl-8 group"
+                variants={prefersReducedMotion ? undefined : leftZoneVariants}
+                initial={prefersReducedMotion ? { opacity: 0 } : "initial"}
+                animate={prefersReducedMotion ? { opacity: 1 } : "animate"}
+                exit={prefersReducedMotion ? { opacity: 0 } : "exit"}
+                className="absolute left-0 top-0 bottom-0 w-1/2 bg-red-600/20 border-r border-white/10 flex items-center justify-start pl-8 group z-20"
                 role="button"
                 aria-label={t('phase2.selectOption', { option: optionA })}
                 tabIndex={disabled ? -1 : 0}
@@ -87,10 +119,11 @@ export function Phase2Zones({
 
             {/* RIGHT ZONE (Option B) */}
             <motion.div
-                initial={{ opacity: 0, x: 50 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ duration: 0.3 }}
-                className="absolute right-0 top-0 bottom-0 w-1/2 bg-pink-600/20 flex items-center justify-end pr-8 group"
+                variants={prefersReducedMotion ? undefined : rightZoneVariants}
+                initial={prefersReducedMotion ? { opacity: 0 } : "initial"}
+                animate={prefersReducedMotion ? { opacity: 1 } : "animate"}
+                exit={prefersReducedMotion ? { opacity: 0 } : "exit"}
+                className="absolute right-0 top-0 bottom-0 w-1/2 bg-pink-600/20 flex items-center justify-end pr-8 group z-20"
                 role="button"
                 aria-label={t('phase2.selectOption', { option: optionB })}
                 tabIndex={disabled ? -1 : 0}
@@ -128,10 +161,11 @@ export function Phase2Zones({
 
             {/* UP ZONE HINT (Both) */}
             <motion.div
-                initial={{ opacity: 0, y: -30 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.3, delay: 0.1 }}
-                className="absolute top-0 left-0 right-0 h-32 bg-gradient-to-b from-purple-500/20 to-transparent pointer-events-none flex justify-center pt-4 group"
+                variants={prefersReducedMotion ? undefined : topZoneVariants}
+                initial={prefersReducedMotion ? { opacity: 0 } : "initial"}
+                animate={prefersReducedMotion ? { opacity: 1 } : "animate"}
+                exit={prefersReducedMotion ? { opacity: 0 } : "exit"}
+                className="absolute top-0 left-0 right-0 h-32 bg-gradient-to-b from-purple-500/20 to-transparent pointer-events-none flex justify-center pt-4 group z-20"
                 role="button"
                 aria-label={t('phase2.selectBoth')}
                 tabIndex={disabled ? -1 : 0}
@@ -165,7 +199,13 @@ export function Phase2Zones({
 
             {/* Options Text Legend - Below the card */}
             {!disabled && (
-                <div className="absolute bottom-28 md:bottom-32 left-0 right-0 text-center pointer-events-none z-30">
+                <motion.div
+                    variants={legendVariants}
+                    initial="initial"
+                    animate="animate"
+                    exit="exit"
+                    className="absolute bottom-24 md:bottom-32 lg:bottom-36 left-0 right-0 text-center pointer-events-none z-30"
+                >
                     <p className="text-white/80 text-lg md:text-xl font-medium">
                         <span className="text-red-400">
                             {optionA}
@@ -198,7 +238,7 @@ export function Phase2Zones({
                         <br className="hidden md:block" />
                         <span className="hidden md:inline">{t('phase2.swipeHint')}</span>
                     </p>
-                </div>
+                </motion.div>
             )}
         </>
     );

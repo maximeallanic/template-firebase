@@ -20,37 +20,12 @@ INTERDIT: "Culture générale", "Quiz général", thèmes trop vagues
 
 Réponds UNIQUEMENT le thème (max 6 mots, pas de guillemets).`;
 
-export const GENERATE_TOPIC_PHASE2_PROMPT = `Tu génères un thème pour la phase "Sel ou Poivre" de Burger Quiz.
-Cette phase utilise des JEUX DE MOTS / HOMOPHONES français.
+export const GENERATE_TOPIC_PHASE2_PROMPT = `BURGER QUIZ Phase 2 - Génère UN domaine thématique français
 
-CONTRAINTE CRITIQUE :
-Le thème doit permettre de créer facilement des HOMOPHONES en français.
-Les meilleurs thèmes sont liés à :
-- La culture française (régions, villes, gastronomie, expressions)
-- Les célébrités françaises et internationales
-- La mode, la beauté, les marques connues
-- La musique, le cinéma, la télé
-- La nourriture et les restaurants
-- Les métiers et professions
-- Les animaux et la nature
+Le générateur créera un JEU DE MOTS (homophone) dans ce domaine.
+Choisis un domaine RICHE en vocabulaire français permettant des homophones.
 
-✅ BONS THÈMES (permettent des homophones) :
-- "La gastronomie française" → "Vin blanc" / "Vingt blancs"
-- "Les régions de France" → "Chair de poule" / "Chère de Pouille"
-- "Le monde du cinéma" → "L'écran" / "Les crans"
-- "La mode et les tendances" → "Le teint" / "Le thym"
-- "Les métiers insolites" → "Le maire" / "La mer"
-- "Les célébrités et scandales" → "Sans gêne" / "Cent gènes"
-- "La musique pop" → "Le son" / "Les sons"
-- "Les animaux de compagnie" → "Le chat" / "Le shah"
-
-❌ MAUVAIS THÈMES (trop abstraits pour homophones) :
-- "Les dinosaures et la pizza" → pas d'homophones évidents
-- "Les robots du futur" → trop éloigné de la langue française
-- "L'espace et les étoiles" → difficile à transformer en jeux de mots
-
-RÉPONDS UNIQUEMENT avec le thème, rien d'autre.
-Maximum 5 mots. En français.`;
+RÉPONDS UNIQUEMENT le domaine (2-4 mots, pas de guillemets).`;
 
 // ============================================================================
 // SUBJECT + ANGLE GENERATION (for deduplication system)

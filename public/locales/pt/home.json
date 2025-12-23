@@ -1,0 +1,90 @@
+{
+  "hero": {
+    "tagline": "O jogo de quiz culinário com amigos!",
+    "description": "Batalhem em equipas <spicy>Spicy</spicy> vs <sweet>Sweet</sweet> em desafios divertidos!"
+  },
+  "features": {
+    "players": "2-20 jogadores",
+    "challenges": "5 desafios divertidos",
+    "winner": "1 equipa vencedora"
+  },
+  "create": {
+    "title": "CRIAR JOGO",
+    "subtitle": "Abre a tua cozinha e convida os amigos!",
+    "button": "Ser o Chef"
+  },
+  "join": {
+    "title": "ENTRAR",
+    "subtitle": "Insere o código e escolhe a tua equipa!",
+    "placeholder": "CÓDIGO",
+    "button": "Entrar",
+    "invalidCode": "Código inválido"
+  },
+  "phases": {
+    "title": "5 Desafios Divertidos",
+    "tenders": {
+      "name": "Tenders",
+      "description": "Sê o mais rápido a buzinar!"
+    },
+    "sucreSale": {
+      "name": "Doce & Salgado",
+      "description": "A ou B?"
+    },
+    "laCarte": {
+      "name": "O Menu",
+      "description": "Lembra-te de todos os pratos!"
+    },
+    "laNote": {
+      "name": "A Conta",
+      "description": "Perguntas de cultura geral!"
+    },
+    "burgerUltime": {
+      "name": "Burger Supremo",
+      "description": "O desafio final pela vitória!"
+    }
+  },
+  "loading": {
+    "joining": "A entrar no jogo...",
+    "creating": "A abrir a cozinha..."
+  },
+  "premium": {
+    "badge": "PREMIUM",
+    "title": "Desbloqueia todas as fases",
+    "description": "Torna-te Premium para aceder às fases 3, 4 e 5 com a tua equipa!",
+    "features": {
+      "laCarte": "O Menu",
+      "laNote": "A Conta",
+      "burgerUltime": "Burger Supremo"
+    },
+    "price": "4,99 €/mês",
+    "cta": "Ser Premium",
+    "hostOnly": "Apenas o anfitrião precisa de subscrição"
+  },
+  "install": {
+    "title": "Instala a app!",
+    "subtitle": "Acesso rápido a partir do ecrã inicial",
+    "button": "Instalar"
+  },
+  "pwa": {
+    "play": "JOGAR",
+    "settings": "Definições",
+    "sound": "Som",
+    "soundOn": "Ligado",
+    "soundOff": "Desligado",
+    "language": "Idioma",
+    "profile": "Perfil",
+    "rotateDevice": "Roda o teu dispositivo",
+    "portraitRequired": "Este jogo é jogado em modo retrato"
+  },
+  "createGame": "Criar jogo",
+  "joinGame": "Entrar",
+  "soloMode": "Modo Solo",
+  "hostDescription": "Convida os teus amigos",
+  "joinDescription": "Insere um código",
+  "soloDescription": "Joga sozinho",
+  "enterCode": "Insere o código",
+  "joining": "A ligar...",
+  "creatingRoom": "A criar...",
+  "joiningRoom": "A ligar...",
+  "editProfile": "Editar perfil"
+}

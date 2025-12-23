@@ -29,8 +29,10 @@ interface Phase2CardProps {
     // New props for adjacent message
     optionA?: string;
     optionB?: string;
-    roundWinner?: Team | null;
+    roundWinner?: Team | 'both' | null;
     myTeamAnswer?: Phase2TeamAnswer;
+    isSolo?: boolean;
+    bothTeamsCorrect?: boolean;
 }
 
 export function Phase2Card({
@@ -42,7 +44,9 @@ export function Phase2Card({
     optionA,
     optionB,
     roundWinner,
-    myTeamAnswer
+    myTeamAnswer,
+    isSolo = false,
+    bothTeamsCorrect = false
 }: Phase2CardProps) {
     const { t } = useTranslation(['game-ui']);
     const prefersReducedMotion = useReducedMotion();
@@ -50,8 +54,11 @@ export function Phase2Card({
     const hasPlayedAudioRef = useRef(false);
 
     // Determine result type
-    const noWinner = roundWinner === null;
-    const otherTeamWon = !didWin && roundWinner !== null;
+    // Use != null to check for both null and undefined
+    // 'both' means both teams won - treat as a win for everyone
+    const hasWinner = roundWinner != null;
+    const noWinner = !hasWinner && !bothTeamsCorrect;
+    const otherTeamWon = !didWin && hasWinner && roundWinner !== 'both' && !bothTeamsCorrect;
 
     // Reset card position and animate to visible when item changes
     useEffect(() => {
@@ -151,6 +158,8 @@ export function Phase2Card({
     // Get ring color based on result
     const getRingClass = () => {
         if (!isRoundOver || !hasAnswered) return '';
+        // Both teams correct = green ring (positive)
+        if (bothTeamsCorrect) return 'ring-4 ring-purple-500 shadow-purple-500/30';
         return didWin
             ? 'ring-4 ring-green-500 shadow-green-500/30'
             : 'ring-4 ring-red-500 shadow-red-500/30';
@@ -158,10 +167,10 @@ export function Phase2Card({
 
     // Get top bar gradient based on result
     const getTopBarGradient = () => {
-        if (isRoundOver && didWin) {
+        if (isRoundOver && (didWin || bothTeamsCorrect)) {
             return 'bg-gradient-to-r from-green-400 via-emerald-400 to-green-400';
         }
-        if (isRoundOver && hasAnswered && !didWin) {
+        if (isRoundOver && hasAnswered && !didWin && !bothTeamsCorrect) {
             return 'bg-gradient-to-r from-red-400 via-rose-400 to-red-400';
         }
         return 'bg-gradient-to-r from-red-400 via-purple-400 to-pink-400';
@@ -181,6 +190,10 @@ export function Phase2Card({
 
     // Get result style based on outcome
     const getResultStyle = () => {
+        if (bothTeamsCorrect) {
+            // Both teams win - purple/gradient to celebrate both
+            return 'bg-gradient-to-br from-purple-500 to-pink-600 border-white text-white';
+        }
         if (didWin) {
             return 'bg-gradient-to-br from-green-500 to-emerald-600 border-white text-white';
         }
@@ -193,6 +206,16 @@ export function Phase2Card({
 
     // Get result message
     const getResultMessage = () => {
+        if (isSolo) {
+            if (didWin) {
+                return t('phase2.solo.correct', { defaultValue: 'Correct !' });
+            }
+            return t('phase2.solo.incorrect', { defaultValue: 'Raté !' });
+        }
+        // Both teams correct - both win!
+        if (bothTeamsCorrect) {
+            return t('phase2.bothTeamsWon', { defaultValue: 'Les deux équipes gagnent !' });
+        }
         if (didWin) {
             return t('phase2.yourTeamWon', { defaultValue: 'Votre équipe gagne !' });
         }
@@ -204,6 +227,7 @@ export function Phase2Card({
 
     // Get result icon
     const getResultIcon = () => {
+        if (bothTeamsCorrect) return <Check className="w-8 h-8" />; // Both win = positive icon
         if (didWin) return <Check className="w-8 h-8" />;
         if (otherTeamWon) return <X className="w-8 h-8" />;
         return <AlertCircle className="w-8 h-8" />;
@@ -238,7 +262,8 @@ export function Phase2Card({
             {/* The Card */}
             <div
                 className={`
-                    bg-white text-slate-900 w-full max-w-xs aspect-square rounded-3xl shadow-2xl
+                    bg-white text-slate-900 w-full max-w-xs md:max-w-sm aspect-square rounded-3xl shadow-2xl
+                    max-h-[45vh] md:max-h-[50vh]
                     flex flex-col items-center justify-center p-6 text-center relative overflow-hidden
                     transition-shadow duration-300
                     ${!hasAnswered && !isRoundOver ? 'cursor-grab active:cursor-grabbing pointer-events-auto' : 'pointer-events-none'}
@@ -270,7 +295,7 @@ export function Phase2Card({
                 )}
 
                 {/* Item text */}
-                <h1 className="text-3xl md:text-4xl font-black leading-tight text-slate-800">
+                <h1 className="text-3xl md:text-4xl font-black leading-tight text-slate-800 select-none">
                     {item.text}
                 </h1>
 
@@ -329,15 +354,15 @@ export function Phase2Card({
                             {getResultMessage()}
                         </div>
 
-                        {/* Winner team badge */}
-                        {roundWinner && (
+                        {/* Winner team badge (hidden in solo mode or when both teams win) */}
+                        {!isSolo && roundWinner && roundWinner !== 'both' && (
                             <div className="text-xs mt-1 text-center opacity-80">
                                 {getTeamName(roundWinner)}
                             </div>
                         )}
 
-                        {/* Who answered for my team */}
-                        {myTeamAnswer && (
+                        {/* Who answered for my team (hidden in solo mode) */}
+                        {!isSolo && myTeamAnswer && (
                             <div className={`text-xs mt-1 text-center ${didWin ? 'text-white/70' : 'text-current opacity-60'}`}>
                                 {myTeamAnswer.playerName}
                             </div>
@@ -345,7 +370,7 @@ export function Phase2Card({
 
                         {/* Correct answer (show if team lost or no winner) */}
                         {!didWin && (
-                            <div className={`text-xs mt-2 ${noWinner ? 'text-amber-700' : 'text-red-400'}`}>
+                            <div className={`text-xs mt-2 select-none ${noWinner ? 'text-amber-700' : 'text-red-400'}`}>
                                 {t('phase2.itWas')}{' '}
                                 <span className={`font-bold ${noWinner ? 'text-amber-800' : 'text-red-600'}`}>
                                     {getAnswerText(item.answer)}
@@ -359,7 +384,7 @@ export function Phase2Card({
                                 initial={{ opacity: 0 }}
                                 animate={{ opacity: 1 }}
                                 transition={{ delay: 0.7, duration: durations.normal }}
-                                className={`text-xs mt-2 pt-2 border-t italic ${
+                                className={`text-xs mt-2 pt-2 border-t italic select-none ${
                                     didWin
                                         ? 'border-white/20 text-white/90'
                                         : noWinner
@@ -377,7 +402,7 @@ export function Phase2Card({
                                 initial={{ opacity: 0 }}
                                 animate={{ opacity: 1 }}
                                 transition={{ delay: 0.9, duration: durations.normal }}
-                                className={`text-xs mt-2 italic ${
+                                className={`text-xs mt-2 italic select-none ${
                                     didWin ? 'text-white/70' : 'opacity-60'
                                 }`}
                             >

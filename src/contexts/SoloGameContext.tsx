@@ -6,7 +6,8 @@
 
 import { createContext, useContext, useReducer, useCallback, useRef, useEffect, type ReactNode } from 'react';
 import { ref, child, get } from 'firebase/database';
-import type { Avatar, SimplePhase2Set } from '../types/gameTypes';
+import type { Avatar, SimplePhase2Set, Difficulty } from '../types/gameTypes';
+import { hasEnoughQuestions, MINIMUM_QUESTION_COUNTS } from '../types/gameTypes';
 import {
     type SoloGameState,
     type SoloPhaseStatus,
@@ -375,12 +376,20 @@ function soloGameReducer(state: SoloGameState, action: SoloGameAction): SoloGame
 
             const nextPhase = SOLO_PHASE_ORDER[nextPhaseIndex];
 
-            // Check if questions are ready for next phase
+            // Check if we have ENOUGH questions for next phase (not just existence)
             // Note: nextPhase is 'phase1' | 'phase2' | 'phase4' from SOLO_PHASE_ORDER
-            const questionsReady = nextPhase && state.customQuestions[nextPhase] != null;
+            const questionsReady = nextPhase && hasEnoughQuestions(state.customQuestions, nextPhase);
 
             if (!questionsReady && (nextPhase === 'phase2' || nextPhase === 'phase4')) {
-                // Questions not ready - enter waiting state
+                // Questions not ready (missing or insufficient) - enter waiting state
+                console.log('[SOLO] Insufficient questions for', nextPhase, {
+                    currentCount: state.customQuestions[nextPhase]
+                        ? (nextPhase === 'phase2'
+                            ? (state.customQuestions.phase2 as SimplePhase2Set)?.items?.length
+                            : (state.customQuestions[nextPhase] as unknown[])?.length)
+                        : 0,
+                    required: MINIMUM_QUESTION_COUNTS[nextPhase]
+                });
                 return {
                     ...state,
                     status: 'waiting_for_phase',
@@ -425,7 +434,7 @@ function soloGameReducer(state: SoloGameState, action: SoloGameAction): SoloGame
             };
 
         case 'RESET_GAME':
-            return createInitialSoloState(state.playerId, state.playerName, state.playerAvatar);
+            return createInitialSoloState(state.playerId, state.playerName, state.playerAvatar, state.difficulty);
 
         default:
             return state;
@@ -467,6 +476,7 @@ interface SoloGameProviderProps {
     initialPlayerId?: string;
     initialPlayerName?: string;
     initialPlayerAvatar?: Avatar;
+    initialDifficulty?: Difficulty;
 }
 
 export function SoloGameProvider({
@@ -474,10 +484,11 @@ export function SoloGameProvider({
     initialPlayerId = '',
     initialPlayerName = '',
     initialPlayerAvatar = 'burger',
+    initialDifficulty = 'normal',
 }: SoloGameProviderProps) {
     const [state, dispatch] = useReducer(
         soloGameReducer,
-        createInitialSoloState(initialPlayerId, initialPlayerName, initialPlayerAvatar)
+        createInitialSoloState(initialPlayerId, initialPlayerName, initialPlayerAvatar, initialDifficulty)
     );
 
     // Ref for background generation abort controller
@@ -490,6 +501,7 @@ export function SoloGameProvider({
         phase: 'phase1' | 'phase2' | 'phase4',
         seenIds: Set<string>,
         signal: AbortSignal,
+        difficulty: Difficulty,
         maxRetries = 3
     ): Promise<unknown> => {
         let lastError: Error | null = null;
@@ -507,9 +519,9 @@ export function SoloGameProvider({
                         : storedSet.questions;
                 }
 
-                // Fall back to AI generation
-                console.log(`[SOLO] 🤖 AI generation for ${phase} (attempt ${attempt}/${maxRetries})`);
-                const result = await generateWithRetry({ phase, soloMode: true });
+                // Fall back to AI generation with difficulty
+                console.log(`[SOLO] 🤖 AI generation for ${phase} (difficulty: ${difficulty}, attempt ${attempt}/${maxRetries})`);
+                const result = await generateWithRetry({ phase, soloMode: true, difficulty });
                 return result.data;
             } catch (error) {
                 lastError = error as Error;
@@ -540,13 +552,13 @@ export function SoloGameProvider({
     }, []);
 
     // Start background generation for Phase 2 and Phase 4 (non-blocking, fire-and-forget)
-    const startBackgroundGeneration = useCallback((seenIds: Set<string>) => {
+    const startBackgroundGeneration = useCallback((seenIds: Set<string>, difficulty: Difficulty) => {
         const abort = new AbortController();
         backgroundAbortRef.current = abort;
 
         // Phase 2 (fire-and-forget)
         dispatch({ type: 'BACKGROUND_GEN_START', phase: 'phase2' });
-        generatePhaseWithRetries('phase2', seenIds, abort.signal, 3)
+        generatePhaseWithRetries('phase2', seenIds, abort.signal, difficulty, 3)
             .then(questions => {
                 if (!abort.signal.aborted) {
                     console.log('[SOLO] ✅ Background phase2 ready');
@@ -562,7 +574,7 @@ export function SoloGameProvider({
 
         // Phase 4 (fire-and-forget, runs in parallel with Phase 2)
         dispatch({ type: 'BACKGROUND_GEN_START', phase: 'phase4' });
-        generatePhaseWithRetries('phase4', seenIds, abort.signal, 3)
+        generatePhaseWithRetries('phase4', seenIds, abort.signal, difficulty, 3)
             .then(questions => {
                 if (!abort.signal.aborted) {
                     console.log('[SOLO] ✅ Background phase4 ready');
@@ -591,9 +603,12 @@ export function SoloGameProvider({
             const seenIds = await loadPlayerHistory(state.playerId);
             seenIdsRef.current = seenIds;
 
+            const difficulty = state.difficulty;
+            console.log(`[SOLO] Starting game with difficulty: ${difficulty}`);
+
             // Phase 1 only (blocking) - game starts as soon as this is ready
             dispatch({ type: 'SET_GENERATION_PROGRESS', phase: 'phase1', status: 'generating' });
-            const phase1Questions = await generatePhaseWithRetries('phase1', seenIds, new AbortController().signal, 3);
+            const phase1Questions = await generatePhaseWithRetries('phase1', seenIds, new AbortController().signal, difficulty, 3);
             dispatch({ type: 'SET_GENERATION_PROGRESS', phase: 'phase1', status: 'done' });
             dispatch({ type: 'SET_QUESTIONS', phase: 'phase1', questions: phase1Questions });
 
@@ -603,7 +618,7 @@ export function SoloGameProvider({
             dispatch({ type: 'PHASE1_READY' });
 
             // Start background generation for Phase 2 & 4 (non-blocking)
-            startBackgroundGeneration(seenIds);
+            startBackgroundGeneration(seenIds, difficulty);
         } catch (error) {
             console.error('[SOLO] Phase 1 generation failed:', error);
             dispatch({
@@ -611,7 +626,7 @@ export function SoloGameProvider({
                 error: 'Impossible de charger les questions. Veuillez réessayer.',
             });
         }
-    }, [state.playerId, loadPlayerHistory, generatePhaseWithRetries, startBackgroundGeneration]);
+    }, [state.playerId, state.difficulty, loadPlayerHistory, generatePhaseWithRetries, startBackgroundGeneration]);
 
     // Retry background generation for a specific phase (used when waiting_for_phase with error)
     const retryBackgroundGeneration = useCallback(async (phase: 'phase2' | 'phase4') => {
@@ -619,19 +634,19 @@ export function SoloGameProvider({
 
         try {
             const seenIds = seenIdsRef.current;
-            const questions = await generatePhaseWithRetries(phase, seenIds, new AbortController().signal, 3);
+            const questions = await generatePhaseWithRetries(phase, seenIds, new AbortController().signal, state.difficulty, 3);
             dispatch({ type: 'BACKGROUND_GEN_DONE', phase, questions });
         } catch (error) {
             dispatch({ type: 'BACKGROUND_GEN_ERROR', phase, error: (error as Error).message });
         }
-    }, [generatePhaseWithRetries]);
+    }, [generatePhaseWithRetries, state.difficulty]);
 
-    // Effect: Auto-transition from waiting_for_phase when questions become available
+    // Effect: Auto-transition from waiting_for_phase when ENOUGH questions become available
     useEffect(() => {
         if (state.status === 'waiting_for_phase' && state.pendingPhase) {
-            const questionsReady = state.customQuestions[state.pendingPhase] != null;
+            const questionsReady = hasEnoughQuestions(state.customQuestions, state.pendingPhase);
             if (questionsReady) {
-                console.log(`[SOLO] Questions ready for ${state.pendingPhase} - transitioning`);
+                console.log(`[SOLO] Enough questions ready for ${state.pendingPhase} - transitioning`);
                 dispatch({ type: 'EXIT_WAITING' });
             }
         }

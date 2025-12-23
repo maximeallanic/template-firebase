@@ -8,6 +8,7 @@ import { submitPhase4Answer, handlePhase4Timeout, nextPhase4Question, showPhaseR
 import { markQuestionAsSeen } from '../../services/historyService';
 import { audioService } from '../../services/audioService';
 import { useReducedMotion } from '../../hooks/useReducedMotion';
+import { getTransitionDuration } from '../../animations';
 import { PHASE4_QUESTIONS } from '../../data/phase4';
 import type { SoloPhaseHandlers } from '../../types/soloTypes';
 
@@ -60,6 +61,9 @@ export function Phase4Player({ room, playerId, isHost, mode = 'multiplayer', sol
     // Immediate wrong answer feedback state
     const [wrongFeedbackIndex, setWrongFeedbackIndex] = useState<number | null>(null);
 
+    // Result reveal animation phase: 'idle' → 'shaking' → 'revealing'
+    const [resultRevealPhase, setResultRevealPhase] = useState<'idle' | 'shaking' | 'revealing'>('idle');
+
     // Check if current player has answered
     const myAnswer = phase4Answers?.[playerId];
     const hasAnswered = myAnswer !== undefined;
@@ -77,15 +81,44 @@ export function Phase4Player({ room, playerId, isHost, mode = 'multiplayer', sol
     }, [currentQuestion?.text]);
 
     // Show transition when question index changes
+    // Always show transition - Phase4Transition handles reduced motion internally
     useEffect(() => {
         if (previousQuestionIdxRef.current !== null &&
             previousQuestionIdxRef.current !== currentQuestionIdx &&
-            currentQuestion &&
-            !prefersReducedMotion) {
+            currentQuestion) {
             setShowTransition(true);
+            setResultRevealPhase('idle'); // Reset reveal phase on new question
         }
         previousQuestionIdxRef.current = currentQuestionIdx;
-    }, [currentQuestionIdx, currentQuestion, prefersReducedMotion]);
+    }, [currentQuestionIdx, currentQuestion]);
+
+    // Result reveal animation sequence: first shake wrong answer, then reveal correct
+    useEffect(() => {
+        if (phase4State === 'result' && myAnswer !== undefined) {
+            const isWrongAnswer = currentQuestion && myAnswer.answer !== currentQuestion.correctIndex;
+
+            if (isWrongAnswer && !prefersReducedMotion) {
+                // Step 1: Show shake animation on wrong answer
+                setResultRevealPhase('shaking');
+
+                // Step 2: After shake duration, reveal the correct answer
+                const shakeDuration = getTransitionDuration('wrongFeedback', false);
+                const timer = setTimeout(() => {
+                    setResultRevealPhase('revealing');
+                }, shakeDuration);
+
+                return () => clearTimeout(timer);
+            } else {
+                // No wrong answer or reduced motion: go directly to revealing
+                setResultRevealPhase('revealing');
+            }
+        } else if (phase4State === 'result' && myAnswer === undefined) {
+            // Player didn't answer - go directly to revealing
+            setResultRevealPhase('revealing');
+        } else if (phase4State !== 'result') {
+            setResultRevealPhase('idle');
+        }
+    }, [phase4State, myAnswer, currentQuestion, prefersReducedMotion]);
 
     // Refs for timeout handling to avoid unnecessary timer recreation
     const isHostRef = useRef(isHost);
@@ -153,7 +186,14 @@ export function Phase4Player({ room, playerId, isHost, mode = 'multiplayer', sol
         return () => clearTimeout(timeout);
     }, [phase4State, isHost, isSolo, soloHandlers, room.code, currentQuestion?.anecdote]);
 
-    // Handle answer submission
+    // Auto-advance to results when phase 4 finishes in solo mode
+    useEffect(() => {
+        if (isFinished && isSolo && soloHandlers) {
+            soloHandlers.advanceToNextPhase();
+        }
+    }, [isFinished, isSolo, soloHandlers]);
+
+    // Handle answer submission with parallel animations
     const handleAnswerClick = useCallback(async (answerIndex: number) => {
         // Prevent interaction during wrong feedback animation
         if (hasAnswered || phase4State !== 'questioning' || wrongFeedbackIndex !== null) return;
@@ -163,21 +203,38 @@ export function Phase4Player({ room, playerId, isHost, mode = 'multiplayer', sol
         // Check if answer is wrong BEFORE submitting (for immediate visual feedback)
         const isWrongAnswer = currentQuestion && answerIndex !== currentQuestion.correctIndex;
 
+        // Create submit promise (optimistic - starts immediately)
+        const submitPromise = (async () => {
+            if (isSolo && soloHandlers) {
+                soloHandlers.submitPhase4Answer(answerIndex);
+                return { success: true };
+            } else {
+                try {
+                    await submitPhase4Answer(room.code, playerId, answerIndex);
+                    return { success: true };
+                } catch (error) {
+                    console.error('Phase4 submit error:', error);
+                    return { success: false, error };
+                }
+            }
+        })();
+
         if (isWrongAnswer && !prefersReducedMotion) {
             // Show immediate wrong answer feedback
             setWrongFeedbackIndex(answerIndex);
             audioService.playError();
 
-            // Wait for animation to complete before submitting
-            await new Promise(resolve => setTimeout(resolve, 800));
-            setWrongFeedbackIndex(null);
-        }
+            // Animation and network call run in PARALLEL (no blocking)
+            const feedbackDuration = getTransitionDuration('wrongFeedback', prefersReducedMotion);
+            await Promise.all([
+                new Promise<void>(resolve => setTimeout(resolve, feedbackDuration)),
+                submitPromise
+            ]);
 
-        // Now submit the answer
-        if (isSolo && soloHandlers) {
-            soloHandlers.submitPhase4Answer(answerIndex);
+            setWrongFeedbackIndex(null);
         } else {
-            await submitPhase4Answer(room.code, playerId, answerIndex);
+            // No animation needed, just submit
+            await submitPromise;
         }
     }, [hasAnswered, phase4State, team, room.code, playerId, isSolo, soloHandlers, currentQuestion, prefersReducedMotion, wrongFeedbackIndex]);
 
@@ -211,20 +268,6 @@ export function Phase4Player({ room, playerId, isHost, mode = 'multiplayer', sol
                 <h2 className="text-4xl font-black text-center">{t('phase4.phaseComplete')}</h2>
                 <div className="text-2xl text-gray-300">{t('phase4.laNote')}</div>
 
-                {/* Solo mode: advance to results */}
-                {isSolo && soloHandlers && (
-                    <motion.button
-                        initial={prefersReducedMotion ? { opacity: 0 } : { opacity: 0, y: 20 }}
-                        animate={prefersReducedMotion ? { opacity: 1 } : { opacity: 1, y: 0 }}
-                        transition={{ delay: 0.3 }}
-                        onClick={() => soloHandlers.advanceToNextPhase()}
-                        className="bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-400 hover:to-red-400 px-8 py-4 rounded-xl text-xl font-bold shadow-lg flex items-center gap-2 text-white transition-colors"
-                    >
-                        <span>{t('common:actions.continue', 'Voir les résultats')}</span>
-                        <ChevronRight className="w-6 h-6" aria-hidden="true" />
-                    </motion.button>
-                )}
-
                 {/* Multiplayer mode: host starts Phase 5 */}
                 {!isSolo && isHost && (
                     <motion.button
@@ -255,12 +298,44 @@ export function Phase4Player({ room, playerId, isHost, mode = 'multiplayer', sol
     }
 
     // --- RESULT VIEW ---
-    if (phase4State === 'result') {
+    // During 'shaking' phase: show options with shake animation on wrong answer
+    if (phase4State === 'result' && resultRevealPhase === 'shaking') {
+        return (
+            <div className="flex flex-col items-center p-4 space-y-4 max-h-screen overflow-y-auto w-full text-white">
+                {/* Header: Question info */}
+                <div className="w-full max-w-lg flex justify-between items-center">
+                    <div className="text-gray-400 font-bold uppercase tracking-wider">
+                        {t('phase4.questionNumber', { current: currentQuestionIdx + 1, total: totalQuestions })}
+                    </div>
+                </div>
+
+                {/* Question Card */}
+                <Phase4Question
+                    question={currentQuestion.text}
+                    questionNumber={currentQuestionIdx + 1}
+                    totalQuestions={totalQuestions}
+                />
+
+                {/* MCQ Options with shake animation on wrong answer */}
+                <Phase4Options
+                    options={currentQuestion.options}
+                    selectedAnswer={myAnswer?.answer}
+                    onSelectAnswer={() => {}} // Disabled during result
+                    disabled={true}
+                    wrongFeedbackIndex={myAnswer?.answer} // Triggers shake animation
+                />
+            </div>
+        );
+    }
+
+    // After 'shaking' phase: show the result
+    if (phase4State === 'result' && resultRevealPhase === 'revealing') {
         return (
             <Phase4Result
                 question={currentQuestion}
                 winner={phase4Winner || null}
                 myAnswer={myAnswer}
+                isSolo={isSolo}
             />
         );
     }
@@ -281,7 +356,7 @@ export function Phase4Player({ room, playerId, isHost, mode = 'multiplayer', sol
             </div>
 
             {/* Question Card */}
-            <AnimatePresence mode="wait">
+            <AnimatePresence>
                 <Phase4Question
                     key={currentQuestionIdx}
                     question={currentQuestion.text}

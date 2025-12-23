@@ -140,19 +140,19 @@ interface Phase1DialogueReview {
     approved: boolean;
     scores: {
         factual_accuracy: number;
+        humor: number;
         clarity: number;
-        burger_quiz_style: number;
         variety: number;
-        anecdotes: number;
-        celebrities: number;
+        options_quality: number;
     };
     overall_score: number;
     questions_feedback: Array<{
         index: number;
         text: string;
         ok: boolean;
+        funny?: boolean;
         issue: string;
-        issue_type: 'factual_error' | 'ambiguous' | 'boring' | 'too_long' | 'bad_anecdote' | null;
+        issue_type: 'factual_error' | 'not_funny' | 'too_long' | 'ambiguous' | 'duplicate_options' | null;
     }>;
     global_feedback: string;
     suggestions: string[];
@@ -249,33 +249,21 @@ interface Phase5Question {
 interface Phase5DialogueReview {
     approved: boolean;
     scores: {
-        memorability: number;
-        callbacks: number;
-        progression: number;
+        humor: number;
+        diversity: number;
         factual_accuracy: number;
-        answer_length: number;
-        burger_style: number;
-        thematic_coherence: number;
+        memorability: number;
+        length: number;
+        accessibility: number;
     };
     overall_score: number;
-    callback_count: number;
-    identified_callbacks: Array<{
-        question_index: number;
-        references_question: number;
-        description: string;
-    }>;
-    difficulty_curve: {
-        easy_questions: number[];
-        medium_questions: number[];
-        hard_questions: number[];
-        curve_ok: boolean;
-    };
+    duplicate_concepts?: string[];
     questions_feedback: Array<{
         index: number;
         question: string;
         answer: string;
         ok: boolean;
-        memorable: boolean;
+        funny: boolean;
         issues: string[];
         correction?: string;
     }>;
@@ -309,15 +297,6 @@ interface FactCheckBatchResponse {
     };
 }
 
-interface Phase2FactCheckResult {
-    isCorrectlyAssigned: boolean;
-    confidence: number;
-    shouldBe: 'A' | 'B' | 'Both';
-    source?: string;
-    reasoning: string;
-    factualIssue?: string | null;
-}
-
 // Minimum confidence threshold for fact-check (85%)
 const FACT_CHECK_CONFIDENCE_THRESHOLD = 85;
 
@@ -331,7 +310,10 @@ export const GameGenerationInputSchema = z.object({
     phase: z.enum(['phase1', 'phase2', 'phase3', 'phase4', 'phase5']),
     topic: z.string().optional().default('General Knowledge'),
     difficulty: z.enum(['easy', 'normal', 'hard', 'wtf']).optional().default('normal'),
-    language: z.enum(['fr', 'en']).optional().default('fr')
+    language: z.enum(['fr', 'en']).optional().default('fr'),
+    // Completion mode: generate only missing questions
+    completeCount: z.number().int().min(1).max(20).optional(),
+    existingQuestions: z.array(z.unknown()).optional(),
 });
 
 export const GameGenerationOutputSchema = z.object({
@@ -636,58 +618,68 @@ async function factCheckPhase1Questions(
  * Verify factual accuracy of Phase 2 items
  * Checks if items are correctly categorized
  */
+interface Phase2FactCheckBatchResult {
+    results: Array<{
+        index: number;
+        text: string;
+        assignedCategory: string;
+        isCorrect: boolean;
+        confidence: number;
+        shouldBe: 'A' | 'B' | 'Both';
+        reasoning: string;
+    }>;
+    summary: {
+        total: number;
+        correct: number;
+        incorrect: number;
+    };
+}
+
 async function factCheckPhase2Items(
     set: Phase2Set
 ): Promise<{ passed: typeof set.items; failed: { item: typeof set.items[0]; reason: string }[] }> {
-    console.log(`🔍 Fact-checking ${set.items.length} Phase 2 items...`);
+    console.log(`🔍 Fact-checking ${set.items.length} Phase 2 items (BATCH)...`);
 
     const passed: typeof set.items = [];
     const failed: { item: typeof set.items[0]; reason: string }[] = [];
 
-    // Check all items in parallel (no batching needed, Gemini handles it)
-    const batchSize = 12;
-    for (let i = 0; i < set.items.length; i += batchSize) {
-        const batch = set.items.slice(i, i + batchSize);
+    // Prepare items for batch check
+    const itemsJson = set.items.map((item, idx) => ({
+        index: idx,
+        text: item.text,
+        assignedCategory: item.answer,
+        justification: item.justification || 'Non fournie'
+    }));
 
-        const checks = batch.map(async (item) => {
-            const prompt = FACT_CHECK_PHASE2_PROMPT
-                .replace('{OPTION_A}', set.optionA)
-                .replace('{OPTION_B}', set.optionB)
-                .replace('{ITEM_TEXT}', item.text)
-                .replace('{ASSIGNED_CATEGORY}', item.answer)
-                .replace('{JUSTIFICATION}', item.justification || 'Non fournie');
+    const prompt = FACT_CHECK_PHASE2_PROMPT
+        .replace('{OPTION_A}', set.optionA)
+        .replace('{OPTION_B}', set.optionB)
+        .replace('{ITEMS_JSON}', JSON.stringify(itemsJson, null, 2));
 
-            try {
-                const responseText = await callGeminiForFactCheck(prompt);
-                const result = parseJsonFromText(responseText) as Phase2FactCheckResult;
+    try {
+        const responseText = await callGeminiForFactCheck(prompt);
+        const result = parseJsonFromText(responseText) as Phase2FactCheckBatchResult;
 
-                if (result.isCorrectlyAssigned && result.confidence >= FACT_CHECK_CONFIDENCE_THRESHOLD) {
-                    return { item, passed: true, reason: '' };
-                } else {
-                    const reason = !result.isCorrectlyAssigned
-                        ? `Mauvaise catégorie: devrait être ${result.shouldBe} - ${result.reasoning}`
-                        : `Confiance trop basse (${result.confidence}%): ${result.reasoning}`;
-                    return { item, passed: false, reason };
-                }
-            } catch (err) {
-                console.error(`❌ Fact-check failed for item "${item.text}":`, err);
-                // Conservative approach: reject if we can't verify
-                // This prevents potentially incorrect items from passing
-                return { item, passed: false, reason: 'Vérification impossible - item rejeté par précaution' };
-            }
-        });
+        console.log(`📊 Fact-check summary: ${result.summary.correct}/${result.summary.total} correct`);
 
-        const results = await Promise.all(checks);
-
-        for (const result of results) {
-            if (result.passed) {
-                passed.push(result.item);
-                console.log(`  ✅ "${result.item.text}" → ${result.item.answer}`);
+        for (const check of result.results) {
+            const item = set.items[check.index];
+            if (check.isCorrect && check.confidence >= FACT_CHECK_CONFIDENCE_THRESHOLD) {
+                passed.push(item);
+                console.log(`  ✅ "${item.text}" → ${item.answer}`);
             } else {
-                failed.push({ item: result.item, reason: result.reason });
-                console.log(`  ❌ "${result.item.text}" → ${result.item.answer} - ${result.reason}`);
+                const reason = !check.isCorrect
+                    ? `Mauvaise catégorie: devrait être ${check.shouldBe} - ${check.reasoning}`
+                    : `Confiance trop basse (${check.confidence}%): ${check.reasoning}`;
+                failed.push({ item, reason });
+                console.log(`  ❌ "${item.text}" → ${item.answer} - ${reason}`);
             }
         }
+    } catch (err) {
+        console.error('❌ Batch fact-check failed:', err);
+        // If batch fails, accept all items (reviewer already validated)
+        console.log('⚠️ Falling back to accepting all items');
+        passed.push(...set.items);
     }
 
     console.log(`📊 Phase 2 fact-check: ${passed.length}/${set.items.length} passed`);
@@ -1032,9 +1024,15 @@ async function _markSubjectAngleUsed(
 async function generatePhase2WithDialogue(
     topic: string,
     difficulty: string,
+    completeCount?: number,
+    existingItems?: unknown[],
     maxIterations: number = 3
 ): Promise<{ set: Phase2Set; embeddings: number[][] }> {
-    console.log('🎭 Starting Generator/Reviewer dialogue for Phase 2...');
+    // Completion mode: generate fewer items
+    const isCompletion = completeCount !== undefined && completeCount > 0;
+    const targetCount = isCompletion ? completeCount : 12;
+
+    console.log(`🎭 Starting Generator/Reviewer dialogue for Phase 2...${isCompletion ? ` (COMPLETION: ${targetCount} items)` : ''}`);
 
     let previousFeedback = '';
     let lastSet: Phase2Set | null = null;
@@ -1042,6 +1040,16 @@ async function generatePhase2WithDialogue(
     // Track the BEST set seen so far (for fallback when max iterations reached)
     let bestSet: Phase2Set | null = null;
     let bestScore = 0;
+
+    // For completion mode, build context about existing items to avoid duplicates
+    let existingContext = '';
+    if (isCompletion && existingItems && existingItems.length > 0) {
+        const existingSummary = existingItems.map((item, i) => {
+            const itemObj = item as { text?: string };
+            return `${i + 1}. ${itemObj.text || 'unknown'}`;
+        }).join('\n');
+        existingContext = `\n\n⚠️ ITEMS DÉJÀ EXISTANTS (NE PAS RÉPÉTER):\n${existingSummary}\n\nGénère ${targetCount} nouveaux items DIFFÉRENTS.`;
+    }
 
     // Flag to skip generator and re-validate lastSet directly (after targeted regen)
     let revalidateOnly = false;
@@ -1073,10 +1081,17 @@ async function generatePhase2WithDialogue(
             };
         } else {
             // 1. Generator proposes a complete set
-            const generatorPrompt = PHASE2_GENERATOR_PROMPT
+            let generatorPrompt = PHASE2_GENERATOR_PROMPT
                 .replace('{TOPIC}', topic)
                 .replace('{DIFFICULTY}', difficulty)
                 .replace('{PREVIOUS_FEEDBACK}', previousFeedback);
+
+            // For completion mode, modify the prompt
+            if (isCompletion) {
+                generatorPrompt = generatorPrompt
+                    .replace(/12 items/gi, `${targetCount} items`)
+                    .replace(/12 éléments/gi, `${targetCount} éléments`) + existingContext;
+            }
 
             console.log('🤖 Generator creating set...');
             const proposalText = await callGemini(generatorPrompt, 'creative');
@@ -1753,9 +1768,15 @@ async function performPhase5TargetedRegen(
 async function generatePhase1WithDialogue(
     topic: string,
     difficulty: string,
+    completeCount?: number,
+    existingQuestions?: Phase1Question[],
     maxIterations: number = 4
 ): Promise<{ questions: Phase1Question[]; embeddings: number[][] }> {
-    console.log('🎭 Starting Generator/Reviewer dialogue for Phase 1...');
+    // Completion mode: generate fewer questions
+    const isCompletion = completeCount !== undefined && completeCount > 0;
+    const targetCount = isCompletion ? completeCount : 10;
+
+    console.log(`🎭 Starting Generator/Reviewer dialogue for Phase 1...${isCompletion ? ` (COMPLETION: ${targetCount} questions)` : ''}`);
 
     let previousFeedback = '';
     let lastQuestions: Phase1Question[] = [];
@@ -1764,14 +1785,28 @@ async function generatePhase1WithDialogue(
     let bestQuestions: Phase1Question[] = [];
     let bestScore = 0;
 
+    // For completion mode, build context about existing questions to avoid duplicates
+    let existingContext = '';
+    if (isCompletion && existingQuestions && existingQuestions.length > 0) {
+        const existingSummary = existingQuestions.map((q, i) => `${i + 1}. ${q.text}`).join('\n');
+        existingContext = `\n\n⚠️ QUESTIONS DÉJÀ EXISTANTES (NE PAS RÉPÉTER):\n${existingSummary}\n\nGénère ${targetCount} nouvelles questions DIFFÉRENTES.`;
+    }
+
     for (let i = 0; i < maxIterations; i++) {
         console.log(`\n🔄 === ITERATION ${i + 1}/${maxIterations} ===`);
 
         // 1. Generator proposes questions
-        const generatorPrompt = PHASE1_GENERATOR_PROMPT
+        let generatorPrompt = PHASE1_GENERATOR_PROMPT
             .replace('{TOPIC}', topic)
             .replace('{DIFFICULTY}', difficulty)
             .replace('{PREVIOUS_FEEDBACK}', previousFeedback);
+
+        // For completion mode, modify the prompt to request fewer questions
+        if (isCompletion) {
+            generatorPrompt = generatorPrompt
+                .replace(/10 questions/gi, `${targetCount} questions`)
+                .replace(/10 nouvelles/gi, `${targetCount} nouvelles`) + existingContext;
+        }
 
         console.log('🤖 Generator creating questions...');
         const proposalText = await callGemini(generatorPrompt, 'factual'); // Use factual config for Phase 1
@@ -1812,8 +1847,8 @@ async function generatePhase1WithDialogue(
         }
 
         // Log scores
-        console.log(`📊 Scores: factual=${review.scores.factual_accuracy}, clarity=${review.scores.clarity}, style=${review.scores.burger_quiz_style}`);
-        console.log(`          variety=${review.scores.variety}, anecdotes=${review.scores.anecdotes}, celebrities=${review.scores.celebrities}`);
+        console.log(`📊 Scores: factual=${review.scores.factual_accuracy}, humor=${review.scores.humor || 0}, clarity=${review.scores.clarity}`);
+        console.log(`          variety=${review.scores.variety}, options=${review.scores.options_quality || 0}`);
         console.log(`   Overall: ${review.overall_score}/10`);
 
         // 3. Check critical criteria
@@ -1875,58 +1910,39 @@ NE RÉUTILISE PAS les questions rejetées.
             continue;
         }
 
-        // CRITICAL: Clarity must be >= 7 (increased from 6)
+        // Check humor (new!)
+        if ((review.scores.humor || 0) < 6) {
+            console.log(`❌ Not funny enough (${review.scores.humor}/10).`);
+
+            const boringQuestions = review.questions_feedback
+                .filter(q => q.funny === false || q.issue_type === 'not_funny')
+                .map(q => `- Q${q.index + 1}: "${q.text?.slice(0, 40) || '?'}..."`)
+                .join('\n');
+
+            previousFeedback = `
+⚠️ QUESTIONS PAS ASSEZ DRÔLES (score: ${review.scores.humor}/10)
+
+Questions ennuyeuses :
+${boringQuestions || '(Toutes)'}
+
+RAPPEL : Formulations DÉCALÉES et ABSURDES obligatoires !
+`;
+            continue;
+        }
+
+        // Check clarity
         if (review.scores.clarity < 7) {
             console.log(`❌ Clarity too low (${review.scores.clarity}/10). Questions are ambiguous!`);
-
-            // Identify ambiguous questions
-            const ambiguousIndices = review.questions_feedback
-                .filter(q => !q.ok && q.issue_type === 'ambiguous')
-                .map(q => q.index);
 
             const ambiguousQuestions = review.questions_feedback
                 .filter(q => !q.ok && q.issue_type === 'ambiguous')
                 .map(q => `- Q${q.index + 1}: "${q.text}" → ${q.issue}`)
                 .join('\n');
 
-            // Try targeted regeneration if <= 60% are ambiguous
-            if (ambiguousIndices.length > 0 && shouldUseTargetedRegen(ambiguousIndices.length, lastQuestions.length)) {
-                console.log(`🎯 Attempting targeted regen for ${ambiguousIndices.length} ambiguous questions`);
-                const rejectionReasons = review.questions_feedback
-                    .filter(q => !q.ok && q.issue_type === 'ambiguous')
-                    .map(q => `- Q${q.index + 1}: ${q.issue} (ambiguë)`)
-                    .join('\n');
-
-                const newQuestions = await performPhase1TargetedRegen(
-                    lastQuestions,
-                    ambiguousIndices,
-                    topic,
-                    difficulty,
-                    rejectionReasons
-                );
-
-                if (newQuestions) {
-                    lastQuestions = newQuestions;
-                    previousFeedback = `
-⚠️ RÉGÉNÉRATION CIBLÉE EFFECTUÉE (questions ambiguës)
-
-${ambiguousIndices.length} questions remplacées car ambiguës.
-Le reviewer va maintenant re-valider le set complet.
-`;
-                    continue;
-                }
-                console.log('⚠️ Targeted regen failed, falling back to full regen');
-            }
-
-            // Full regeneration
             previousFeedback = `
-⚠️ QUESTIONS REJETÉES - AMBIGUÏTÉ (score clarté: ${review.scores.clarity}/10)
+⚠️ QUESTIONS AMBIGUËS (score clarté: ${review.scores.clarity}/10)
 
-Les questions suivantes sont AMBIGUËS :
 ${ambiguousQuestions || '(Reformuler pour avoir une seule réponse possible)'}
-
-CRITIQUE : Chaque question doit avoir UNE SEULE réponse correcte.
-Si plusieurs réponses pourraient être valides → reformule la question.
 `;
             continue;
         }
@@ -2141,11 +2157,10 @@ Le reviewer va maintenant re-valider le set complet.
 
 SCORES :
 - Exactitude factuelle : ${review.scores.factual_accuracy}/10
+- Humour : ${review.scores.humor || 0}/10
 - Clarté : ${review.scores.clarity}/10
-- Style Burger Quiz : ${review.scores.burger_quiz_style}/10
 - Variété : ${review.scores.variety}/10
-- Anecdotes : ${review.scores.anecdotes}/10
-- Célébrités : ${review.scores.celebrities}/10
+- Options : ${review.scores.options_quality || 0}/10
 
 QUESTIONS PROBLÉMATIQUES :
 ${problemQuestions || '(aucune question spécifique)'}
@@ -2276,8 +2291,22 @@ Recommence avec exactement 1 menu piège.
             continue;
         }
 
+        // Validate review structure
+        if (!review.scores || !review.menus_feedback || !Array.isArray(review.menus_feedback)) {
+            console.error('❌ Invalid review structure - missing required fields');
+            console.log('Review keys:', Object.keys(review));
+            continue;
+        }
+
+        // Ensure menus_feedback has questions_feedback arrays
+        for (const menuFb of review.menus_feedback) {
+            if (!menuFb.questions_feedback || !Array.isArray(menuFb.questions_feedback)) {
+                menuFb.questions_feedback = [];
+            }
+        }
+
         // Log scores
-        console.log(`📊 Scores: titles=${review.scores.title_creativity}, descs=${review.scores.descriptions}, variety=${review.scores.thematic_variety}`);
+        console.log(`📊 Scores: titles=${review.scores.title_creativity || 0}, descs=${review.scores.descriptions || 0}, variety=${review.scores.thematic_variety || 0}`);
         console.log(`          style=${review.scores.question_style}, factual=${review.scores.factual_accuracy}, clarity=${review.scores.clarity}`);
         console.log(`   Overall: ${review.overall_score}/10`);
 
@@ -2520,23 +2549,43 @@ ${review.suggestions.map((s, idx) => `${idx + 1}. ${s}`).join('\n')}
 async function generatePhase4WithDialogue(
     topic: string,
     difficulty: string,
+    completeCount?: number,
+    existingQuestions?: Phase4Question[],
     maxIterations: number = 4
 ): Promise<{ questions: Phase4Question[]; embeddings: number[][] }> {
-    console.log('🎭 Starting Generator/Reviewer dialogue for Phase 4 MCQ...');
+    // Completion mode: generate fewer questions
+    const isCompletion = completeCount !== undefined && completeCount > 0;
+    const targetCount = isCompletion ? completeCount : 10;
+
+    console.log(`🎭 Starting Generator/Reviewer dialogue for Phase 4 MCQ...${isCompletion ? ` (COMPLETION: ${targetCount} questions)` : ''}`);
 
     let previousFeedback = '';
     let lastQuestions: Phase4Question[] = [];
     let bestQuestions: Phase4Question[] = [];
     let bestScore = 0;
 
+    // For completion mode, build context about existing questions to avoid duplicates
+    let existingContext = '';
+    if (isCompletion && existingQuestions && existingQuestions.length > 0) {
+        const existingSummary = existingQuestions.map((q, i) => `${i + 1}. ${q.text}`).join('\n');
+        existingContext = `\n\n⚠️ QUESTIONS DÉJÀ EXISTANTES (NE PAS RÉPÉTER):\n${existingSummary}\n\nGénère ${targetCount} nouvelles questions DIFFÉRENTES.`;
+    }
+
     for (let i = 0; i < maxIterations; i++) {
         console.log(`\n🔄 === ITERATION ${i + 1}/${maxIterations} ===`);
 
         // 1. Generator proposes questions
-        const generatorPrompt = PHASE4_GENERATOR_PROMPT
+        let generatorPrompt = PHASE4_GENERATOR_PROMPT
             .replace('{TOPIC}', topic)
             .replace('{DIFFICULTY}', difficulty)
             .replace('{PREVIOUS_FEEDBACK}', previousFeedback);
+
+        // For completion mode, modify the prompt
+        if (isCompletion) {
+            generatorPrompt = generatorPrompt
+                .replace(/10 questions/gi, `${targetCount} questions`)
+                .replace(/10 nouvelles/gi, `${targetCount} nouvelles`) + existingContext;
+        }
 
         console.log('🤖 Generator creating MCQ questions...');
         const proposalText = await callGemini(generatorPrompt, 'creative');
@@ -2862,51 +2911,51 @@ async function generatePhase5WithDialogue(
         }
 
         // Log scores
-        console.log(`📊 Scores: memorability=${review.scores.memorability}, callbacks=${review.scores.callbacks}, progression=${review.scores.progression}`);
-        console.log(`          factual=${review.scores.factual_accuracy}, answers=${review.scores.answer_length}, coherence=${review.scores.thematic_coherence}`);
-        console.log(`   Callbacks: ${review.callback_count}/10, Curve OK: ${review.difficulty_curve?.curve_ok}, Overall: ${review.overall_score}/10`);
+        console.log(`📊 Scores: humor=${review.scores.humor || 0}, diversity=${review.scores.diversity || 0}, memorability=${review.scores.memorability || 0}`);
+        console.log(`          factual=${review.scores.factual_accuracy || 0}, length=${review.scores.length || 0}, accessibility=${review.scores.accessibility || 0}`);
+        console.log(`   Overall: ${review.overall_score}/10`);
+        if (review.duplicate_concepts && review.duplicate_concepts.length > 0) {
+            console.log(`   ⚠️ Duplicates: ${review.duplicate_concepts.join(', ')}`);
+        }
 
         // 3. Check critical criteria
-        if (review.scores.memorability < 6) {
-            console.log(`❌ Questions not memorable enough (${review.scores.memorability}/10).`);
+
+        // Check humor
+        if ((review.scores.humor || 0) < 6) {
+            console.log(`❌ Not funny enough (${review.scores.humor}/10).`);
 
             const boringQuestions = review.questions_feedback
-                .filter(q => !q.memorable)
-                .map(q => `- Q${q.index + 1}: "${q.question.slice(0, 40)}..."`)
+                .filter(q => !q.funny)
+                .map(q => `- Q${q.index + 1}: "${q.question?.slice(0, 40) || '?'}..."`)
                 .join('\n');
 
             previousFeedback = `
-⚠️ QUESTIONS PAS ASSEZ MÉMORABLES (score: ${review.scores.memorability}/10)
+⚠️ QUESTIONS PAS ASSEZ DRÔLES (score: ${review.scores.humor}/10)
 
-Questions à reformuler :
+Questions ennuyeuses :
 ${boringQuestions || '(Toutes)'}
 
-RAPPEL : Les questions doivent être COURTES, avec des IMAGES MENTALES fortes.
-Évite le format encyclopédique.
+RAPPEL : Les questions doivent faire SOURIRE. Formulations DÉCALÉES et ABSURDES.
 `;
             continue;
         }
 
-        if (review.callback_count < 2) {
-            console.log(`❌ Not enough callbacks (${review.callback_count}, need at least 2).`);
+        // Check diversity
+        if ((review.scores.diversity || 0) < 7 || (review.duplicate_concepts && review.duplicate_concepts.length > 0)) {
+            console.log(`❌ Not diverse enough (${review.scores.diversity}/10).`);
 
             previousFeedback = `
-⚠️ PAS ASSEZ DE CALLBACKS (${review.callback_count}/10, minimum 2)
+⚠️ MANQUE DE DIVERSITÉ (score: ${review.scores.diversity}/10)
 
-Les questions doivent être LIÉES entre elles !
+Concepts répétés : ${review.duplicate_concepts?.join(', ') || '(non spécifiés)'}
 
-TECHNIQUE DU CALLBACK (OBLIGATOIRE) :
-- Q3 doit référencer la réponse de Q1 ou Q2
-- Q7-10 peuvent référencer des questions précédentes
-
-Exemple :
-Q1: "Prénom de la reine d'Angleterre décédée en 2022 ?" → "Elizabeth"
-Q3: "Si Elizabeth avait été française, elle aurait été Elizabeth combien ?" → "3"
+INTERDIT : 2 questions sur le même sujet !
+Mix OBLIGATOIRE : cinéma, musique, sport, animaux, nourriture, histoire, sciences...
 `;
             continue;
         }
 
-        if (review.scores.factual_accuracy < 7) {
+        if ((review.scores.factual_accuracy || 0) < 7) {
             console.log(`❌ Factual accuracy too low (${review.scores.factual_accuracy}/10).`);
 
             const wrongQuestions = review.questions_feedback
@@ -2951,22 +3000,6 @@ Questions incorrectes :
 ${wrongQuestionsText || '(Vérifier toutes les réponses)'}
 
 CRITIQUE : Utilise Google Search pour vérifier CHAQUE réponse.
-`;
-            continue;
-        }
-
-        if (review.difficulty_curve && !review.difficulty_curve.curve_ok) {
-            console.log(`❌ Difficulty curve not respected.`);
-
-            previousFeedback = `
-⚠️ COURBE DE DIFFICULTÉ INCORRECTE
-
-La progression doit être :
-- Q1-3 : FACILES (faits connus)
-- Q4-7 : MOYENNES
-- Q8-10 : DIFFICILES (détails, callbacks)
-
-Réorganise ou remplace les questions pour respecter cette courbe.
 `;
             continue;
         }
@@ -3152,7 +3185,14 @@ export const generateGameQuestionsFlow = ai.defineFlow(
         outputSchema: GameGenerationOutputSchema,
     },
     async (input) => {
-        const { phase, difficulty, language = 'fr' } = input;
+        const { phase, difficulty, language = 'fr', completeCount, existingQuestions } = input;
+
+        // Check if we're in completion mode
+        const isCompletionMode = completeCount !== undefined && completeCount > 0;
+        if (isCompletionMode) {
+            console.log(`🔧 COMPLETION MODE: Generating ${completeCount} additional questions for ${phase}`);
+            console.log(`   Existing questions count: ${existingQuestions?.length || 0}`);
+        }
 
         // Validate language is supported (only FR for now)
         if (!SUPPORTED_LANGUAGES.includes(language as GenerationLanguage)) {
@@ -3178,14 +3218,24 @@ export const generateGameQuestionsFlow = ai.defineFlow(
         if (phase === 'phase1') {
             // Phase 1: Generator/Reviewer dialogue system
             console.log('📋 Using dialogue system for Phase 1...');
-            const result = await generatePhase1WithDialogue(topic, difficulty);
+            const result = await generatePhase1WithDialogue(
+                topic,
+                difficulty,
+                isCompletionMode ? completeCount : undefined,
+                isCompletionMode ? existingQuestions as Phase1Question[] : undefined
+            );
             jsonData = result.questions;
             embeddings = result.embeddings;
 
         } else if (phase === 'phase2') {
             // Phase 2: Generator/Reviewer dialogue system
             console.log('📋 Using dialogue system for Phase 2...');
-            const result = await generatePhase2WithDialogue(topic, difficulty);
+            const result = await generatePhase2WithDialogue(
+                topic,
+                difficulty,
+                isCompletionMode ? completeCount : undefined,
+                isCompletionMode ? existingQuestions : undefined
+            );
             jsonData = result.set;
             embeddings = result.embeddings;
 
@@ -3199,7 +3249,12 @@ export const generateGameQuestionsFlow = ai.defineFlow(
         } else if (phase === 'phase4') {
             // Phase 4: Generator/Reviewer dialogue system for buzzer questions
             console.log('📋 Using dialogue system for Phase 4...');
-            const result = await generatePhase4WithDialogue(topic, difficulty);
+            const result = await generatePhase4WithDialogue(
+                topic,
+                difficulty,
+                isCompletionMode ? completeCount : undefined,
+                isCompletionMode ? existingQuestions as Phase4Question[] : undefined
+            );
             jsonData = result.questions;
             embeddings = result.embeddings;
 

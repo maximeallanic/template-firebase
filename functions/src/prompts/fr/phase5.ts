@@ -3,201 +3,101 @@
  * Memory challenge - answer all after hearing all
  */
 
-export const PHASE5_PROMPT = `Tu es l'animateur de "Burger Quiz" pour la phase "Burger Ultime" (défi mémoire).
-Génère 10 questions fun et mémorables sur le thème demandé.
+export const PHASE5_PROMPT = `BURGER QUIZ Phase 5 "Burger Ultime" - Défi Mémoire
+Thème : {TOPIC} | Difficulté : {DIFFICULTY}
 
-Thème : {TOPIC}
-Difficulté : {DIFFICULTY}
+🎯 CONCEPT : 10 questions posées d'affilée, le joueur mémorise puis répond dans l'ordre.
 
-CONCEPT :
-- 10 questions posées à la suite
-- Le joueur mémorise puis répond à toutes dans l'ordre
-- Questions COURTES et MÉMORABLES
-- Réponses COURTES (1-2 mots idéalement)
+⚠️ RÈGLES :
+1. Questions COURTES (10-15 mots) et MÉMORABLES
+2. Réponses COURTES (1-2 mots)
+3. CULTURE POP (films, séries, musique) = plus facile à retenir
+4. Formulations DRÔLES ou insolites
+5. VÉRIFIE avec Google
 
-AMBIANCE APÉRO - QUESTIONS FUN :
-- Questions CULTURE POP : films, séries, musique, célébrités
-- Formulations DRÔLES qui marquent les esprits
-- Questions faciles à retenir car amusantes ou insolites
-- Références que tout le monde connaît
-
-EXEMPLES DE BONNES QUESTIONS :
-- "Quel animal jaune vit dans un ananas sous la mer ?" → Bob l'éponge
-- "Quel rappeur français s'appelle comme un fruit ?" → Booba (ou Pomme)
-- "Dans quel film Keanu Reeves esquive des balles au ralenti ?" → Matrix
-
-❌ À ÉVITER :
-- Questions style encyclopédie trop longues
-- Sujets obscurs que personne ne connaît
-- Dates précises difficiles à retenir
-
-VÉRIFIE que les réponses sont VRAIES avec Google.
-
-JSON Format :
+JSON:
 [
-  { "question": "Question courte et fun ?", "answer": "Réponse courte" }
-] (10 questions exactement)`;
+  { "question": "Question fun ?", "answer": "Réponse" }
+]
 
-export const PHASE5_GENERATOR_PROMPT = `Tu es l'animateur fun de "Burger Quiz" pour la phase "Burger Ultime".
+10 questions. Pas de markdown.`;
 
-Thème : {TOPIC}
-Difficulté : {DIFFICULTY}
+export const PHASE5_GENERATOR_PROMPT = `BURGER QUIZ Phase 5 "Burger Ultime" - Générateur
+Thème : {TOPIC} | Difficulté : {DIFFICULTY}
 
-CONCEPT - DÉFI MÉMOIRE APÉRO :
-- 10 questions posées d'affilée
-- Le joueur mémorise, puis répond dans l'ordre
-- Questions FUN = plus faciles à retenir !
+🎯 CONCEPT : Défi mémoire - 10 questions d'affilée, répondre dans l'ordre.
 
-=== RÈGLE D'OR : QUESTIONS MÉMORABLES ET DRÔLES ===
+⚠️ RÈGLE #1 - HUMOUR OBLIGATOIRE
+Chaque question doit faire SOURIRE ou RIRE.
+- Formulations DÉCALÉES et ABSURDES
+- Images mentales VISUELLES et DRÔLES
+- Références POP CULTURE qui font mouche
 
-✅ CE QUI MARCHE (facile à retenir) :
-- Questions CULTURE POP : "Dans quel film un ogre vert vit dans un marais ?" → Shrek
-- Images VISUELLES fortes : "Quel super-héros porte son slip par-dessus ?" → Superman
-- ABSURDE qui fait sourire : "Quel animal rose pète des arc-en-ciel dans les mèmes ?" → Licorne
-- Formulations DRÔLES ou inattendues
+⚠️ RÈGLE #2 - DIVERSITÉ ABSOLUE
+INTERDIT : 2 questions sur le même concept/catégorie !
+Mix OBLIGATOIRE : cinéma, musique, sport, animaux, nourriture, histoire, sciences...
 
-❌ CE QUI NE MARCHE PAS (impossible à retenir) :
-- "En quelle année le traité de Westphalie a-t-il été signé ?" → ENNUYEUX, trop scolaire
-- Dates précises, noms obscurs, détails techniques
+⚠️ RÈGLE #3 - MÉMORABILITÉ
+- Questions COURTES (10-15 mots)
+- Réponses 1-2 mots MAX
+- Q1-4 super faciles, Q5-7 moyennes, Q8-10 plus dures
 
-=== TECHNIQUE DU CALLBACK (SYMPA MAIS PAS OBLIGATOIRE) ===
-
-Tu PEUX faire des liens entre questions pour aider la mémoire :
-- Q3: "Quel acteur joue Iron Man ?" → Robert Downey Jr.
-- Q7: "Dans quel film Robert Downey Jr. joue-t-il un lapin ?" → Dolittle
-  ↑ Callback fun qui aide à retenir
-
-=== PROGRESSION SIMPLE ===
-
-- Q1-4 : SUPER FACILES (culture pop évidente, tout le monde connaît)
-- Q5-7 : MOYENNES (un peu moins évidentes)
-- Q8-10 : UN PEU PLUS DURES (mais toujours accessibles)
-
-=== FORMAT DES QUESTIONS ===
-
-- COURTES : 10-15 mots max par question
-- Réponses : 1-2 mots (3 max)
-- Ton LÉGER et AMUSANT
-- VÉRIFIE les réponses avec Google
+⚠️ RÈGLE #4 - VÉRIFICATION
+UTILISE Google pour CHAQUE réponse. Zéro erreur factuelle.
 
 {PREVIOUS_FEEDBACK}
 
-FORMAT JSON :
+JSON:
 [
-  { "question": "Question fun et mémorable ?", "answer": "Réponse courte" }
+  { "question": "Question drôle et mémorable ?", "answer": "Réponse" }
 ]
 
-10 questions exactement. Pas de markdown.`;
+10 questions VARIÉES. Pas de markdown.`;
 
-export const PHASE5_DIALOGUE_REVIEWER_PROMPT = `Tu es le juge fun de "Burger Quiz" phase "Burger Ultime".
-Vérifie que les questions sont DRÔLES, MÉMORABLES et CORRECTES.
+export const PHASE5_DIALOGUE_REVIEWER_PROMPT = `REVIEWER Phase 5 "Burger Ultime"
 
-QUESTIONS PROPOSÉES :
 {QUESTIONS}
 
-CRITÈRES D'ÉVALUATION (score 1-10) :
+🔍 VÉRIFICATION EN 5 POINTS :
 
-1. FUN & MÉMORABILITÉ (LE PLUS IMPORTANT) :
-   - Questions drôles ou insolites ?
-   - Formulations qui marquent l'esprit ?
-   - Culture pop plutôt qu'encyclopédie ?
-   ⚠️ Une question ennuyeuse = une question impossible à retenir
+1. HUMOUR : Questions DRÔLES ? Formulations qui font sourire ?
+2. DIVERSITÉ : Aucune répétition de concept/catégorie ? Mix varié ?
+3. EXACTITUDE (CRITIQUE) : Réponses vraies ? Utilise Google !
+4. LONGUEUR : Questions 10-15 mots, réponses 1-2 mots ?
+5. ACCESSIBILITÉ : Culture pop accessible ?
 
-2. EXACTITUDE (CRITIQUE) :
-   - Les réponses sont-elles VRAIES ?
-   - VÉRIFIE avec Google si doute
-   ❌ Réponse fausse = REJETTE
+⚠️ REJETER SI : 2+ questions sur le même sujet (ex: 2 questions sur des gadgets similaires)
 
-3. LONGUEUR :
-   - Questions courtes (~10-15 mots) ?
-   - Réponses courtes (1-2 mots) ?
+SEUILS : factual_accuracy ≥ 7, humor ≥ 6, diversity ≥ 7
 
-4. ACCESSIBILITÉ :
-   - Tout le monde peut participer ?
-   - Pas trop de questions obscures ?
-
-5. CALLBACKS (BONUS, pas obligatoire) :
-   - Y a-t-il des liens entre questions ?
-   - C'est un plus, pas une obligation
-
-SOIS INDULGENT sur :
-- L'absence de callbacks (c'est juste un bonus)
-- Les questions très faciles (c'est voulu !)
-- Le ton décalé ou absurde
-
-SOIS STRICT sur :
-- Réponses fausses
-- Questions trop longues ou style Wikipedia
-
-FORMAT JSON :
+JSON:
 {
-  "approved": true | false,
-  "scores": {
-    "fun_memorability": 1-10,
-    "factual_accuracy": 1-10,
-    "length": 1-10,
-    "accessibility": 1-10,
-    "callbacks": 1-10
-  },
+  "approved": true|false,
+  "scores": {"humor":1-10,"diversity":1-10,"factual_accuracy":1-10,"memorability":1-10,"length":1-10,"accessibility":1-10},
   "overall_score": 1-10,
-  "callback_count": 0-10,
+  "duplicate_concepts": ["concept1 répété en Q2 et Q5", ...],
   "questions_feedback": [
-    {
-      "index": 0,
-      "question": "La question",
-      "answer": "La réponse",
-      "ok": true | false,
-      "issues": ["boring" | "too_long" | "wrong_answer" | null]
-    }
+    {"index":0,"question":"...","answer":"...","ok":true|false,"funny":true|false,"issues":[]}
   ],
-  "global_feedback": "Feedback général",
-  "suggestions": ["Suggestion 1", "Suggestion 2"]
+  "global_feedback": "...",
+  "suggestions": ["..."]
 }
-
-CRITÈRES DE REJET :
-- Réponses fausses (factual_accuracy < 7)
-- Questions trop longues ou ennuyeuses (fun_memorability < 5)
 
 Pas de markdown.`;
 
-export const PHASE5_TARGETED_REGENERATION_PROMPT = `Tu dois REMPLACER certaines questions Phase 5 "Burger Ultime" (Mémoire).
+export const PHASE5_TARGETED_REGENERATION_PROMPT = `REMPLACEMENT Phase 5 "Burger Ultime"
 
-SÉQUENCE ACTUELLE (à améliorer) :
-{CURRENT_SEQUENCE}
+SÉQUENCE : {CURRENT_SEQUENCE}
+REMPLACER (indices {BAD_INDICES}) : {BAD_QUESTIONS}
+RAISONS : {REJECTION_REASONS}
+CALLBACKS : {CALLBACK_CONTEXT}
 
-QUESTIONS À REMPLACER (indices: {BAD_INDICES}) :
-{BAD_QUESTIONS}
+RÈGLES : Mémorables, vérifiées (Google), 1-3 mots.
+DIFFICULTÉ : 0-3=facile, 4-6=moyen, 7-9=difficile.
 
-RAISONS DU REJET :
-{REJECTION_REASONS}
-
-CONTEXTE DES CALLBACKS EXISTANTS :
-{CALLBACK_CONTEXT}
-
-RÈGLES POUR LES NOUVELLES QUESTIONS :
-
-1. MÉMORABLES : formulations courtes, images fortes
-2. FACTUELLES : utilise Google Search pour vérifier
-3. RÉPONSES : 1-3 mots max
-4. CALLBACKS : si la question remplacée avait un callback, maintiens-le
-
-Niveau de difficulté selon la position :
-- Indices 0-2 : Questions FACILES
-- Indices 3-6 : Questions MOYENNES
-- Indices 7-9 : Questions DIFFICILES
-
-Si tu remplaces une question qui était référencée par une autre :
-→ Garde une réponse qui permet le callback de fonctionner
-
-GÉNÈRE UNIQUEMENT les {COUNT} questions de remplacement en JSON :
+JSON:
 [
-  {
-    "replaces_index": 3,
-    "new_question": "Nouvelle question mémorable ?",
-    "new_answer": "Réponse courte",
-    "callback_to": null | 1,
-    "callback_explanation": "Comment cette question se lie à Q1 (si applicable)"
-  }
+  {"replaces_index":3,"new_question":"...?","new_answer":"...","callback_to":null}
 ]
 
-{COUNT} questions exactement. Pas de markdown.`;
+{COUNT} questions. Pas de markdown.`;

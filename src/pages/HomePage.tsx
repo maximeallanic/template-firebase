@@ -4,6 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useTranslation } from 'react-i18next';
 import { UserBar } from '../components/auth/UserBar';
 import { EmailActionHandler } from '../components/auth/EmailActionHandler';
+import { PWAHomePage } from '../components/pwa/PWAHomePage';
 import { Logo } from '../components/ui/Logo';
 import { AvatarIcon } from '../components/AvatarIcon';
 import { PhaseIcon } from '../components/game/PhaseIcon';
@@ -221,6 +222,11 @@ export default function HomePage() {
   // If this is a Firebase email action (verification or password reset), show the handler
   if ((mode === 'verifyEmail' || mode === 'resetPassword') && oobCode) {
     return <EmailActionHandler />;
+  }
+
+  // If PWA is installed, show mobile game-style homepage
+  if (isInstalled) {
+    return <PWAHomePage />;
   }
 
   return (

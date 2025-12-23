@@ -52,7 +52,7 @@ export function Phase4Question({
                 initial={prefersReducedMotion ? { opacity: 0 } : { opacity: 0, y: 10 }}
                 animate={prefersReducedMotion ? { opacity: 1 } : { opacity: 1, y: 0 }}
                 transition={{ delay: 0.2, duration: durations.normal }}
-                className="text-2xl md:text-3xl font-bold text-center text-white leading-tight"
+                className="text-2xl md:text-3xl font-bold text-center text-white leading-tight select-none"
                 aria-live="polite"
             >
                 {question}

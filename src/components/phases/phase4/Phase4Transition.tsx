@@ -5,7 +5,7 @@ import { Zap } from 'lucide-react';
 import { audioService } from '../../../services/audioService';
 import { useReducedMotion } from '../../../hooks/useReducedMotion';
 import { phase4BuzzerVariants, phase4RippleVariants } from '../../../animations/phaseTransitions';
-import { bouncySpring, durations } from '../../../animations';
+import { bouncySpring, durations, getTransitionDuration, countdownEase } from '../../../animations';
 
 interface Phase4TransitionProps {
     questionNumber: number;
@@ -22,24 +22,26 @@ export function Phase4Transition({
     const prefersReducedMotion = useReducedMotion();
     const [countdown, setCountdown] = useState(3);
 
-    // Countdown effect
+    // Countdown effect with adaptive timing for reduced motion
+    const tickDuration = getTransitionDuration('countdownTick', prefersReducedMotion);
+
     useEffect(() => {
         if (countdown === 0) {
             onComplete();
             return;
         }
 
-        // Play tick sound for each countdown number
-        if (countdown <= 3 && countdown > 0) {
+        // Play tick sound for each countdown number (skip in reduced motion for faster transition)
+        if (countdown <= 3 && countdown > 0 && !prefersReducedMotion) {
             audioService.playTimerTick();
         }
 
         const timer = setTimeout(() => {
             setCountdown(prev => prev - 1);
-        }, 800);
+        }, tickDuration);
 
         return () => clearTimeout(timer);
-    }, [countdown, onComplete]);
+    }, [countdown, onComplete, tickDuration, prefersReducedMotion]);
 
     const progress = questionNumber / totalQuestions;
 
@@ -137,8 +139,8 @@ export function Phase4Transition({
                             : { opacity: 0, scale: 0.5, y: 20 }
                         }
                         transition={prefersReducedMotion
-                            ? { duration: 0.1 }
-                            : { duration: 0.25, ease: [0.34, 1.56, 0.64, 1] }
+                            ? { duration: 0.15 }
+                            : { duration: 0.25, ease: countdownEase }
                         }
                         className="text-7xl font-black text-yellow-400"
                         aria-live="assertive"

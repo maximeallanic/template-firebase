@@ -19,12 +19,14 @@ interface Phase4ResultProps {
     question: Phase4Question;
     winner: WinnerInfo | null;
     myAnswer: { answer: number; timestamp: number } | undefined;
+    isSolo?: boolean;
 }
 
 export function Phase4Result({
     question,
     winner,
-    myAnswer
+    myAnswer,
+    isSolo = false
 }: Phase4ResultProps) {
     const { t } = useTranslation(['game-ui']);
     const prefersReducedMotion = useReducedMotion();
@@ -108,7 +110,7 @@ export function Phase4Result({
                             className="text-2xl font-bold text-gray-400"
                             aria-live="polite"
                         >
-                            {t('phase4.noWinner')}
+                            {isSolo ? t('phase4.solo.noWinner') : t('phase4.noWinner')}
                         </div>
                     </motion.div>
                 )}

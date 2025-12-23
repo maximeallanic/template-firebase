@@ -60,9 +60,13 @@ async function main() {
     // Call the function with extended timeout (server allows 300s)
     const generateFn = httpsCallable(functions, 'generateGameQuestions', { timeout: 310000 });
 
+    // Use soloMode for phases 3-5 to bypass premium check in tests
+    const PREMIUM_PHASES = ['phase3', 'phase4', 'phase5'];
+    const soloMode = PREMIUM_PHASES.includes(phase);
+
     try {
         const startTime = Date.now();
-        const result = await generateFn({ phase, difficulty });
+        const result = await generateFn({ phase, difficulty, soloMode });
         const duration = ((Date.now() - startTime) / 1000).toFixed(1);
 
         console.log(`✅ Génération réussie en ${duration}s !`);
@@ -114,12 +118,30 @@ async function main() {
                     console.log(`      📝 ${item.justification}`);
                 }
             });
+        } else if (phase === 'phase3') {
+            console.log('📝 Menus Phase 3 (La Carte):');
+            console.log('━'.repeat(60));
+            data.forEach((menu, idx) => {
+                const trapEmoji = menu.isTrap ? ' 🎭 PIÈGE' : '';
+                console.log(`\n🍽️  Menu ${idx + 1}: ${menu.title}${trapEmoji}`);
+                console.log(`   ${menu.description}`);
+                menu.questions.forEach((q, qIdx) => {
+                    console.log(`   Q${qIdx + 1}: ${q.question}`);
+                    console.log(`      → ${q.answer}`);
+                });
+            });
         } else if (phase === 'phase4') {
-            console.log('📝 Questions Phase 4 (Buzzer):');
+            console.log('📝 Questions Phase 4 (La Note - QCM):');
             console.log('━'.repeat(60));
             data.forEach((q, idx) => {
-                console.log(`\nQ${idx + 1}: ${q.question}`);
-                console.log(`   → ${q.answer}`);
+                console.log(`\nQ${idx + 1}: ${q.text}`);
+                q.options.forEach((opt, optIdx) => {
+                    const marker = optIdx === q.correctIndex ? '✓' : ' ';
+                    console.log(`   ${marker} ${String.fromCharCode(65 + optIdx)}) ${opt}`);
+                });
+                if (q.anecdote) {
+                    console.log(`   💡 ${q.anecdote}`);
+                }
             });
         } else if (phase === 'phase5') {
             console.log('📝 Questions Phase 5 (Burger Final):');

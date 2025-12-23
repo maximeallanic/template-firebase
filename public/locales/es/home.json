@@ -1,0 +1,90 @@
+{
+  "hero": {
+    "tagline": "¡El juego de quiz culinario con amigos!",
+    "description": "¡Enfréntate en equipos <spicy>Spicy</spicy> vs <sweet>Sweet</sweet> en desafíos divertidos!"
+  },
+  "features": {
+    "players": "2-20 jugadores",
+    "challenges": "5 desafíos divertidos",
+    "winner": "1 equipo ganador"
+  },
+  "create": {
+    "title": "CREAR PARTIDA",
+    "subtitle": "¡Abre tu cocina e invita a tus amigos!",
+    "button": "Ser el Chef"
+  },
+  "join": {
+    "title": "UNIRSE",
+    "subtitle": "¡Ingresa el código y elige tu equipo!",
+    "placeholder": "CÓDIGO",
+    "button": "Unirse",
+    "invalidCode": "Código inválido"
+  },
+  "phases": {
+    "title": "5 Desafíos Divertidos",
+    "tenders": {
+      "name": "Tenders",
+      "description": "¡Sé el más rápido en pulsar!"
+    },
+    "sucreSale": {
+      "name": "Dulce y Salado",
+      "description": "¿A o B?"
+    },
+    "laCarte": {
+      "name": "El Menú",
+      "description": "¡Recuerda todos los platos!"
+    },
+    "laNote": {
+      "name": "La Cuenta",
+      "description": "¡Preguntas de cultura general!"
+    },
+    "burgerUltime": {
+      "name": "Burger Definitivo",
+      "description": "¡El desafío final por la victoria!"
+    }
+  },
+  "loading": {
+    "joining": "Uniéndose a la partida...",
+    "creating": "Abriendo la cocina..."
+  },
+  "premium": {
+    "badge": "PREMIUM",
+    "title": "Desbloquea todas las fases",
+    "description": "¡Hazte Premium para acceder a las fases 3, 4 y 5 con tu equipo!",
+    "features": {
+      "laCarte": "El Menú",
+      "laNote": "La Cuenta",
+      "burgerUltime": "Burger Definitivo"
+    },
+    "price": "4,99 €/mes",
+    "cta": "Ser Premium",
+    "hostOnly": "Solo el anfitrión necesita suscripción"
+  },
+  "install": {
+    "title": "¡Instala la app!",
+    "subtitle": "Acceso rápido desde tu pantalla de inicio",
+    "button": "Instalar"
+  },
+  "pwa": {
+    "play": "JUGAR",
+    "settings": "Ajustes",
+    "sound": "Sonido",
+    "soundOn": "Activado",
+    "soundOff": "Desactivado",
+    "language": "Idioma",
+    "profile": "Perfil",
+    "rotateDevice": "Gira tu dispositivo",
+    "portraitRequired": "Este juego se juega en modo vertical"
+  },
+  "createGame": "Crear partida",
+  "joinGame": "Unirse",
+  "soloMode": "Modo Solo",
+  "hostDescription": "Invita a tus amigos",
+  "joinDescription": "Ingresa un código",
+  "soloDescription": "Juega solo",
+  "enterCode": "Ingresa el código",
+  "joining": "Conectando...",
+  "creatingRoom": "Creando...",
+  "joiningRoom": "Conectando...",
+  "editProfile": "Editar perfil"
+}

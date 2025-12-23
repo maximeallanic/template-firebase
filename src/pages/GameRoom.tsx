@@ -1,7 +1,7 @@
 import { useEffect, useLayoutEffect, useState, useRef, useCallback } from 'react';
 import { useParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { type Player, setGameStatus, updatePlayerTeam, PREMIUM_PHASES } from '../services/gameService';
+import { type Player, type Difficulty, setGameStatus, updatePlayerTeam, updateRoomDifficulty, getRoomDifficulty, PREMIUM_PHASES } from '../services/gameService';
 import { useGameRoom } from '../hooks/useGameRoom';
 import { useQuestionGeneration } from '../hooks/useQuestionGeneration';
 import { useHostSubscription } from '../hooks/useHostSubscription';
@@ -23,6 +23,7 @@ import {
 import { AvatarIcon } from '../components/AvatarIcon';
 import { audioService } from '../services/audioService';
 import { SimpleConfetti } from '../components/ui/SimpleConfetti';
+import { DifficultySelector } from '../components/ui/DifficultySelector';
 import { TEAM_CONFETTI_COLORS } from '../components/ui/confettiColors';
 import { PlayerLeaderboard } from '../components/game/victory/PlayerLeaderboard';
 
@@ -286,6 +287,8 @@ export default function GameRoom() {
                                             isHost={isHost}
                                             canStart={players.length >= 2 && unassigned.length === 0}
                                             onStart={handleStartGame}
+                                            difficulty={getRoomDifficulty(room)}
+                                            onDifficultyChange={(d) => updateRoomDifficulty(room.code, d)}
                                         />
                                     </motion.div>
                                 )}
@@ -514,18 +517,39 @@ function UnassignedPlayersList({ players, roomCode, isHost }: { players: Player[
     );
 }
 
-function StartGameButton({ isHost, canStart, onStart }: { isHost: boolean; canStart: boolean; onStart: () => void }) {
+interface StartGameButtonProps {
+    isHost: boolean;
+    canStart: boolean;
+    onStart: () => void;
+    difficulty: Difficulty;
+    onDifficultyChange: (difficulty: Difficulty) => void;
+}
+
+function StartGameButton({ isHost, canStart, onStart, difficulty, onDifficultyChange }: StartGameButtonProps) {
     const { t } = useTranslation('lobby');
+
+    // Non-host players see the current difficulty (read-only)
     if (!isHost) {
         return (
-            <div className="text-center animate-pulse">
-                <p className="text-gray-400 font-medium">{t('game.waitingForHost')}</p>
+            <div className="text-center space-y-4">
+                <DifficultySelector
+                    value={difficulty}
+                    onChange={() => {}} // Read-only for non-host
+                    disabled={true}
+                />
+                <p className="text-gray-400 font-medium animate-pulse">{t('game.waitingForHost')}</p>
             </div>
         );
     }
 
     return (
-        <div className="w-full space-y-3">
+        <div className="w-full space-y-4">
+            {/* Difficulty Selector - Host can change */}
+            <DifficultySelector
+                value={difficulty}
+                onChange={onDifficultyChange}
+                disabled={false}
+            />
             <button
                 onClick={onStart}
                 disabled={!canStart}

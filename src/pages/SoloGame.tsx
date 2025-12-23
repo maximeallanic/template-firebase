@@ -10,7 +10,8 @@ import { RotateCcw, Trophy } from 'lucide-react';
 import { GenerationLoadingCard } from '../components/ui/GenerationLoadingCard';
 import { submitScore } from '../services/leaderboardService';
 import { useAuthUser } from '../hooks/useAuthUser';
-import type { Room, Avatar } from '../types/gameTypes';
+import type { Room, Avatar, Difficulty } from '../types/gameTypes';
+import { DEFAULT_DIFFICULTY } from '../types/gameTypes';
 import { SoloGameProvider, useSoloGame, createSoloHandlers } from '../contexts/SoloGameContext';
 import { mapSoloStateToGameState, SOLO_PHASE_NAMES, SOLO_MAX_SCORE, type SoloPhaseStatus } from '../types/soloTypes';
 import { Phase1Player } from '../components/phases/Phase1Player';
@@ -353,10 +354,11 @@ function SoloGameInner() {
 export default function SoloGame() {
     const location = useLocation();
     const navigate = useNavigate();
-    const { playerId, playerName, playerAvatar } = (location.state as {
+    const { playerId, playerName, playerAvatar, difficulty } = (location.state as {
         playerId?: string;
         playerName?: string;
         playerAvatar?: Avatar;
+        difficulty?: Difficulty;
     }) || {};
 
     // Redirect if no player info
@@ -375,6 +377,7 @@ export default function SoloGame() {
             initialPlayerId={playerId || `solo_${Date.now()}`}
             initialPlayerName={playerName}
             initialPlayerAvatar={playerAvatar || 'chili'}
+            initialDifficulty={difficulty || DEFAULT_DIFFICULTY}
         >
             <SoloGameInner />
         </SoloGameProvider>

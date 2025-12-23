@@ -3,17 +3,20 @@
  * Entry point for solo mode - player sees their profile and starts the game
  */
 
+import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { AVATAR_LIST, type Avatar } from '../types/gameTypes';
+import { AVATAR_LIST, type Avatar, type Difficulty, DEFAULT_DIFFICULTY } from '../types/gameTypes';
 import { Play, Trophy, Zap, AlertCircle } from 'lucide-react';
 import { UserBar } from '../components/auth/UserBar';
 import { Logo } from '../components/ui/Logo';
+import { DifficultySelector } from '../components/ui/DifficultySelector';
 import { useAuthUser } from '../hooks/useAuthUser';
 import { SOLO_MAX_SCORE, SOLO_PHASE_NAMES } from '../types/soloTypes';
 
 export default function SoloSetup() {
     const navigate = useNavigate();
     const { profile, loading: profileLoading, user } = useAuthUser();
+    const [difficulty, setDifficulty] = useState<Difficulty>(DEFAULT_DIFFICULTY);
 
     // Check if profile is complete
     const profileComplete = !!(
@@ -30,6 +33,7 @@ export default function SoloSetup() {
                 playerId: user?.uid || `solo_${Date.now()}`,
                 playerName: profile!.profileName,
                 playerAvatar: profile!.profileAvatar as Avatar,
+                difficulty,
             },
         });
     };
@@ -77,6 +81,14 @@ export default function SoloSetup() {
                 </div>
 
                 <div className="space-y-6">
+                    {/* Difficulty Selector */}
+                    <div className="bg-slate-800/50 rounded-xl p-4">
+                        <DifficultySelector
+                            value={difficulty}
+                            onChange={setDifficulty}
+                        />
+                    </div>
+
                     {/* Profile incomplete warning */}
                     {!profileLoading && !profileComplete && (
                         <div className="bg-amber-500/20 border border-amber-500/50 rounded-xl p-4">

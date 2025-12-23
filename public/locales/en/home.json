@@ -64,5 +64,27 @@
     "title": "Install the app!",
     "subtitle": "Quick access from your home screen",
     "button": "Install"
-  }
+  },
+  "pwa": {
+    "play": "PLAY",
+    "settings": "Settings",
+    "sound": "Sound",
+    "soundOn": "On",
+    "soundOff": "Off",
+    "language": "Language",
+    "profile": "Profile",
+    "rotateDevice": "Rotate your device",
+    "portraitRequired": "This game is played in portrait mode"
+  },
+  "createGame": "Create a game",
+  "joinGame": "Join",
+  "soloMode": "Solo Mode",
+  "hostDescription": "Invite your friends",
+  "joinDescription": "Enter a code",
+  "soloDescription": "Play alone",
+  "enterCode": "Enter the code",
+  "joining": "Joining...",
+  "creatingRoom": "Creating...",
+  "joiningRoom": "Joining...",
+  "editProfile": "Edit profile"
 }

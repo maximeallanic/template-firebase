@@ -31,6 +31,14 @@ export const PHASE_NAMES: Record<PhaseStatus, PhaseInfo> = {
     victory: { name: 'Victoire', subtitle: 'Le gagnant est...', shortName: 'Victoire' },
 };
 
+// === DIFFICULTY ===
+
+export type Difficulty = 'easy' | 'normal' | 'hard' | 'wtf';
+
+export const DIFFICULTY_LIST: Difficulty[] = ['easy', 'normal', 'hard', 'wtf'];
+
+export const DEFAULT_DIFFICULTY: Difficulty = 'normal';
+
 // === TEAMS & PLAYERS ===
 
 export type Team = 'spicy' | 'sweet';
@@ -63,7 +71,9 @@ export interface GameState {
     currentPhase2Set?: number;
     currentPhase2Item?: number;
     phase2TeamAnswers?: Phase2TeamAnswers;  // Réponses par équipe
-    phase2RoundWinner?: Team | null;        // Équipe gagnante du round (null = aucun gagnant)
+    phase2RoundWinner?: Team | 'both' | null;  // Équipe gagnante du round ('both' = les deux gagnent, null = aucun)
+    phase2BothCorrect?: boolean;            // True si les deux équipes ont répondu correctement
+    phase2QuestionStartTime?: number;       // Timestamp début question (pour timer 20s mode parallèle)
     // Phase 3 v2 - Parallel play with LLM validation
     phase3State?: 'selecting' | 'playing' | 'finished';
     phase3SelectionOrder?: Team[]; // Order based on scores (lowest first)
@@ -249,6 +259,10 @@ export interface Phase4Winner {
 
 // === ROOM ===
 
+export interface GameOptions {
+    difficulty?: Difficulty;
+}
+
 export interface Room {
     code: string;
     hostId: string;
@@ -257,6 +271,8 @@ export interface Room {
     createdAt: number;
     /** Whether the host has a premium subscription (stored at room creation) */
     hostIsPremium?: boolean;
+    /** Game options configured before starting (difficulty, etc.) */
+    gameOptions?: GameOptions;
     customQuestions?: {
         phase1?: Question[];
         phase2?: SimplePhase2Set | SimplePhase2Set[]; // Solo mode uses single set, multiplayer uses array
@@ -264,4 +280,68 @@ export interface Room {
         phase4?: Phase4Question[];
         phase5?: Phase5Data;
     };
+}
+
+// === MINIMUM QUESTION COUNTS ===
+
+/**
+ * Minimum number of questions required for each phase to start the game.
+ * If fewer questions exist, the system will generate missing ones.
+ */
+export const MINIMUM_QUESTION_COUNTS = {
+    phase1: 10,
+    phase2: 12, // items in a set
+    phase4: 10,
+} as const;
+
+/**
+ * Get current question count for a phase.
+ * Handles different data structures for multi vs solo mode.
+ */
+export function getQuestionCount(
+    customQuestions: Room['customQuestions'] | undefined,
+    phase: 'phase1' | 'phase2' | 'phase4'
+): number {
+    const questions = customQuestions?.[phase];
+    if (!questions) return 0;
+
+    switch (phase) {
+        case 'phase1':
+            return Array.isArray(questions) ? questions.length : 0;
+        case 'phase2':
+            // Phase 2 can be array of sets (multi) or single set (solo)
+            if (Array.isArray(questions)) {
+                // Multi: check first set's items count
+                return (questions as SimplePhase2Set[])[0]?.items?.length || 0;
+            }
+            // Solo: single set
+            return (questions as SimplePhase2Set).items?.length || 0;
+        case 'phase4':
+            return Array.isArray(questions) ? questions.length : 0;
+        default:
+            return 0;
+    }
+}
+
+/**
+ * Check if we have enough questions for a phase.
+ * Returns true if question count >= minimum required.
+ */
+export function hasEnoughQuestions(
+    customQuestions: Room['customQuestions'] | undefined,
+    phase: 'phase1' | 'phase2' | 'phase4'
+): boolean {
+    return getQuestionCount(customQuestions, phase) >= MINIMUM_QUESTION_COUNTS[phase];
+}
+
+/**
+ * Get missing question count for a phase.
+ * Returns 0 if we have enough or more questions.
+ */
+export function getMissingQuestionCount(
+    customQuestions: Room['customQuestions'] | undefined,
+    phase: 'phase1' | 'phase2' | 'phase4'
+): number {
+    const current = getQuestionCount(customQuestions, phase);
+    return Math.max(0, MINIMUM_QUESTION_COUNTS[phase] - current);
 }

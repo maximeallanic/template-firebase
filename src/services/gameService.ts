@@ -26,16 +26,18 @@ export type {
     Phase5Results,
     Phase3Menu,
     Phase4Question,
-    Room
+    Room,
+    Difficulty,
+    GameOptions
 } from '../types/gameTypes';
 
-export { AVATAR_LIST, PHASE_NAMES } from '../types/gameTypes';
+export { AVATAR_LIST, PHASE_NAMES, DIFFICULTY_LIST, DEFAULT_DIFFICULTY } from '../types/gameTypes';
 
 // Import types for internal use
 import type {
     Avatar, Team, Player, GameState, Room, SimplePhase2Set, Phase3Menu, Phase3Theme, Phase3TeamProgress,
     Phase4Question, Phase4Answer, Phase4Winner, Phase5Data, PhaseStatus,
-    Phase5State, Phase5Results, Phase2TeamAnswer, Phase2TeamAnswers
+    Phase5State, Phase5Results, Phase2TeamAnswer, Phase2TeamAnswers, Difficulty
 } from '../types/gameTypes';
 
 // Import LLM validation for Phase 3
@@ -99,10 +101,12 @@ export function getPhaseInitialUpdates(roomId: string, phase: PhaseStatus): Reco
         case 'phase2':
             updates[`rooms/${roomId}/state/currentPhase2Set`] = 0;
             updates[`rooms/${roomId}/state/currentPhase2Item`] = 0;
-            updates[`rooms/${roomId}/state/phaseState`] = 'reading';
+            updates[`rooms/${roomId}/state/phaseState`] = 'answering'; // Phase 2 allows immediate answering (no reading delay)
             updates[`rooms/${roomId}/state/phase2TeamAnswers`] = {};
             updates[`rooms/${roomId}/state/phase2RoundWinner`] = null;
+            updates[`rooms/${roomId}/state/phase2BothCorrect`] = false;
             updates[`rooms/${roomId}/state/roundWinner`] = null;
+            updates[`rooms/${roomId}/state/phase2QuestionStartTime`] = Date.now();
             break;
 
         case 'phase3':
@@ -405,6 +409,10 @@ export const submitAnswer = async (code: string, playerId: string, answerIndex: 
             } else if (blockedTeams.includes(otherTeam) && otherTeamHasPlayers) {
                 // REBOND: Other team was blocked, now unblock them and block current team
                 newState.phase1BlockedTeams = [player.team];
+
+                // Clear all answers on rebond so the unblocked team can answer again
+                // The blocked team can't answer anyway (blocked), and the unblocked team gets a fresh start
+                newState.phase1Answers = {};
             } else {
                 // First wrong answer: just block current team
                 newState.phase1BlockedTeams = [...blockedTeams, player.team];
@@ -441,10 +449,12 @@ export const nextPhase2Item = async (code: string) => {
     updates[`rooms/${roomId}/state/roundWinner`] = null;
     updates[`rooms/${roomId}/state/phase2TeamAnswers`] = {};
     updates[`rooms/${roomId}/state/phase2RoundWinner`] = null;
+    updates[`rooms/${roomId}/state/phase2BothCorrect`] = false;
 
     const nextIndex = (room.state.currentPhase2Item ?? 0) + 1;
     updates[`rooms/${roomId}/state/currentPhase2Item`] = nextIndex;
-    updates[`rooms/${roomId}/state/phaseState`] = 'reading';
+    updates[`rooms/${roomId}/state/phaseState`] = 'answering'; // Phase 2 allows immediate answering
+    updates[`rooms/${roomId}/state/phase2QuestionStartTime`] = Date.now();
 
     await update(ref(rtdb), updates);
 };
@@ -647,6 +657,27 @@ export const updatePlayerProfile = async (code: string, playerId: string, name: 
 };
 
 /**
+ * Update room difficulty setting (host only action)
+ * @param code - Room code
+ * @param difficulty - The difficulty level to set
+ */
+export const updateRoomDifficulty = async (code: string, difficulty: Difficulty) => {
+    const roomId = code.toUpperCase();
+    await update(ref(rtdb, `rooms/${roomId}`), {
+        'gameOptions/difficulty': difficulty
+    });
+};
+
+/**
+ * Get current room difficulty (defaults to 'normal' if not set)
+ * @param room - The room object
+ * @returns The difficulty level
+ */
+export const getRoomDifficulty = (room: Room | null): Difficulty => {
+    return room?.gameOptions?.difficulty ?? 'normal';
+};
+
+/**
  * Premium phases that require a subscription
  */
 export const PREMIUM_PHASES: GameState['status'][] = ['phase3', 'phase4', 'phase5'];
@@ -739,10 +770,10 @@ export const getPhase2GeneratingState = async (code: string): Promise<boolean> =
 
 
 /**
- * Submit a Phase 2 answer - Team-based logic
- * Only 1 person per team needs to answer. First correct answer wins.
- * If a team answers wrong, the other team can still try.
- * Round ends when: correct answer found OR both teams answered wrong.
+ * Submit a Phase 2 answer - Parallel mode (both teams have 20s to answer)
+ * Only 1 person per team needs to answer.
+ * Round ends when: both teams answered OR timeout (20s).
+ * Winner determined by: first correct answer wins (by timestamp if both correct).
  */
 export const submitPhase2Answer = async (
     roomId: string,
@@ -778,6 +809,10 @@ export const submitPhase2Answer = async (
         p => p.team === otherTeam && p.isOnline && !p.id.startsWith('mock_')
     );
 
+    // Record timestamp BEFORE transaction for fair comparison
+    // (timestamp reflects when user clicked, not when transaction runs)
+    const submitTimestamp = Date.now();
+
     // Use transaction for atomic state update
     const stateRef = ref(rtdb, `rooms/${roomId}/state`);
     const result = await runTransaction(stateRef, (currentState: GameState | null) => {
@@ -797,7 +832,7 @@ export const submitPhase2Answer = async (
             playerName: player.name,
             answer,
             correct: isCorrect,
-            timestamp: Date.now()
+            timestamp: submitTimestamp // Use pre-recorded timestamp
         };
 
         const newTeamAnswers: Phase2TeamAnswers = {
@@ -810,32 +845,51 @@ export const submitPhase2Answer = async (
             phase2TeamAnswers: newTeamAnswers
         };
 
-        if (isCorrect) {
-            // TEAM WINS! Round ends immediately
-            newState.phase2RoundWinner = myTeam;
-            newState.phaseState = 'result';
-            newState.roundWinner = {
-                playerId,
-                name: player.name,
-                team: myTeam
-            };
-        } else {
-            // Wrong answer - check if round should end
-            const otherTeamAnswer = teamAnswers[otherTeam];
+        // PARALLEL MODE: Check if both teams have answered
+        const otherTeamAnswer = newTeamAnswers[otherTeam];
+        const bothTeamsAnswered = otherTeamAnswer !== undefined;
 
-            if (otherTeamAnswer && !otherTeamAnswer.correct) {
-                // Both teams answered wrong - no winner
+        if (bothTeamsAnswered) {
+            // Both teams have answered - determine winner
+            const myCorrect = isCorrect;
+            const otherCorrect = otherTeamAnswer.correct;
+
+            if (myCorrect && !otherCorrect) {
+                // Only my team got it right
+                newState.phase2RoundWinner = myTeam;
+                newState.roundWinner = { playerId, name: player.name, team: myTeam };
+            } else if (!myCorrect && otherCorrect) {
+                // Only other team got it right
+                newState.phase2RoundWinner = otherTeam;
+                newState.roundWinner = {
+                    playerId: otherTeamAnswer.playerId,
+                    name: otherTeamAnswer.playerName,
+                    team: otherTeam
+                };
+            } else if (myCorrect && otherCorrect) {
+                // Both correct - BOTH TEAMS WIN
+                newState.phase2RoundWinner = 'both';
+                newState.phase2BothCorrect = true;
+                newState.roundWinner = null; // No single winner
+            } else {
+                // Both wrong - no winner
                 newState.phase2RoundWinner = null;
-                newState.phaseState = 'result';
-                newState.roundWinner = null;
-            } else if (!otherTeamHasPlayers) {
-                // Other team has no players - end round with no winner
-                newState.phase2RoundWinner = null;
-                newState.phaseState = 'result';
                 newState.roundWinner = null;
             }
-            // Otherwise, other team can still try - keep phaseState as is
+
+            newState.phaseState = 'result';
+        } else if (!otherTeamHasPlayers) {
+            // Other team has no players - end round now
+            if (isCorrect) {
+                newState.phase2RoundWinner = myTeam;
+                newState.roundWinner = { playerId, name: player.name, team: myTeam };
+            } else {
+                newState.phase2RoundWinner = null;
+                newState.roundWinner = null;
+            }
+            newState.phaseState = 'result';
         }
+        // If only one team has answered and other team has players, wait for them or timeout
 
         return newState;
     });
@@ -845,12 +899,33 @@ export const submitPhase2Answer = async (
         return;
     }
 
-    // If correct answer committed, award point to the player who answered
+    // Award points (if round ended)
     const newState = result.snapshot.val() as GameState;
-    if (newState?.phase2RoundWinner === myTeam) {
-        await update(ref(rtdb), {
-            [`rooms/${roomId}/players/${playerId}/score`]: increment(1)
-        });
+    if (newState?.phaseState === 'result') {
+        if (newState.phase2BothCorrect) {
+            // Both teams correct - award point to BOTH players who answered
+            const spicyAnswer = newState.phase2TeamAnswers?.spicy;
+            const sweetAnswer = newState.phase2TeamAnswers?.sweet;
+            const pointUpdates: Record<string, ReturnType<typeof increment>> = {};
+            if (spicyAnswer) {
+                pointUpdates[`rooms/${roomId}/players/${spicyAnswer.playerId}/score`] = increment(1);
+            }
+            if (sweetAnswer) {
+                pointUpdates[`rooms/${roomId}/players/${sweetAnswer.playerId}/score`] = increment(1);
+            }
+            if (Object.keys(pointUpdates).length > 0) {
+                await update(ref(rtdb), pointUpdates);
+            }
+        } else if (newState.phase2RoundWinner && newState.phase2RoundWinner !== 'both') {
+            // Single winner - award point to winning team's player
+            const winningTeam = newState.phase2RoundWinner;
+            const winningAnswer = newState.phase2TeamAnswers?.[winningTeam];
+            if (winningAnswer) {
+                await update(ref(rtdb), {
+                    [`rooms/${roomId}/players/${winningAnswer.playerId}/score`]: increment(1)
+                });
+            }
+        }
     }
 
     // Handle auto-advance if round ended (with lock to prevent multiple timers)
@@ -869,8 +944,8 @@ export const submitPhase2Answer = async (
 };
 
 /**
- * Force end Phase 2 round (for edge cases like host skip or timeout).
- * Normal round end is handled in submitPhase2Answer.
+ * End Phase 2 round on timeout (20s elapsed).
+ * Evaluates answers received and determines winner.
  */
 export const endPhase2Round = async (roomCode: string) => {
     const roomId = roomCode.toUpperCase();
@@ -887,16 +962,69 @@ export const endPhase2Round = async (roomCode: string) => {
     const itemIndex = room.state.currentPhase2Item ?? 0;
     const phase2Sets = room.customQuestions?.phase2 as SimplePhase2Set[] | undefined;
     const currentSet = phase2Sets?.[setIndex] || PHASE2_SETS[setIndex];
-    const hasAnecdote = currentSet?.items?.[itemIndex]?.anecdote;
+    const item = currentSet?.items?.[itemIndex];
+    const hasAnecdote = item?.anecdote;
+
+    // Get team answers
+    const teamAnswers = room.state.phase2TeamAnswers || {};
+    const spicyAnswer = teamAnswers.spicy;
+    const sweetAnswer = teamAnswers.sweet;
+
+    // Determine winner based on answers received
+    let winner: Team | null = null;
+    let winnerPlayerId: string | null = null;
+    let winnerPlayerName: string | null = null;
+
+    const spicyCorrect = spicyAnswer?.correct ?? false;
+    const sweetCorrect = sweetAnswer?.correct ?? false;
+
+    if (spicyCorrect && !sweetCorrect) {
+        // Only spicy got it right
+        winner = 'spicy';
+        winnerPlayerId = spicyAnswer!.playerId;
+        winnerPlayerName = spicyAnswer!.playerName;
+    } else if (!spicyCorrect && sweetCorrect) {
+        // Only sweet got it right
+        winner = 'sweet';
+        winnerPlayerId = sweetAnswer!.playerId;
+        winnerPlayerName = sweetAnswer!.playerName;
+    }
+    // Else: both wrong or neither answered = no winner
+
+    // Check if both teams got it correct
+    const bothCorrect = spicyCorrect && sweetCorrect;
 
     const updates: Record<string, unknown> = {};
     updates[`rooms/${roomId}/state/phaseState`] = 'result';
-    updates[`rooms/${roomId}/state/phase2RoundWinner`] = null; // No winner (forced end)
-    updates[`rooms/${roomId}/state/roundWinner`] = null;
+    updates[`rooms/${roomId}/state/phase2RoundWinner`] = bothCorrect ? 'both' : winner;
+    updates[`rooms/${roomId}/state/phase2BothCorrect`] = bothCorrect;
+    updates[`rooms/${roomId}/state/roundWinner`] = winner
+        ? { playerId: winnerPlayerId, name: winnerPlayerName, team: winner }
+        : null;
 
     await update(ref(rtdb), updates);
 
-    // Auto-advance
+    // Award points
+    if (bothCorrect) {
+        // Both teams correct - award point to BOTH players
+        const pointUpdates: Record<string, ReturnType<typeof increment>> = {};
+        if (spicyAnswer) {
+            pointUpdates[`rooms/${roomId}/players/${spicyAnswer.playerId}/score`] = increment(1);
+        }
+        if (sweetAnswer) {
+            pointUpdates[`rooms/${roomId}/players/${sweetAnswer.playerId}/score`] = increment(1);
+        }
+        if (Object.keys(pointUpdates).length > 0) {
+            await update(ref(rtdb), pointUpdates);
+        }
+    } else if (winner && winnerPlayerId) {
+        // Single winner
+        await update(ref(rtdb), {
+            [`rooms/${roomId}/players/${winnerPlayerId}/score`]: increment(1)
+        });
+    }
+
+    // Auto-advance after delay
     const delay = hasAnecdote ? 10000 : 4000;
     setTimeout(() => nextPhase2Item(roomId), delay);
 };

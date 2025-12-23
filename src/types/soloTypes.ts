@@ -4,7 +4,7 @@
  */
 
 import type { Timestamp } from 'firebase/firestore';
-import type { Avatar, Question, SimplePhase2Set, Phase4Question } from './gameTypes';
+import type { Avatar, Question, SimplePhase2Set, Phase4Question, Difficulty } from './gameTypes';
 
 // === SOLO GAME STATUS ===
 
@@ -54,6 +54,7 @@ export interface SoloGameState {
     playerId: string;
     playerName: string;
     playerAvatar: Avatar;
+    difficulty: Difficulty;
 
     // Game progress
     status: SoloPhaseStatus;
@@ -199,12 +200,14 @@ export type LeaderboardEntryInput = Omit<LeaderboardEntry, 'id' | 'playedAt'>;
 export function createInitialSoloState(
     playerId: string,
     playerName: string,
-    playerAvatar: Avatar
+    playerAvatar: Avatar,
+    difficulty: Difficulty = 'normal'
 ): SoloGameState {
     return {
         playerId,
         playerName,
         playerAvatar,
+        difficulty,
         status: 'setup',
         currentPhaseIndex: 0,
         totalScore: 0,

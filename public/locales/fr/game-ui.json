@@ -37,7 +37,11 @@
     "correctAnswer": "Bonne réponse :",
     "winner": "Gagnant :",
     "noWinner": "Pas de gagnant pour cette manche.",
-    "yum": "Miam"
+    "yum": "Miam",
+    "solo": {
+      "timeout": "Temps écoulé !",
+      "missed": "Raté !"
+    }
   },
   "status": {
     "reading": "Temps de lecture... ⏳",
@@ -81,7 +85,13 @@
     "nobodyWon": "Aucune équipe n'a trouvé !",
     "otherTeamTurn": "L'équipe adverse peut tenter !",
     "answeredFor": "a répondu pour",
-    "waitingForOtherTeam": "En attente de l'autre équipe..."
+    "waitingForOtherTeam": "En attente de l'autre équipe...",
+    "lockedIn": "Réponse verrouillée !",
+    "solo": {
+      "correct": "Correct !",
+      "incorrect": "Raté !",
+      "timeout": "Temps écoulé !"
+    }
   },
   "phase3": {
     "chooseMenu": "Choisis un menu",
@@ -129,6 +139,7 @@
     "questionNumber": "Question {{current}}/{{total}}",
     "answer": "Réponse :",
     "timeRemaining": "{{seconds}}s",
+    "hurry": "Dépêchez-vous !",
     "selectAnswer": "Sélectionnez votre réponse",
     "answered": "Répondu !",
     "waiting": "En attente...",
@@ -140,7 +151,10 @@
     "waitingForPlayers": "En attente des joueurs...",
     "everyoneAnswered": "Tout le monde a répondu !",
     "nextQuestionIn": "Prochaine question dans {{seconds}}s",
-    "prepareForQuestion": "Préparez-vous..."
+    "prepareForQuestion": "Préparez-vous...",
+    "solo": {
+      "noWinner": "Temps écoulé !"
+    }
   },
   "phase5": {
     "title": "Burger\nUltime",
@@ -243,5 +257,12 @@
   "options": {
     "answerOptions": "Options de réponse",
     "answerLetter": "Réponse {{letter}}: {{label}}"
+  },
+  "difficulty": {
+    "label": "Difficulté",
+    "easy": "Facile",
+    "normal": "Normal",
+    "hard": "Difficile",
+    "wtf": "WTF"
   }
 }
