@@ -73,11 +73,13 @@ export function QuickSettings({ onEditProfile }: QuickSettingsProps) {
               }}
             >
               {/* Background gradient */}
-              <div className="absolute inset-0 bg-gradient-to-b from-slate-900 via-slate-900 to-slate-950" />
-              <div className="absolute top-[-20%] left-[-30%] w-64 h-64 rounded-full bg-gradient-to-br from-rose-500/20 to-pink-500/10 blur-3xl" />
-              <div className="absolute bottom-[10%] right-[-20%] w-48 h-48 rounded-full bg-gradient-to-br from-red-500/15 to-orange-500/10 blur-3xl" />
+              <div className="absolute inset-0 z-0">
+                <div className="absolute inset-0 bg-gradient-to-b from-slate-900 via-slate-900 to-slate-950" />
+                <div className="absolute top-[-20%] left-[-30%] w-64 h-64 rounded-full bg-gradient-to-br from-rose-500/20 to-pink-500/10 blur-3xl" />
+                <div className="absolute bottom-[10%] right-[-20%] w-48 h-48 rounded-full bg-gradient-to-br from-red-500/15 to-orange-500/10 blur-3xl" />
+              </div>
               {/* Header */}
-              <div className="relative flex items-center justify-between p-4 border-b border-white/10">
+              <div className="relative z-10 flex items-center justify-between p-4 border-b border-white/10">
                 <h2 className="text-xl font-bold text-white">
                   {t('pwa.settings', 'Réglages')}
                 </h2>
@@ -90,7 +92,7 @@ export function QuickSettings({ onEditProfile }: QuickSettingsProps) {
               </div>
 
               {/* Settings content */}
-              <div className="relative p-4 space-y-6">
+              <div className="relative z-10 p-4 space-y-6">
                 {/* Sound toggle */}
                 <motion.div
                   initial={{ opacity: 0, x: -20 }}
