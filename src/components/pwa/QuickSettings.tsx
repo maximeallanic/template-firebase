@@ -58,7 +58,7 @@ export function QuickSettings({ onEditProfile }: QuickSettingsProps) {
 
             {/* Panel */}
             <motion.div
-              className="fixed top-0 left-0 bottom-0 w-80 max-w-[85vw] z-50 bg-slate-900/95 backdrop-blur-lg border-r border-white/10"
+              className="fixed top-0 left-0 bottom-0 w-80 max-w-[85vw] z-50 border-r border-white/10 overflow-hidden"
               initial={{ x: '-100%' }}
               animate={{ x: 0 }}
               exit={{ x: '-100%' }}
@@ -72,8 +72,12 @@ export function QuickSettings({ onEditProfile }: QuickSettingsProps) {
                 paddingBottom: 'env(safe-area-inset-bottom)',
               }}
             >
+              {/* Background gradient */}
+              <div className="absolute inset-0 bg-gradient-to-b from-slate-900 via-slate-900 to-slate-950" />
+              <div className="absolute top-[-20%] left-[-30%] w-64 h-64 rounded-full bg-gradient-to-br from-rose-500/20 to-pink-500/10 blur-3xl" />
+              <div className="absolute bottom-[10%] right-[-20%] w-48 h-48 rounded-full bg-gradient-to-br from-red-500/15 to-orange-500/10 blur-3xl" />
               {/* Header */}
-              <div className="flex items-center justify-between p-4 border-b border-white/10">
+              <div className="relative flex items-center justify-between p-4 border-b border-white/10">
                 <h2 className="text-xl font-bold text-white">
                   {t('pwa.settings', 'Réglages')}
                 </h2>
@@ -86,7 +90,7 @@ export function QuickSettings({ onEditProfile }: QuickSettingsProps) {
               </div>
 
               {/* Settings content */}
-              <div className="p-4 space-y-6">
+              <div className="relative p-4 space-y-6">
                 {/* Sound toggle */}
                 <motion.div
                   initial={{ opacity: 0, x: -20 }}
