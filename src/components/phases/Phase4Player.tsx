@@ -302,8 +302,8 @@ export function Phase4Player({ room, playerId, isHost, mode = 'multiplayer', sol
     if (phase4State === 'result' && resultRevealPhase === 'shaking') {
         return (
             <div className="flex flex-col items-center p-4 space-y-4 max-h-screen overflow-y-auto w-full text-white">
-                {/* Header: Question info */}
-                <div className="w-full max-w-lg flex justify-between items-center">
+                {/* Header: Question info - hidden on mobile in solo (shown in header) */}
+                <div className={`w-full max-w-lg justify-between items-center ${isSolo ? 'hidden md:flex' : 'flex'}`}>
                     <div className="text-gray-400 font-bold uppercase tracking-wider">
                         {t('phase4.questionNumber', { current: currentQuestionIdx + 1, total: totalQuestions })}
                     </div>
@@ -345,7 +345,8 @@ export function Phase4Player({ room, playerId, isHost, mode = 'multiplayer', sol
         <div className="flex flex-col items-center p-4 space-y-4 max-h-screen overflow-y-auto w-full text-white">
             {/* Header: Question info + Timer */}
             <div className="w-full max-w-lg flex justify-between items-center">
-                <div className="text-gray-400 font-bold uppercase tracking-wider">
+                {/* Question number - hidden on mobile in solo (shown in header) */}
+                <div className={`text-gray-400 font-bold uppercase tracking-wider ${isSolo ? 'hidden md:block' : ''}`}>
                     {t('phase4.questionNumber', { current: currentQuestionIdx + 1, total: totalQuestions })}
                 </div>
                 <Phase4Timer
@@ -383,7 +384,7 @@ export function Phase4Player({ room, playerId, isHost, mode = 'multiplayer', sol
                         {t('phase4.answered')}
                     </motion.div>
                 ) : (
-                    <div className="text-center text-gray-400">
+                    <div className="text-center text-gray-400 hidden md:block">
                         {t('phase4.selectAnswer')}
                     </div>
                 )}

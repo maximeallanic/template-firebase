@@ -13,7 +13,8 @@ import { useAuthUser } from '../hooks/useAuthUser';
 import type { Room, Avatar, Difficulty } from '../types/gameTypes';
 import { DEFAULT_DIFFICULTY } from '../types/gameTypes';
 import { SoloGameProvider, useSoloGame, createSoloHandlers } from '../contexts/SoloGameContext';
-import { mapSoloStateToGameState, SOLO_PHASE_NAMES, SOLO_MAX_SCORE, type SoloPhaseStatus } from '../types/soloTypes';
+import { mapSoloStateToGameState, SOLO_PHASE_NAMES, SOLO_MAX_SCORE, SOLO_SCORING, type SoloPhaseStatus } from '../types/soloTypes';
+import type { SimplePhase2Set } from '../types/gameTypes';
 import { Phase1Player } from '../components/phases/Phase1Player';
 import { Phase2Player } from '../components/phases/Phase2Player';
 import { Phase4Player } from '../components/phases/Phase4Player';
@@ -66,6 +67,24 @@ function SoloGameInner() {
         createdAt: state.startedAt || Date.now(),
         customQuestions: state.customQuestions,
     }), [state]);
+
+    // Calculate current round info for header display (mobile)
+    const roundInfo = useMemo(() => {
+        if (state.status === 'phase1' && state.phase1State) {
+            const total = state.customQuestions?.phase1?.length || SOLO_SCORING.phase1.maxQuestions;
+            return { current: state.phase1State.currentQuestionIndex + 1, total };
+        }
+        if (state.status === 'phase2' && state.phase2State) {
+            const phase2 = state.customQuestions?.phase2 as SimplePhase2Set | undefined;
+            const total = phase2?.items?.length || SOLO_SCORING.phase2.maxItems;
+            return { current: state.phase2State.currentItemIndex + 1, total };
+        }
+        if (state.status === 'phase4' && state.phase4State) {
+            const total = state.customQuestions?.phase4?.length || SOLO_SCORING.phase4.maxQuestions;
+            return { current: state.phase4State.currentQuestionIndex + 1, total };
+        }
+        return null;
+    }, [state.status, state.phase1State, state.phase2State, state.phase4State, state.customQuestions]);
 
     // Auto-start game on mount (ref prevents double-call from React Strict Mode)
     // Note: "Replay" button calls startGame() directly, so no need to handle that case here
@@ -296,7 +315,8 @@ function SoloGameInner() {
                 score={state.totalScore}
                 maxScore={SOLO_MAX_SCORE}
                 phaseName={currentPhase?.shortName || ''}
-                phaseScores={state.phaseScores}
+                currentRound={roundInfo?.current}
+                totalRounds={roundInfo?.total}
             />
 
             <div className="flex-1 flex items-center justify-center">

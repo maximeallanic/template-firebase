@@ -277,9 +277,9 @@ export function Phase2Player({ room, playerId, isHost, mode = 'multiplayer', sol
                 </div>
             )}
 
-            {/* Solo Progress Indicator */}
+            {/* Solo Progress Indicator - hidden on mobile (shown in header) */}
             {isSolo && (
-                <div className="absolute top-4 left-1/2 -translate-x-1/2 z-10">
+                <div className="absolute top-4 left-1/2 -translate-x-1/2 z-10 hidden md:block">
                     <div className="px-4 py-2 rounded-full text-sm font-bold bg-slate-800/80 text-white backdrop-blur flex items-center gap-2">
                         <span>{itemIndex + 1} / {totalItems}</span>
                         {soloResult && (
@@ -341,7 +341,7 @@ export function Phase2Player({ room, playerId, isHost, mode = 'multiplayer', sol
                         animate={{ opacity: 1 }}
                         exit={{ opacity: 0 }}
                         transition={{ duration: 0.3 }}
-                        className="absolute inset-0 flex flex-col items-center justify-center p-4 pb-32 md:pb-40 lg:pb-44 pointer-events-none z-30"
+                        className="absolute inset-0 flex flex-col items-center justify-center p-4 pb-24 md:pb-28 lg:pb-32 pointer-events-none z-30"
                     >
                         {/* Team Lock Overlay - When teammate answered but round not over (multiplayer only) */}
                         {!isSolo && (

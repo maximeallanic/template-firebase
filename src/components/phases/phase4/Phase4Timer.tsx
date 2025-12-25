@@ -35,6 +35,13 @@ export function Phase4Timer({ timeRemaining, totalTime, isActive }: Phase4TimerP
         return 'bg-green-500';
     };
 
+    // Get bar color for mobile progress bar
+    const getBarColor = () => {
+        if (isUrgent) return 'bg-red-500';
+        if (isWarning) return 'bg-yellow-400';
+        return 'bg-white/50';
+    };
+
     // Get glow color for shadow
     const getGlowClass = () => {
         if (isUrgent) return 'shadow-red-500/50';
@@ -102,11 +109,41 @@ export function Phase4Timer({ timeRemaining, totalTime, isActive }: Phase4TimerP
     };
 
     return (
-        <div className="flex items-center gap-3">
-            {/* Timer Display */}
-            <div className="flex flex-col items-center gap-2">
-                {/* Number Display with Progress Ring */}
-                <div className="relative" style={{ width: circleSize, height: circleSize }}>
+        <>
+            {/* Mobile: Simple progress bar with number on the right */}
+            <div className="md:hidden w-full max-w-xs mx-auto flex items-center gap-2">
+                <div className="flex-1 relative h-1.5 bg-slate-700/50 rounded-full overflow-hidden backdrop-blur">
+                    <motion.div
+                        className={`absolute inset-y-0 left-0 rounded-full ${getBarColor()} transition-colors duration-300`}
+                        initial={{ width: '100%' }}
+                        animate={{ width: `${progress * 100}%` }}
+                        transition={{ duration: 0.3, ease: 'linear' }}
+                    />
+                    {/* Pulse effect when urgent */}
+                    {isUrgent && !prefersReducedMotion && (
+                        <motion.div
+                            className="absolute inset-0 bg-red-500/30 rounded-full"
+                            animate={{ opacity: [0.3, 0.7, 0.3] }}
+                            transition={{ duration: 0.5, repeat: Infinity }}
+                        />
+                    )}
+                </div>
+                {/* Time number on the right */}
+                <span
+                    className={`text-xs font-bold tabular-nums min-w-[24px] text-right ${
+                        isUrgent ? 'text-red-400' : isWarning ? 'text-yellow-400' : 'text-white/70'
+                    }`}
+                >
+                    {timeRemaining}s
+                </span>
+            </div>
+
+            {/* Desktop: Full timer with circle and dots */}
+            <div className="hidden md:flex items-center gap-3">
+                {/* Timer Display */}
+                <div className="flex flex-col items-center gap-2">
+                    {/* Number Display with Progress Ring */}
+                    <div className="relative" style={{ width: circleSize, height: circleSize }}>
                     {/* Background circle */}
                     <svg
                         className="absolute inset-0 -rotate-90"
@@ -195,25 +232,26 @@ export function Phase4Timer({ timeRemaining, totalTime, isActive }: Phase4TimerP
                 </div>
             </div>
 
-            {/* Label */}
-            <div className="flex flex-col">
-                <span className="text-xs uppercase tracking-wider text-slate-400 flex items-center gap-1">
-                    <Clock className="w-3 h-3" aria-hidden="true" />
-                    {t('phase4.timer')}
-                </span>
-                <span
-                    className={`text-sm font-bold ${
-                        isUrgent ? 'text-red-400' : isWarning ? 'text-yellow-400' : 'text-slate-300'
-                    }`}
-                    aria-live="polite"
-                    aria-atomic="true"
-                >
-                    {isUrgent
-                        ? t('phase4.hurry')
-                        : t('phase4.timeRemaining', { seconds: timeRemaining })
-                    }
-                </span>
+                {/* Label */}
+                <div className="flex flex-col">
+                    <span className="text-xs uppercase tracking-wider text-slate-400 flex items-center gap-1">
+                        <Clock className="w-3 h-3" aria-hidden="true" />
+                        {t('phase4.timer')}
+                    </span>
+                    <span
+                        className={`text-sm font-bold ${
+                            isUrgent ? 'text-red-400' : isWarning ? 'text-yellow-400' : 'text-slate-300'
+                        }`}
+                        aria-live="polite"
+                        aria-atomic="true"
+                    >
+                        {isUrgent
+                            ? t('phase4.hurry')
+                            : t('phase4.timeRemaining', { seconds: timeRemaining })
+                        }
+                    </span>
+                </div>
             </div>
-        </div>
+        </>
     );
 }

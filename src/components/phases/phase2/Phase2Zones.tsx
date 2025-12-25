@@ -100,7 +100,7 @@ export function Phase2Zones({
                     aria-hidden="true"
                 />
                 <div
-                    className="text-4xl md:text-6xl font-black text-red-500 opacity-30 select-none uppercase tracking-tighter transform -rotate-90 md:rotate-0 origin-left"
+                    className="text-4xl md:text-6xl font-black text-red-400 opacity-60 select-none uppercase tracking-tighter transform -rotate-90 md:rotate-0 origin-left drop-shadow-lg"
                     aria-hidden="true"
                 >
                     {optionA}
@@ -142,7 +142,7 @@ export function Phase2Zones({
                     aria-hidden="true"
                 />
                 <div
-                    className="text-4xl md:text-6xl font-black text-pink-500 opacity-30 select-none uppercase tracking-tighter transform rotate-90 md:rotate-0 origin-right"
+                    className="text-4xl md:text-6xl font-black text-pink-400 opacity-60 select-none uppercase tracking-tighter transform rotate-90 md:rotate-0 origin-right drop-shadow-lg"
                     aria-hidden="true"
                 >
                     {optionB}
@@ -167,7 +167,7 @@ export function Phase2Zones({
                 initial={prefersReducedMotion ? { opacity: 0 } : "initial"}
                 animate={prefersReducedMotion ? { opacity: 1 } : "animate"}
                 exit={prefersReducedMotion ? { opacity: 0 } : "exit"}
-                className={`absolute left-0 right-0 h-32 bg-gradient-to-b from-purple-500/20 to-transparent pointer-events-none flex justify-center group z-20 ${isSolo ? 'top-14 pt-0' : 'top-0 pt-4'}`}
+                className={`absolute left-0 right-0 h-32 bg-gradient-to-b from-purple-500/20 to-transparent pointer-events-none flex justify-center group z-20 ${isSolo ? 'top-[74px] pt-0' : 'top-0 pt-4'}`}
                 role="button"
                 aria-label={t('phase2.selectBoth')}
                 tabIndex={disabled ? -1 : 0}
@@ -184,7 +184,7 @@ export function Phase2Zones({
                     className="absolute inset-0 bg-purple-900/10 group-hover:bg-purple-900/20 transition-colors"
                     aria-hidden="true"
                 />
-                <div className="text-purple-500 font-black tracking-tighter uppercase opacity-30 text-3xl md:text-5xl flex flex-col items-center z-10">
+                <div className="text-purple-400 font-black tracking-tighter uppercase opacity-60 text-3xl md:text-5xl flex flex-col items-center z-10 drop-shadow-lg">
                     {!prefersReducedMotion ? (
                         <motion.div
                             animate={{ y: [0, -5, 0] }}
@@ -206,7 +206,7 @@ export function Phase2Zones({
                     initial="initial"
                     animate="animate"
                     exit="exit"
-                    className="absolute bottom-24 md:bottom-32 lg:bottom-36 left-0 right-0 text-center pointer-events-none z-30"
+                    className="absolute bottom-16 md:bottom-20 lg:bottom-24 left-0 right-0 text-center pointer-events-none z-30"
                 >
                     <p className="text-white/80 text-lg md:text-xl font-medium">
                         <span className="text-red-400">
@@ -235,7 +235,7 @@ export function Phase2Zones({
                     )}
 
                     {/* Hint explaining the wordplay */}
-                    <p className="text-white/40 text-xs md:text-sm mt-2 max-w-md mx-auto px-4">
+                    <p className="text-white/60 text-xs md:text-sm mt-2 max-w-md mx-auto px-4">
                         🎭 {t('phase2.homophoneHint')}
                         <br className="hidden md:block" />
                         <span className="hidden md:inline">{t('phase2.swipeHint')}</span>

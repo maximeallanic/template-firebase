@@ -1,4 +1,5 @@
 import { useEffect, useCallback, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import { motion, useAnimation } from 'framer-motion';
 import type { PanInfo } from 'framer-motion';
 import { useTranslation } from 'react-i18next';
@@ -176,16 +177,11 @@ export function Phase2Card({
         return 'bg-gradient-to-r from-red-400 via-purple-400 to-pink-400';
     };
 
-    // Get message position based on correct answer
+    // Get message position - fixed to bottom-center of screen via Portal
+    // Uses flexbox centering (inset-x-0 + justify-center) instead of transform
+    // to avoid positioning issues on mobile browsers
     const getMessagePosition = () => {
-        switch (item.answer) {
-            case 'A': // Correct answer is left → message to the right of card
-                return 'left-full ml-4 top-1/2 -translate-y-1/2';
-            case 'B': // Correct answer is right → message to the left of card
-                return 'right-full mr-4 top-1/2 -translate-y-1/2';
-            case 'Both': // Correct answer is both → message below card
-                return 'top-full mt-4 left-1/2 -translate-x-1/2';
-        }
+        return 'bottom-24 inset-x-0 flex justify-center';
     };
 
     // Get result style based on outcome
@@ -262,8 +258,8 @@ export function Phase2Card({
             {/* The Card */}
             <div
                 className={`
-                    bg-white text-slate-900 w-full max-w-xs md:max-w-sm aspect-square rounded-3xl shadow-2xl
-                    max-h-[45vh] md:max-h-[50vh]
+                    bg-white text-slate-900 w-full max-w-[260px] md:max-w-sm aspect-square rounded-3xl shadow-2xl
+                    max-h-[40vh] md:max-h-[50vh]
                     flex flex-col items-center justify-center p-6 text-center relative overflow-hidden
                     transition-shadow duration-300
                     ${!hasAnswered && !isRoundOver ? 'cursor-grab active:cursor-grabbing pointer-events-auto' : 'pointer-events-none'}
@@ -327,17 +323,17 @@ export function Phase2Card({
                 )}
             </div>
 
-            {/* Adjacent Result Message */}
-            {isRoundOver && hasAnswered && (
+            {/* Adjacent Result Message - rendered via Portal to avoid transform issues */}
+            {isRoundOver && hasAnswered && createPortal(
                 <motion.div
                     initial={prefersReducedMotion ? { opacity: 0 } : { opacity: 0, scale: 0.9 }}
                     animate={prefersReducedMotion ? { opacity: 1 } : { opacity: 1, scale: 1 }}
                     transition={{ delay: 0.3, ...bouncySpring }}
                     role="alert"
                     aria-live="assertive"
-                    className={`absolute ${getMessagePosition()} w-48 max-w-[200px] pointer-events-none`}
+                    className={`fixed ${getMessagePosition()} pointer-events-none z-50`}
                 >
-                    <div className={`p-4 rounded-xl shadow-xl border-2 ${getResultStyle()}`}>
+                    <div className={`w-72 max-w-[90vw] md:w-48 md:max-w-[200px] p-4 rounded-xl shadow-xl border-2 ${getResultStyle()}`}>
                         {/* Result Icon */}
                         <motion.div
                             initial={prefersReducedMotion ? { opacity: 0 } : { scale: 0 }}
@@ -402,7 +398,7 @@ export function Phase2Card({
                                 initial={{ opacity: 0 }}
                                 animate={{ opacity: 1 }}
                                 transition={{ delay: 0.9, duration: durations.normal }}
-                                className={`text-xs mt-2 italic select-none ${
+                                className={`text-sm md:text-xs mt-2 italic select-none ${
                                     didWin ? 'text-white/70' : 'opacity-60'
                                 }`}
                             >
@@ -410,7 +406,8 @@ export function Phase2Card({
                             </motion.p>
                         )}
                     </div>
-                </motion.div>
+                </motion.div>,
+                document.body
             )}
         </motion.div>
     );

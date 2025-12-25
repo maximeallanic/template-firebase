@@ -371,7 +371,8 @@ export function Phase1Player({ room, playerId, isHost, mode = 'multiplayer', sol
     useEffect(() => {
         // Start timer when entering answering phase
         // Timer continues running even after player answers (for other players to see)
-        if (isAnswering && state.questionStartTime) {
+        // Timer is disabled in solo mode - player has unlimited time
+        if (!isSolo && isAnswering && state.questionStartTime) {
             const updateTimer = () => {
                 // Use Firebase server timestamp for accurate countdown (not local time)
                 const elapsed = Math.floor((Date.now() - (state.questionStartTime ?? Date.now())) / 1000);
@@ -567,7 +568,7 @@ export function Phase1Player({ room, playerId, isHost, mode = 'multiplayer', sol
     const isLastQuestion = currentQuestionIndex !== undefined && currentQuestionIndex === questionsList.length - 1;
 
     return (
-        <div className="flex flex-col items-center justify-center h-full w-full max-w-2xl mx-auto p-4 space-y-6 relative">
+        <div className="flex flex-col items-center justify-center h-full w-full max-w-2xl mx-auto p-4 space-y-2 relative">
             {/* Question Transition Overlay */}
             <QuestionTransition
                 questionNumber={displayQuestionNumber}
@@ -577,9 +578,9 @@ export function Phase1Player({ room, playerId, isHost, mode = 'multiplayer', sol
                 onContentHidden={handleContentHidden}
             />
 
-            {/* Answering Phase Timer - Shows countdown during answering phase */}
+            {/* Answering Phase Timer - Shows countdown during answering phase (disabled in solo mode) */}
             <AnimatePresence>
-                {isAnswering && !isResult && (
+                {!isSolo && isAnswering && !isResult && (
                     <motion.div
                         initial={{ opacity: 0, y: -20 }}
                         animate={{ opacity: 1, y: 0 }}
@@ -596,8 +597,8 @@ export function Phase1Player({ room, playerId, isHost, mode = 'multiplayer', sol
                 )}
             </AnimatePresence>
 
-            {/* Top Bar: Progress & Roster */}
-            <div className="w-full flex items-center justify-between bg-slate-800/50 p-2 rounded-xl border border-white/5 mb-2">
+            {/* Top Bar: Progress & Roster - hidden on mobile in solo (shown in header) */}
+            <div className={`w-full items-center justify-between bg-slate-800/50 p-2 rounded-xl border border-white/5 mb-2 ${isSolo ? 'hidden md:flex' : 'flex'}`}>
                 <div className="flex items-center gap-2">
                     <span className="text-xs font-bold uppercase text-slate-400 tracking-wider">{t('common:labels.round')}</span>
                     <span className="text-white font-black bg-slate-700 px-2 py-0.5 rounded text-sm">
@@ -666,7 +667,7 @@ export function Phase1Player({ room, playerId, isHost, mode = 'multiplayer', sol
                             </AnimatePresence>
                         </>
                     )}
-                    {isAnswering && !isMyTeamBlocked && !submitError && triedWrongOptions.length === 0 && <><Play className="w-6 h-6" aria-hidden="true" /> {t('player.answerNow')}</>}
+                    {isAnswering && !isMyTeamBlocked && !submitError && triedWrongOptions.length === 0 && <span className={`${isSolo ? 'hidden md:flex' : 'flex'} items-center gap-2`}><Play className="w-6 h-6" aria-hidden="true" /> <span className="hidden md:inline">{t('player.answerNow')}</span></span>}
                     {isAnswering && !isMyTeamBlocked && !submitError && triedWrongOptions.length > 0 && <><Play className="w-6 h-6 text-green-400" aria-hidden="true" /> <span className="text-green-400 font-bold">{t('player.rebond', 'REBOND ! À vous !')}</span></>}
                     {isAnswering && !isMyTeamBlocked && submitError && <><XCircle className="w-6 h-6 text-orange-400" aria-hidden="true" /> <span className="text-orange-400">{t('player.submitError', 'Erreur, réessayez')}</span></>}
                     {isAnswering && isMyTeamBlocked && <><XCircle className="w-6 h-6 text-red-400" aria-hidden="true" /> <span className="text-red-400">{t('player.teamBlocked')}</span></>}
@@ -677,7 +678,7 @@ export function Phase1Player({ room, playerId, isHost, mode = 'multiplayer', sol
 
             {/* Answer Grid with staggered entrance animation - Button transforms into result card */}
             {/* Outer wrapper handles scroll, inner grid allows horizontal overflow for shake animation */}
-            <div className={`w-full ${isResult ? 'overflow-hidden' : 'max-h-[50vh] overflow-y-auto'} ${isHost ? 'mb-16' : ''}`}>
+            <div className={`w-full ${isHost ? 'mb-16' : ''}`}>
                 <LayoutGroup>
                 <AnimatePresence mode="popLayout">
                     {displayedQuestion && (
