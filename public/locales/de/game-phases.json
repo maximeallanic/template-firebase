@@ -1,0 +1,50 @@
+{
+  "phases": {
+    "lobby": {
+      "name": "Lobby",
+      "subtitle": "Warten...",
+      "shortName": "Lobby"
+    },
+    "phase1": {
+      "name": "Tenders",
+      "subtitle": "Sei der Schnellste beim Buzzen!",
+      "shortName": "Tenders"
+    },
+    "phase2": {
+      "name": "Suss und Salzig",
+      "subtitle": "A oder B?",
+      "shortName": "Suss und Salzig"
+    },
+    "phase3": {
+      "name": "Die Speisekarte",
+      "subtitle": "Merke dir so viele Gerichte wie moglich!",
+      "shortName": "Die Speisekarte"
+    },
+    "phase4": {
+      "name": "Die Rechnung",
+      "subtitle": "Allgemeinwissen-Fragen!",
+      "shortName": "Die Rechnung"
+    },
+    "phase5": {
+      "name": "Ultimate Burger",
+      "subtitle": "Die finale Herausforderung fur den Sieg!",
+      "shortName": "Ultimate Burger"
+    },
+    "victory": {
+      "name": "Sieg",
+      "subtitle": "Der Gewinner ist...",
+      "shortName": "Sieg"
+    }
+  },
+  "transitions": {
+    "phaseNumber": "Phase {{number}}"
+  },
+  "navigation": {
+    "startPhase3": "PHASE 3 STARTEN: DIE SPEISEKARTE",
+    "startPhase4": "Phase 4 starten: Die Rechnung"
+  },
+  "endPhase": {
+    "phase2Complete": "Ende von Phase 2!",
+    "gettingMenusReady": "Menus werden vorbereitet..."
+  }
+}

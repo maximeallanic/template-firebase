@@ -1,33 +1,181 @@
 {
   "nav": {
-    "home": "Início",
-    "history": "Histórico",
+    "home": "Inicio",
+    "history": "Historico",
     "signIn": "Entrar",
     "signOut": "Sair",
     "manageSubscription": "Gerenciar Assinatura",
     "appName": "Spicy vs Sweet"
   },
   "hero": {
-    "freeTrial": "🎉 Experimente Seu Primeiro Email GRÁTIS - Sem Cadastro!",
+    "freeTrial": "Experimente Seu Primeiro Email GRATIS - Sem Cadastro!",
     "title": "Transforme Emails Frios em",
     "titleHighlight": "Respostas Quentes",
-    "subtitle": "Obtenha feedback instantâneo com IA sobre seus emails frios.",
-    "subtitleBold": "Aumente suas taxas de resposta em até 3x",
-    "subtitleEnd": "com insights acionáveis em segundos."
+    "subtitle": "Obtenha feedback instantaneo com IA sobre seus emails frios.",
+    "subtitleBold": "Aumente suas taxas de resposta em ate 3x",
+    "subtitleEnd": "com insights acionaveis em segundos.",
+    "stats": {
+      "emailsAnalyzed": "10.000+ Emails Analisados",
+      "averageRating": "Avaliacao Media 4,9/5",
+      "instantResults": "Resultados Instantaneos"
+    }
+  },
+  "freeTrial": {
+    "title": "Teste Gratuito Disponivel",
+    "description": "Experimente analisar seu primeiro email sem cadastro! Experimente o poder da analise de email com IA instantaneamente.",
+    "cta": "Usar Teste Gratuito",
+    "signUp": "Ou cadastre-se para 5 analises gratis por mes"
+  },
+  "usage": {
+    "title": "Seu Uso",
+    "analyses": "{{used}} / {{limit}} analises usadas este mes",
+    "period": "O periodo termina:",
+    "upgrade": "Fazer Upgrade para Pro",
+    "manage": "Gerenciar Plano",
+    "atLimit": "Voce atingiu seu limite mensal. Faca upgrade para Pro para continuar analisando emails.",
+    "nearLimit": "Suas analises estao acabando. Considere fazer upgrade para Pro para 250 analises/mes.",
+    "upgradeCta": "Fazer Upgrade para Pro - R$25/mes",
+    "loading": "Carregando..."
+  },
+  "emailInput": {
+    "label": "Seu Email Frio",
+    "placeholder": "Cole seu email frio aqui...\n\nInclua a linha de assunto e o corpo do email\nMire em 50-125 palavras para melhores resultados",
+    "tryExample": "Experimentar Exemplo",
+    "stats": {
+      "words": "palavras",
+      "optimal": "Otimo",
+      "addMore": "Adicione mais",
+      "tooLong": "Muito longo",
+      "chars": "caracteres",
+      "perfectLength": "Tamanho perfeito",
+      "addWordsMore": "Adicione ~{{count}} palavras",
+      "removeWordsMore": "Remova ~{{count}} palavras"
+    },
+    "errors": {
+      "empty": "Por favor insira um email para analisar",
+      "tooShort": "O email e muito curto para analisar (minimo 10 caracteres)",
+      "tooLong": "O email e muito longo (maximo 10000 caracteres)"
+    },
+    "buttons": {
+      "analyzing": "Analisando seu email...",
+      "analyzeWithAI": "Analisar Email com IA",
+      "tryFree": "Teste GRATIS - Sem Cadastro",
+      "signInToAnalyze": "Entre para Analisar Mais Emails"
+    },
+    "tips": {
+      "title": "Dicas Pro para Melhores Resultados:",
+      "tip1": "Inclua tanto a linha de assunto quanto o corpo do email",
+      "tip2": "Mire em 50-125 palavras (tamanho otimo)",
+      "tip3": "Experimente nosso email de exemplo para ver como funciona"
+    },
+    "modes": {
+      "email": {
+        "title": "Encaminhar por Email",
+        "subtitle": "Obtenha um endereco de email unico",
+        "badge": "NOVO"
+      },
+      "paste": {
+        "title": "Colar Texto",
+        "subtitle": "Copie e cole seu email"
+      }
+    },
+    "emailMode": {
+      "title": "Analisar por Email",
+      "description": "Encaminhe seu email frio para receber feedback de IA instantaneo",
+      "loading": "Gerando seu endereco de email unico...",
+      "yourEmail": "Seu endereco de email unico:",
+      "copyButton": "Copiar",
+      "copiedButton": "Copiado!",
+      "expiresIn": "Expira em: {{time}}",
+      "howItWorks": "Como funciona:",
+      "step1": "Copie o endereco de email acima",
+      "step2": "Encaminhe seu email frio do Gmail, Outlook ou qualquer cliente de email",
+      "step3": "Sua analise de IA aparecera automaticamente em ~30 segundos",
+      "status": {
+        "waiting": "Aguardando seu email...",
+        "received": "Email recebido!",
+        "analyzing": "IA analisando seu email...",
+        "completed": "Analise completa! Redirecionando...",
+        "error": "Erro",
+        "tryAgain": "Tentar Novamente"
+      }
+    }
+  },
+  "features": {
+    "title": "Tudo o que Voce Precisa para Escrever Emails Frios Melhores",
+    "subtitle": "Impulsionado por Google Gemini AI, nossa plataforma analisa cada aspecto do seu email para maximizar o engajamento",
+    "instant": {
+      "title": "Feedback Instantaneo",
+      "description": "Obtenha analise com IA em segundos com pontuacao em tempo real em 7 metricas criticas",
+      "link": "Saiba mais"
+    },
+    "metrics": {
+      "title": "7 Metricas-Chave",
+      "description": "Avaliacao completa: Clareza, Tom, Tamanho, CTA, Pontuacao de Spam, Personalizacao e Estrutura",
+      "link": "Ver metricas"
+    },
+    "insights": {
+      "title": "Insights Acionaveis",
+      "description": "Obtenha recomendacoes especificas e acionaveis que voce pode implementar imediatamente para aumentar as taxas de resposta",
+      "link": "Ver exemplo"
+    }
+  },
+  "pricing": {
+    "title": "Escolha Seu Plano",
+    "subtitle": "Comece gratis, faca upgrade quando estiver pronto. Nao e necessario cartao de credito.",
+    "moneyBack": "Garantia de devolucao de 30 dias - Cancele a qualquer momento",
+    "free": {
+      "badge": "Perfeito para Comecar",
+      "title": "Gratis",
+      "price": "R$0",
+      "period": "/mes",
+      "features": {
+        "analyses": "<1>5 analises de email</1> por mes",
+        "metrics": "Todas as 7 metricas de analise",
+        "recommendations": "Recomendacoes acionaveis",
+        "noCard": "Nao e necessario cartao de credito"
+      },
+      "cta": "Comecar Gratis"
+    },
+    "pro": {
+      "badge": "MAIS POPULAR",
+      "badgeAlt": "Melhor Valor",
+      "title": "Pro",
+      "price": "R$25",
+      "period": "/mes",
+      "perAnalysis": "Apenas R$0,10 por analise!",
+      "features": {
+        "analyses": "<1>250 analises de email</1> por mes",
+        "metrics": "Todas as 7 metricas de analise",
+        "history": "Historico completo de analises",
+        "support": "Suporte por email prioritario",
+        "cancel": "Cancele a qualquer momento"
+      },
+      "cta": "Comecar com Pro",
+      "trial": "Comece com um teste gratuito - Nao e necessario cartao de credito"
+    }
   },
   "footer": {
-    "poweredBy": "© 2025 • Desenvolvido por Gemini AI"
+    "poweredBy": "2025 - Desenvolvido por Gemini AI",
+    "termsOfService": "Termos de Servico",
+    "termsAndConditions": "Termos e Condicoes"
+  },
+  "success": {
+    "freeTrialUsed": "Teste gratuito usado! Cadastre-se para obter 5 analises por mes gratis.",
+    "welcomePro": "Bem-vindo ao Spicy vs Sweet Pro! Sua assinatura esta ativa.",
+    "signUpComplete": "Cadastro concluido",
+    "analysisComplete": "Analise concluida"
   },
   "loading": "Carregando...",
   "profileSetup": {
     "title": "Crie seu Perfil de Chef",
     "subtitle": "Configure sua identidade para jogar!",
     "nameLabel": "Nome do Chef",
-    "namePlaceholder": "Seu apelido (máx 12 car.)",
+    "namePlaceholder": "Seu apelido (max 12 car.)",
     "avatarLabel": "Escolha seu Avatar",
-    "saveButton": "Vamos lá!",
+    "saveButton": "Vamos la!",
     "saving": "Salvando...",
-    "errorNameRequired": "Um nome é necessário",
+    "errorNameRequired": "Um nome e necessario",
     "errorAvatarRequired": "Escolha um avatar",
     "errorSaveFailed": "Falha ao salvar. Tente novamente."
   },
@@ -39,7 +187,7 @@
     "save": "Salvar",
     "saving": "Salvando...",
     "cancel": "Cancelar",
-    "errorNameRequired": "O nome não pode estar vazio",
+    "errorNameRequired": "O nome nao pode estar vazio",
     "errorSaveFailed": "Falha ao atualizar o perfil. Tente novamente."
   }
 }

@@ -1,0 +1,41 @@
+{
+  "create": {
+    "title": "Abrir a Cozinha",
+    "hostAccess": "Acesso do Anfitriao",
+    "joinGame": "Entrar no jogo",
+    "createProfile": "Crie seu perfil",
+    "chefName": "NOME DO CHEF",
+    "chefNamePlaceholder": "Gordon R.",
+    "chooseAvatar": "ESCOLHA UM AVATAR",
+    "createButton": "Vamos cozinhar!",
+    "joinButton": "Entrar no jogo",
+    "creating": "Criando...",
+    "connecting": "Conectando..."
+  },
+  "room": {
+    "roomCode": "Codigo da Sala",
+    "code": "Codigo",
+    "copyCode": "Copiar codigo",
+    "copyLink": "Copiar link",
+    "linkCopied": "Link copiado",
+    "copyInviteLink": "Copiar link de convite",
+    "waitingForPlayers": "Aguardando jogadores...",
+    "gameInProgress": "Jogo em andamento."
+  },
+  "teams": {
+    "spicyTeam": "Equipe Spicy",
+    "sweetTeam": "Equipe Sweet",
+    "unassigned": "Jogadores nao atribuidos",
+    "waitingSpicy": "Esperando corajosos...",
+    "waitingSweet": "Esperando gulosos...",
+    "assignPlayer": "Atribuir {{name}} a uma equipe",
+    "assignToSpicy": "Atribuir {{name}} a Equipe Spicy",
+    "assignToSweet": "Atribuir {{name}} a Equipe Sweet",
+    "allAssigned": "Todos os chefs estao atribuidos!"
+  },
+  "game": {
+    "startGame": "INICIAR O JOGO",
+    "waitingForHost": "Aguardando o anfitriao iniciar o jogo...",
+    "spectatorMode": "MODO ESPECTADOR"
+  }
+}

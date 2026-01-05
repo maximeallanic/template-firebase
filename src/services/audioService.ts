@@ -10,10 +10,7 @@ declare global {
 
 class AudioService {
     private ctx: AudioContext | null = null;
-    private enabled: boolean = false; // TEMP: Sons désactivés temporairement
-    private ambientOscillators: OscillatorNode[] = [];
-    private ambientGain: GainNode | null = null;
-    private currentAmbience: 'lobby' | 'tension' | 'none' = 'none';
+    private enabled: boolean = false;
 
     constructor() {
         try {
@@ -41,16 +38,6 @@ class AudioService {
     // Toggle mute
     public setEnabled(enabled: boolean) {
         this.enabled = enabled;
-        if (!enabled) {
-            this.stopAmbient();
-        } else {
-            // Restart current ambience if re-enabled
-            if (this.currentAmbience !== 'none') {
-                const type = this.currentAmbience;
-                this.stopAmbient();
-                this.playAmbient(type);
-            }
-        }
     }
 
     private playTone(freq: number, type: OscillatorType, duration: number, startTime: number = 0, vol: number = 0.1) {
@@ -70,76 +57,6 @@ class AudioService {
         osc.start(this.ctx.currentTime + startTime);
         osc.stop(this.ctx.currentTime + startTime + duration);
     }
-
-    // --- AMBIENT LOOPS ---
-
-    public playAmbient(type: 'lobby' | 'tension') {
-        if (!this.enabled) return; // Sons désactivés
-        if (this.currentAmbience === type) return; // Already playing
-        this.init();
-        this.stopAmbient(); // Clear previous
-        this.currentAmbience = type;
-
-        if (!this.ctx) return;
-
-        this.ambientGain = this.ctx.createGain();
-        this.ambientGain.connect(this.ctx.destination);
-        this.ambientGain.gain.value = 0.05; // Low volume background
-
-        if (type === 'lobby') {
-            // Low, warm drone
-            const osc1 = this.ctx.createOscillator();
-            osc1.type = 'sine';
-            osc1.frequency.value = 110; // A2
-            osc1.connect(this.ambientGain);
-            osc1.start();
-            this.ambientOscillators.push(osc1);
-
-            const osc2 = this.ctx.createOscillator();
-            osc2.type = 'triangle';
-            osc2.frequency.value = 110.5; // Slight detune for warmth
-            osc2.connect(this.ambientGain);
-            osc2.start();
-            this.ambientOscillators.push(osc2);
-        } else if (type === 'tension') {
-            // Deep, pulsing heartbeat drone
-            const osc1 = this.ctx.createOscillator();
-            osc1.type = 'sawtooth';
-            osc1.frequency.value = 55; // A1
-
-            // LFO for pulsing
-            const lfo = this.ctx.createOscillator();
-            lfo.type = 'sine';
-            lfo.frequency.value = 1; // 1Hz pulse (60bpm)
-            const lfoGain = this.ctx.createGain();
-            lfoGain.gain.value = 500; // Depth of filter mod
-
-            const filter = this.ctx.createBiquadFilter();
-            filter.type = 'lowpass';
-            filter.frequency.value = 100;
-
-            lfo.connect(filter.frequency);
-            osc1.connect(filter);
-            filter.connect(this.ambientGain);
-
-            osc1.start();
-            lfo.start();
-            this.ambientOscillators.push(osc1, lfo);
-        }
-    }
-
-    public stopAmbient() {
-        this.ambientOscillators.forEach(osc => {
-            try { osc.stop(); } catch { /* ignore */ }
-        });
-        this.ambientOscillators = [];
-        if (this.ambientGain) {
-            this.ambientGain.disconnect();
-            this.ambientGain = null;
-        }
-        this.currentAmbience = 'none';
-    }
-
 
     // --- SOUND FX LIBRARY ---
 

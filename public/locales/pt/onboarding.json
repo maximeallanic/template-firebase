@@ -146,5 +146,29 @@
       }
     },
     "button": "Vamos calcular!"
+  },
+
+  "phase5": {
+    "title": "Burger Supremo",
+    "subtitle": "O Desafio Final",
+    "steps": {
+      "listen": {
+        "label": "Ouça primeiro",
+        "text": "Ouça as 10 perguntas antes de responder"
+      },
+      "remember": {
+        "label": "Lembre-se",
+        "text": "Memorize as perguntas e respostas"
+      },
+      "answer": {
+        "label": "Responda tudo",
+        "text": "Responda todas as perguntas em ordem"
+      },
+      "team": {
+        "label": "Esforço de equipe",
+        "text": "Trabalhem juntos para pontuação máxima"
+      }
+    },
+    "button": "Final épico!"
   }
 }

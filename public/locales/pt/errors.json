@@ -1,8 +1,59 @@
 {
+  "auth": {
+    "unauthenticated": "Você precisa estar conectado para realizar esta ação",
+    "unauthorized": "Você não tem permissão para acessar este recurso",
+    "emailNotVerified": "Por favor, verifique seu endereço de e-mail para continuar",
+    "invalidCredentials": "E-mail ou senha inválidos",
+    "emailInUse": "Este e-mail já está em uso",
+    "weakPassword": "A senha é muito fraca. Use pelo menos 6 caracteres",
+    "networkError": "Erro de rede. Por favor, verifique sua conexão"
+  },
+  "analysis": {
+    "quotaExceeded": "Você atingiu seu limite mensal de {{limit}} análises. Faça upgrade para Pro para mais!",
+    "contentTooShort": "O conteúdo do e-mail é muito curto (mínimo 10 caracteres)",
+    "contentTooLong": "O conteúdo do e-mail é muito longo (máximo 10.000 caracteres)",
+    "contentEmpty": "O conteúdo do e-mail não pode estar vazio",
+    "invalidContent": "Conteúdo de e-mail inválido",
+    "processingFailed": "Falha ao analisar o e-mail. Por favor, tente novamente",
+    "aiError": "O serviço de análise de IA está temporariamente indisponível"
+  },
+  "subscription": {
+    "createSessionFailed": "Falha ao criar sessão de pagamento",
+    "noActiveSubscription": "Nenhuma assinatura ativa encontrada",
+    "cancellationFailed": "Falha ao cancelar assinatura",
+    "updateFailed": "Falha ao atualizar assinatura",
+    "paymentFailed": "Pagamento falhou. Por favor, tente novamente",
+    "cardDeclined": "Seu cartão foi recusado"
+  },
+  "freeTrial": {
+    "alreadyUsed": "Teste gratuito já utilizado. Cadastre-se para obter 5 análises grátis por mês!",
+    "notAvailable": "Teste gratuito não disponível",
+    "expired": "Seu teste gratuito expirou"
+  },
+  "emailSession": {
+    "creationFailed": "Falha ao criar sessão de análise de e-mail",
+    "rateLimitExceeded": "Limite de requisições excedido. Por favor, tente novamente em alguns minutos",
+    "sessionExpired": "Esta sessão de e-mail expirou. Por favor, crie uma nova",
+    "invalidSession": "Sessão de e-mail inválida",
+    "receiveFailed": "Falha ao receber e-mail"
+  },
   "room": {
     "notInRoom": "Você não é membro desta sala"
   },
   "general": {
-    "somethingWrong": "Algo deu errado. Por favor, tente novamente"
+    "somethingWrong": "Algo deu errado. Por favor, tente novamente",
+    "serverError": "Erro do servidor. Por favor, tente novamente mais tarde",
+    "notFound": "Recurso não encontrado",
+    "invalidRequest": "Requisição inválida",
+    "timeout": "Tempo limite esgotado. Por favor, tente novamente",
+    "maintenance": "O sistema está em manutenção. Por favor, tente novamente mais tarde"
+  },
+  "validation": {
+    "required": "Este campo é obrigatório",
+    "invalidEmail": "Endereço de e-mail inválido",
+    "invalidFormat": "Formato inválido",
+    "minLength": "Deve ter pelo menos {{count}} caracteres",
+    "maxLength": "Deve ter no máximo {{count}} caracteres",
+    "mustMatch": "Os campos devem ser iguais"
   }
 }

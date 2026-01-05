@@ -1,0 +1,50 @@
+{
+  "phases": {
+    "lobby": {
+      "name": "Lobby",
+      "subtitle": "Waiting...",
+      "shortName": "Lobby"
+    },
+    "phase1": {
+      "name": "Tenders",
+      "subtitle": "Be the fastest to buzz!",
+      "shortName": "Tenders"
+    },
+    "phase2": {
+      "name": "Sweet & Salty",
+      "subtitle": "A or B?",
+      "shortName": "Sweet & Salty"
+    },
+    "phase3": {
+      "name": "The Menu",
+      "subtitle": "Remember as many dishes as you can!",
+      "shortName": "The Menu"
+    },
+    "phase4": {
+      "name": "The Bill",
+      "subtitle": "General knowledge questions!",
+      "shortName": "The Bill"
+    },
+    "phase5": {
+      "name": "Ultimate Burger",
+      "subtitle": "The final challenge for victory!",
+      "shortName": "Ultimate Burger"
+    },
+    "victory": {
+      "name": "Victory",
+      "subtitle": "The winner is...",
+      "shortName": "Victory"
+    }
+  },
+  "transitions": {
+    "phaseNumber": "Phase {{number}}"
+  },
+  "navigation": {
+    "startPhase3": "START PHASE 3: THE MENU",
+    "startPhase4": "Start Phase 4: The Bill"
+  },
+  "endPhase": {
+    "phase2Complete": "End of Phase 2!",
+    "gettingMenusReady": "Getting menus ready..."
+  }
+}

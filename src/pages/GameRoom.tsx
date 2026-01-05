@@ -1,7 +1,7 @@
 import { useEffect, useLayoutEffect, useState, useRef, useCallback } from 'react';
-import { useParams } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { type Player, type Difficulty, type PhaseStatus, setGameStatus, restartGame, updatePlayerTeam, updateRoomDifficulty, getRoomDifficulty, PREMIUM_PHASES } from '../services/gameService';
+import { type Player, type Difficulty, type PhaseStatus, setGameStatus, restartGame, updatePlayerTeam, updateRoomDifficulty, getRoomDifficulty, PREMIUM_PHASES, leaveRoom } from '../services/gameService';
 import { useGameRoom } from '../hooks/useGameRoom';
 import { useQuestionGeneration } from '../hooks/useQuestionGeneration';
 import { useHostSubscription } from '../hooks/useHostSubscription';
@@ -15,6 +15,10 @@ import { motion, AnimatePresence, type Variants } from 'framer-motion';
 import { durations, organicEase, snappySpring } from '../animations';
 import { useReducedMotion } from '../hooks/useReducedMotion';
 import { UserBar } from '../components/auth/UserBar';
+import { ProfileEditModal } from '../components/auth/ProfileEditModal';
+import { PWABackButton } from '../components/pwa/PWABackButton';
+import { QuickSettings } from '../components/pwa/QuickSettings';
+import { useAppInstall } from '../hooks/useAppInstall';
 import { PhaseTransition } from '../components/game/PhaseTransition';
 import { DebugPanel } from '../components/game/DebugPanel';
 import { MockPlayerProvider } from '../contexts/MockPlayerContext';
@@ -57,6 +61,7 @@ const playerCardReducedVariants: Variants = {
 export default function GameRoom() {
     const { t } = useTranslation(['lobby', 'game-ui', 'common', 'onboarding']);
     const { id: roomId } = useParams<{ id: string }>();
+    const navigate = useNavigate();
     const query = new URLSearchParams(window.location.search);
     const debugPlayerId = query.get('debugPlayerId');
 
@@ -75,6 +80,9 @@ export default function GameRoom() {
     // Premium subscription check (based on host's subscription stored in room data)
     const { isPremium: hostIsPremium } = useHostSubscription(room?.hostIsPremium);
 
+    // PWA detection
+    const { isInstalled } = useAppInstall();
+
     // UI State
     const [linkCopied, setLinkCopied] = useState(false);
     const [showUpgradeModal, setShowUpgradeModal] = useState(false);
@@ -84,6 +92,8 @@ export default function GameRoom() {
     const [displayStatus, setDisplayStatus] = useState<GameStatus>('lobby');
     // Lobby onboarding for hosts
     const [showLobbyOnboarding, setShowLobbyOnboarding] = useState(false);
+    // Profile edit modal for PWA mode
+    const [showProfileEdit, setShowProfileEdit] = useState(false);
 
     // Refs for tracking previous values
     const prevStatus = useRef<string>('');
@@ -136,18 +146,11 @@ export default function GameRoom() {
         }
         prevPlayerCount.current = count;
 
-        // Ambient Loops & Transitions Sound
+        // Transitions Sound
         if (roomStatus !== prevAudioStatus.current) {
             if (prevAudioStatus.current) {
                 audioService.playTransition();
             }
-
-            if (roomStatus === 'lobby') {
-                audioService.playAmbient('lobby');
-            } else {
-                audioService.playAmbient('tension');
-            }
-
             prevAudioStatus.current = roomStatus;
         }
     }, [room, roomPlayers, roomStatus]);
@@ -192,6 +195,18 @@ export default function GameRoom() {
         setLinkCopied(true);
         setTimeout(() => setLinkCopied(false), 2000);
     }, [room]);
+
+    // Handler for PWA back button - leave lobby and go home
+    const handleLeaveLobby = useCallback(async () => {
+        if (room?.code && myId) {
+            try {
+                await leaveRoom(room.code, myId);
+            } catch (err) {
+                console.error('Failed to leave room:', err);
+            }
+        }
+        navigate('/');
+    }, [room?.code, myId, navigate]);
 
     // Handler for PhaseResults "Continue" button - transitions to next phase
     const handlePhaseResultsContinue = useCallback(async () => {
@@ -292,16 +307,25 @@ export default function GameRoom() {
                         )}
                     </AnimatePresence>
 
-                    {/* TOP RIGHT CONTROLS */}
-                    <div className="absolute top-4 right-4 z-[100] flex items-center gap-3">
+                    {/* Header: Back Button + Settings */}
+                    <div className="absolute top-4 left-4 right-4 z-[100] flex items-center justify-between">
+                        <PWABackButton onClick={handleLeaveLobby} />
                         {currentPlayer && (
-                            <UserBar
-                                playerName={currentPlayer.name}
-                                avatar={currentPlayer.avatar}
-                                roomCode={room.code}
-                                playerId={myId || undefined}
-                                onProfileUpdate={handleProfileUpdate}
-                            />
+                            isInstalled ? (
+                                <QuickSettings
+                                    onEditProfile={() => setShowProfileEdit(true)}
+                                    roomCode={room.code}
+                                    playerId={myId || undefined}
+                                />
+                            ) : (
+                                <UserBar
+                                    playerName={currentPlayer.name}
+                                    avatar={currentPlayer.avatar}
+                                    roomCode={room.code}
+                                    playerId={myId || undefined}
+                                    onProfileUpdate={handleProfileUpdate}
+                                />
+                            )
                         )}
                     </div>
 
@@ -442,6 +466,21 @@ export default function GameRoom() {
                 isOpen={showUpgradeModal}
                 onClose={() => setShowUpgradeModal(false)}
             />
+            {/* Profile Edit Modal - for PWA mode */}
+            {currentPlayer && (
+                <ProfileEditModal
+                    isOpen={showProfileEdit}
+                    onClose={() => setShowProfileEdit(false)}
+                    currentName={currentPlayer.name}
+                    currentAvatar={currentPlayer.avatar}
+                    roomCode={room?.code}
+                    playerId={myId || undefined}
+                    onSave={(newName, newAvatar) => {
+                        handleProfileUpdate(newName, newAvatar);
+                        setShowProfileEdit(false);
+                    }}
+                />
+            )}
         </GameErrorBoundary>
     );
 }

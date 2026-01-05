@@ -1,11 +1,59 @@
 {
   "auth": {
-    "unauthenticated": "Debes iniciar sesión para realizar esta acción"
+    "unauthenticated": "Debes iniciar sesión para realizar esta acción",
+    "unauthorized": "No tienes permiso para acceder a este recurso",
+    "emailNotVerified": "Por favor, verifica tu dirección de correo electrónico para continuar",
+    "invalidCredentials": "Correo electrónico o contraseña inválidos",
+    "emailInUse": "Este correo electrónico ya está en uso",
+    "weakPassword": "La contraseña es demasiado débil. Usa al menos 6 caracteres",
+    "networkError": "Error de red. Por favor, verifica tu conexión"
+  },
+  "analysis": {
+    "quotaExceeded": "Has alcanzado tu límite mensual de {{limit}} análisis. ¡Actualiza a Pro para más!",
+    "contentTooShort": "El contenido del correo es demasiado corto (mínimo 10 caracteres)",
+    "contentTooLong": "El contenido del correo es demasiado largo (máximo 10.000 caracteres)",
+    "contentEmpty": "El contenido del correo no puede estar vacío",
+    "invalidContent": "Contenido de correo inválido",
+    "processingFailed": "Error al analizar el correo. Por favor, inténtalo de nuevo",
+    "aiError": "El servicio de análisis de IA no está disponible temporalmente"
+  },
+  "subscription": {
+    "createSessionFailed": "Error al crear la sesión de pago",
+    "noActiveSubscription": "No se encontró ninguna suscripción activa",
+    "cancellationFailed": "Error al cancelar la suscripción",
+    "updateFailed": "Error al actualizar la suscripción",
+    "paymentFailed": "El pago ha fallado. Por favor, inténtalo de nuevo",
+    "cardDeclined": "Tu tarjeta fue rechazada"
+  },
+  "freeTrial": {
+    "alreadyUsed": "Prueba gratuita ya utilizada. ¡Regístrate para obtener 5 análisis gratis al mes!",
+    "notAvailable": "La prueba gratuita no está disponible",
+    "expired": "Tu prueba gratuita ha expirado"
+  },
+  "emailSession": {
+    "creationFailed": "Error al crear la sesión de análisis de correo",
+    "rateLimitExceeded": "Límite de solicitudes excedido. Por favor, inténtalo de nuevo en unos minutos",
+    "sessionExpired": "Esta sesión de correo ha expirado. Por favor, crea una nueva",
+    "invalidSession": "Sesión de correo inválida",
+    "receiveFailed": "Error al recibir el correo"
   },
   "room": {
     "notInRoom": "No eres miembro de esta sala"
   },
   "general": {
-    "somethingWrong": "Algo salió mal. Por favor, inténtalo de nuevo"
+    "somethingWrong": "Algo salió mal. Por favor, inténtalo de nuevo",
+    "serverError": "Error del servidor. Por favor, inténtalo más tarde",
+    "notFound": "Recurso no encontrado",
+    "invalidRequest": "Solicitud inválida",
+    "timeout": "Tiempo de espera agotado. Por favor, inténtalo de nuevo",
+    "maintenance": "El sistema está en mantenimiento. Por favor, inténtalo más tarde"
+  },
+  "validation": {
+    "required": "Este campo es obligatorio",
+    "invalidEmail": "Dirección de correo electrónico inválida",
+    "invalidFormat": "Formato inválido",
+    "minLength": "Debe tener al menos {{count}} caracteres",
+    "maxLength": "Debe tener como máximo {{count}} caracteres",
+    "mustMatch": "Los campos deben coincidir"
   }
 }

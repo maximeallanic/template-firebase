@@ -1,0 +1,33 @@
+{
+  "generation": {
+    "title": "Vorbereitung in der Kuche...",
+    "error": {
+      "title": "Hoppla!",
+      "retry": "Erneut versuchen"
+    }
+  },
+  "messages": [
+    "Der Koch bereitet die Fragen vor...",
+    "Kochen im Gange...",
+    "Gewurze hinzufugen...",
+    "Zutaten mischen...",
+    "Ofen vorheizen...",
+    "Gemuse schneiden...",
+    "Gerichte anrichten...",
+    "Das Souffle darf nicht fallen...",
+    "Frische uberprufen...",
+    "Marinieren im Gange...",
+    "Flambieren steht bevor...",
+    "Sanft kocheln...",
+    "Eine Prise Salz hinzufugen...",
+    "Der Timer lauft...",
+    "Den Ofen uberwachen...",
+    "Die Sauce probieren...",
+    "Gebacke nehmen Form an...",
+    "Eiweiss schlagen..."
+  ],
+  "connection": {
+    "connectingToKitchen": "Verbindung zur Kuche...",
+    "connectingToGame": "Verbindung zum Spiel..."
+  }
+}

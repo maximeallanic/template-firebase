@@ -1,0 +1,58 @@
+{
+  "phase4": {
+    "questions": [
+      { "question": "What is Mr. Bean's first name?", "answer": "Mr." },
+      { "question": "What color are peas?", "answer": "Green" },
+      { "question": "What do you call a cat that falls in water?", "answer": "A wet cat" },
+      { "question": "What color was Napoleon's white horse?", "answer": "White" },
+      { "question": "What is 2+2?", "answer": "4" },
+      { "question": "Which animal says 'Meow'?", "answer": "Cat" },
+      { "question": "What is the capital of France?", "answer": "Paris" },
+      { "question": "Which fruit is yellow and curved?", "answer": "Banana" },
+      { "question": "How many legs does a spider have?", "answer": "8" },
+      { "question": "What is the opposite of 'hot'?", "answer": "Cold" },
+      { "question": "What animal is called the king of the jungle?", "answer": "Lion" },
+      { "question": "How many days are in a week?", "answer": "7" },
+      { "question": "Which planet is called the red planet?", "answer": "Mars" },
+      { "question": "Which superhero wears a red cape?", "answer": "Superman" },
+      { "question": "What year are we in?", "answer": "2025" }
+    ]
+  },
+  "phase5": {
+    "questions": [
+      { "question": "Who is Harry Potter's best friend?", "answer": "Ron Weasley" },
+      { "question": "What is the capital of France?", "answer": "Paris" },
+      { "question": "What is 7 x 8?", "answer": "56" },
+      { "question": "What is the largest ocean in the world?", "answer": "Pacific" },
+      { "question": "Who sang 'Thriller'?", "answer": "Michael Jackson" },
+      { "question": "What color is the sky?", "answer": "Blue" },
+      { "question": "What is the largest land animal?", "answer": "Elephant" },
+      { "question": "How many continents are there?", "answer": "7" },
+      { "question": "Who painted the Mona Lisa?", "answer": "Leonardo da Vinci" },
+      { "question": "What is the chemical symbol for water?", "answer": "H2O" }
+    ]
+  },
+  "phase2": {
+    "defaultSets": [
+      {
+        "title": "McDonald's vs Burger King",
+        "optionA": "McDonald's",
+        "optionB": "Burger King",
+        "items": [
+          { "text": "Best fries", "answer": "A" },
+          { "text": "The Whopper", "answer": "B" },
+          { "text": "Ronald the clown", "answer": "A" },
+          { "text": "The Big Mac", "answer": "A" },
+          { "text": "Flame-grilled burgers", "answer": "B" },
+          { "text": "Happy Meal", "answer": "A" },
+          { "text": "Have it your way", "answer": "B" },
+          { "text": "The golden arches", "answer": "A" },
+          { "text": "The King", "answer": "B" },
+          { "text": "McFlurry", "answer": "A" },
+          { "text": "Steakhouse burger", "answer": "B" },
+          { "text": "I'm lovin' it", "answer": "A" }
+        ]
+      }
+    ]
+  }
+}

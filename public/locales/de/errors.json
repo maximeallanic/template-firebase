@@ -1,8 +1,59 @@
 {
+  "auth": {
+    "unauthenticated": "Sie müssen angemeldet sein, um diese Aktion auszuführen",
+    "unauthorized": "Sie haben keine Berechtigung, auf diese Ressource zuzugreifen",
+    "emailNotVerified": "Bitte bestätigen Sie Ihre E-Mail-Adresse, um fortzufahren",
+    "invalidCredentials": "Ungültige E-Mail-Adresse oder Passwort",
+    "emailInUse": "Diese E-Mail-Adresse wird bereits verwendet",
+    "weakPassword": "Das Passwort ist zu schwach. Verwenden Sie mindestens 6 Zeichen",
+    "networkError": "Netzwerkfehler. Bitte überprüfen Sie Ihre Verbindung"
+  },
+  "analysis": {
+    "quotaExceeded": "Sie haben Ihr monatliches Limit von {{limit}} Analysen erreicht. Upgraden Sie auf Pro für mehr!",
+    "contentTooShort": "E-Mail-Inhalt ist zu kurz (mindestens 10 Zeichen)",
+    "contentTooLong": "E-Mail-Inhalt ist zu lang (maximal 10.000 Zeichen)",
+    "contentEmpty": "E-Mail-Inhalt darf nicht leer sein",
+    "invalidContent": "Ungültiger E-Mail-Inhalt",
+    "processingFailed": "E-Mail-Analyse fehlgeschlagen. Bitte versuchen Sie es erneut",
+    "aiError": "KI-Analysedienst ist vorübergehend nicht verfügbar"
+  },
+  "subscription": {
+    "createSessionFailed": "Fehler beim Erstellen der Checkout-Sitzung",
+    "noActiveSubscription": "Kein aktives Abonnement gefunden",
+    "cancellationFailed": "Kündigung fehlgeschlagen",
+    "updateFailed": "Aktualisierung des Abonnements fehlgeschlagen",
+    "paymentFailed": "Zahlung fehlgeschlagen. Bitte versuchen Sie es erneut",
+    "cardDeclined": "Ihre Karte wurde abgelehnt"
+  },
+  "freeTrial": {
+    "alreadyUsed": "Kostenlose Testversion bereits genutzt. Registrieren Sie sich für 5 kostenlose Analysen pro Monat!",
+    "notAvailable": "Kostenlose Testversion nicht verfügbar",
+    "expired": "Ihre kostenlose Testversion ist abgelaufen"
+  },
+  "emailSession": {
+    "creationFailed": "Fehler beim Erstellen der E-Mail-Analysesitzung",
+    "rateLimitExceeded": "Ratenlimit überschritten. Bitte versuchen Sie es in einigen Minuten erneut",
+    "sessionExpired": "Diese E-Mail-Sitzung ist abgelaufen. Bitte erstellen Sie eine neue",
+    "invalidSession": "Ungültige E-Mail-Sitzung",
+    "receiveFailed": "E-Mail-Empfang fehlgeschlagen"
+  },
   "room": {
     "notInRoom": "Sie sind kein Mitglied dieses Raums"
   },
   "general": {
-    "somethingWrong": "Etwas ist schiefgelaufen. Bitte versuchen Sie es erneut"
+    "somethingWrong": "Etwas ist schiefgelaufen. Bitte versuchen Sie es erneut",
+    "serverError": "Serverfehler. Bitte versuchen Sie es später erneut",
+    "notFound": "Ressource nicht gefunden",
+    "invalidRequest": "Ungültige Anfrage",
+    "timeout": "Zeitüberschreitung. Bitte versuchen Sie es erneut",
+    "maintenance": "Das System wird gewartet. Bitte versuchen Sie es später erneut"
+  },
+  "validation": {
+    "required": "Dieses Feld ist erforderlich",
+    "invalidEmail": "Ungültige E-Mail-Adresse",
+    "invalidFormat": "Ungültiges Format",
+    "minLength": "Muss mindestens {{count}} Zeichen haben",
+    "maxLength": "Darf maximal {{count}} Zeichen haben",
+    "mustMatch": "Felder müssen übereinstimmen"
   }
 }

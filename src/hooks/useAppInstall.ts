@@ -21,7 +21,13 @@ interface UseAppInstallResult {
 const DISMISS_KEY = 'spicy_install_dismissed';
 
 export function useAppInstall(): UseAppInstallResult {
-  const [isInstalled, setIsInstalled] = useState(false);
+  // Initialize synchronously to avoid flash of non-PWA content on navigation
+  const [isInstalled, setIsInstalled] = useState(() => {
+    const standaloneQuery = window.matchMedia('(display-mode: standalone)');
+    const fullscreenQuery = window.matchMedia('(display-mode: fullscreen)');
+    const isIOSStandalone = (window.navigator as Navigator & { standalone?: boolean }).standalone === true;
+    return standaloneQuery.matches || fullscreenQuery.matches || isIOSStandalone;
+  });
   const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null);
   const [isDismissed, setIsDismissed] = useState(() => {
     try {

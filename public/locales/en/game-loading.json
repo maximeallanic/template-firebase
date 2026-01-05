@@ -1,0 +1,33 @@
+{
+  "generation": {
+    "title": "Preparing in the kitchen...",
+    "error": {
+      "title": "Oops!",
+      "retry": "Retry"
+    }
+  },
+  "messages": [
+    "The chef is preparing the questions...",
+    "Cooking in progress...",
+    "Adding the spices...",
+    "Mixing the ingredients...",
+    "Preheating the oven...",
+    "Chopping the vegetables...",
+    "Plating the dishes...",
+    "The souffle must not fall...",
+    "Checking freshness...",
+    "Marinating in progress...",
+    "Flambe imminent...",
+    "Simmering gently...",
+    "Adding a pinch of salt...",
+    "The timer is running...",
+    "Watching the oven...",
+    "Tasting the sauce...",
+    "Pastries are taking shape...",
+    "Whipping the egg whites..."
+  ],
+  "connection": {
+    "connectingToKitchen": "Connecting to the Kitchen...",
+    "connectingToGame": "Connecting to the game..."
+  }
+}

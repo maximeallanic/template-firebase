@@ -1,0 +1,41 @@
+{
+  "create": {
+    "title": "Open the Kitchen",
+    "hostAccess": "Host Access",
+    "joinGame": "Join the game",
+    "createProfile": "Create your profile",
+    "chefName": "CHEF NAME",
+    "chefNamePlaceholder": "Gordon R.",
+    "chooseAvatar": "CHOOSE AN AVATAR",
+    "createButton": "Let's Cook!",
+    "joinButton": "Join the game",
+    "creating": "Creating...",
+    "connecting": "Connecting..."
+  },
+  "room": {
+    "roomCode": "Room Code",
+    "code": "Code",
+    "copyCode": "Copy code",
+    "copyLink": "Copy link",
+    "linkCopied": "Link copied",
+    "copyInviteLink": "Copy invite link",
+    "waitingForPlayers": "Waiting for players...",
+    "gameInProgress": "Game in progress."
+  },
+  "teams": {
+    "spicyTeam": "Team Spicy",
+    "sweetTeam": "Team Sweet",
+    "unassigned": "Unassigned players",
+    "waitingSpicy": "Waiting for brave ones...",
+    "waitingSweet": "Waiting for sweet tooths...",
+    "assignPlayer": "Assign {{name}} to a team",
+    "assignToSpicy": "Assign {{name}} to Team Spicy",
+    "assignToSweet": "Assign {{name}} to Team Sweet",
+    "allAssigned": "All chefs are assigned!"
+  },
+  "game": {
+    "startGame": "START THE GAME",
+    "waitingForHost": "Waiting for the host to start the game...",
+    "spectatorMode": "SPECTATOR MODE"
+  }
+}

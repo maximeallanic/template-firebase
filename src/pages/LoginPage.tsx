@@ -4,7 +4,6 @@ import { motion } from 'framer-motion';
 import { signIn, signUp, signInWithGoogle, sendPasswordReset, auth } from '../services/firebase';
 import { joinRoom, type Avatar, AVATAR_LIST } from '../services/gameService';
 import { safeStorage } from '../utils/storage';
-import { Logo } from '../components/ui/Logo';
 import { ChefHat, Mail, Lock, ArrowRight } from 'lucide-react';
 import { FoodLoader } from '../components/ui/FoodLoader';
 
@@ -129,7 +128,6 @@ export function LoginPage({ disableAutoRedirect = false }: LoginPageProps) {
             >
                 {/* Header */}
                 <div className="text-center mb-8 space-y-4">
-                    <Logo className="h-16 md:h-20 mx-auto" />
                     <p className="text-indigo-200 font-medium flex items-center justify-center gap-2">
                         <ChefHat className="w-5 h-5" />
                         {mode === 'login' && 'Connectez-vous pour jouer'}

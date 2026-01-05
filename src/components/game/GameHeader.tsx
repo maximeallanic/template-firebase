@@ -1,5 +1,9 @@
+import { useState } from 'react';
 import { Flame, Candy } from 'lucide-react';
 import { UserBar } from '../auth/UserBar';
+import { ProfileEditModal } from '../auth/ProfileEditModal';
+import { QuickSettings } from '../pwa/QuickSettings';
+import { useAppInstall } from '../../hooks/useAppInstall';
 import type { Player, Avatar } from '../../services/gameService';
 
 interface GameHeaderProps {
@@ -17,6 +21,8 @@ export function GameHeader({
     playerId,
     onProfileUpdate,
 }: GameHeaderProps) {
+    const { isInstalled } = useAppInstall();
+    const [showProfileEdit, setShowProfileEdit] = useState(false);
     const playersList = Object.values(players);
 
     const spicyScore = playersList
@@ -54,17 +60,41 @@ export function GameHeader({
                     <Candy className="w-4 h-4 text-sweet-400" />
                 </div>
 
-                {/* User Bar */}
+                {/* User Bar / Quick Settings (PWA) */}
                 {currentPlayer && (
-                    <UserBar
-                        playerName={currentPlayer.name}
-                        avatar={currentPlayer.avatar}
-                        roomCode={roomCode}
-                        playerId={playerId}
-                        onProfileUpdate={onProfileUpdate}
-                    />
+                    isInstalled ? (
+                        <QuickSettings
+                            onEditProfile={() => setShowProfileEdit(true)}
+                            roomCode={roomCode}
+                            playerId={playerId}
+                        />
+                    ) : (
+                        <UserBar
+                            playerName={currentPlayer.name}
+                            avatar={currentPlayer.avatar}
+                            roomCode={roomCode}
+                            playerId={playerId}
+                            onProfileUpdate={onProfileUpdate}
+                        />
+                    )
                 )}
             </div>
+
+            {/* Profile Edit Modal - for PWA mode */}
+            {currentPlayer && (
+                <ProfileEditModal
+                    isOpen={showProfileEdit}
+                    onClose={() => setShowProfileEdit(false)}
+                    currentName={currentPlayer.name}
+                    currentAvatar={currentPlayer.avatar}
+                    roomCode={roomCode}
+                    playerId={playerId}
+                    onSave={(newName, newAvatar) => {
+                        onProfileUpdate(newName, newAvatar);
+                        setShowProfileEdit(false);
+                    }}
+                />
+            )}
         </div>
     );
 }

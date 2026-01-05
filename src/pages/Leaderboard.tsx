@@ -11,13 +11,17 @@ import { FoodLoader } from '../components/ui/FoodLoader';
 import { getTopScores, getMyBestScore, getMyRank, type LeaderboardEntry } from '../services/leaderboardService';
 import { AvatarIcon } from '../components/AvatarIcon';
 import { useAuthUser } from '../hooks/useAuthUser';
+import { useAppInstall } from '../hooks/useAppInstall';
 import { useReducedMotion } from '../hooks/useReducedMotion';
 import { UserBar } from '../components/auth/UserBar';
-import { Logo } from '../components/ui/Logo';
+import { ProfileEditModal } from '../components/auth/ProfileEditModal';
+import { QuickSettings } from '../components/pwa/QuickSettings';
+import type { Avatar } from '../types/gameTypes';
 
 export default function Leaderboard() {
     const navigate = useNavigate();
-    const { user } = useAuthUser();
+    const { user, profile } = useAuthUser();
+    const { isInstalled } = useAppInstall();
     const prefersReducedMotion = useReducedMotion();
 
     const [scores, setScores] = useState<LeaderboardEntry[]>([]);
@@ -25,6 +29,7 @@ export default function Leaderboard() {
     const [myRank, setMyRank] = useState<number | null>(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
+    const [showProfileEdit, setShowProfileEdit] = useState(false);
 
     useEffect(() => {
         async function loadLeaderboard() {
@@ -90,9 +95,13 @@ export default function Leaderboard() {
 
     return (
         <div className="min-h-screen flex flex-col p-4 text-white">
-            {/* UserBar */}
+            {/* UserBar / QuickSettings (PWA) */}
             <div className="fixed top-4 right-0 z-50">
-                <UserBar attachedToEdge />
+                {isInstalled ? (
+                    <QuickSettings onEditProfile={() => setShowProfileEdit(true)} />
+                ) : (
+                    <UserBar attachedToEdge />
+                )}
             </div>
 
             {/* Header */}
@@ -104,8 +113,6 @@ export default function Leaderboard() {
                     <ArrowLeft className="w-5 h-5" />
                     <span>Retour</span>
                 </button>
-                <Logo className="h-10" />
-                <div className="w-20" /> {/* Spacer for centering */}
             </div>
 
             {/* Title */}
@@ -311,6 +318,15 @@ export default function Leaderboard() {
                     </button>
                 </motion.div>
             )}
+
+            {/* Profile Edit Modal - for PWA mode */}
+            <ProfileEditModal
+                isOpen={showProfileEdit}
+                onClose={() => setShowProfileEdit(false)}
+                currentName={profile?.profileName || ''}
+                currentAvatar={(profile?.profileAvatar as Avatar) || 'burger'}
+                onSave={() => setShowProfileEdit(false)}
+            />
         </div>
     );
 }

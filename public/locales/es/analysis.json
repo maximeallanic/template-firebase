@@ -7,5 +7,52 @@
     "spam": "Verificación de Spam",
     "personalization": "Personalización",
     "structure": "Estructura"
+  },
+  "results": {
+    "title": "Resultados del Análisis de Correo",
+    "overallScore": "Puntuación General",
+    "backToInput": "← Analizar Otro Correo",
+    "downloadPDF": "Descargar PDF",
+    "shareResults": "Compartir Resultados",
+    "viewHistory": "Ver Historial"
+  },
+  "suggestions": {
+    "title": "Sugerencias de Mejora",
+    "subtitle": "Recomendaciones priorizadas para aumentar la efectividad de tu correo",
+    "types": {
+      "critical": "Crítico",
+      "important": "Importante",
+      "minor": "Menor"
+    },
+    "empty": "¡Buen trabajo! No hay sugerencias críticas en este momento."
+  },
+  "rewrites": {
+    "title": "Reescrituras de Oraciones",
+    "subtitle": "Ejemplos específicos de antes/después con explicaciones",
+    "original": "Original",
+    "improved": "Mejorado",
+    "reason": "Por qué funciona mejor",
+    "empty": "No se necesitan reescrituras específicas. ¡Tu correo está bien escrito!"
+  },
+  "correctedVersion": {
+    "title": "Versión Corregida",
+    "subtitle": "Tu correo con todas las mejoras aplicadas",
+    "copyButton": "Copiar al Portapapeles",
+    "copiedButton": "¡Copiado!",
+    "download": "Descargar",
+    "empty": "No se necesitan correcciones. ¡Tu correo original es excelente!"
+  },
+  "scores": {
+    "excellent": "Excelente",
+    "good": "Bueno",
+    "fair": "Aceptable",
+    "needsWork": "Necesita Mejoras",
+    "poor": "Deficiente"
+  },
+  "labels": {
+    "score": "Puntuación",
+    "status": "Estado",
+    "issues": "Problemas encontrados",
+    "noIssues": "Sin problemas encontrados"
   }
 }

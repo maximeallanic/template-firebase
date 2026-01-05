@@ -242,34 +242,45 @@ export function PWAHomePage() {
               onClick={() => setShowJoinInput(false)}
             />
             <motion.div
-              className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-50 w-80 max-w-[90vw] bg-slate-800 rounded-2xl p-6 border border-white/10"
+              className="fixed inset-0 z-50 flex items-center justify-center p-4"
               initial={{ scale: 0.9, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0.9, opacity: 0 }}
             >
-              <h3 className="text-xl font-bold text-white text-center mb-4">
-                {t('enterCode', 'Entrez le code')}
-              </h3>
+              <div className="w-full max-w-80 bg-slate-800 rounded-2xl p-6 border border-white/10 relative">
+                <button
+                  onClick={() => setShowJoinInput(false)}
+                  className="absolute top-3 right-3 w-8 h-8 flex items-center justify-center rounded-full bg-slate-700 hover:bg-slate-600 text-white/70 hover:text-white transition-colors"
+                  aria-label={t('common:close', 'Fermer')}
+                >
+                  <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+                <h3 className="text-xl font-bold text-white text-center mb-4">
+                  {t('enterCode', 'Entrez le code')}
+                </h3>
 
-              <input
-                type="text"
-                value={joinCode}
-                onChange={(e) => setJoinCode(e.target.value.toUpperCase().slice(0, 4))}
-                placeholder="XXXX"
-                className="w-full text-center text-3xl font-bold tracking-[0.3em] bg-slate-700 text-white rounded-xl p-4 mb-4 focus:outline-none focus:ring-2 focus:ring-rose-500"
-                autoFocus
-                maxLength={4}
-              />
+                <input
+                  type="text"
+                  value={joinCode}
+                  onChange={(e) => setJoinCode(e.target.value.toUpperCase().slice(0, 4))}
+                  placeholder="XXXX"
+                  className="w-full text-center text-3xl font-bold tracking-[0.3em] bg-slate-700 text-white rounded-xl p-4 mb-4 focus:outline-none focus:ring-2 focus:ring-rose-500"
+                  autoFocus
+                  maxLength={4}
+                />
 
-              {joinError && <p className="text-red-400 text-sm text-center mb-4">{joinError}</p>}
+                {joinError && <p className="text-red-400 text-sm text-center mb-4">{joinError}</p>}
 
-              <button
-                onClick={submitJoinCode}
-                disabled={joinCode.length !== 4 || isJoiningRoom}
-                className="w-full py-3 rounded-xl bg-gradient-to-r from-rose-500 to-pink-600 text-white font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                {isJoiningRoom ? t('joining', 'Connexion...') : t('join', 'Rejoindre')}
-              </button>
+                <button
+                  onClick={submitJoinCode}
+                  disabled={joinCode.length !== 4 || isJoiningRoom}
+                  className="w-full py-3 rounded-xl bg-gradient-to-r from-rose-500 to-pink-600 text-white font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {isJoiningRoom ? t('joining', 'Connexion...') : t('join.button', 'Rejoindre')}
+                </button>
+              </div>
             </motion.div>
           </>
         )}

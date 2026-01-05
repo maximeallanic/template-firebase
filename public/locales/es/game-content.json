@@ -1,0 +1,58 @@
+{
+  "phase4": {
+    "questions": [
+      { "question": "Cual es el nombre de pila de Mr. Bean?", "answer": "Mr." },
+      { "question": "De que color son los guisantes?", "answer": "Verdes" },
+      { "question": "Como se llama un gato que cae al agua?", "answer": "Un gato mojado" },
+      { "question": "De que color era el caballo blanco de Napoleon?", "answer": "Blanco" },
+      { "question": "Cuanto es 2+2?", "answer": "4" },
+      { "question": "Que animal dice 'Miau'?", "answer": "El gato" },
+      { "question": "Cual es la capital de Francia?", "answer": "Paris" },
+      { "question": "Que fruta es amarilla y curvada?", "answer": "Platano" },
+      { "question": "Cuantas patas tiene una arana?", "answer": "8" },
+      { "question": "Cual es lo contrario de 'caliente'?", "answer": "Frio" },
+      { "question": "Que animal es llamado el rey de la selva?", "answer": "El leon" },
+      { "question": "Cuantos dias tiene una semana?", "answer": "7" },
+      { "question": "Que planeta es llamado el planeta rojo?", "answer": "Marte" },
+      { "question": "Que superheroe usa una capa roja?", "answer": "Superman" },
+      { "question": "En que ano estamos?", "answer": "2025" }
+    ]
+  },
+  "phase5": {
+    "questions": [
+      { "question": "Quien es el mejor amigo de Harry Potter?", "answer": "Ron Weasley" },
+      { "question": "Cual es la capital de Francia?", "answer": "Paris" },
+      { "question": "Cuanto es 7 x 8?", "answer": "56" },
+      { "question": "Cual es el oceano mas grande del mundo?", "answer": "Pacifico" },
+      { "question": "Quien canto 'Thriller'?", "answer": "Michael Jackson" },
+      { "question": "De que color es el cielo?", "answer": "Azul" },
+      { "question": "Cual es el animal terrestre mas grande?", "answer": "El elefante" },
+      { "question": "Cuantos continentes hay?", "answer": "7" },
+      { "question": "Quien pinto la Mona Lisa?", "answer": "Leonardo da Vinci" },
+      { "question": "Cual es el simbolo quimico del agua?", "answer": "H2O" }
+    ]
+  },
+  "phase2": {
+    "defaultSets": [
+      {
+        "title": "McDonald's vs Burger King",
+        "optionA": "McDonald's",
+        "optionB": "Burger King",
+        "items": [
+          { "text": "Las mejores papas fritas", "answer": "A" },
+          { "text": "El Whopper", "answer": "B" },
+          { "text": "Ronald el payaso", "answer": "A" },
+          { "text": "El Big Mac", "answer": "A" },
+          { "text": "Hamburguesas a la parrilla", "answer": "B" },
+          { "text": "Happy Meal", "answer": "A" },
+          { "text": "Have it your way", "answer": "B" },
+          { "text": "Los arcos dorados", "answer": "A" },
+          { "text": "El Rey", "answer": "B" },
+          { "text": "McFlurry", "answer": "A" },
+          { "text": "Steakhouse burger", "answer": "B" },
+          { "text": "Me encanta", "answer": "A" }
+        ]
+      }
+    ]
+  }
+}

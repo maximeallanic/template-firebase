@@ -1,0 +1,50 @@
+{
+  "phases": {
+    "lobby": {
+      "name": "Lobby",
+      "subtitle": "Esperando...",
+      "shortName": "Lobby"
+    },
+    "phase1": {
+      "name": "Tenders",
+      "subtitle": "Se el mas rapido en pulsar!",
+      "shortName": "Tenders"
+    },
+    "phase2": {
+      "name": "Dulce y Salado",
+      "subtitle": "A o B?",
+      "shortName": "Dulce y Salado"
+    },
+    "phase3": {
+      "name": "El Menu",
+      "subtitle": "Recuerda todos los platos!",
+      "shortName": "El Menu"
+    },
+    "phase4": {
+      "name": "La Cuenta",
+      "subtitle": "Preguntas de cultura general!",
+      "shortName": "La Cuenta"
+    },
+    "phase5": {
+      "name": "Burger Definitivo",
+      "subtitle": "El desafio final por la victoria!",
+      "shortName": "Burger Definitivo"
+    },
+    "victory": {
+      "name": "Victoria",
+      "subtitle": "El ganador es...",
+      "shortName": "Victoria"
+    }
+  },
+  "transitions": {
+    "phaseNumber": "Fase {{number}}"
+  },
+  "navigation": {
+    "startPhase3": "INICIAR FASE 3: EL MENU",
+    "startPhase4": "Iniciar Fase 4: La Cuenta"
+  },
+  "endPhase": {
+    "phase2Complete": "Fin de la Fase 2!",
+    "gettingMenusReady": "Preparando los menus..."
+  }
+}

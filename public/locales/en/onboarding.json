@@ -146,5 +146,29 @@
       }
     },
     "button": "Let's Calculate!"
+  },
+
+  "phase5": {
+    "title": "Ultimate Burger",
+    "subtitle": "The Final Challenge",
+    "steps": {
+      "listen": {
+        "label": "Listen First",
+        "text": "Hear all 10 questions before answering"
+      },
+      "remember": {
+        "label": "Remember",
+        "text": "Memorize both questions and answers"
+      },
+      "answer": {
+        "label": "Answer All",
+        "text": "Answer all questions in order"
+      },
+      "team": {
+        "label": "Team Effort",
+        "text": "Work together for maximum points"
+      }
+    },
+    "button": "Final Showdown!"
   }
 }

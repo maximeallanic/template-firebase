@@ -7,5 +7,52 @@
     "spam": "Verificação de Spam",
     "personalization": "Personalização",
     "structure": "Estrutura"
+  },
+  "results": {
+    "title": "Resultados da Análise de E-mail",
+    "overallScore": "Pontuação Geral",
+    "backToInput": "← Analisar Outro E-mail",
+    "downloadPDF": "Baixar PDF",
+    "shareResults": "Compartilhar Resultados",
+    "viewHistory": "Ver Histórico"
+  },
+  "suggestions": {
+    "title": "Sugestões de Melhoria",
+    "subtitle": "Recomendações priorizadas para aumentar a eficácia do seu e-mail",
+    "types": {
+      "critical": "Crítico",
+      "important": "Importante",
+      "minor": "Menor"
+    },
+    "empty": "Ótimo trabalho! Nenhuma sugestão crítica neste momento."
+  },
+  "rewrites": {
+    "title": "Reescritas de Frases",
+    "subtitle": "Exemplos específicos de antes/depois com explicações",
+    "original": "Original",
+    "improved": "Melhorado",
+    "reason": "Por que isso funciona melhor",
+    "empty": "Nenhuma reescrita específica necessária. Seu e-mail está bem escrito!"
+  },
+  "correctedVersion": {
+    "title": "Versão Corrigida",
+    "subtitle": "Seu e-mail com todas as melhorias aplicadas",
+    "copyButton": "Copiar para Área de Transferência",
+    "copiedButton": "Copiado!",
+    "download": "Baixar",
+    "empty": "Nenhuma correção necessária. Seu e-mail original é excelente!"
+  },
+  "scores": {
+    "excellent": "Excelente",
+    "good": "Bom",
+    "fair": "Razoável",
+    "needsWork": "Precisa de Melhorias",
+    "poor": "Fraco"
+  },
+  "labels": {
+    "score": "Pontuação",
+    "status": "Status",
+    "issues": "Problemas encontrados",
+    "noIssues": "Nenhum problema encontrado"
   }
 }

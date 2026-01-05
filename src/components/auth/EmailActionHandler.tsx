@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { verifyEmailCode, verifyPasswordResetCodeAndGetEmail, resetPassword } from '../../services/firebase';
-import { Logo } from '../ui/Logo';
 import { FoodLoader } from '../ui/FoodLoader';
 
 type ActionMode = 'verifyEmail' | 'resetPassword' | null;
@@ -127,11 +126,6 @@ export const EmailActionHandler: React.FC = () => {
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 flex items-center justify-center px-4">
       <div className="max-w-md w-full">
-        {/* Logo */}
-        <div className="text-center mb-8">
-          <Logo className="h-16 mx-auto" />
-        </div>
-
         {/* Main Card */}
         <div className="bg-white rounded-2xl shadow-xl border border-gray-200 p-8 md:p-10">
           {/* Email Verification Mode */}

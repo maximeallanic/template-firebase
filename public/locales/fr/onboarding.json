@@ -146,5 +146,29 @@
       }
     },
     "button": "Calculons !"
+  },
+
+  "phase5": {
+    "title": "Burger Ultime",
+    "subtitle": "Le Defi Final",
+    "steps": {
+      "listen": {
+        "label": "Ecoute d'abord",
+        "text": "Ecoute les 10 questions avant de repondre"
+      },
+      "remember": {
+        "label": "Memorise",
+        "text": "Retiens les questions et les reponses"
+      },
+      "answer": {
+        "label": "Reponds a tout",
+        "text": "Reponds a toutes les questions dans l'ordre"
+      },
+      "team": {
+        "label": "Effort d'equipe",
+        "text": "Travaillez ensemble pour un max de points"
+      }
+    },
+    "button": "Finale !"
   }
 }

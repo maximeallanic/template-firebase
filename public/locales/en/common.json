@@ -1,19 +1,36 @@
 {
   "buttons": {
+    "start": "Start",
     "continue": "Continue",
+    "next": "Next",
+    "retry": "Retry",
+    "back": "Back",
+    "confirm": "Confirm",
     "cancel": "Cancel",
+    "skip": "Skip",
+    "join": "Join",
+    "create": "Create",
+    "playAgain": "Play Again",
     "save": "Save",
     "close": "Close",
     "delete": "Delete",
     "edit": "Edit",
     "submit": "Submit",
-    "back": "Back",
-    "next": "Next",
-    "confirm": "Confirm",
-    "retry": "Retry",
     "upgrade": "Upgrade"
   },
   "labels": {
+    "loading": "Loading...",
+    "connecting": "Connecting...",
+    "waiting": "Waiting...",
+    "score": "Score",
+    "round": "Round",
+    "question": "Question",
+    "answer": "Answer",
+    "correctAnswer": "Correct Answer",
+    "player": "Player",
+    "players": "Players",
+    "host": "Host",
+    "spectator": "Spectator",
     "email": "Email",
     "password": "Password",
     "name": "Name",
@@ -39,6 +56,12 @@
     "noData": "No data available",
     "comingSoon": "Coming soon"
   },
+  "teams": {
+    "spicy": "Spicy",
+    "sweet": "Sweet",
+    "neutral": "Neutral",
+    "yourTeam": "Your Team"
+  },
   "time": {
     "seconds": "seconds",
     "minutes": "minutes",
@@ -58,11 +81,10 @@
     "expired": "Expired",
     "canceled": "Canceled"
   },
-  "teams": {
-    "spicy": "Spicy",
-    "sweet": "Sweet",
-    "neutral": "Neutral",
-    "yourTeam": "Your Team"
+  "footer": {
+    "terms": "Terms",
+    "privacy": "Privacy",
+    "copyright": "25g de Sel"
   },
   "subscription": {
     "premium": "Premium",
@@ -77,5 +99,22 @@
     "error": "An error occurred. Please try again.",
     "premiumRequired": "Premium Phase Required",
     "hostMustUpgrade": "The host needs Premium to access this phase"
+  },
+  "pwa": {
+    "settings": "Settings",
+    "sound": "Sound",
+    "soundOn": "On",
+    "soundOff": "Off",
+    "language": "Language",
+    "profile": "Profile",
+    "editProfile": "Edit Profile",
+    "account": "Account",
+    "upgrade": "Go Premium",
+    "upgrading": "Loading...",
+    "leaveGame": "Leave Game",
+    "logout": "Sign Out",
+    "play": "PLAY",
+    "rotateDevice": "Rotate Your Device",
+    "portraitRequired": "This game is played in portrait mode"
   }
 }

@@ -146,15 +146,15 @@ const Scanlines: React.FC = () => (
     />
 );
 
-// Restaurant Menu Panel component - elegant parchment menu with gold border
-interface RestaurantMenuPanelProps {
+// Transition Card component - modern dark gaming style
+interface TransitionCardProps {
     children: React.ReactNode;
     isVisible: boolean;
     reducedMotion?: boolean;
     boardDuration?: number; // in ms
 }
 
-const RestaurantMenuPanel: React.FC<RestaurantMenuPanelProps> = ({
+const TransitionCard: React.FC<TransitionCardProps> = ({
     children,
     isVisible,
     reducedMotion = false,
@@ -176,83 +176,18 @@ const RestaurantMenuPanel: React.FC<RestaurantMenuPanelProps> = ({
 
     return (
         <motion.div
-            className="relative p-8 md:p-12 max-w-2xl mx-4 rounded-sm"
-            style={{
-                // Cream parchment background
-                background: 'linear-gradient(145deg, #FDF8F0 0%, #F5EDE0 50%, #FDF8F0 100%)',
-                // Gold ornate frame effect
-                border: '12px solid transparent',
-                borderImage: 'linear-gradient(135deg, #C9A227 0%, #F4D03F 20%, #D4AF37 40%, #F4E04D 60%, #D4AF37 80%, #C9A227 100%) 1',
-                // Static gold glow shadow
-                boxShadow: '0 8px 30px rgba(0, 0, 0, 0.15), 0 0 20px rgba(212, 175, 55, 0.15)',
-            }}
+            className="relative p-8 md:p-12 max-w-2xl mx-4 rounded-3xl bg-gradient-to-b from-slate-800/95 to-slate-900/95 backdrop-blur-md border border-white/10 shadow-2xl"
             initial={{ x: '-100vw', opacity: 0 }}
             animate={animateProps}
             exit={{ x: '100vw', opacity: 0 }}
             transition={transitionProps}
         >
-            {/* Paper fiber texture */}
-            <div
-                className="absolute inset-0 opacity-[0.03] pointer-events-none rounded-sm"
-                style={{
-                    backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='paper'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.04' numOctaves='5' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23paper)'/%3E%3C/svg%3E")`,
-                    mixBlendMode: 'multiply',
-                }}
-            />
-
-            {/* Corner ornaments - Top Left */}
-            <svg
-                className="absolute top-3 left-3 w-8 h-8 text-amber-600/30 pointer-events-none"
-                viewBox="0 0 40 40"
-                fill="none"
-            >
-                <path d="M4 4 Q 20 4, 20 20" stroke="currentColor" strokeWidth="1.5" fill="none" />
-                <path d="M4 4 Q 4 20, 20 20" stroke="currentColor" strokeWidth="1.5" fill="none" />
-                <circle cx="4" cy="4" r="2" fill="currentColor" />
-            </svg>
-
-            {/* Corner ornaments - Top Right */}
-            <svg
-                className="absolute top-3 right-3 w-8 h-8 text-amber-600/30 pointer-events-none"
-                viewBox="0 0 40 40"
-                fill="none"
-                style={{ transform: 'scaleX(-1)' }}
-            >
-                <path d="M4 4 Q 20 4, 20 20" stroke="currentColor" strokeWidth="1.5" fill="none" />
-                <path d="M4 4 Q 4 20, 20 20" stroke="currentColor" strokeWidth="1.5" fill="none" />
-                <circle cx="4" cy="4" r="2" fill="currentColor" />
-            </svg>
-
-            {/* Corner ornaments - Bottom Left */}
-            <svg
-                className="absolute bottom-3 left-3 w-8 h-8 text-amber-600/30 pointer-events-none"
-                viewBox="0 0 40 40"
-                fill="none"
-                style={{ transform: 'scaleY(-1)' }}
-            >
-                <path d="M4 4 Q 20 4, 20 20" stroke="currentColor" strokeWidth="1.5" fill="none" />
-                <path d="M4 4 Q 4 20, 20 20" stroke="currentColor" strokeWidth="1.5" fill="none" />
-                <circle cx="4" cy="4" r="2" fill="currentColor" />
-            </svg>
-
-            {/* Corner ornaments - Bottom Right */}
-            <svg
-                className="absolute bottom-3 right-3 w-8 h-8 text-amber-600/30 pointer-events-none"
-                viewBox="0 0 40 40"
-                fill="none"
-                style={{ transform: 'scale(-1, -1)' }}
-            >
-                <path d="M4 4 Q 20 4, 20 20" stroke="currentColor" strokeWidth="1.5" fill="none" />
-                <path d="M4 4 Q 4 20, 20 20" stroke="currentColor" strokeWidth="1.5" fill="none" />
-                <circle cx="4" cy="4" r="2" fill="currentColor" />
-            </svg>
-
             {children}
         </motion.div>
     );
 };
 
-// Transition content component - displays phase info with elegant menu style
+// Transition content component - displays phase info with modern dark gaming style
 interface TransitionContentProps {
     phase: PhaseStatus;
     getPhaseInfo: (phase: PhaseStatus) => { name: string; subtitle: string };
@@ -264,141 +199,69 @@ const TransitionContent: React.FC<TransitionContentProps> = ({ phase, getPhaseIn
     const phaseNames = getPhaseInfo(phase);
     const isVictory = info.isVictory;
 
-    // Elegant menu typography
-    const menuTitleFont = '"Playfair Display", Georgia, "Times New Roman", serif';
-    const menuBodyFont = '"Cormorant Garamond", Garamond, Georgia, serif';
-    // Embossed text shadow for letterpress effect on paper
-    const embossShadow = '1px 1px 0 rgba(255,255,255,0.8), -1px -1px 0 rgba(0,0,0,0.05)';
-
     return (
         <div className="relative z-50 flex flex-col items-center text-center">
-            {/* Icon container - no animation */}
+            {/* Icon container */}
             <div className="relative">
-                {/* Subtle gold glow */}
-                <div className={`absolute inset-0 blur-2xl rounded-full ${isVictory ? 'bg-yellow-400/30' : 'bg-amber-600/15'}`} />
+                {/* Subtle glow */}
+                <div className={`absolute inset-0 blur-2xl rounded-full ${isVictory ? 'bg-yellow-500/40' : 'bg-white/10'}`} />
 
-                {/* Icon with elegant gold border */}
+                {/* Icon with modern border */}
                 <div
-                    className={`relative rounded-full p-5 border-2 ${isVictory ? 'border-yellow-500' : 'border-amber-600/50'}`}
-                    style={{
-                        background: isVictory ? 'rgba(234,179,8,0.15)' : 'rgba(180,140,100,0.1)',
-                    }}
+                    className={`relative rounded-2xl p-5 border-2 ${isVictory
+                        ? 'bg-yellow-500/20 border-yellow-500/50'
+                        : 'bg-white/10 border-white/20'}`}
                 >
                     {isVictory ? (
-                        <Trophy className="w-[60px] h-[60px] text-yellow-500" />
+                        <Trophy className="w-[60px] h-[60px] text-yellow-400" />
                     ) : (
                         <PhaseIcon phase={info.icon} size={60} />
                     )}
                 </div>
             </div>
 
-            {/* Phase Number - elegant serif style (skip for victory) */}
+            {/* Phase Number (skip for victory) */}
             {!isVictory && (
                 <div className="mt-4">
-                    <span
-                        className="text-lg md:text-xl text-amber-700 tracking-widest uppercase"
-                        style={{
-                            fontFamily: menuBodyFont,
-                            textShadow: embossShadow,
-                            fontWeight: 500,
-                        }}
-                    >
-                        — Phase {info.number} —
+                    <span className="text-sm md:text-base text-white/60 font-bold tracking-widest uppercase">
+                        Phase {info.number}
                     </span>
                 </div>
             )}
 
-            {/* Title - elegant serif display */}
+            {/* Title */}
             <h1
-                className={`text-5xl md:text-7xl ${isVictory ? 'mt-4' : 'mt-1'} ${isVictory ? 'text-yellow-600' : 'text-amber-900'}`}
-                style={{
-                    fontFamily: menuTitleFont,
-                    textShadow: isVictory
-                        ? '2px 2px 4px rgba(234,179,8,0.2), 0 0 20px rgba(234,179,8,0.15)'
-                        : '2px 2px 0 rgba(255,255,255,0.8), -1px -1px 0 rgba(0,0,0,0.03)',
-                    fontWeight: 700,
-                    letterSpacing: '0.02em',
-                }}
+                className={`text-4xl md:text-6xl font-black ${isVictory ? 'mt-4' : 'mt-2'} ${isVictory ? 'text-yellow-400' : 'text-white'}`}
             >
                 {phaseNames.name}
             </h1>
 
-            {/* Decorative flourish divider - elegant menu style */}
-            <svg
-                className="w-56 h-4 mt-2"
-                viewBox="0 0 200 16"
-                fill="none"
-                xmlns="http://www.w3.org/2000/svg"
-            >
-                {/* Center diamond */}
-                <path
-                    d="M100 2 L106 8 L100 14 L94 8 Z"
-                    fill={isVictory ? 'rgba(234,179,8,0.6)' : 'rgba(180,83,9,0.5)'}
-                />
-                {/* Left scroll */}
-                <path
-                    d="M90 8 C 70 8, 60 3, 30 8 C 20 10, 10 8, 5 8"
-                    stroke={isVictory ? 'rgba(234,179,8,0.5)' : 'rgba(180,83,9,0.4)'}
-                    strokeWidth="1.5"
-                    fill="none"
-                />
-                {/* Right scroll */}
-                <path
-                    d="M110 8 C 130 8, 140 3, 170 8 C 180 10, 190 8, 195 8"
-                    stroke={isVictory ? 'rgba(234,179,8,0.5)' : 'rgba(180,83,9,0.4)'}
-                    strokeWidth="1.5"
-                    fill="none"
-                />
-            </svg>
+            {/* Simple separator */}
+            <div className={`w-24 h-1 mt-4 rounded-full ${isVictory ? 'bg-yellow-500/50' : 'bg-white/20'}`} />
 
-            {/* Subtitle - elegant italic */}
-            <p
-                className={`text-xl md:text-2xl mt-3 ${isVictory ? 'text-yellow-700' : 'text-amber-800/80'}`}
-                style={{
-                    fontFamily: menuBodyFont,
-                    textShadow: embossShadow,
-                    fontStyle: 'italic',
-                    fontWeight: 400,
-                }}
-            >
-                "{phaseNames.subtitle}"
+            {/* Subtitle */}
+            <p className={`text-lg md:text-xl mt-4 ${isVictory ? 'text-yellow-300/80' : 'text-white/70'}`}>
+                {phaseNames.subtitle}
             </p>
 
-            {/* Team names - elegant serif */}
-            <div className="flex items-center gap-8 mt-6">
-                <div className="flex items-center gap-2">
-                    <Flame className="w-5 h-5 text-red-600" />
-                    <span
-                        className="text-lg text-red-700"
-                        style={{
-                            fontFamily: menuBodyFont,
-                            textShadow: embossShadow,
-                            fontWeight: 600,
-                        }}
-                    >
+            {/* Team names */}
+            <div className="flex items-center gap-6 mt-6">
+                <div className="flex items-center gap-2 px-4 py-2 rounded-full bg-spicy-500/20 border border-spicy-500/30">
+                    <Flame className="w-5 h-5 text-spicy-400" />
+                    <span className="text-base font-semibold text-spicy-400">
                         {t('teams.spicy')}
                     </span>
                 </div>
 
-                <span
-                    className="text-2xl text-amber-700/60"
-                    style={{ fontFamily: menuTitleFont }}
-                >
+                <span className="text-xl font-bold text-white/40">
                     vs
                 </span>
 
-                <div className="flex items-center gap-2">
-                    <span
-                        className="text-lg text-pink-700"
-                        style={{
-                            fontFamily: menuBodyFont,
-                            textShadow: embossShadow,
-                            fontWeight: 600,
-                        }}
-                    >
+                <div className="flex items-center gap-2 px-4 py-2 rounded-full bg-sweet-500/20 border border-sweet-500/30">
+                    <span className="text-base font-semibold text-sweet-400">
                         {t('teams.sweet')}
                     </span>
-                    <Candy className="w-5 h-5 text-pink-600" />
+                    <Candy className="w-5 h-5 text-sweet-400" />
                 </div>
             </div>
         </div>
@@ -695,11 +558,11 @@ export const PhaseTransition: React.FC<PhaseTransitionProps> = ({
                         </div>
                     )}
 
-                    {/* Main Content - Restaurant Menu Panel */}
+                    {/* Main Content - Transition Card */}
                     <div className="absolute inset-0 flex items-center justify-center z-50">
                         <AnimatePresence>
                             {showContent && (
-                                <RestaurantMenuPanel
+                                <TransitionCard
                                     isVisible={showContent}
                                     reducedMotion={prefersReducedMotion}
                                     boardDuration={boardDuration}
@@ -709,7 +572,7 @@ export const PhaseTransition: React.FC<PhaseTransitionProps> = ({
                                         getPhaseInfo={getPhaseInfo}
                                         t={t}
                                     />
-                                </RestaurantMenuPanel>
+                                </TransitionCard>
                             )}
                         </AnimatePresence>
                     </div>

@@ -1,13 +1,21 @@
 import { useState } from 'react';
 import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Settings, Volume2, VolumeX, Globe, User, X } from 'lucide-react';
+import { Settings, Volume2, VolumeX, Globe, User, X, Crown, LogOut, Power } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { useSoundSettings } from '../../hooks/useSoundSettings';
+import { useAuthUser } from '../../hooks/useAuthUser';
+import { useCurrentUserSubscription } from '../../hooks/useHostSubscription';
+import { leaveRoom } from '../../services/gameService';
+import { signOut, createCheckoutSession } from '../../services/firebase';
+import { safeStorage } from '../../utils/storage';
+import { clearLocalProfile } from '../../services/profileService';
 import { backdropVariants, organicEase } from '../../animations';
 
 interface QuickSettingsProps {
   onEditProfile?: () => void;
+  roomCode?: string;
+  playerId?: string;
 }
 
 const LANGUAGES = [
@@ -19,16 +27,77 @@ const LANGUAGES = [
 ];
 
 /**
- * Quick settings panel for PWA homepage.
- * Provides access to sound toggle, language selection, and profile edit.
+ * Quick settings panel for PWA.
+ * Provides access to sound toggle, language selection, profile edit,
+ * and user account actions (premium upgrade, leave game, logout).
  */
-export function QuickSettings({ onEditProfile }: QuickSettingsProps) {
+export function QuickSettings({ onEditProfile, roomCode, playerId }: QuickSettingsProps) {
   const { t, i18n } = useTranslation('home');
   const [isOpen, setIsOpen] = useState(false);
+  const [isUpgrading, setIsUpgrading] = useState(false);
   const { soundEnabled, toggleSound } = useSoundSettings();
+  const { user } = useAuthUser();
+  const { isPremium, isLoading: isSubscriptionLoading } = useCurrentUserSubscription();
 
   const handleLanguageChange = (langCode: string) => {
     i18n.changeLanguage(langCode);
+  };
+
+  const handleUpgrade = async () => {
+    if (!user) return;
+
+    setIsUpgrading(true);
+    try {
+      const returnUrl = window.location.href;
+      const { url } = await createCheckoutSession(returnUrl);
+      if (url) {
+        window.location.href = url;
+      }
+    } catch (error) {
+      console.error('Failed to create checkout session:', error);
+      setIsUpgrading(false);
+    }
+  };
+
+  const handleLeaveGame = async () => {
+    setIsOpen(false);
+
+    if (roomCode && playerId) {
+      try {
+        await leaveRoom(roomCode, playerId);
+      } catch (error) {
+        console.error('Error leaving room:', error);
+      }
+    }
+
+    safeStorage.removeItem('spicy_room_code');
+    safeStorage.removeItem('spicy_player_id');
+
+    window.location.href = '/';
+  };
+
+  const handleLogout = async () => {
+    setIsOpen(false);
+
+    if (roomCode && playerId) {
+      try {
+        await leaveRoom(roomCode, playerId);
+      } catch (error) {
+        console.error('Error leaving room:', error);
+      }
+    }
+
+    try {
+      await signOut();
+    } catch (error) {
+      console.error('Error signing out:', error);
+    }
+
+    safeStorage.removeItem('spicy_room_code');
+    safeStorage.removeItem('spicy_player_id');
+    clearLocalProfile();
+
+    window.location.href = '/login';
   };
 
   return (
@@ -50,7 +119,7 @@ export function QuickSettings({ onEditProfile }: QuickSettingsProps) {
             <>
               {/* Backdrop */}
               <motion.div
-                className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[55]"
+                className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[150]"
                 variants={backdropVariants}
                 initial="hidden"
                 animate="visible"
@@ -60,7 +129,7 @@ export function QuickSettings({ onEditProfile }: QuickSettingsProps) {
 
               {/* Panel */}
               <motion.div
-                className="fixed top-0 left-0 bottom-0 w-80 max-w-[85vw] z-[55] border-r border-white/10 overflow-hidden"
+                className="fixed top-0 left-0 bottom-0 w-80 max-w-[85vw] z-[150] border-r border-white/10 overflow-hidden"
                 initial={{ x: '-100%' }}
                 animate={{ x: 0 }}
                 exit={{ x: '-100%' }}
@@ -189,6 +258,52 @@ export function QuickSettings({ onEditProfile }: QuickSettingsProps) {
                       </button>
                     </motion.div>
                   )}
+
+                  {/* Account actions */}
+                  <motion.div
+                    initial={{ opacity: 0, x: -20 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ delay: 0.4, ease: organicEase }}
+                  >
+                    <h3 className="text-sm font-medium text-white/60 mb-3 uppercase tracking-wider">
+                      {t('pwa.account', 'Compte')}
+                    </h3>
+                    <div className="space-y-2">
+                      {/* Premium upgrade button */}
+                      {user && !isPremium && !isSubscriptionLoading && (
+                        <button
+                          onClick={handleUpgrade}
+                          disabled={isUpgrading}
+                          className="w-full flex items-center gap-3 p-4 rounded-xl bg-gradient-to-r from-amber-500/10 to-orange-500/10 hover:from-amber-500/20 hover:to-orange-500/20 transition-colors disabled:opacity-50"
+                        >
+                          <Crown className="w-5 h-5 text-amber-400" />
+                          <span className="text-amber-400">
+                            {isUpgrading ? t('pwa.upgrading', 'Chargement...') : t('pwa.upgrade', 'Passer Premium')}
+                          </span>
+                        </button>
+                      )}
+
+                      {/* Leave game button */}
+                      {roomCode && (
+                        <button
+                          onClick={handleLeaveGame}
+                          className="w-full flex items-center gap-3 p-4 rounded-xl bg-white/5 hover:bg-red-500/10 transition-colors"
+                        >
+                          <LogOut className="w-5 h-5 text-red-400" />
+                          <span className="text-red-400">{t('pwa.leaveGame', 'Quitter la partie')}</span>
+                        </button>
+                      )}
+
+                      {/* Logout button */}
+                      <button
+                        onClick={handleLogout}
+                        className="w-full flex items-center gap-3 p-4 rounded-xl bg-white/5 hover:bg-white/10 transition-colors"
+                      >
+                        <Power className="w-5 h-5 text-white/40" />
+                        <span className="text-white/60">{t('pwa.logout', 'Se déconnecter')}</span>
+                      </button>
+                    </div>
+                  </motion.div>
                 </div>
               </motion.div>
             </>

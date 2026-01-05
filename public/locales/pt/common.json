@@ -1,15 +1,60 @@
 {
+  "buttons": {
+    "start": "Iniciar",
+    "continue": "Continuar",
+    "next": "Proximo",
+    "retry": "Tentar novamente",
+    "back": "Voltar",
+    "confirm": "Confirmar",
+    "cancel": "Cancelar",
+    "skip": "Pular",
+    "join": "Entrar",
+    "create": "Criar",
+    "playAgain": "Jogar novamente",
+    "save": "Salvar",
+    "close": "Fechar",
+    "delete": "Excluir",
+    "edit": "Editar",
+    "submit": "Enviar",
+    "upgrade": "Atualizar"
+  },
+  "labels": {
+    "loading": "Carregando...",
+    "connecting": "Conectando...",
+    "waiting": "Aguardando...",
+    "score": "Pontuacao",
+    "round": "Rodada",
+    "question": "Pergunta",
+    "answer": "Resposta",
+    "correctAnswer": "Resposta correta",
+    "player": "Jogador",
+    "players": "Jogadores",
+    "host": "Anfitriao",
+    "spectator": "Espectador",
+    "email": "Email",
+    "password": "Senha",
+    "name": "Nome",
+    "optional": "Opcional",
+    "required": "Obrigatorio"
+  },
   "errors": {
     "generic": "Ocorreu um erro",
-    "roomNotFound": "Sala não encontrada",
-    "connectionLost": "Conexão perdida",
-    "gameAlreadyStarted": "O jogo já começou",
-    "roomFull": "A sala está cheia",
+    "roomNotFound": "Sala nao encontrada",
+    "connectionLost": "Conexao perdida",
+    "gameAlreadyStarted": "O jogo ja comecou",
+    "roomFull": "A sala esta cheia",
     "createFailed": "Falha ao criar a sala"
   },
-  "plans": {
-    "free": "Plano Gratuito",
-    "pro": "Plano Pro"
+  "messages": {
+    "success": "Sucesso!",
+    "error": "Erro",
+    "warning": "Aviso",
+    "info": "Informacao",
+    "loading": "Carregando...",
+    "saving": "Salvando...",
+    "processing": "Processando...",
+    "noData": "Nenhum dado disponivel",
+    "comingSoon": "Em breve"
   },
   "teams": {
     "spicy": "Spicy",
@@ -17,18 +62,59 @@
     "neutral": "Neutro",
     "yourTeam": "Sua Equipe"
   },
+  "time": {
+    "seconds": "segundos",
+    "minutes": "minutos",
+    "hours": "horas",
+    "days": "dias",
+    "weeks": "semanas",
+    "months": "meses",
+    "years": "anos",
+    "ago": "atras",
+    "remaining": "restante"
+  },
+  "plans": {
+    "free": "Plano Gratuito",
+    "pro": "Plano Pro",
+    "active": "Ativo",
+    "inactive": "Inativo",
+    "expired": "Expirado",
+    "canceled": "Cancelado"
+  },
+  "footer": {
+    "terms": "Termos",
+    "privacy": "Privacidade",
+    "copyright": "25g de Sel"
+  },
   "subscription": {
     "premium": "Premium",
-    "free": "Grátis",
+    "free": "Gratis",
     "upgradeTitle": "Desbloquear Todas as Fases",
     "upgradeDescription": "Acesse as fases 3, 4 e 5 com uma assinatura Premium",
-    "phasesIncluded": "Fases incluídas:",
-    "perMonth": "mês",
+    "phasesIncluded": "Fases incluidas:",
+    "perMonth": "mes",
     "upgradeButton": "Atualizar para Premium",
     "cancel": "Mais tarde",
     "loading": "Carregando...",
     "error": "Ocorreu um erro. Tente novamente.",
-    "premiumRequired": "Fase Premium necessária",
-    "hostMustUpgrade": "O anfitrião precisa de Premium para acessar esta fase"
+    "premiumRequired": "Fase Premium necessaria",
+    "hostMustUpgrade": "O anfitriao precisa de Premium para acessar esta fase"
+  },
+  "pwa": {
+    "settings": "Configuracoes",
+    "sound": "Som",
+    "soundOn": "Ligado",
+    "soundOff": "Desligado",
+    "language": "Idioma",
+    "profile": "Perfil",
+    "editProfile": "Editar perfil",
+    "account": "Conta",
+    "upgrade": "Ser Premium",
+    "upgrading": "Carregando...",
+    "leaveGame": "Sair do jogo",
+    "logout": "Sair",
+    "play": "JOGAR",
+    "rotateDevice": "Gire seu dispositivo",
+    "portraitRequired": "Este jogo e jogado em modo retrato"
   }
 }

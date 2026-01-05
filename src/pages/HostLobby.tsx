@@ -5,21 +5,26 @@ import { createRoom, joinRoom, type Avatar, AVATAR_LIST } from '../services/game
 import { Flame, ChefHat, Lock, Users } from 'lucide-react';
 import { AvatarIcon } from '../components/AvatarIcon';
 import { UserBar } from '../components/auth/UserBar';
-import { Logo } from '../components/ui/Logo';
+import { ProfileEditModal } from '../components/auth/ProfileEditModal';
+import { PWABackButton } from '../components/pwa/PWABackButton';
+import { QuickSettings } from '../components/pwa/QuickSettings';
 import { safeStorage } from '../utils/storage';
 import { saveProfile } from '../services/profileService';
 import { useAuthUser } from '../hooks/useAuthUser';
+import { useAppInstall } from '../hooks/useAppInstall';
 import { useHaptic } from '../hooks/useHaptic';
 
 export default function HostLobby() {
     const { t } = useTranslation(['lobby', 'common']);
     const navigate = useNavigate();
     const { profile, loading: profileLoading } = useAuthUser();
+    const { isInstalled } = useAppInstall();
     const haptic = useHaptic();
     const [hostName, setHostName] = useState('');
     const [hostAvatar, setHostAvatar] = useState<Avatar>('chili');
     const [isCreating, setIsCreating] = useState(false);
     const [pendingCode, setPendingCode] = useState<string | null>(null);
+    const [showProfileEdit, setShowProfileEdit] = useState(false);
     const hasAutoCreated = useRef(false);
 
     // Check for pending join code on mount
@@ -153,17 +158,18 @@ export default function HostLobby() {
         <div className="min-h-screen flex flex-col items-center justify-center p-4 relative overflow-hidden">
             {/* Background is now handled by SharedBackground in App.tsx */}
 
-            {/* UserBar */}
-            <div className="fixed top-4 right-0 z-50">
-                <UserBar attachedToEdge />
+            {/* Header: Back Button + Settings */}
+            <div className="fixed top-4 left-4 right-4 z-50 flex items-center justify-between">
+                <PWABackButton />
+                {isInstalled ? (
+                    <QuickSettings onEditProfile={() => setShowProfileEdit(true)} />
+                ) : (
+                    <UserBar attachedToEdge />
+                )}
             </div>
 
             <div className="bg-white/5 backdrop-blur-xl border border-white/10 rounded-3xl shadow-2xl p-8 max-w-md w-full relative z-10">
                 <div className="text-center mb-8">
-                    {/* Logo */}
-                    <div className="mb-6">
-                        <Logo className="h-16 md:h-20 mx-auto" />
-                    </div>
                     {pendingCode ? (
                         <>
                             <h2 className="text-pink-500 font-bold uppercase tracking-widest text-sm mb-2 flex items-center justify-center gap-2">
@@ -239,6 +245,19 @@ export default function HostLobby() {
                     </button>
                 </form>
             </div>
+
+            {/* Profile Edit Modal - for PWA mode */}
+            <ProfileEditModal
+                isOpen={showProfileEdit}
+                onClose={() => setShowProfileEdit(false)}
+                currentName={hostName || profile?.profileName || ''}
+                currentAvatar={hostAvatar}
+                onSave={(newName, newAvatar) => {
+                    setHostName(newName);
+                    setHostAvatar(newAvatar);
+                    setShowProfileEdit(false);
+                }}
+            />
         </div>
     );
 }

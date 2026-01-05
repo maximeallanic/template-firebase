@@ -1,4 +1,42 @@
 {
+  "buttons": {
+    "start": "Starten",
+    "continue": "Weiter",
+    "next": "Weiter",
+    "retry": "Erneut versuchen",
+    "back": "Zuruck",
+    "confirm": "Bestatigen",
+    "cancel": "Abbrechen",
+    "skip": "Uberspringen",
+    "join": "Beitreten",
+    "create": "Erstellen",
+    "playAgain": "Nochmal spielen",
+    "save": "Speichern",
+    "close": "Schliessen",
+    "delete": "Loschen",
+    "edit": "Bearbeiten",
+    "submit": "Absenden",
+    "upgrade": "Upgraden"
+  },
+  "labels": {
+    "loading": "Laden...",
+    "connecting": "Verbinden...",
+    "waiting": "Warten...",
+    "score": "Punkte",
+    "round": "Runde",
+    "question": "Frage",
+    "answer": "Antwort",
+    "correctAnswer": "Richtige Antwort",
+    "player": "Spieler",
+    "players": "Spieler",
+    "host": "Gastgeber",
+    "spectator": "Zuschauer",
+    "email": "E-Mail",
+    "password": "Passwort",
+    "name": "Name",
+    "optional": "Optional",
+    "required": "Erforderlich"
+  },
   "errors": {
     "generic": "Ein Fehler ist aufgetreten",
     "roomNotFound": "Raum nicht gefunden",
@@ -7,15 +45,46 @@
     "roomFull": "Der Raum ist voll",
     "createFailed": "Raum konnte nicht erstellt werden"
   },
-  "plans": {
-    "free": "Kostenloser Plan",
-    "pro": "Pro Plan"
+  "messages": {
+    "success": "Erfolg!",
+    "error": "Fehler",
+    "warning": "Warnung",
+    "info": "Information",
+    "loading": "Laden...",
+    "saving": "Speichern...",
+    "processing": "Verarbeiten...",
+    "noData": "Keine Daten verfugbar",
+    "comingSoon": "Demnachst"
   },
   "teams": {
     "spicy": "Spicy",
     "sweet": "Sweet",
     "neutral": "Neutral",
     "yourTeam": "Dein Team"
+  },
+  "time": {
+    "seconds": "Sekunden",
+    "minutes": "Minuten",
+    "hours": "Stunden",
+    "days": "Tage",
+    "weeks": "Wochen",
+    "months": "Monate",
+    "years": "Jahre",
+    "ago": "vor",
+    "remaining": "verbleibend"
+  },
+  "plans": {
+    "free": "Kostenloser Plan",
+    "pro": "Pro Plan",
+    "active": "Aktiv",
+    "inactive": "Inaktiv",
+    "expired": "Abgelaufen",
+    "canceled": "Gekundigt"
+  },
+  "footer": {
+    "terms": "AGB",
+    "privacy": "Datenschutz",
+    "copyright": "25g de Sel"
   },
   "subscription": {
     "premium": "Premium",
@@ -25,10 +94,27 @@
     "phasesIncluded": "Enthaltene Phasen:",
     "perMonth": "Monat",
     "upgradeButton": "Auf Premium upgraden",
-    "cancel": "Später",
-    "loading": "Lädt...",
+    "cancel": "Spater",
+    "loading": "Ladt...",
     "error": "Ein Fehler ist aufgetreten. Bitte erneut versuchen.",
     "premiumRequired": "Premium-Phase erforderlich",
-    "hostMustUpgrade": "Der Host benötigt Premium für diese Phase"
+    "hostMustUpgrade": "Der Host benotigt Premium fur diese Phase"
+  },
+  "pwa": {
+    "settings": "Einstellungen",
+    "sound": "Ton",
+    "soundOn": "An",
+    "soundOff": "Aus",
+    "language": "Sprache",
+    "profile": "Profil",
+    "editProfile": "Profil bearbeiten",
+    "account": "Konto",
+    "upgrade": "Premium werden",
+    "upgrading": "Laden...",
+    "leaveGame": "Spiel verlassen",
+    "logout": "Abmelden",
+    "play": "SPIELEN",
+    "rotateDevice": "Gerat drehen",
+    "portraitRequired": "Dieses Spiel wird im Hochformat gespielt"
   }
 }

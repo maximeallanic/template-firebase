@@ -7,5 +7,52 @@
     "spam": "Spam-Prüfung",
     "personalization": "Personalisierung",
     "structure": "Struktur"
+  },
+  "results": {
+    "title": "E-Mail-Analyseergebnisse",
+    "overallScore": "Gesamtbewertung",
+    "backToInput": "← Andere E-Mail analysieren",
+    "downloadPDF": "PDF herunterladen",
+    "shareResults": "Ergebnisse teilen",
+    "viewHistory": "Verlauf anzeigen"
+  },
+  "suggestions": {
+    "title": "Verbesserungsvorschläge",
+    "subtitle": "Priorisierte Empfehlungen zur Steigerung der E-Mail-Effektivität",
+    "types": {
+      "critical": "Kritisch",
+      "important": "Wichtig",
+      "minor": "Gering"
+    },
+    "empty": "Gut gemacht! Keine kritischen Vorschläge zu diesem Zeitpunkt."
+  },
+  "rewrites": {
+    "title": "Satzumformulierungen",
+    "subtitle": "Spezifische Vorher/Nachher-Beispiele mit Erklärungen",
+    "original": "Original",
+    "improved": "Verbessert",
+    "reason": "Warum das besser funktioniert",
+    "empty": "Keine spezifischen Umformulierungen nötig. Ihre E-Mail ist gut geschrieben!"
+  },
+  "correctedVersion": {
+    "title": "Korrigierte Version",
+    "subtitle": "Ihre E-Mail mit allen angewendeten Verbesserungen",
+    "copyButton": "In die Zwischenablage kopieren",
+    "copiedButton": "Kopiert!",
+    "download": "Herunterladen",
+    "empty": "Keine Korrekturen nötig. Ihre Original-E-Mail ist ausgezeichnet!"
+  },
+  "scores": {
+    "excellent": "Ausgezeichnet",
+    "good": "Gut",
+    "fair": "Befriedigend",
+    "needsWork": "Verbesserungsbedürftig",
+    "poor": "Mangelhaft"
+  },
+  "labels": {
+    "score": "Bewertung",
+    "status": "Status",
+    "issues": "Gefundene Probleme",
+    "noIssues": "Keine Probleme gefunden"
   }
 }

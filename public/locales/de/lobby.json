@@ -1,0 +1,41 @@
+{
+  "create": {
+    "title": "Kuche eroffnen",
+    "hostAccess": "Gastgeber-Zugang",
+    "joinGame": "Spiel beitreten",
+    "createProfile": "Erstelle dein Profil",
+    "chefName": "KOCH-NAME",
+    "chefNamePlaceholder": "Gordon R.",
+    "chooseAvatar": "WAHLE EINEN AVATAR",
+    "createButton": "Los kochen!",
+    "joinButton": "Spiel beitreten",
+    "creating": "Erstellen...",
+    "connecting": "Verbinden..."
+  },
+  "room": {
+    "roomCode": "Raum-Code",
+    "code": "Code",
+    "copyCode": "Code kopieren",
+    "copyLink": "Link kopieren",
+    "linkCopied": "Link kopiert",
+    "copyInviteLink": "Einladungslink kopieren",
+    "waitingForPlayers": "Warten auf Spieler...",
+    "gameInProgress": "Spiel lauft."
+  },
+  "teams": {
+    "spicyTeam": "Team Spicy",
+    "sweetTeam": "Team Sweet",
+    "unassigned": "Nicht zugewiesene Spieler",
+    "waitingSpicy": "Warten auf Mutige...",
+    "waitingSweet": "Warten auf Naschkatzen...",
+    "assignPlayer": "{{name}} einem Team zuweisen",
+    "assignToSpicy": "{{name}} zu Team Spicy zuweisen",
+    "assignToSweet": "{{name}} zu Team Sweet zuweisen",
+    "allAssigned": "Alle Koche sind zugewiesen!"
+  },
+  "game": {
+    "startGame": "SPIEL STARTEN",
+    "waitingForHost": "Warten auf den Gastgeber, um das Spiel zu starten...",
+    "spectatorMode": "ZUSCHAUER-MODUS"
+  }
+}

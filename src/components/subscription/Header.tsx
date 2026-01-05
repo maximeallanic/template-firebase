@@ -4,7 +4,6 @@ import { useTranslation } from 'react-i18next';
 import type { User } from 'firebase/auth';
 import { signOut, createPortalSession } from '../../services/firebase';
 import { LanguageSelector } from '../LanguageSelector';
-import { Logo } from '../ui/Logo';
 
 interface HeaderProps {
   user: User | null;
@@ -49,9 +48,9 @@ export const Header: React.FC<HeaderProps> = ({ user, onSignIn, subscriptionStat
     <header className="bg-white/90 backdrop-blur-lg border-b border-gray-200 sticky top-0 z-40 shadow-card">
       <div className="container mx-auto px-4 py-4">
         <div className="flex items-center justify-between">
-          {/* Logo - Clickable to home */}
-          <Link to="/" className="flex items-center gap-3 hover:opacity-80 transition-opacity duration-250">
-            <Logo className="h-12 w-auto" />
+          {/* Home link */}
+          <Link to="/" className="text-xl font-bold text-gray-900 hover:text-primary-600 transition-colors duration-250">
+            Spicy vs Sweet
           </Link>
 
           {/* User menu */}

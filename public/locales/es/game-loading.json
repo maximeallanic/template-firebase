@@ -1,0 +1,33 @@
+{
+  "generation": {
+    "title": "Preparando en la cocina...",
+    "error": {
+      "title": "Ups!",
+      "retry": "Reintentar"
+    }
+  },
+  "messages": [
+    "El chef esta preparando las preguntas...",
+    "Cocinando...",
+    "Anadiendo las especias...",
+    "Mezclando los ingredientes...",
+    "Precalentando el horno...",
+    "Cortando las verduras...",
+    "Emplatando los platos...",
+    "El sufle no debe caer...",
+    "Verificando la frescura...",
+    "Marinando...",
+    "Flambeado inminente...",
+    "Cocinando a fuego lento...",
+    "Anadiendo una pizca de sal...",
+    "El temporizador esta corriendo...",
+    "Vigilando el horno...",
+    "Probando la salsa...",
+    "Los pasteles estan tomando forma...",
+    "Batiendo las claras de huevo..."
+  ],
+  "connection": {
+    "connectingToKitchen": "Conectando a la Cocina...",
+    "connectingToGame": "Conectando a la partida..."
+  }
+}

@@ -3,19 +3,20 @@
     "start": "Commencer",
     "continue": "Continuer",
     "next": "Suivant",
-    "retry": "Réessayer",
+    "retry": "Reessayer",
     "back": "Retour",
     "confirm": "Confirmer",
     "cancel": "Annuler",
     "skip": "Passer",
     "join": "Rejoindre",
-    "create": "Créer",
+    "create": "Creer",
     "playAgain": "Rejouer",
     "save": "Enregistrer",
     "close": "Fermer",
     "delete": "Supprimer",
     "edit": "Modifier",
-    "submit": "Soumettre"
+    "submit": "Soumettre",
+    "upgrade": "Ameliorer"
   },
   "labels": {
     "loading": "Chargement...",
@@ -24,11 +25,11 @@
     "score": "Score",
     "round": "Manche",
     "question": "Question",
-    "answer": "Réponse",
-    "correctAnswer": "Bonne réponse",
+    "answer": "Reponse",
+    "correctAnswer": "Bonne reponse",
     "player": "Joueur",
     "players": "Joueurs",
-    "host": "Hôte",
+    "host": "Hote",
     "spectator": "Spectateur",
     "email": "Email",
     "password": "Mot de passe",
@@ -40,49 +41,80 @@
     "generic": "Une erreur est survenue",
     "roomNotFound": "Room introuvable",
     "connectionLost": "Connexion perdue",
-    "gameAlreadyStarted": "La partie a déjà commencé",
+    "gameAlreadyStarted": "La partie a deja commence",
     "roomFull": "La room est pleine",
-    "createFailed": "Échec de la création de la room"
+    "createFailed": "Echec de la creation de la room"
   },
   "messages": {
-    "success": "Succès !",
+    "success": "Succes !",
     "error": "Erreur",
     "warning": "Attention",
     "info": "Information",
     "loading": "Chargement...",
     "saving": "Enregistrement...",
     "processing": "Traitement...",
-    "noData": "Aucune donnée disponible"
+    "noData": "Aucune donnee disponible",
+    "comingSoon": "Bientot disponible"
   },
   "teams": {
     "spicy": "Spicy",
     "sweet": "Sweet",
     "neutral": "Neutre",
-    "yourTeam": "Ton équipe"
+    "yourTeam": "Ton equipe"
   },
   "time": {
     "seconds": "secondes",
     "minutes": "minutes",
     "hours": "heures",
-    "days": "jours"
+    "days": "jours",
+    "weeks": "semaines",
+    "months": "mois",
+    "years": "ans",
+    "ago": "il y a",
+    "remaining": "restant"
+  },
+  "plans": {
+    "free": "Plan Gratuit",
+    "pro": "Plan Pro",
+    "active": "Actif",
+    "inactive": "Inactif",
+    "expired": "Expire",
+    "canceled": "Annule"
   },
   "footer": {
     "terms": "CGU",
-    "privacy": "Confidentialité",
+    "privacy": "Confidentialite",
     "copyright": "25g de Sel"
   },
   "subscription": {
     "premium": "Premium",
     "free": "Gratuit",
-    "upgradeTitle": "Débloquer toutes les phases",
-    "upgradeDescription": "Accédez aux phases 3, 4 et 5 avec un abonnement Premium",
+    "upgradeTitle": "Debloquer toutes les phases",
+    "upgradeDescription": "Accedez aux phases 3, 4 et 5 avec un abonnement Premium",
     "phasesIncluded": "Phases incluses :",
     "perMonth": "mois",
-    "upgradeButton": "Passer à Premium",
+    "upgradeButton": "Passer a Premium",
     "cancel": "Plus tard",
     "loading": "Chargement...",
-    "error": "Une erreur est survenue. Réessayez.",
+    "error": "Une erreur est survenue. Reessayez.",
     "premiumRequired": "Phase Premium requise",
-    "hostMustUpgrade": "L'hôte doit être Premium pour accéder à cette phase"
+    "hostMustUpgrade": "L'hote doit etre Premium pour acceder a cette phase"
+  },
+  "pwa": {
+    "settings": "Reglages",
+    "sound": "Son",
+    "soundOn": "Active",
+    "soundOff": "Desactive",
+    "language": "Langue",
+    "profile": "Profil",
+    "editProfile": "Modifier le profil",
+    "account": "Compte",
+    "upgrade": "Passer Premium",
+    "upgrading": "Chargement...",
+    "leaveGame": "Quitter la partie",
+    "logout": "Se deconnecter",
+    "play": "JOUER",
+    "rotateDevice": "Tournez votre appareil",
+    "portraitRequired": "Ce jeu se joue en mode portrait"
   }
 }

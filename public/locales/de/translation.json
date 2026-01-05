@@ -8,34 +8,182 @@
     "appName": "Spicy vs Sweet"
   },
   "hero": {
-    "freeTrial": "🎉 Testen Sie Ihre Erste E-Mail KOSTENLOS - Keine Anmeldung Erforderlich!",
+    "freeTrial": "Testen Sie Ihre Erste E-Mail KOSTENLOS - Keine Anmeldung Erforderlich!",
     "title": "Verwandeln Sie Kalte E-Mails in",
-    "titleHighlight": "Heiße Antworten",
-    "subtitle": "Erhalten Sie sofortiges KI-gestütztes Feedback zu Ihren Kalt-E-Mails.",
-    "subtitleBold": "Erhöhen Sie Ihre Antwortrate um bis zu 3x",
-    "subtitleEnd": "mit umsetzbaren Erkenntnissen in Sekunden."
+    "titleHighlight": "Heisse Antworten",
+    "subtitle": "Erhalten Sie sofortiges KI-gestutztes Feedback zu Ihren Kalt-E-Mails.",
+    "subtitleBold": "Erhohen Sie Ihre Antwortrate um bis zu 3x",
+    "subtitleEnd": "mit umsetzbaren Erkenntnissen in Sekunden.",
+    "stats": {
+      "emailsAnalyzed": "10.000+ E-Mails Analysiert",
+      "averageRating": "Durchschnittliche Bewertung 4,9/5",
+      "instantResults": "Sofortige Ergebnisse"
+    }
+  },
+  "freeTrial": {
+    "title": "Kostenlose Testversion Verfugbar",
+    "description": "Analysieren Sie Ihre erste E-Mail ohne Anmeldung! Erleben Sie sofort die Kraft der KI-gesteuerten E-Mail-Analyse.",
+    "cta": "Kostenlose Testversion Nutzen",
+    "signUp": "Oder registrieren Sie sich fur 5 kostenlose Analysen pro Monat"
+  },
+  "usage": {
+    "title": "Ihre Nutzung",
+    "analyses": "{{used}} / {{limit}} Analysen diesen Monat genutzt",
+    "period": "Zeitraum endet:",
+    "upgrade": "Auf Pro Upgraden",
+    "manage": "Plan Verwalten",
+    "atLimit": "Sie haben Ihr monatliches Limit erreicht. Upgraden Sie auf Pro, um weiter E-Mails zu analysieren.",
+    "nearLimit": "Ihre Analysen gehen zur Neige. Erwagen Sie ein Upgrade auf Pro fur 250 Analysen/Monat.",
+    "upgradeCta": "Auf Pro Upgraden - 5€/Monat",
+    "loading": "Laden..."
+  },
+  "emailInput": {
+    "label": "Ihre Kalt-E-Mail",
+    "placeholder": "Fugen Sie Ihre Kalt-E-Mail hier ein...\n\nBetreffzeile und E-Mail-Text einschliessen\nZielen Sie auf 50-125 Worter fur beste Ergebnisse",
+    "tryExample": "Beispiel Ausprobieren",
+    "stats": {
+      "words": "Worter",
+      "optimal": "Optimal",
+      "addMore": "Mehr hinzufugen",
+      "tooLong": "Zu lang",
+      "chars": "Zeichen",
+      "perfectLength": "Perfekte Lange",
+      "addWordsMore": "Fugen Sie ~{{count}} Worter hinzu",
+      "removeWordsMore": "Entfernen Sie ~{{count}} Worter"
+    },
+    "errors": {
+      "empty": "Bitte geben Sie eine E-Mail zum Analysieren ein",
+      "tooShort": "E-Mail ist zu kurz zum Analysieren (mindestens 10 Zeichen)",
+      "tooLong": "E-Mail ist zu lang (maximal 10000 Zeichen)"
+    },
+    "buttons": {
+      "analyzing": "Ihre E-Mail wird analysiert...",
+      "analyzeWithAI": "E-Mail mit KI Analysieren",
+      "tryFree": "KOSTENLOS Testen - Keine Anmeldung",
+      "signInToAnalyze": "Anmelden, um Mehr E-Mails zu Analysieren"
+    },
+    "tips": {
+      "title": "Pro-Tipps fur Beste Ergebnisse:",
+      "tip1": "Betreffzeile und E-Mail-Text einschliessen",
+      "tip2": "Zielen Sie auf 50-125 Worter (optimale Lange)",
+      "tip3": "Probieren Sie unsere Beispiel-E-Mail aus, um zu sehen, wie es funktioniert"
+    },
+    "modes": {
+      "email": {
+        "title": "Per E-Mail Weiterleiten",
+        "subtitle": "Erhalten Sie eine eindeutige E-Mail-Adresse",
+        "badge": "NEU"
+      },
+      "paste": {
+        "title": "Text Einfugen",
+        "subtitle": "Kopieren & einfugen Sie Ihre E-Mail"
+      }
+    },
+    "emailMode": {
+      "title": "Per E-Mail Analysieren",
+      "description": "Leiten Sie Ihre Kalt-E-Mail weiter, um sofortiges KI-Feedback zu erhalten",
+      "loading": "Ihre eindeutige E-Mail-Adresse wird generiert...",
+      "yourEmail": "Ihre eindeutige E-Mail-Adresse:",
+      "copyButton": "Kopieren",
+      "copiedButton": "Kopiert!",
+      "expiresIn": "Ablauf in: {{time}}",
+      "howItWorks": "So funktioniert es:",
+      "step1": "Kopieren Sie die E-Mail-Adresse oben",
+      "step2": "Leiten Sie Ihre Kalt-E-Mail von Gmail, Outlook oder einem anderen E-Mail-Client weiter",
+      "step3": "Ihre KI-Analyse erscheint automatisch in ~30 Sekunden",
+      "status": {
+        "waiting": "Warten auf Ihre E-Mail...",
+        "received": "E-Mail erhalten!",
+        "analyzing": "KI analysiert Ihre E-Mail...",
+        "completed": "Analyse abgeschlossen! Weiterleitung...",
+        "error": "Fehler",
+        "tryAgain": "Erneut Versuchen"
+      }
+    }
+  },
+  "features": {
+    "title": "Alles was Sie brauchen, um bessere Kalt-E-Mails zu schreiben",
+    "subtitle": "Angetrieben von Google Gemini AI analysiert unsere Plattform jeden Aspekt Ihrer E-Mail, um das Engagement zu maximieren",
+    "instant": {
+      "title": "Sofortiges Feedback",
+      "description": "Erhalten Sie KI-gestutztes Analyse in Sekunden mit Echtzeit-Bewertung uber 7 kritische Metriken",
+      "link": "Mehr erfahren"
+    },
+    "metrics": {
+      "title": "7 Schlusselmetriken",
+      "description": "Umfassende Bewertung: Klarheit, Ton, Lange, CTA, Spam-Score, Personalisierung & Struktur",
+      "link": "Metriken anzeigen"
+    },
+    "insights": {
+      "title": "Umsetzbare Erkenntnisse",
+      "description": "Erhalten Sie spezifische, umsetzbare Empfehlungen, die Sie sofort umsetzen konnen, um Antwortraten zu erhohen",
+      "link": "Beispiel anzeigen"
+    }
+  },
+  "pricing": {
+    "title": "Wahlen Sie Ihren Plan",
+    "subtitle": "Starten Sie kostenlos, upgraden Sie wenn Sie bereit sind. Keine Kreditkarte erforderlich.",
+    "moneyBack": "30-Tage-Geld-zuruck-Garantie - Jederzeit kundbar",
+    "free": {
+      "badge": "Perfekt zum Starten",
+      "title": "Kostenlos",
+      "price": "0€",
+      "period": "/Monat",
+      "features": {
+        "analyses": "<1>5 E-Mail-Analysen</1> pro Monat",
+        "metrics": "Alle 7 Analyse-Metriken",
+        "recommendations": "Umsetzbare Empfehlungen",
+        "noCard": "Keine Kreditkarte erforderlich"
+      },
+      "cta": "Kostenlos Starten"
+    },
+    "pro": {
+      "badge": "AM BELIEBTESTEN",
+      "badgeAlt": "Bester Wert",
+      "title": "Pro",
+      "price": "5€",
+      "period": "/Monat",
+      "perAnalysis": "Nur 0,02€ pro Analyse!",
+      "features": {
+        "analyses": "<1>250 E-Mail-Analysen</1> pro Monat",
+        "metrics": "Alle 7 Analyse-Metriken",
+        "history": "Kompletter Analyse-Verlauf",
+        "support": "Prioritats-E-Mail-Support",
+        "cancel": "Jederzeit kundbar"
+      },
+      "cta": "Mit Pro Starten",
+      "trial": "Starten Sie mit einer kostenlosen Testversion - Keine Kreditkarte erforderlich"
+    }
   },
   "footer": {
-    "poweredBy": "© 2025 • Angetrieben von Gemini AI"
+    "poweredBy": "2025 - Angetrieben von Gemini AI",
+    "termsOfService": "Nutzungsbedingungen",
+    "termsAndConditions": "Allgemeine Geschaftsbedingungen"
+  },
+  "success": {
+    "freeTrialUsed": "Kostenlose Testversion genutzt! Registrieren Sie sich fur 5 Analysen pro Monat kostenlos.",
+    "welcomePro": "Willkommen bei Spicy vs Sweet Pro! Ihr Abonnement ist jetzt aktiv.",
+    "signUpComplete": "Registrierung abgeschlossen",
+    "analysisComplete": "Analyse abgeschlossen"
   },
   "loading": "Laden...",
   "profileSetup": {
     "title": "Erstelle dein Chef-Profil",
-    "subtitle": "Richte deine Identität ein, um zu spielen!",
+    "subtitle": "Richte deine Identitat ein, um zu spielen!",
     "nameLabel": "Chef-Name",
     "namePlaceholder": "Dein Spitzname (max 12 Zeichen)",
-    "avatarLabel": "Wähle deinen Avatar",
+    "avatarLabel": "Wahle deinen Avatar",
     "saveButton": "Los geht's!",
     "saving": "Speichern...",
     "errorNameRequired": "Ein Name ist erforderlich",
-    "errorAvatarRequired": "Bitte wähle einen Avatar",
+    "errorAvatarRequired": "Bitte wahle einen Avatar",
     "errorSaveFailed": "Speichern fehlgeschlagen. Bitte erneut versuchen."
   },
   "profileEdit": {
     "title": "Profil bearbeiten",
     "nameLabel": "Chef-Name",
     "namePlaceholder": "Dein Name",
-    "avatarLabel": "Avatar wählen",
+    "avatarLabel": "Avatar wahlen",
     "save": "Speichern",
     "saving": "Speichern...",
     "cancel": "Abbrechen",

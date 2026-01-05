@@ -1,0 +1,58 @@
+{
+  "phase4": {
+    "questions": [
+      { "question": "Wie ist der Vorname von Mr. Bean?", "answer": "Mr." },
+      { "question": "Welche Farbe haben Erbsen?", "answer": "Grun" },
+      { "question": "Wie nennt man eine Katze, die ins Wasser fallt?", "answer": "Eine nasse Katze" },
+      { "question": "Welche Farbe hatte Napoleons weisses Pferd?", "answer": "Weiss" },
+      { "question": "Was ist 2+2?", "answer": "4" },
+      { "question": "Welches Tier sagt 'Miau'?", "answer": "Die Katze" },
+      { "question": "Was ist die Hauptstadt von Frankreich?", "answer": "Paris" },
+      { "question": "Welche Frucht ist gelb und gebogen?", "answer": "Banane" },
+      { "question": "Wie viele Beine hat eine Spinne?", "answer": "8" },
+      { "question": "Was ist das Gegenteil von 'heiss'?", "answer": "Kalt" },
+      { "question": "Welches Tier wird der Konig des Dschungels genannt?", "answer": "Der Lowe" },
+      { "question": "Wie viele Tage hat eine Woche?", "answer": "7" },
+      { "question": "Welcher Planet wird der rote Planet genannt?", "answer": "Mars" },
+      { "question": "Welcher Superheld tragt einen roten Umhang?", "answer": "Superman" },
+      { "question": "In welchem Jahr sind wir?", "answer": "2025" }
+    ]
+  },
+  "phase5": {
+    "questions": [
+      { "question": "Wer ist Harry Potters bester Freund?", "answer": "Ron Weasley" },
+      { "question": "Was ist die Hauptstadt von Frankreich?", "answer": "Paris" },
+      { "question": "Was ist 7 x 8?", "answer": "56" },
+      { "question": "Was ist der grosste Ozean der Welt?", "answer": "Pazifik" },
+      { "question": "Wer sang 'Thriller'?", "answer": "Michael Jackson" },
+      { "question": "Welche Farbe hat der Himmel?", "answer": "Blau" },
+      { "question": "Was ist das grosste Landtier?", "answer": "Der Elefant" },
+      { "question": "Wie viele Kontinente gibt es?", "answer": "7" },
+      { "question": "Wer malte die Mona Lisa?", "answer": "Leonardo da Vinci" },
+      { "question": "Was ist das chemische Symbol fur Wasser?", "answer": "H2O" }
+    ]
+  },
+  "phase2": {
+    "defaultSets": [
+      {
+        "title": "McDonald's vs Burger King",
+        "optionA": "McDonald's",
+        "optionB": "Burger King",
+        "items": [
+          { "text": "Die besten Pommes", "answer": "A" },
+          { "text": "Der Whopper", "answer": "B" },
+          { "text": "Ronald der Clown", "answer": "A" },
+          { "text": "Der Big Mac", "answer": "A" },
+          { "text": "Flamme-gegrillte Burger", "answer": "B" },
+          { "text": "Happy Meal", "answer": "A" },
+          { "text": "Have it your way", "answer": "B" },
+          { "text": "Die goldenen Bogen", "answer": "A" },
+          { "text": "Der Konig", "answer": "B" },
+          { "text": "McFlurry", "answer": "A" },
+          { "text": "Steakhouse Burger", "answer": "B" },
+          { "text": "Ich liebe es", "answer": "A" }
+        ]
+      }
+    ]
+  }
+}

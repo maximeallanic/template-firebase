@@ -146,5 +146,29 @@
       }
     },
     "button": "Los rechnen!"
+  },
+
+  "phase5": {
+    "title": "Ultimate Burger",
+    "subtitle": "Die finale Herausforderung",
+    "steps": {
+      "listen": {
+        "label": "Erst zuhoren",
+        "text": "Hore alle 10 Fragen bevor du antwortest"
+      },
+      "remember": {
+        "label": "Merken",
+        "text": "Merke dir Fragen und Antworten"
+      },
+      "answer": {
+        "label": "Alle beantworten",
+        "text": "Beantworte alle Fragen der Reihe nach"
+      },
+      "team": {
+        "label": "Teamarbeit",
+        "text": "Arbeitet zusammen fur maximale Punkte"
+      }
+    },
+    "button": "Finale!"
   }
 }
