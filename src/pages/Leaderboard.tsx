@@ -3,12 +3,12 @@
  * Displays solo mode high scores
  */
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { Trophy, ArrowLeft, Medal, Clock, Target, Zap } from 'lucide-react';
 import { FoodLoader } from '../components/ui/FoodLoader';
-import { getTopScores, getMyBestScore, type LeaderboardEntry } from '../services/leaderboardService';
+import { getTopScores, getMyBestScore, getMyRank, type LeaderboardEntry } from '../services/leaderboardService';
 import { AvatarIcon } from '../components/AvatarIcon';
 import { useAuthUser } from '../hooks/useAuthUser';
 import { useReducedMotion } from '../hooks/useReducedMotion';
@@ -22,6 +22,7 @@ export default function Leaderboard() {
 
     const [scores, setScores] = useState<LeaderboardEntry[]>([]);
     const [myBest, setMyBest] = useState<LeaderboardEntry | null>(null);
+    const [myRank, setMyRank] = useState<number | null>(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
 
@@ -38,6 +39,14 @@ export default function Leaderboard() {
 
                 setScores(topScores);
                 setMyBest(bestScore);
+
+                // Récupérer le rang si l'utilisateur a un score
+                if (bestScore) {
+                    const rank = await getMyRank(bestScore.score);
+                    setMyRank(rank);
+                } else {
+                    setMyRank(null);
+                }
             } catch (err) {
                 console.error('[Leaderboard] Load error:', err);
                 setError('Impossible de charger le classement');
@@ -56,6 +65,11 @@ export default function Leaderboard() {
         return `${minutes}:${remainingSeconds.toString().padStart(2, '0')}`;
     };
 
+    const formatFrenchOrdinal = (n: number): string => {
+        if (n === 1) return '1er';
+        return `${n}e`;
+    };
+
     const getRankBadge = (rank: number) => {
         switch (rank) {
             case 1:
@@ -68,6 +82,11 @@ export default function Leaderboard() {
                 return <span className="w-6 text-center font-mono text-gray-400">{rank}</span>;
         }
     };
+
+    const isUserInTop50 = useMemo(() => {
+        if (!user || !myBest) return false;
+        return scores.some(entry => entry.playerId === user.uid);
+    }, [user, myBest, scores]);
 
     return (
         <div className="min-h-screen flex flex-col p-4 text-white">
@@ -109,9 +128,17 @@ export default function Leaderboard() {
                     animate={prefersReducedMotion ? { opacity: 1 } : { opacity: 1, scale: 1 }}
                     className="bg-gradient-to-r from-orange-500/20 to-red-500/20 border border-orange-500/30 rounded-2xl p-4 mb-6 max-w-2xl mx-auto w-full"
                 >
-                    <div className="text-sm text-orange-400 font-bold mb-2 flex items-center gap-2">
-                        <Zap className="w-4 h-4" />
-                        Mon meilleur score
+                    <div className="flex items-center justify-between mb-2">
+                        <div className="text-sm text-orange-400 font-bold flex items-center gap-2">
+                            <Zap className="w-4 h-4" />
+                            Mon meilleur score
+                        </div>
+                        {myRank !== null && (
+                            <div className="flex items-center gap-1 text-orange-300 font-bold">
+                                <Trophy className="w-4 h-4" />
+                                <span>{formatFrenchOrdinal(myRank)}</span>
+                            </div>
+                        )}
                     </div>
                     <div className="flex items-center gap-4">
                         <AvatarIcon avatar={myBest.playerAvatar} size={48} />
@@ -235,6 +262,34 @@ export default function Leaderboard() {
                                 </motion.div>
                             );
                         })}
+                    </div>
+                </motion.div>
+            )}
+
+            {/* Position de l'utilisateur (si pas dans le top 50) */}
+            {!loading && !error && myBest && myRank !== null && !isUserInTop50 && (
+                <motion.div
+                    initial={prefersReducedMotion ? { opacity: 0 } : { opacity: 0, y: 10 }}
+                    animate={prefersReducedMotion ? { opacity: 1 } : { opacity: 1, y: 0 }}
+                    className="max-w-2xl mx-auto w-full mt-6"
+                >
+                    {/* Séparateur */}
+                    <div className="flex items-center justify-center gap-2 text-gray-500 mb-4">
+                        <span>• • •</span>
+                    </div>
+
+                    {/* Ligne utilisateur */}
+                    <div className="grid grid-cols-12 gap-2 items-center px-4 py-3 rounded-xl bg-orange-500/20 border border-orange-500/30">
+                        <div className="col-span-1 flex items-center">
+                            <span className="w-6 text-center font-mono text-orange-400">{myRank}</span>
+                        </div>
+                        <div className="col-span-5 flex items-center gap-3">
+                            <AvatarIcon avatar={myBest.playerAvatar} size={32} />
+                            <span className="font-bold truncate text-orange-400">{myBest.playerName}</span>
+                        </div>
+                        <div className="col-span-2 text-center text-gray-400">{myBest.accuracy}%</div>
+                        <div className="col-span-2 text-center text-gray-400 font-mono">{formatTime(myBest.totalTimeMs)}</div>
+                        <div className="col-span-2 text-right font-black text-xl text-orange-400">{myBest.score}</div>
                     </div>
                 </motion.div>
             )}
