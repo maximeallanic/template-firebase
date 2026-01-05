@@ -41,6 +41,19 @@ VÉRIFIE mentalement chaque fait AVANT de l'écrire.
 Les 3 mauvaises réponses doivent être FAUSSES mais crédibles.
 ❌ Pas d'ambiguïté possible entre les réponses.
 
+⚠️ ATTENTION AUX MYTHES ET LÉGENDES URBAINES :
+Certaines "anecdotes célèbres" sont en réalité FAUSSES :
+- Vérifie TOUJOURS les affirmations extraordinaires avec une recherche
+- Si une histoire semble "trop belle pour être vraie", elle l'est probablement
+- Préfère les formulations prudentes pour les faits contestés ("Selon la légende...", "Aurait...")
+- Une erreur factuelle = REJET de la question entière
+
+MYTHES COURANTS À NE JAMAIS UTILISER COMME FAITS :
+- Caligula n'a PAS nommé son cheval consul
+- Einstein était BON en maths
+- Les vikings n'avaient PAS de casques à cornes
+- Newton et la pomme : anecdote NON PROUVÉE
+
 🎯 RÈGLE #2 - OPTIONS ULTRA CRÉDIBLES
 Les 4 options sont du MÊME registre sémantique - toutes semblent vraies.
 Le joueur doit DOUTER sincèrement entre les options.

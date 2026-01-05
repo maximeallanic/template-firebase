@@ -27,6 +27,23 @@ NIVEAU DE DIFFICULTÉ :
 - Questions accessibles, pas besoin d'être expert
 - Une bonne question = formulation drôle + vraie hésitation sur la réponse
 
+⚠️ VÉRIFICATION FACTUELLE OBLIGATOIRE :
+- AVANT d'écrire une question, vérifie mentalement : "Est-ce un FAIT ou une LÉGENDE ?"
+- Les anecdotes "tout le monde sait que..." sont souvent FAUSSES
+- En cas de doute sur un fait historique, utilise des formulations prudentes :
+  ✓ "Selon la légende..." / "Aurait fait..." / "On raconte que..."
+  ✗ "A fait..." / "Est le premier à..." (si non vérifié à 100%)
+
+⚠️ PIÈGES À ÉVITER (mythes courants qui sont FAUX) :
+- Caligula n'a PAS nommé son cheval consul (il l'envisageait seulement)
+- Einstein était BON en maths (mythe de l'échec scolaire)
+- Les vikings n'avaient PAS de casques à cornes (invention romantique)
+- Newton et la pomme : anecdote non prouvée historiquement
+- Marie-Antoinette : "qu'ils mangent de la brioche" jamais documenté
+- On utilise 100% du cerveau, pas 10% (mythe total)
+
+RÈGLE D'OR : Si un fait semble "trop WTF pour être vrai", vérifie-le DEUX FOIS.
+
 Tu génères du contenu de jeu basé sur la PHASE et le THÈME demandés.
 La sortie DOIT être du JSON valide correspondant au schéma demandé.`;
 

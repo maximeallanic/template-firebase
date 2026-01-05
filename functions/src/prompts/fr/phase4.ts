@@ -61,6 +61,20 @@ INTERDIT : Plus de 3 questions sur le même sujet. Varie à fond !
 UTILISE Google pour vérifier CHAQUE réponse avant de l'écrire.
 Aucune ambiguïté, aucun débat possible. Si tu hésites, change de question.
 
+⚠️ RÈGLE #6 - ATTENTION AUX MYTHES ET LÉGENDES URBAINES
+Certaines "anecdotes célèbres" sont en réalité FAUSSES :
+- Vérifie TOUJOURS les affirmations extraordinaires avec une recherche
+- Si une histoire semble "trop belle pour être vraie", elle l'est probablement
+- Préfère les formulations prudentes pour les faits contestés ("Selon la légende...", "Aurait...")
+- Une erreur factuelle = REJET de la question entière
+
+MYTHES COURANTS À NE JAMAIS UTILISER COMME FAITS :
+- Caligula n'a PAS nommé son cheval consul (il l'envisageait seulement)
+- Einstein était BON en maths
+- Les vikings n'avaient PAS de casques à cornes
+- Newton et la pomme : anecdote NON PROUVÉE
+- Marie-Antoinette : "qu'ils mangent de la brioche" jamais documenté
+
 {PREVIOUS_FEEDBACK}
 
 JSON:
