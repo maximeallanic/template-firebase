@@ -13,6 +13,9 @@ import {
     where,
     Timestamp,
     serverTimestamp,
+    doc,
+    updateDoc,
+    deleteDoc,
 } from 'firebase/firestore';
 import { db, auth } from './firebase';
 import type { Avatar } from '../types/gameTypes';
@@ -78,13 +81,37 @@ function validateScoreEntry(entry: Omit<LeaderboardEntry, 'id' | 'createdAt'>): 
 }
 
 /**
- * Submit a new score to the leaderboard
+ * Submit a score to the leaderboard
+ * If the player already has an entry, only updates if the new score is better
  */
 export async function submitScore(entry: Omit<LeaderboardEntry, 'id' | 'createdAt'>): Promise<string> {
     // Validate entry before submission
     validateScoreEntry(entry);
 
     try {
+        // Check if player already has an entry
+        const q = query(
+            collection(db, COLLECTION_NAME),
+            where('playerId', '==', entry.playerId),
+            limit(1)
+        );
+        const snapshot = await getDocs(q);
+
+        if (!snapshot.empty) {
+            const existingDoc = snapshot.docs[0];
+            const existingData = existingDoc.data() as LeaderboardEntry;
+
+            // Only update if new score is better
+            if (entry.score > existingData.score) {
+                await updateDoc(doc(db, COLLECTION_NAME, existingDoc.id), {
+                    ...entry,
+                    createdAt: serverTimestamp(),
+                });
+            }
+            return existingDoc.id;
+        }
+
+        // No existing entry, create new one
         const docRef = await addDoc(collection(db, COLLECTION_NAME), {
             ...entry,
             createdAt: serverTimestamp(),
@@ -170,4 +197,40 @@ export async function getMyRank(score: number): Promise<number> {
         console.error('[Leaderboard] Failed to get rank:', error);
         return -1;
     }
+}
+
+/**
+ * Cleanup duplicate entries, keeping only the best score per player
+ * Run this once to migrate existing data
+ */
+export async function cleanupDuplicates(): Promise<{ deleted: number; kept: number }> {
+    const allDocs = await getDocs(collection(db, COLLECTION_NAME));
+
+    // Group by playerId and keep the best score
+    const bestByPlayer = new Map<string, { docId: string; score: number }>();
+    const toDelete: string[] = [];
+
+    allDocs.forEach((docSnap) => {
+        const data = docSnap.data() as LeaderboardEntry;
+        const existing = bestByPlayer.get(data.playerId);
+
+        if (!existing) {
+            bestByPlayer.set(data.playerId, { docId: docSnap.id, score: data.score });
+        } else if (data.score > existing.score) {
+            // This score is better, delete the old one
+            toDelete.push(existing.docId);
+            bestByPlayer.set(data.playerId, { docId: docSnap.id, score: data.score });
+        } else {
+            // Existing is better, delete this one
+            toDelete.push(docSnap.id);
+        }
+    });
+
+    // Delete duplicates
+    for (const docId of toDelete) {
+        await deleteDoc(doc(db, COLLECTION_NAME, docId));
+    }
+
+    console.log(`[Leaderboard] Cleanup complete: deleted ${toDelete.length}, kept ${bestByPlayer.size}`);
+    return { deleted: toDelete.length, kept: bestByPlayer.size };
 }
