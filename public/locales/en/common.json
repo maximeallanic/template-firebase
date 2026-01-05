@@ -116,5 +116,16 @@
     "play": "PLAY",
     "rotateDevice": "Rotate Your Device",
     "portraitRequired": "This game is played in portrait mode"
+  },
+  "profileEdit": {
+    "title": "Edit Profile",
+    "nameLabel": "Chef Name",
+    "namePlaceholder": "Your name",
+    "avatarLabel": "Choose an Avatar",
+    "save": "Save",
+    "saving": "Saving...",
+    "cancel": "Cancel",
+    "errorNameRequired": "Name cannot be empty",
+    "errorSaveFailed": "Failed to update profile. Please try again."
   }
 }

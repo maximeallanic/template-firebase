@@ -116,5 +116,16 @@
     "play": "SPIELEN",
     "rotateDevice": "Gerat drehen",
     "portraitRequired": "Dieses Spiel wird im Hochformat gespielt"
+  },
+  "profileEdit": {
+    "title": "Profil bearbeiten",
+    "nameLabel": "Chef-Name",
+    "namePlaceholder": "Dein Name",
+    "avatarLabel": "Avatar wahlen",
+    "save": "Speichern",
+    "saving": "Speichern...",
+    "cancel": "Abbrechen",
+    "errorNameRequired": "Name darf nicht leer sein",
+    "errorSaveFailed": "Profil konnte nicht aktualisiert werden. Bitte erneut versuchen."
   }
 }

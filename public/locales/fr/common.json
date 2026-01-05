@@ -116,5 +116,16 @@
     "play": "JOUER",
     "rotateDevice": "Tournez votre appareil",
     "portraitRequired": "Ce jeu se joue en mode portrait"
+  },
+  "profileEdit": {
+    "title": "Modifier le Profil",
+    "nameLabel": "Nom du Chef",
+    "namePlaceholder": "Votre nom",
+    "avatarLabel": "Choisir un Avatar",
+    "save": "Enregistrer",
+    "saving": "Enregistrement...",
+    "cancel": "Annuler",
+    "errorNameRequired": "Le nom ne peut pas etre vide",
+    "errorSaveFailed": "Echec de la mise a jour du profil. Veuillez reessayer."
   }
 }

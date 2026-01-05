@@ -6,7 +6,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Trophy, ArrowLeft, Medal, Clock, Target, Zap } from 'lucide-react';
+import { Trophy, Medal, Clock, Target, Zap } from 'lucide-react';
 import { FoodLoader } from '../components/ui/FoodLoader';
 import { getTopScores, getMyBestScore, getMyRank, type LeaderboardEntry } from '../services/leaderboardService';
 import { AvatarIcon } from '../components/AvatarIcon';
@@ -16,6 +16,7 @@ import { useReducedMotion } from '../hooks/useReducedMotion';
 import { UserBar } from '../components/auth/UserBar';
 import { ProfileEditModal } from '../components/auth/ProfileEditModal';
 import { QuickSettings } from '../components/pwa/QuickSettings';
+import { PWABackButton } from '../components/pwa/PWABackButton';
 import type { Avatar } from '../types/gameTypes';
 
 export default function Leaderboard() {
@@ -106,13 +107,7 @@ export default function Leaderboard() {
 
             {/* Header */}
             <div className="flex items-center justify-between mb-6">
-                <button
-                    onClick={() => navigate(-1)}
-                    className="flex items-center gap-2 text-gray-400 hover:text-white transition-colors"
-                >
-                    <ArrowLeft className="w-5 h-5" />
-                    <span>Retour</span>
-                </button>
+                <PWABackButton />
             </div>
 
             {/* Title */}

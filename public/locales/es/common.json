@@ -116,5 +116,16 @@
     "play": "JUGAR",
     "rotateDevice": "Gira tu dispositivo",
     "portraitRequired": "Este juego se juega en modo vertical"
+  },
+  "profileEdit": {
+    "title": "Editar Perfil",
+    "nameLabel": "Nombre del Chef",
+    "namePlaceholder": "Tu nombre",
+    "avatarLabel": "Elegir un Avatar",
+    "save": "Guardar",
+    "saving": "Guardando...",
+    "cancel": "Cancelar",
+    "errorNameRequired": "El nombre no puede estar vacio",
+    "errorSaveFailed": "Error al actualizar el perfil. Intentalo de nuevo."
   }
 }
