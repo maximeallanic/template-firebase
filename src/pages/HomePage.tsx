@@ -9,13 +9,15 @@ import { Logo } from '../components/ui/Logo';
 import { AvatarIcon } from '../components/AvatarIcon';
 import { PhaseIcon } from '../components/game/PhaseIcon';
 import { FoodLoader } from '../components/ui/FoodLoader';
+import { OnboardingIntro } from '../components/onboarding/OnboardingIntro';
 import { createRoom, joinRoom, AVATAR_LIST } from '../services/gameService';
 import { safeStorage } from '../utils/storage';
 import { saveProfile } from '../services/profileService';
+import { isFirstTimeUser, markIntroSeen } from '../services/onboardingService';
 import { useAuthUser } from '../hooks/useAuthUser';
 import { useAppInstall } from '../hooks/useAppInstall';
 import { useHaptic } from '../hooks/useHaptic';
-import { Users, Zap, Trophy, ChefHat, Flame, Candy, X, Crown, Star, Lock, Download, Smartphone } from 'lucide-react';
+import { Users, Zap, Trophy, ChefHat, Flame, Candy, X, Crown, Star, Lock, Download, Smartphone, UserPlus, Swords } from 'lucide-react';
 import { createCheckoutSession } from '../services/firebase';
 import { useCurrentUserSubscription } from '../hooks/useHostSubscription';
 
@@ -32,7 +34,7 @@ const floatingMascots = [
 ] as const;
 
 export default function HomePage() {
-  const { t } = useTranslation(['home', 'common', 'errors']);
+  const { t } = useTranslation(['home', 'common', 'errors', 'onboarding']);
   const navigate = useNavigate();
   const { user, profile, loading: profileLoading } = useAuthUser();
   const [searchParams, setSearchParams] = useSearchParams();
@@ -42,6 +44,7 @@ export default function HomePage() {
   const [joinError, setJoinError] = useState<string | null>(null);
   const [urlError, setUrlError] = useState<string | null>(null);
   const [isUpgrading, setIsUpgrading] = useState(false);
+  const [showOnboarding, setShowOnboarding] = useState(false);
   const hasAutoJoined = useRef(false);
 
   // Check if current user is already premium
@@ -112,6 +115,13 @@ export default function HomePage() {
   // Preload GameRoom for smooth transition (no Suspense fallback flash)
   useLayoutEffect(() => {
     import('./GameRoom');
+  }, []);
+
+  // Show onboarding for first-time users
+  useEffect(() => {
+    if (isFirstTimeUser()) {
+      setShowOnboarding(true);
+    }
   }, []);
 
   // Handle "Create Room" - if user has profile AND is authenticated, create directly; otherwise go to /host
@@ -236,9 +246,57 @@ export default function HomePage() {
     return <PWAHomePage />;
   }
 
+  // Onboarding steps for home page
+  const homeOnboardingSteps = [
+    {
+      icon: UserPlus,
+      label: t('onboarding:step', { number: 1 }),
+      text: t('onboarding:home.steps.createJoin.text'),
+      color: 'text-blue-400',
+    },
+    {
+      icon: Swords,
+      label: t('onboarding:step', { number: 2 }),
+      text: t('onboarding:home.steps.pickTeam.text'),
+      color: 'text-red-400',
+    },
+    {
+      icon: Zap,
+      label: t('onboarding:step', { number: 3 }),
+      text: t('onboarding:home.steps.challenges.text'),
+      color: 'text-yellow-400',
+    },
+    {
+      icon: Trophy,
+      label: t('onboarding:step', { number: 4 }),
+      text: t('onboarding:home.steps.win.text'),
+      color: 'text-green-400',
+    },
+  ];
+
   return (
     <div className="min-h-screen flex flex-col items-center p-6 relative overflow-hidden">
       {/* Background is now handled by SharedBackground in App.tsx */}
+
+      {/* Onboarding for first-time users */}
+      <AnimatePresence>
+        {showOnboarding && (
+          <OnboardingIntro
+            title={t('onboarding:home.title')}
+            subtitle={t('onboarding:home.subtitle')}
+            icon={ChefHat}
+            iconColor="text-orange-500"
+            gradientFrom="from-orange-300"
+            gradientTo="to-red-500"
+            steps={homeOnboardingSteps}
+            buttonText={t('onboarding:home.button')}
+            onContinue={() => {
+              markIntroSeen('HOME_INTRO');
+              setShowOnboarding(false);
+            }}
+          />
+        )}
+      </AnimatePresence>
 
       {/* Loading Overlay - Only for joining, not for creating (smooth transition) */}
       <AnimatePresence>

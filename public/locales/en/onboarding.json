@@ -1,0 +1,150 @@
+{
+  "howToPlay": "How to play",
+  "step": "Step {{number}}",
+  "continue": "Got it!",
+  "letsGo": "Let's Go!",
+
+  "home": {
+    "title": "Welcome!",
+    "subtitle": "The culinary quiz showdown",
+    "steps": {
+      "createJoin": {
+        "label": "Create or Join",
+        "text": "Create a room as host or join with a code"
+      },
+      "pickTeam": {
+        "label": "Pick Your Team",
+        "text": "Choose Team Spicy or Team Sweet"
+      },
+      "challenges": {
+        "label": "5 Challenges",
+        "text": "Battle through 5 hilarious quiz rounds"
+      },
+      "win": {
+        "label": "Win Together",
+        "text": "Team with the most points wins!"
+      }
+    },
+    "button": "Let's Cook!"
+  },
+
+  "lobby": {
+    "title": "You're the Host!",
+    "subtitle": "Here's what you can do",
+    "steps": {
+      "share": {
+        "label": "Share Code",
+        "text": "Share the room code with your friends"
+      },
+      "assign": {
+        "label": "Assign Teams",
+        "text": "Drag players to Spicy or Sweet teams"
+      },
+      "balance": {
+        "label": "Balance",
+        "text": "Keep teams roughly equal for fair play"
+      },
+      "start": {
+        "label": "Start Game",
+        "text": "Press Start when everyone is ready"
+      }
+    },
+    "button": "Got it!"
+  },
+
+  "phase1": {
+    "title": "Tenders",
+    "subtitle": "Speed MCQ Challenge",
+    "steps": {
+      "speed": {
+        "label": "Speed Matters",
+        "text": "Be the first to answer correctly!"
+      },
+      "tap": {
+        "label": "Tap to Answer",
+        "text": "Select the right option quickly"
+      },
+      "points": {
+        "label": "Win Points",
+        "text": "Fastest correct answer wins the point"
+      },
+      "team": {
+        "label": "Team Score",
+        "text": "Points go to your team"
+      }
+    },
+    "button": "Ready!"
+  },
+
+  "phase2": {
+    "title": "Sweet & Salty",
+    "subtitle": "Classify the items",
+    "steps": {
+      "classify": {
+        "label": "Classify",
+        "text": "Sort each item into the right category"
+      },
+      "swipe": {
+        "label": "Swipe or Tap",
+        "text": "Swipe left/right or tap the zones"
+      },
+      "both": {
+        "label": "Both Works",
+        "text": "Swipe up if it fits both categories"
+      },
+      "race": {
+        "label": "Team Race",
+        "text": "First team to answer locks it in"
+      }
+    },
+    "button": "Let's Sort!"
+  },
+
+  "phase3": {
+    "title": "The Menu",
+    "subtitle": "Themed Q&A",
+    "steps": {
+      "pick": {
+        "label": "Pick Menu",
+        "text": "Each team chooses a theme"
+      },
+      "answer": {
+        "label": "Type Answers",
+        "text": "Type your answers to the questions"
+      },
+      "spelling": {
+        "label": "Spelling OK",
+        "text": "Approximate spelling is accepted"
+      },
+      "clock": {
+        "label": "Beat the Clock",
+        "text": "Answer before time runs out!"
+      }
+    },
+    "button": "Order Up!"
+  },
+
+  "phase4": {
+    "title": "The Bill",
+    "subtitle": "Individual speed round",
+    "steps": {
+      "individual": {
+        "label": "Individual",
+        "text": "Everyone answers independently"
+      },
+      "pick": {
+        "label": "Pick One",
+        "text": "Select the correct option"
+      },
+      "timer": {
+        "label": "30 Seconds",
+        "text": "30 seconds per question"
+      },
+      "first": {
+        "label": "First Wins",
+        "text": "First correct answer earns points"
+      }
+    },
+    "button": "Let's Calculate!"
+  }
+}

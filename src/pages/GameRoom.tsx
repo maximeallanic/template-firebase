@@ -10,6 +10,7 @@ import { PhaseResults } from '../components/game/PhaseResults';
 import { GameErrorBoundary } from '../components/game/GameErrorBoundary';
 import { GenerationLoadingCard } from '../components/ui/GenerationLoadingCard';
 import { UpgradeModal } from '../components/subscription/UpgradeModal';
+import { OnboardingIntro } from '../components/onboarding/OnboardingIntro';
 import { motion, AnimatePresence, type Variants } from 'framer-motion';
 import { durations, organicEase, snappySpring } from '../animations';
 import { useReducedMotion } from '../hooks/useReducedMotion';
@@ -18,7 +19,7 @@ import { PhaseTransition } from '../components/game/PhaseTransition';
 import { DebugPanel } from '../components/game/DebugPanel';
 import { MockPlayerProvider } from '../contexts/MockPlayerContext';
 import {
-    Flame, Candy, Link, Eye, Clapperboard, Check
+    Flame, Candy, Link, Eye, Clapperboard, Check, Share2, Users, Scale, Play
 } from 'lucide-react';
 import { AvatarIcon } from '../components/AvatarIcon';
 import { audioService } from '../services/audioService';
@@ -26,6 +27,7 @@ import { SimpleConfetti } from '../components/ui/SimpleConfetti';
 import { DifficultySelector } from '../components/ui/DifficultySelector';
 import { TEAM_CONFETTI_COLORS } from '../components/ui/confettiColors';
 import { PlayerLeaderboard } from '../components/game/victory/PlayerLeaderboard';
+import { hasSeenIntro, markIntroSeen } from '../services/onboardingService';
 
 type GameStatus = 'lobby' | 'phase1' | 'phase2' | 'phase3' | 'phase4' | 'phase5' | 'victory';
 
@@ -53,7 +55,7 @@ const playerCardReducedVariants: Variants = {
 };
 
 export default function GameRoom() {
-    const { t } = useTranslation(['lobby', 'game-ui', 'common']);
+    const { t } = useTranslation(['lobby', 'game-ui', 'common', 'onboarding']);
     const { id: roomId } = useParams<{ id: string }>();
     const query = new URLSearchParams(window.location.search);
     const debugPlayerId = query.get('debugPlayerId');
@@ -80,6 +82,8 @@ export default function GameRoom() {
     const [transitionPhase, setTransitionPhase] = useState<GameStatus>('lobby');
     // displayStatus: what the UI shows (lags behind during transitions)
     const [displayStatus, setDisplayStatus] = useState<GameStatus>('lobby');
+    // Lobby onboarding for hosts
+    const [showLobbyOnboarding, setShowLobbyOnboarding] = useState(false);
 
     // Refs for tracking previous values
     const prevStatus = useRef<string>('');
@@ -147,6 +151,13 @@ export default function GameRoom() {
             prevAudioStatus.current = roomStatus;
         }
     }, [room, roomPlayers, roomStatus]);
+
+    // Show lobby onboarding for hosts on first visit
+    useEffect(() => {
+        if (displayStatus === 'lobby' && isHost && !hasSeenIntro('LOBBY_INTRO')) {
+            setShowLobbyOnboarding(true);
+        }
+    }, [displayStatus, isHost]);
 
     // Handle curtains closed - update displayStatus BEFORE curtains open
     // This ensures the new phase content is visible when curtains open
@@ -227,12 +238,60 @@ export default function GameRoom() {
     const sweetTeam = players.filter(p => p.team === 'sweet');
     const unassigned = players.filter(p => !p.team);
 
+    // Lobby onboarding steps
+    const lobbyOnboardingSteps = [
+        {
+            icon: Share2,
+            label: t('onboarding:step', { number: 1 }),
+            text: t('onboarding:lobby.steps.share.text'),
+            color: 'text-blue-400',
+        },
+        {
+            icon: Users,
+            label: t('onboarding:step', { number: 2 }),
+            text: t('onboarding:lobby.steps.assign.text'),
+            color: 'text-purple-400',
+        },
+        {
+            icon: Scale,
+            label: t('onboarding:step', { number: 3 }),
+            text: t('onboarding:lobby.steps.balance.text'),
+            color: 'text-yellow-400',
+        },
+        {
+            icon: Play,
+            label: t('onboarding:step', { number: 4 }),
+            text: t('onboarding:lobby.steps.start.text'),
+            color: 'text-green-400',
+        },
+    ];
+
     // Render content based on displayStatus
     const renderContent = () => {
         // ----- LOBBY PHASE -----
         if (displayStatus === 'lobby') {
             return (
                 <div className="min-h-screen bg-brand-dark overflow-hidden flex flex-col md:flex-row relative">
+                    {/* Lobby Onboarding for hosts */}
+                    <AnimatePresence>
+                        {showLobbyOnboarding && isHost && (
+                            <OnboardingIntro
+                                title={t('onboarding:lobby.title')}
+                                subtitle={t('onboarding:lobby.subtitle')}
+                                icon={Clapperboard}
+                                iconColor="text-yellow-500"
+                                gradientFrom="from-yellow-300"
+                                gradientTo="to-orange-500"
+                                steps={lobbyOnboardingSteps}
+                                buttonText={t('onboarding:lobby.button')}
+                                onContinue={() => {
+                                    markIntroSeen('LOBBY_INTRO');
+                                    setShowLobbyOnboarding(false);
+                                }}
+                            />
+                        )}
+                    </AnimatePresence>
+
                     {/* TOP RIGHT CONTROLS */}
                     <div className="absolute top-4 right-4 z-[100] flex items-center gap-3">
                         {currentPlayer && (

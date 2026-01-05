@@ -1,0 +1,150 @@
+{
+  "howToPlay": "Spielanleitung",
+  "step": "Schritt {{number}}",
+  "continue": "Verstanden!",
+  "letsGo": "Los geht's!",
+
+  "home": {
+    "title": "Willkommen!",
+    "subtitle": "Das kulinarische Team-Quiz",
+    "steps": {
+      "createJoin": {
+        "label": "Erstellen oder Beitreten",
+        "text": "Erstelle einen Raum oder tritt mit Code bei"
+      },
+      "pickTeam": {
+        "label": "Wahle dein Team",
+        "text": "Wahle Team Spicy oder Sweet"
+      },
+      "challenges": {
+        "label": "5 Herausforderungen",
+        "text": "Kampfe durch 5 lustige Runden"
+      },
+      "win": {
+        "label": "Gemeinsam gewinnen",
+        "text": "Das Team mit den meisten Punkten gewinnt!"
+      }
+    },
+    "button": "Los geht's!"
+  },
+
+  "lobby": {
+    "title": "Du bist der Gastgeber!",
+    "subtitle": "Das kannst du tun",
+    "steps": {
+      "share": {
+        "label": "Code teilen",
+        "text": "Teile den Raumcode mit deinen Freunden"
+      },
+      "assign": {
+        "label": "Teams zuweisen",
+        "text": "Ziehe Spieler zu Spicy oder Sweet"
+      },
+      "balance": {
+        "label": "Ausgleichen",
+        "text": "Halte die Teams ausgeglichen"
+      },
+      "start": {
+        "label": "Spiel starten",
+        "text": "Drucke Start wenn alle bereit sind"
+      }
+    },
+    "button": "Verstanden!"
+  },
+
+  "phase1": {
+    "title": "Tenders",
+    "subtitle": "Schnelle Fragen",
+    "steps": {
+      "speed": {
+        "label": "Geschwindigkeit",
+        "text": "Sei der Erste mit der richtigen Antwort!"
+      },
+      "tap": {
+        "label": "Tippen zum Antworten",
+        "text": "Wahle schnell die richtige Option"
+      },
+      "points": {
+        "label": "Punkte gewinnen",
+        "text": "Die schnellste richtige Antwort gewinnt"
+      },
+      "team": {
+        "label": "Team-Punkte",
+        "text": "Punkte gehen an dein Team"
+      }
+    },
+    "button": "Bereit!"
+  },
+
+  "phase2": {
+    "title": "Suss und Salzig",
+    "subtitle": "Sortiere die Items",
+    "steps": {
+      "classify": {
+        "label": "Klassifizieren",
+        "text": "Sortiere jedes Item in die richtige Kategorie"
+      },
+      "swipe": {
+        "label": "Wischen oder Tippen",
+        "text": "Wische links/rechts oder tippe die Zonen"
+      },
+      "both": {
+        "label": "Beides",
+        "text": "Wische nach oben wenn beides passt"
+      },
+      "race": {
+        "label": "Team-Rennen",
+        "text": "Das erste Team fixiert die Antwort"
+      }
+    },
+    "button": "Los sortieren!"
+  },
+
+  "phase3": {
+    "title": "Die Karte",
+    "subtitle": "Themen-Fragen",
+    "steps": {
+      "pick": {
+        "label": "Menu wahlen",
+        "text": "Jedes Team wahlt ein Thema"
+      },
+      "answer": {
+        "label": "Antworten tippen",
+        "text": "Tippe deine Antworten zu den Fragen"
+      },
+      "spelling": {
+        "label": "Rechtschreibung OK",
+        "text": "Ungenaue Schreibweise wird akzeptiert"
+      },
+      "clock": {
+        "label": "Gegen die Uhr",
+        "text": "Antworte bevor die Zeit ablauft!"
+      }
+    },
+    "button": "Bestellen!"
+  },
+
+  "phase4": {
+    "title": "Die Rechnung",
+    "subtitle": "Schnelle Einzelrunde",
+    "steps": {
+      "individual": {
+        "label": "Einzeln",
+        "text": "Jeder antwortet alleine"
+      },
+      "pick": {
+        "label": "Eine wahlen",
+        "text": "Wahle die richtige Option"
+      },
+      "timer": {
+        "label": "30 Sekunden",
+        "text": "30 Sekunden pro Frage"
+      },
+      "first": {
+        "label": "Erster gewinnt",
+        "text": "Die erste richtige Antwort gewinnt Punkte"
+      }
+    },
+    "button": "Los rechnen!"
+  }
+}

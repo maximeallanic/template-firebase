@@ -1,0 +1,150 @@
+{
+  "howToPlay": "Comment jouer",
+  "step": "Etape {{number}}",
+  "continue": "Compris !",
+  "letsGo": "C'est parti !",
+
+  "home": {
+    "title": "Bienvenue !",
+    "subtitle": "Le quiz culinaire en equipe",
+    "steps": {
+      "createJoin": {
+        "label": "Creer ou Rejoindre",
+        "text": "Cree une room ou rejoins avec un code"
+      },
+      "pickTeam": {
+        "label": "Choisis ton equipe",
+        "text": "Choisis l'equipe Spicy ou Sweet"
+      },
+      "challenges": {
+        "label": "5 Defis",
+        "text": "Affronte-toi dans 5 rounds delirants"
+      },
+      "win": {
+        "label": "Gagne ensemble",
+        "text": "L'equipe avec le plus de points gagne !"
+      }
+    },
+    "button": "C'est parti !"
+  },
+
+  "lobby": {
+    "title": "Tu es l'hote !",
+    "subtitle": "Voici ce que tu peux faire",
+    "steps": {
+      "share": {
+        "label": "Partage le code",
+        "text": "Donne le code de la room a tes amis"
+      },
+      "assign": {
+        "label": "Assigne les equipes",
+        "text": "Deplace les joueurs vers Spicy ou Sweet"
+      },
+      "balance": {
+        "label": "Equilibre",
+        "text": "Garde les equipes equilibrees"
+      },
+      "start": {
+        "label": "Lance la partie",
+        "text": "Appuie sur Demarrer quand tout le monde est pret"
+      }
+    },
+    "button": "Compris !"
+  },
+
+  "phase1": {
+    "title": "Tenders",
+    "subtitle": "Questions rapides",
+    "steps": {
+      "speed": {
+        "label": "Rapidite",
+        "text": "Sois le premier a repondre correctement !"
+      },
+      "tap": {
+        "label": "Tape pour repondre",
+        "text": "Selectionne la bonne option vite"
+      },
+      "points": {
+        "label": "Gagne des points",
+        "text": "La premiere bonne reponse gagne le point"
+      },
+      "team": {
+        "label": "Score d'equipe",
+        "text": "Les points vont a ton equipe"
+      }
+    },
+    "button": "Pret !"
+  },
+
+  "phase2": {
+    "title": "Sucre Sale",
+    "subtitle": "Classe les items",
+    "steps": {
+      "classify": {
+        "label": "Classe",
+        "text": "Trie chaque item dans la bonne categorie"
+      },
+      "swipe": {
+        "label": "Swipe ou Tape",
+        "text": "Glisse a gauche/droite ou tape les zones"
+      },
+      "both": {
+        "label": "Les deux",
+        "text": "Glisse vers le haut si ca rentre dans les deux"
+      },
+      "race": {
+        "label": "Course d'equipe",
+        "text": "La premiere equipe a repondre verrouille"
+      }
+    },
+    "button": "Trions !"
+  },
+
+  "phase3": {
+    "title": "La Carte",
+    "subtitle": "Questions a theme",
+    "steps": {
+      "pick": {
+        "label": "Choisis le menu",
+        "text": "Chaque equipe choisit un theme"
+      },
+      "answer": {
+        "label": "Tape tes reponses",
+        "text": "Ecris tes reponses aux questions"
+      },
+      "spelling": {
+        "label": "Orthographe OK",
+        "text": "L'orthographe approximative est acceptee"
+      },
+      "clock": {
+        "label": "Bats le chrono",
+        "text": "Reponds avant la fin du temps !"
+      }
+    },
+    "button": "Commande !"
+  },
+
+  "phase4": {
+    "title": "La Note",
+    "subtitle": "Round individuel rapide",
+    "steps": {
+      "individual": {
+        "label": "Individuel",
+        "text": "Chacun repond seul"
+      },
+      "pick": {
+        "label": "Choisis une",
+        "text": "Selectionne la bonne option"
+      },
+      "timer": {
+        "label": "30 secondes",
+        "text": "30 secondes par question"
+      },
+      "first": {
+        "label": "Premier gagne",
+        "text": "La premiere bonne reponse gagne des points"
+      }
+    },
+    "button": "Calculons !"
+  }
+}

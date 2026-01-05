@@ -1,0 +1,150 @@
+{
+  "howToPlay": "Como jogar",
+  "step": "Passo {{number}}",
+  "continue": "Entendi!",
+  "letsGo": "Vamos la!",
+
+  "home": {
+    "title": "Bem-vindo!",
+    "subtitle": "O quiz culinario em equipe",
+    "steps": {
+      "createJoin": {
+        "label": "Criar ou Entrar",
+        "text": "Crie uma sala ou entre com um codigo"
+      },
+      "pickTeam": {
+        "label": "Escolha seu time",
+        "text": "Escolha o time Spicy ou Sweet"
+      },
+      "challenges": {
+        "label": "5 Desafios",
+        "text": "Compita em 5 rodadas divertidas"
+      },
+      "win": {
+        "label": "Ganhe junto",
+        "text": "O time com mais pontos vence!"
+      }
+    },
+    "button": "Vamos la!"
+  },
+
+  "lobby": {
+    "title": "Voce e o anfitriao!",
+    "subtitle": "Aqui esta o que voce pode fazer",
+    "steps": {
+      "share": {
+        "label": "Compartilhe o codigo",
+        "text": "De o codigo da sala aos seus amigos"
+      },
+      "assign": {
+        "label": "Atribua times",
+        "text": "Mova jogadores para Spicy ou Sweet"
+      },
+      "balance": {
+        "label": "Equilibre",
+        "text": "Mantenha os times equilibrados"
+      },
+      "start": {
+        "label": "Inicie o jogo",
+        "text": "Pressione Iniciar quando todos estiverem prontos"
+      }
+    },
+    "button": "Entendi!"
+  },
+
+  "phase1": {
+    "title": "Tenders",
+    "subtitle": "Perguntas rapidas",
+    "steps": {
+      "speed": {
+        "label": "Rapidez",
+        "text": "Seja o primeiro a responder corretamente!"
+      },
+      "tap": {
+        "label": "Toque para responder",
+        "text": "Selecione a opcao correta rapidamente"
+      },
+      "points": {
+        "label": "Ganhe pontos",
+        "text": "A primeira resposta correta ganha o ponto"
+      },
+      "team": {
+        "label": "Pontuacao do time",
+        "text": "Os pontos vao para seu time"
+      }
+    },
+    "button": "Pronto!"
+  },
+
+  "phase2": {
+    "title": "Doce e Salgado",
+    "subtitle": "Classifique os itens",
+    "steps": {
+      "classify": {
+        "label": "Classifique",
+        "text": "Ordene cada item na categoria correta"
+      },
+      "swipe": {
+        "label": "Deslize ou Toque",
+        "text": "Deslize esquerda/direita ou toque nas zonas"
+      },
+      "both": {
+        "label": "Ambos",
+        "text": "Deslize para cima se cabe em ambas"
+      },
+      "race": {
+        "label": "Corrida de time",
+        "text": "O primeiro time a responder trava"
+      }
+    },
+    "button": "Vamos classificar!"
+  },
+
+  "phase3": {
+    "title": "O Menu",
+    "subtitle": "Perguntas tematicas",
+    "steps": {
+      "pick": {
+        "label": "Escolha o menu",
+        "text": "Cada time escolhe um tema"
+      },
+      "answer": {
+        "label": "Digite respostas",
+        "text": "Digite suas respostas as perguntas"
+      },
+      "spelling": {
+        "label": "Ortografia OK",
+        "text": "Ortografia aproximada e aceita"
+      },
+      "clock": {
+        "label": "Contra o relogio",
+        "text": "Responda antes do tempo acabar!"
+      }
+    },
+    "button": "Pedir!"
+  },
+
+  "phase4": {
+    "title": "A Conta",
+    "subtitle": "Rodada individual rapida",
+    "steps": {
+      "individual": {
+        "label": "Individual",
+        "text": "Cada um responde sozinho"
+      },
+      "pick": {
+        "label": "Escolha uma",
+        "text": "Selecione a opcao correta"
+      },
+      "timer": {
+        "label": "30 segundos",
+        "text": "30 segundos por pergunta"
+      },
+      "first": {
+        "label": "Primeiro ganha",
+        "text": "A primeira resposta correta ganha pontos"
+      }
+    },
+    "button": "Vamos calcular!"
+  }
+}
