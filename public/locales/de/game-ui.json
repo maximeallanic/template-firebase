@@ -10,7 +10,10 @@
     "getReady": "Mach dich bereit...",
     "reading": "Lesen...",
     "thinking": "denken...",
-    "phaseComplete": "Phase abgeschlossen!"
+    "phaseComplete": "Phase abgeschlossen!",
+    "lastQuestion": "Letzte!",
+    "submitError": "Fehler, nochmal versuchen",
+    "wrongAnswer": "Falsche Antwort"
   },
   "host": {
     "startReading": "Vorlesen beginnen",

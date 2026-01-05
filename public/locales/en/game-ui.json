@@ -10,7 +10,10 @@
     "getReady": "Get ready...",
     "reading": "Reading...",
     "thinking": "thinking...",
-    "phaseComplete": "Phase complete!"
+    "phaseComplete": "Phase complete!",
+    "lastQuestion": "Last one!",
+    "submitError": "Error, try again",
+    "wrongAnswer": "Wrong answer"
   },
   "host": {
     "startReading": "Start reading",

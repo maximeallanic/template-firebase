@@ -5,6 +5,7 @@
 
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { AVATAR_LIST, type Avatar, type Difficulty, DEFAULT_DIFFICULTY } from '../types/gameTypes';
 import { Play, Trophy, Zap, AlertCircle } from 'lucide-react';
 import { UserBar } from '../components/auth/UserBar';
@@ -18,6 +19,7 @@ import { SOLO_MAX_SCORE, SOLO_PHASE_NAMES } from '../types/soloTypes';
 
 export default function SoloSetup() {
     const navigate = useNavigate();
+    const { t } = useTranslation('common');
     const { profile, loading: profileLoading, user } = useAuthUser();
     const { isInstalled } = useAppInstall();
     const [difficulty, setDifficulty] = useState<Difficulty>(DEFAULT_DIFFICULTY);
@@ -58,13 +60,13 @@ export default function SoloSetup() {
             <div className="bg-white/5 backdrop-blur-xl border border-white/10 rounded-3xl shadow-2xl p-8 max-w-md w-full relative z-10">
                 <div className="text-center mb-8">
                     <h2 className="text-orange-500 font-bold uppercase tracking-widest text-sm mb-2 flex items-center justify-center gap-2">
-                        <Zap className="w-4 h-4" /> Mode Solo
+                        <Zap className="w-4 h-4" /> {t('solo.mode')}
                     </h2>
                     <h1 className="text-2xl font-black bg-gradient-to-r from-orange-500 to-red-500 bg-clip-text text-transparent">
-                        Arcade Challenge
+                        {t('solo.arcadeChallenge')}
                     </h1>
                     <p className="text-gray-400 text-sm mt-2">
-                        Score max: {SOLO_MAX_SCORE} points
+                        {t('solo.maxScore', { score: SOLO_MAX_SCORE })}
                     </p>
                 </div>
 
@@ -77,7 +79,7 @@ export default function SoloSetup() {
                         >
                             <div>
                                 <span className="font-bold text-white">{info.name}</span>
-                                <span className="text-gray-400 text-sm ml-2">{info.subtitle}</span>
+                                <span className="text-gray-400 text-sm ml-2">{t(`solo.phases.${key}Subtitle`)}</span>
                             </div>
                             <span className="text-orange-400 font-mono text-sm">
                                 +{info.maxScore} pts
@@ -101,7 +103,7 @@ export default function SoloSetup() {
                             <div className="flex items-center gap-3">
                                 <AlertCircle className="w-5 h-5 text-amber-400 flex-shrink-0" />
                                 <p className="text-amber-200 text-sm">
-                                    Configure ton profil pour jouer en solo ! Clique sur ton avatar en haut à droite.
+                                    {t('solo.configureProfile')}
                                 </p>
                             </div>
                         </div>
@@ -113,7 +115,7 @@ export default function SoloSetup() {
                         className="w-full bg-gradient-to-r from-orange-600 to-red-600 hover:from-orange-500 hover:to-red-500 text-white font-bold py-4 rounded-xl shadow-lg shadow-orange-900/50 transform hover:scale-[1.02] active:scale-[0.98] transition-all text-xl disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                     >
                         <Play className="w-6 h-6 fill-current" />
-                        Lancer la partie
+                        {t('solo.startGame')}
                     </button>
 
                     <button
@@ -122,7 +124,7 @@ export default function SoloSetup() {
                         className="w-full bg-slate-800 hover:bg-slate-700 text-white font-bold py-3 rounded-xl transition-all flex items-center justify-center gap-2"
                     >
                         <Trophy className="w-5 h-5" />
-                        Voir le classement
+                        {t('solo.viewLeaderboard')}
                     </button>
                 </div>
             </div>

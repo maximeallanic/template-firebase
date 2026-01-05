@@ -105,7 +105,7 @@ export function PhaseResults({ room, currentPhase, isHost, onContinue }: PhaseRe
                     <div className="inline-flex items-center gap-2 bg-yellow-500/20 text-yellow-400 px-4 py-2 rounded-full mb-4">
                         <Trophy className="w-5 h-5" />
                         <span className="font-bold uppercase tracking-wide text-sm">
-                            Phase {phaseNumber} {t('phaseResults.complete', 'terminée')}
+                            {t('common:labels.phase')} {phaseNumber} {t('phaseResults.complete')}
                         </span>
                     </div>
                     <h2 className="text-2xl font-black text-white">{phaseInfo.name}</h2>
@@ -156,11 +156,11 @@ export function PhaseResults({ room, currentPhase, isHost, onContinue }: PhaseRe
                             </div>
                             <div className="flex-1">
                                 <div className="text-xs text-yellow-400 uppercase tracking-wider font-bold mb-1">
-                                    {t('phaseResults.mvp', 'MVP')}
+                                    {t('common:labels.mvp')}
                                 </div>
                                 <div className="text-lg font-bold text-white">{mvp.name}</div>
                                 <div className="text-sm text-slate-400">
-                                    {mvp.score} {t('phaseResults.points', 'points')}
+                                    {mvp.score} {t('phaseResults.points')}
                                 </div>
                             </div>
                             {mvp.team && (
@@ -192,19 +192,19 @@ export function PhaseResults({ room, currentPhase, isHost, onContinue }: PhaseRe
                         >
                             {nextPhase ? (
                                 <>
-                                    {t('phaseResults.continue', 'Continuer vers Phase')} {nextPhaseNumber}
+                                    {t('phaseResults.continue')} {nextPhaseNumber}
                                     <ArrowRight className="w-5 h-5" />
                                 </>
                             ) : (
                                 <>
-                                    {t('phaseResults.finish', 'Voir les résultats')}
+                                    {t('phaseResults.finish')}
                                     <Trophy className="w-5 h-5" />
                                 </>
                             )}
                         </motion.button>
                     ) : (
                         <div className="text-slate-500 animate-pulse">
-                            {t('phaseResults.waitingForHost', "En attente de l'hôte...")}
+                            {t('phaseResults.waitingForHost')}
                         </div>
                     )}
                 </motion.div>

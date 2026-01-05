@@ -6,7 +6,10 @@
 // System prompts
 export {
     GAME_GENERATION_SYSTEM_PROMPT,
-    REVIEW_SYSTEM_PROMPT
+    REVIEW_SYSTEM_PROMPT,
+    OVERUSED_THEMES_BLACKLIST,
+    THEME_BLACKLIST_PROMPT,
+    containsBlacklistedTheme
 } from './system';
 
 // Topic generation

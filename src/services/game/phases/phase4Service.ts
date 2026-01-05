@@ -154,7 +154,7 @@ export const submitPhase4Answer = async (
 };
 
 /**
- * Handle timeout (30s elapsed without correct answer).
+ * Handle timeout (15s elapsed without correct answer).
  * Transitions to 'result' state with no winner.
  */
 export const handlePhase4Timeout = async (roomCode: string): Promise<void> => {

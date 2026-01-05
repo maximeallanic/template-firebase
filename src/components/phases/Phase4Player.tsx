@@ -21,7 +21,7 @@ import { Phase4Options } from './phase4/Phase4Options';
 import { Phase4Result } from './phase4/Phase4Result';
 
 // Constants
-const QUESTION_TIMER = 30;
+const QUESTION_TIMER = 15;
 const RESULT_DISPLAY_TIME = 5000;
 const RESULT_WITH_ANECDOTE_TIME = 7000;
 

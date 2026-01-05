@@ -21,10 +21,9 @@ i18n
   .use(initReactI18next)
   // Initialize i18next
   .init({
-    // Default language
-    lng: DEFAULT_LANGUAGE,
-
     // Fallback language if translation is missing
+    // Note: Do NOT set `lng` here - let LanguageDetector handle initial language
+    // from localStorage first, then browser, then fallback
     fallbackLng: DEFAULT_LANGUAGE,
 
     // Supported languages

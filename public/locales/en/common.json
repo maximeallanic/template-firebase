@@ -35,7 +35,15 @@
     "password": "Password",
     "name": "Name",
     "optional": "Optional",
-    "required": "Required"
+    "required": "Required",
+    "vs": "vs",
+    "phase": "Phase",
+    "mvp": "MVP"
+  },
+  "rankings": {
+    "first": "1st",
+    "second": "2nd",
+    "third": "3rd"
   },
   "errors": {
     "generic": "An error occurred",
@@ -127,5 +135,34 @@
     "cancel": "Cancel",
     "errorNameRequired": "Name cannot be empty",
     "errorSaveFailed": "Failed to update profile. Please try again."
+  },
+  "solo": {
+    "mode": "Solo Mode",
+    "arcadeChallenge": "Arcade Challenge",
+    "maxScore": "Max score: {{score}} points",
+    "configureProfile": "Set up your profile to play solo! Click your avatar in the top right.",
+    "startGame": "Start Game",
+    "viewLeaderboard": "View Leaderboard",
+    "leaderboardTitle": "Solo Leaderboard",
+    "leaderboardSubtitle": "Best Arcade Mode Scores",
+    "myBestScore": "My Best Score",
+    "loadingLeaderboard": "Loading leaderboard...",
+    "noScores": "No scores recorded",
+    "beFirstToPlay": "Be the first to play in Solo mode!",
+    "playSolo": "Play Solo",
+    "player": "Player",
+    "accuracy": "Accuracy",
+    "time": "Time",
+    "totalTime": "Total Time",
+    "gameOver": "Game Over!",
+    "playAgain": "Play Again",
+    "leaderboard": "Leaderboard",
+    "backToHome": "Back to Home",
+    "errorOccurred": "An error occurred",
+    "phases": {
+      "phase1Subtitle": "Answer the questions!",
+      "phase2Subtitle": "Classify the elements!",
+      "phase4Subtitle": "Answer fast for more points!"
+    }
   }
 }

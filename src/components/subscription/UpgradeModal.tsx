@@ -33,7 +33,7 @@ export const UpgradeModal: React.FC<UpgradeModalProps> = ({ isOpen, onClose }) =
       }
     } catch (err) {
       console.error('Failed to create checkout session:', err);
-      setError(t('subscription.error', 'Une erreur est survenue. Réessayez.'));
+      setError(t('subscription.error'));
       setIsLoading(false);
     }
   };
@@ -67,7 +67,7 @@ export const UpgradeModal: React.FC<UpgradeModalProps> = ({ isOpen, onClose }) =
             <button
               onClick={onClose}
               className="absolute top-4 right-4 text-gray-400 hover:text-gray-600 transition-colors"
-              aria-label={t('subscription.cancel', 'Fermer')}
+              aria-label={t('common:buttons.close')}
             >
               <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -80,17 +80,17 @@ export const UpgradeModal: React.FC<UpgradeModalProps> = ({ isOpen, onClose }) =
                 <span role="img" aria-label="crown">👑</span>
               </div>
               <h2 className="text-2xl font-bold text-gray-900 mb-2">
-                {t('subscription.upgradeTitle', 'Débloquer toutes les phases')}
+                {t('subscription.upgradeTitle')}
               </h2>
               <p className="text-gray-600">
-                {t('subscription.upgradeDescription', 'Accédez aux phases 3, 4 et 5 avec Premium')}
+                {t('subscription.upgradeDescription')}
               </p>
             </div>
 
             {/* Locked phases */}
             <div className="bg-gray-50 rounded-xl p-4 mb-6">
               <p className="text-sm font-medium text-gray-500 mb-3">
-                {t('subscription.phasesIncluded', 'Phases incluses :')}
+                {t('subscription.phasesIncluded')}
               </p>
               <div className="space-y-2">
                 {premiumPhases.map((phase) => (
@@ -124,14 +124,14 @@ export const UpgradeModal: React.FC<UpgradeModalProps> = ({ isOpen, onClose }) =
               {isLoading ? (
                 <span className="flex items-center justify-center gap-2">
                   <FoodLoader size="sm" />
-                  {t('subscription.loading', 'Chargement...')}
+                  {t('subscription.loading')}
                 </span>
               ) : (
                 <span className="flex items-center justify-center gap-2">
                   <span role="img" aria-label="star">⭐</span>
-                  {t('subscription.upgradeButton', 'Passer à Premium')}
+                  {t('subscription.upgradeButton')}
                   <span className="text-amber-100">—</span>
-                  {priceLoading ? '...' : `${price.formatted}/${t('subscription.perMonth', 'mois')}`}
+                  {priceLoading ? '...' : `${price.formatted}/${t('subscription.perMonth')}`}
                 </span>
               )}
             </button>
@@ -141,7 +141,7 @@ export const UpgradeModal: React.FC<UpgradeModalProps> = ({ isOpen, onClose }) =
               onClick={onClose}
               className="w-full mt-3 text-gray-500 hover:text-gray-700 text-sm py-2 transition-colors"
             >
-              {t('subscription.cancel', 'Plus tard')}
+              {t('subscription.cancel')}
             </button>
           </motion.div>
         </motion.div>

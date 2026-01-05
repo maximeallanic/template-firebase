@@ -35,7 +35,15 @@
     "password": "Passwort",
     "name": "Name",
     "optional": "Optional",
-    "required": "Erforderlich"
+    "required": "Erforderlich",
+    "vs": "vs",
+    "phase": "Phase",
+    "mvp": "MVP"
+  },
+  "rankings": {
+    "first": "1.",
+    "second": "2.",
+    "third": "3."
   },
   "errors": {
     "generic": "Ein Fehler ist aufgetreten",
@@ -127,5 +135,34 @@
     "cancel": "Abbrechen",
     "errorNameRequired": "Name darf nicht leer sein",
     "errorSaveFailed": "Profil konnte nicht aktualisiert werden. Bitte erneut versuchen."
+  },
+  "solo": {
+    "mode": "Solo-Modus",
+    "arcadeChallenge": "Arcade Challenge",
+    "maxScore": "Maximale Punktzahl: {{score}} Punkte",
+    "configureProfile": "Richte dein Profil ein, um solo zu spielen! Klicke oben rechts auf deinen Avatar.",
+    "startGame": "Spiel starten",
+    "viewLeaderboard": "Rangliste anzeigen",
+    "leaderboardTitle": "Solo-Rangliste",
+    "leaderboardSubtitle": "Beste Punktzahlen im Arcade-Modus",
+    "myBestScore": "Meine beste Punktzahl",
+    "loadingLeaderboard": "Rangliste wird geladen...",
+    "noScores": "Keine Punktzahlen registriert",
+    "beFirstToPlay": "Sei der Erste im Solo-Modus!",
+    "playSolo": "Solo spielen",
+    "player": "Spieler",
+    "accuracy": "Genauigkeit",
+    "time": "Zeit",
+    "totalTime": "Gesamtzeit",
+    "gameOver": "Spiel beendet!",
+    "playAgain": "Nochmal spielen",
+    "leaderboard": "Rangliste",
+    "backToHome": "Zuruck zur Startseite",
+    "errorOccurred": "Ein Fehler ist aufgetreten",
+    "phases": {
+      "phase1Subtitle": "Beantworte die Fragen!",
+      "phase2Subtitle": "Klassifiziere die Elemente!",
+      "phase4Subtitle": "Antworte schnell fur mehr Punkte!"
+    }
   }
 }

@@ -60,3 +60,51 @@ RAPPEL : L'humour doit être dans la QUESTION, pas dans les réponses.
 Les 4 options de réponse doivent être PLAUSIBLES.
 
 Tu as accès à la recherche Google pour vérifier les faits.`;
+
+/**
+ * Blacklist of overused themes to avoid in question generation.
+ * These subjects have been identified as over-represented in the database.
+ */
+export const OVERUSED_THEMES_BLACKLIST = [
+    'phobie nicole kidman papillon',
+    'phobie johnny depp clown',
+    'phobie matthew mcconaughey porte tournante',
+    'phobie megan fox papier sec',
+    'phobie oprah winfrey chewing-gum',
+    'phobie scarlett johansson oiseau',
+    'phobie pamela anderson miroir',
+    'phobie billy bob thornton meuble ancien',
+    'phobie khloé kardashian nombril',
+    'pet rock gary dahl 1975',
+    'fuseaux horaires france',
+    'coeurs pieuvre poulpe',
+];
+
+/**
+ * Prompt section to append to generators to avoid overused themes.
+ * Use by appending to phase prompts when diversity is needed.
+ */
+export const THEME_BLACKLIST_PROMPT = `
+## THÈMES SURREPRÉSENTÉS À ÉVITER
+Ces sujets ont déjà été couverts TROP de fois dans la base de questions :
+${OVERUSED_THEMES_BLACKLIST.map(t => `- ${t}`).join('\n')}
+
+NE JAMAIS générer de questions sur ces sujets exacts.
+Chercher des angles NOUVEAUX et ORIGINAUX.
+MAXIMUM 1 question sur les phobies de célébrités par set.
+`;
+
+/**
+ * Check if a question text contains any blacklisted theme
+ * @param text - The question text to check
+ * @returns true if the text contains a blacklisted theme
+ */
+export function containsBlacklistedTheme(text: string): boolean {
+    const normalizedText = text.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+    return OVERUSED_THEMES_BLACKLIST.some(theme => {
+        const normalizedTheme = theme.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+        // Check if all words of the theme are present in the text
+        const themeWords = normalizedTheme.split(' ');
+        return themeWords.every(word => normalizedText.includes(word));
+    });
+}

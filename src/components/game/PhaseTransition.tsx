@@ -224,7 +224,7 @@ const TransitionContent: React.FC<TransitionContentProps> = ({ phase, getPhaseIn
             {!isVictory && (
                 <div className="mt-4">
                     <span className="text-sm md:text-base text-white/60 font-bold tracking-widest uppercase">
-                        Phase {info.number}
+                        {t('labels.phase')} {info.number}
                     </span>
                 </div>
             )}
@@ -254,7 +254,7 @@ const TransitionContent: React.FC<TransitionContentProps> = ({ phase, getPhaseIn
                 </div>
 
                 <span className="text-xl font-bold text-white/40">
-                    vs
+                    {t('labels.vs')}
                 </span>
 
                 <div className="flex items-center gap-2 px-4 py-2 rounded-full bg-sweet-500/20 border border-sweet-500/30">

@@ -66,6 +66,14 @@ Aucune ambiguïté ! Si plusieurs réponses possibles, ajoute des détails préc
 UTILISE Google pour CHAQUE réponse. Zéro erreur.
 Parfois inclure 1-2 réponses WTF mais VRAIES pour l'effet surprise.
 
+⚠️ RÈGLE #6 - THÈMES INTERDITS (BLACKLIST)
+Ces sujets sont BANNIS car surreprésentés dans la base :
+- Phobies de célébrités (Nicole Kidman/papillons, Johnny Depp/clowns, McConaughey/portes, etc.)
+- Peurs irrationnelles des stars en général
+- Pet Rock / Gary Dahl 1975
+MAXIMUM 1 question sur les phobies par set de 10.
+PRIVILÉGIER : Records insolites, inventions ratées, faits scientifiques, anecdotes historiques, pop culture originale.
+
 {PREVIOUS_FEEDBACK}
 
 Génère uniquement du JSON valide sans markdown ni code blocks.
@@ -76,7 +84,7 @@ Thème : {TOPIC}
 
 {QUESTIONS}
 
-🔍 VÉRIFICATION EN 7 POINTS :
+🔍 VÉRIFICATION EN 8 POINTS :
 
 0. COHÉRENCE THÉMATIQUE : Toutes sur "{TOPIC}" ? Différents angles ?
 1. ABSURDITÉ : Questions DÉCALÉES, parfois DÉBILES ? Jeux de mots, pièges, WTF ?
@@ -85,8 +93,9 @@ Thème : {TOPIC}
 4. LONGUEUR : Questions 10-15 mots, réponses courtes (titres OK) ?
 5. MÉMORABILITÉ : Formulations qui créent des images mentales ou font rire ?
 6. DONNÉES COMPLÈTES : Toutes questions/réponses présentes ?
+7. BLACKLIST : Pas plus de 1 question sur les phobies de célébrités ? Pas de Pet Rock/Gary Dahl ?
 
-⚠️ REJETER SI : 2+ questions similaires OU 1+ erreur factuelle OU toutes les questions sont "classiques"
+⚠️ REJETER SI : 2+ questions similaires OU 1+ erreur factuelle OU toutes questions "classiques" OU 2+ questions sur les phobies de célébrités
 
 SEUILS CRITIQUES : factual_accuracy ≥ 7, absurdity ≥ 6, diversity ≥ 7
 

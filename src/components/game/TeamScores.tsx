@@ -1,4 +1,5 @@
 import { Flame, Candy } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import type { Player } from '../../services/gameService';
 
 interface TeamScoresProps {
@@ -6,6 +7,7 @@ interface TeamScoresProps {
 }
 
 export function TeamScores({ players }: TeamScoresProps) {
+    const { t } = useTranslation('common');
     const playersList = Object.values(players);
 
     const spicyScore = playersList
@@ -22,7 +24,7 @@ export function TeamScores({ players }: TeamScoresProps) {
             <div className="flex items-center gap-2">
                 <div className="flex items-center gap-1 text-spicy-400">
                     <Flame className="w-5 h-5" />
-                    <span className="font-bold text-sm uppercase tracking-wide">Spicy</span>
+                    <span className="font-bold text-sm uppercase tracking-wide">{t('teams.spicy')}</span>
                 </div>
                 <span className="text-2xl font-black text-white bg-spicy-500/20 px-3 py-1 rounded-lg min-w-[3rem] text-center">
                     {spicyScore}
@@ -30,7 +32,7 @@ export function TeamScores({ players }: TeamScoresProps) {
             </div>
 
             {/* Separator */}
-            <div className="text-slate-500 font-bold text-xl">vs</div>
+            <div className="text-slate-500 font-bold text-xl">{t('labels.vs')}</div>
 
             {/* Sweet Team */}
             <div className="flex items-center gap-2">
@@ -38,7 +40,7 @@ export function TeamScores({ players }: TeamScoresProps) {
                     {sweetScore}
                 </span>
                 <div className="flex items-center gap-1 text-sweet-400">
-                    <span className="font-bold text-sm uppercase tracking-wide">Sweet</span>
+                    <span className="font-bold text-sm uppercase tracking-wide">{t('teams.sweet')}</span>
                     <Candy className="w-5 h-5" />
                 </div>
             </div>

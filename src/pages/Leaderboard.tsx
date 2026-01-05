@@ -5,6 +5,7 @@
 
 import { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { motion } from 'framer-motion';
 import { Trophy, Medal, Clock, Target, Zap } from 'lucide-react';
 import { FoodLoader } from '../components/ui/FoodLoader';
@@ -21,6 +22,7 @@ import type { Avatar } from '../types/gameTypes';
 
 export default function Leaderboard() {
     const navigate = useNavigate();
+    const { t } = useTranslation('common');
     const { user, profile } = useAuthUser();
     const { isInstalled } = useAppInstall();
     const prefersReducedMotion = useReducedMotion();
@@ -55,7 +57,7 @@ export default function Leaderboard() {
                 }
             } catch (err) {
                 console.error('[Leaderboard] Load error:', err);
-                setError('Impossible de charger le classement');
+                setError('error');
             } finally {
                 setLoading(false);
             }
@@ -118,9 +120,9 @@ export default function Leaderboard() {
             >
                 <div className="flex items-center justify-center gap-3 mb-2">
                     <Trophy className="w-10 h-10 text-yellow-400" />
-                    <h1 className="text-4xl font-black">Classement Solo</h1>
+                    <h1 className="text-4xl font-black">{t('solo.leaderboardTitle')}</h1>
                 </div>
-                <p className="text-gray-400">Les meilleurs scores du mode Arcade</p>
+                <p className="text-gray-400">{t('solo.leaderboardSubtitle')}</p>
             </motion.div>
 
             {/* My Best Score */}
@@ -133,7 +135,7 @@ export default function Leaderboard() {
                     <div className="flex items-center justify-between mb-2">
                         <div className="text-sm text-orange-400 font-bold flex items-center gap-2">
                             <Zap className="w-4 h-4" />
-                            Mon meilleur score
+                            {t('solo.myBestScore')}
                         </div>
                         {myRank !== null && (
                             <div className="flex items-center gap-1 text-orange-300 font-bold">
@@ -170,19 +172,19 @@ export default function Leaderboard() {
                     <div className="mb-4">
                         <FoodLoader size="lg" />
                     </div>
-                    <p className="text-gray-400">Chargement du classement...</p>
+                    <p className="text-gray-400">{t('solo.loadingLeaderboard')}</p>
                 </div>
             )}
 
             {/* Error State */}
             {error && (
                 <div className="text-center py-20">
-                    <p className="text-red-400 mb-4">{error}</p>
+                    <p className="text-red-400 mb-4">{t('solo.errorOccurred')}</p>
                     <button
                         onClick={() => window.location.reload()}
                         className="bg-slate-800 hover:bg-slate-700 px-6 py-2 rounded-lg transition-colors"
                     >
-                        Réessayer
+                        {t('buttons.retry')}
                     </button>
                 </div>
             )}
@@ -191,13 +193,13 @@ export default function Leaderboard() {
             {!loading && !error && scores.length === 0 && (
                 <div className="text-center py-20">
                     <Trophy className="w-16 h-16 text-gray-600 mx-auto mb-4" />
-                    <h3 className="text-xl font-bold mb-2">Aucun score enregistré</h3>
-                    <p className="text-gray-400 mb-6">Soyez le premier à jouer en mode Solo !</p>
+                    <h3 className="text-xl font-bold mb-2">{t('solo.noScores')}</h3>
+                    <p className="text-gray-400 mb-6">{t('solo.beFirstToPlay')}</p>
                     <button
                         onClick={() => navigate('/solo')}
                         className="bg-gradient-to-r from-orange-600 to-red-600 hover:from-orange-500 hover:to-red-500 px-6 py-3 rounded-xl font-bold transition-all"
                     >
-                        Jouer en Solo
+                        {t('solo.playSolo')}
                     </button>
                 </div>
             )}
@@ -212,10 +214,10 @@ export default function Leaderboard() {
                     {/* Table Header */}
                     <div className="grid grid-cols-12 gap-2 px-4 py-2 text-sm text-gray-500 font-bold uppercase">
                         <div className="col-span-1">#</div>
-                        <div className="col-span-5">Joueur</div>
-                        <div className="col-span-2 text-center">Précision</div>
-                        <div className="col-span-2 text-center">Temps</div>
-                        <div className="col-span-2 text-right">Score</div>
+                        <div className="col-span-5">{t('solo.player')}</div>
+                        <div className="col-span-2 text-center">{t('solo.accuracy')}</div>
+                        <div className="col-span-2 text-center">{t('solo.time')}</div>
+                        <div className="col-span-2 text-right">{t('labels.score')}</div>
                     </div>
 
                     {/* Scores */}
@@ -309,7 +311,7 @@ export default function Leaderboard() {
                         className="bg-gradient-to-r from-orange-600 to-red-600 hover:from-orange-500 hover:to-red-500 px-8 py-4 rounded-full font-bold shadow-xl flex items-center gap-2 transition-all hover:scale-105"
                     >
                         <Zap className="w-5 h-5" />
-                        Jouer en Solo
+                        {t('solo.playSolo')}
                     </button>
                 </motion.div>
             )}

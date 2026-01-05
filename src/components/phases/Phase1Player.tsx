@@ -624,7 +624,7 @@ export function Phase1Player({ room, playerId, isHost, mode = 'multiplayer', sol
                                 className="flex items-center gap-1 px-2 py-0.5 rounded text-xs font-bold bg-amber-500/20 text-amber-400 border border-amber-500/30"
                             >
                                 <AlertTriangle className="w-3 h-3" />
-                                {t('player.lastQuestion', 'Dernière !')}
+                                {t('player.lastQuestion')}
                             </motion.span>
                         )}
                     </AnimatePresence>
@@ -677,8 +677,8 @@ export function Phase1Player({ room, playerId, isHost, mode = 'multiplayer', sol
                         </>
                     )}
                     {isAnswering && !isMyTeamBlocked && !submitError && triedWrongOptions.length === 0 && <span className={`${isSolo ? 'hidden md:flex' : 'flex'} items-center gap-2`}><Play className="w-6 h-6" aria-hidden="true" /> <span className="hidden md:inline">{t('player.answerNow')}</span></span>}
-                    {isAnswering && !isMyTeamBlocked && !submitError && triedWrongOptions.length > 0 && <><Play className="w-6 h-6 text-green-400" aria-hidden="true" /> <span className="text-green-400 font-bold">{t('player.rebond', 'REBOND ! À vous !')}</span></>}
-                    {isAnswering && !isMyTeamBlocked && submitError && <><XCircle className="w-6 h-6 text-orange-400" aria-hidden="true" /> <span className="text-orange-400">{t('player.submitError', 'Erreur, réessayez')}</span></>}
+                    {isAnswering && !isMyTeamBlocked && !submitError && triedWrongOptions.length > 0 && <><Play className="w-6 h-6 text-green-400" aria-hidden="true" /> <span className="text-green-400 font-bold">{t('player.rebond')}</span></>}
+                    {isAnswering && !isMyTeamBlocked && submitError && <><XCircle className="w-6 h-6 text-orange-400" aria-hidden="true" /> <span className="text-orange-400">{t('player.submitError')}</span></>}
                     {isAnswering && isMyTeamBlocked && <><XCircle className="w-6 h-6 text-red-400" aria-hidden="true" /> <span className="text-red-400">{t('player.teamBlocked')}</span></>}
                     {isResult && t('results.roundOver')}
                     {phaseState === 'idle' && t('player.getReady')}
@@ -850,19 +850,19 @@ export function Phase1Player({ room, playerId, isHost, mode = 'multiplayer', sol
                                     {/* Immediate wrong answer feedback - simple X icon (no animation) */}
                                     {isShowingWrongFeedback && (
                                         <div className="absolute inset-0 flex items-center justify-center rounded-xl z-20 pointer-events-none">
-                                            <XCircle className="w-16 h-16 text-red-500 drop-shadow-lg" aria-label={t('player.wrongAnswer', 'Mauvaise réponse')} />
+                                            <XCircle className="w-16 h-16 text-red-500 drop-shadow-lg" aria-label={t('player.wrongAnswer')} />
                                         </div>
                                     )}
                                     {/* Result phase: X icon for player's wrong answer */}
                                     {isResultShaking && (
                                         <div className="absolute inset-0 flex items-center justify-center rounded-xl z-20 pointer-events-none">
-                                            <XCircle className="w-16 h-16 text-red-500 drop-shadow-lg" aria-label={t('player.wrongAnswer', 'Mauvaise réponse')} />
+                                            <XCircle className="w-16 h-16 text-red-500 drop-shadow-lg" aria-label={t('player.wrongAnswer')} />
                                         </div>
                                     )}
                                     {/* Rebond: X overlay for eliminated options */}
                                     {isTriedWrong && !isShowingWrongFeedback && (
                                         <div className="absolute inset-0 flex items-center justify-center rounded-xl z-10 pointer-events-none">
-                                            <XCircle className="w-12 h-12 text-red-500 drop-shadow-lg" aria-label={t('player.optionEliminated', 'Option éliminée')} />
+                                            <XCircle className="w-12 h-12 text-red-500 drop-shadow-lg" aria-label={t('player.optionEliminated')} />
                                         </div>
                                     )}
                                     <div className="flex-shrink-0 w-12 h-12 flex items-center justify-center bg-black/20 rounded-full text-2xl text-white">

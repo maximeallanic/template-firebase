@@ -190,7 +190,7 @@ export function PWAHomePage() {
           >
             <FoodLoader />
             <p className="mt-4 text-white/70">
-              {isCreatingRoom ? t('creatingRoom', 'Création...') : t('joiningRoom', 'Connexion...')}
+              {isCreatingRoom ? t('creatingRoom') : t('joiningRoom')}
             </p>
           </motion.div>
         )}
@@ -251,14 +251,14 @@ export function PWAHomePage() {
                 <button
                   onClick={() => setShowJoinInput(false)}
                   className="absolute top-3 right-3 w-8 h-8 flex items-center justify-center rounded-full bg-slate-700 hover:bg-slate-600 text-white/70 hover:text-white transition-colors"
-                  aria-label={t('common:close', 'Fermer')}
+                  aria-label={t('common:buttons.close')}
                 >
                   <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                   </svg>
                 </button>
                 <h3 className="text-xl font-bold text-white text-center mb-4">
-                  {t('enterCode', 'Entrez le code')}
+                  {t('enterCode')}
                 </h3>
 
                 <input
@@ -278,7 +278,7 @@ export function PWAHomePage() {
                   disabled={joinCode.length !== 4 || isJoiningRoom}
                   className="w-full py-3 rounded-xl bg-gradient-to-r from-rose-500 to-pink-600 text-white font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  {isJoiningRoom ? t('joining', 'Connexion...') : t('join.button', 'Rejoindre')}
+                  {isJoiningRoom ? t('joining') : t('join.button')}
                 </button>
               </div>
             </motion.div>

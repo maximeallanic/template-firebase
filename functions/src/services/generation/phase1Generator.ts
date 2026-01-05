@@ -338,6 +338,7 @@ Chaque réponse doit être 100% correcte et vérifiable avec une recherche Googl
 
             // Run semantic deduplication
             // Use findSemanticDuplicatesWithEmbeddings to generate embeddings once and reuse
+            // IMPORTANT: Check against ALL phases to prevent cross-phase duplicates (P1↔P4, P1↔P5, etc.)
             const questionsAsItems = lastQuestions.map(q => ({ text: q.text }));
             let semanticDuplicates: SemanticDuplicate[] = [];
             let internalDuplicates: SemanticDuplicate[] = [];
@@ -345,7 +346,12 @@ Chaque réponse doit être 100% correcte et vérifiable avec une recherche Googl
 
             try {
                 // Generate embeddings once and reuse for both dedup checks and storage
-                const dedupResult = await findSemanticDuplicatesWithEmbeddings(questionsAsItems, 'phase1');
+                // checkAllPhases: true to detect cross-phase duplicates
+                const dedupResult = await findSemanticDuplicatesWithEmbeddings(
+                    questionsAsItems,
+                    'phase1',
+                    { checkAllPhases: true }
+                );
                 semanticDuplicates = dedupResult.duplicates;
                 allEmbeddings = dedupResult.embeddings;
                 internalDuplicates = findInternalDuplicates(allEmbeddings, questionsAsItems);

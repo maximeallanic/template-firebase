@@ -10,7 +10,10 @@
     "getReady": "Preparate...",
     "reading": "Leyendo...",
     "thinking": "pensando...",
-    "phaseComplete": "Fase completada!"
+    "phaseComplete": "Fase completada!",
+    "lastQuestion": "Ultima!",
+    "submitError": "Error, intentalo de nuevo",
+    "wrongAnswer": "Respuesta incorrecta"
   },
   "host": {
     "startReading": "Comenzar lectura",

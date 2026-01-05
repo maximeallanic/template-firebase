@@ -32,7 +32,7 @@ const LANGUAGES = [
  * and user account actions (premium upgrade, leave game, logout).
  */
 export function QuickSettings({ onEditProfile, roomCode, playerId }: QuickSettingsProps) {
-  const { t, i18n } = useTranslation('home');
+  const { t, i18n } = useTranslation(['home', 'common']);
   const [isOpen, setIsOpen] = useState(false);
   const [isUpgrading, setIsUpgrading] = useState(false);
   const { soundEnabled, toggleSound } = useSoundSettings();
@@ -152,7 +152,7 @@ export function QuickSettings({ onEditProfile, roomCode, playerId }: QuickSettin
                 {/* Header */}
                 <div className="relative z-10 flex items-center justify-between p-4 border-b border-white/10">
                   <h2 className="text-xl font-bold text-white">
-                    {t('pwa.settings', 'Réglages')}
+                    {t('common:pwa.settings')}
                   </h2>
                   <button
                     onClick={() => setIsOpen(false)}
@@ -171,7 +171,7 @@ export function QuickSettings({ onEditProfile, roomCode, playerId }: QuickSettin
                     transition={{ delay: 0.1, ease: organicEase }}
                   >
                     <h3 className="text-sm font-medium text-white/60 mb-3 uppercase tracking-wider">
-                      {t('pwa.sound', 'Son')}
+                      {t('common:pwa.sound')}
                     </h3>
                     <button
                       onClick={toggleSound}
@@ -184,7 +184,7 @@ export function QuickSettings({ onEditProfile, roomCode, playerId }: QuickSettin
                           <VolumeX className="w-5 h-5 text-white/40" />
                         )}
                         <span className="text-white">
-                          {soundEnabled ? t('pwa.soundOn', 'Activé') : t('pwa.soundOff', 'Désactivé')}
+                          {soundEnabled ? t('common:pwa.soundOn') : t('common:pwa.soundOff')}
                         </span>
                       </div>
                       {/* Toggle switch */}
@@ -210,7 +210,7 @@ export function QuickSettings({ onEditProfile, roomCode, playerId }: QuickSettin
                   >
                     <h3 className="text-sm font-medium text-white/60 mb-3 uppercase tracking-wider flex items-center gap-2">
                       <Globe className="w-4 h-4" />
-                      {t('pwa.language', 'Langue')}
+                      {t('common:pwa.language')}
                     </h3>
                     <div className="space-y-2">
                       {LANGUAGES.map((lang) => (
@@ -244,7 +244,7 @@ export function QuickSettings({ onEditProfile, roomCode, playerId }: QuickSettin
                       transition={{ delay: 0.3, ease: organicEase }}
                     >
                       <h3 className="text-sm font-medium text-white/60 mb-3 uppercase tracking-wider">
-                        {t('pwa.profile', 'Profil')}
+                        {t('common:pwa.profile')}
                       </h3>
                       <button
                         onClick={() => {
@@ -254,7 +254,7 @@ export function QuickSettings({ onEditProfile, roomCode, playerId }: QuickSettin
                         className="w-full flex items-center gap-3 p-4 rounded-xl bg-white/5 hover:bg-white/10 transition-colors"
                       >
                         <User className="w-5 h-5 text-white/60" />
-                        <span className="text-white">{t('editProfile', 'Modifier le profil')}</span>
+                        <span className="text-white">{t('common:pwa.editProfile')}</span>
                       </button>
                     </motion.div>
                   )}
@@ -266,7 +266,7 @@ export function QuickSettings({ onEditProfile, roomCode, playerId }: QuickSettin
                     transition={{ delay: 0.4, ease: organicEase }}
                   >
                     <h3 className="text-sm font-medium text-white/60 mb-3 uppercase tracking-wider">
-                      {t('pwa.account', 'Compte')}
+                      {t('common:pwa.account')}
                     </h3>
                     <div className="space-y-2">
                       {/* Premium upgrade button */}
@@ -278,7 +278,7 @@ export function QuickSettings({ onEditProfile, roomCode, playerId }: QuickSettin
                         >
                           <Crown className="w-5 h-5 text-amber-400" />
                           <span className="text-amber-400">
-                            {isUpgrading ? t('pwa.upgrading', 'Chargement...') : t('pwa.upgrade', 'Passer Premium')}
+                            {isUpgrading ? t('common:pwa.upgrading') : t('common:pwa.upgrade')}
                           </span>
                         </button>
                       )}
@@ -290,7 +290,7 @@ export function QuickSettings({ onEditProfile, roomCode, playerId }: QuickSettin
                           className="w-full flex items-center gap-3 p-4 rounded-xl bg-white/5 hover:bg-red-500/10 transition-colors"
                         >
                           <LogOut className="w-5 h-5 text-red-400" />
-                          <span className="text-red-400">{t('pwa.leaveGame', 'Quitter la partie')}</span>
+                          <span className="text-red-400">{t('common:pwa.leaveGame')}</span>
                         </button>
                       )}
 
@@ -300,7 +300,7 @@ export function QuickSettings({ onEditProfile, roomCode, playerId }: QuickSettin
                         className="w-full flex items-center gap-3 p-4 rounded-xl bg-white/5 hover:bg-white/10 transition-colors"
                       >
                         <Power className="w-5 h-5 text-white/40" />
-                        <span className="text-white/60">{t('pwa.logout', 'Se déconnecter')}</span>
+                        <span className="text-white/60">{t('common:pwa.logout')}</span>
                       </button>
                     </div>
                   </motion.div>

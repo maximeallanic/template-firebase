@@ -156,6 +156,14 @@ function filterDocsWithCompatibleEmbeddings(
 }
 
 /**
+ * Options for semantic duplicate detection
+ */
+export interface DeduplicationOptions {
+    /** If true, check against ALL phases instead of just the specified one */
+    checkAllPhases?: boolean;
+}
+
+/**
  * Find semantic duplicates AND return generated embeddings for reuse.
  * This is the primary function to use - it generates embeddings once and returns them
  * so callers can reuse them for findInternalDuplicates() and storeQuestionsWithEmbeddings().
@@ -165,11 +173,13 @@ function filterDocsWithCompatibleEmbeddings(
  *
  * @param questions - Array of new questions to check
  * @param phase - Game phase (phase1, phase2, etc.) to filter existing questions
+ * @param options - Optional settings (e.g., checkAllPhases to verify against all phases)
  * @returns Object containing duplicates array and generated embeddings for reuse
  */
 export async function findSemanticDuplicatesWithEmbeddings(
     questions: Array<{ text: string }>,
-    phase: string
+    phase: string,
+    options?: DeduplicationOptions
 ): Promise<SemanticDuplicateResult> {
     const duplicates: SemanticDuplicate[] = [];
     const foundDuplicateIndices = new Set<number>();
@@ -180,15 +190,25 @@ export async function findSemanticDuplicatesWithEmbeddings(
 
     let totalExistingChecked = 0;
 
+    // Determine if we should check all phases or just the specified one
+    const checkAllPhases = options?.checkAllPhases ?? false;
+    const phaseLabel = checkAllPhases ? 'ALL phases' : phase;
+    console.log(`📊 Checking duplicates against ${phaseLabel}...`);
+
     // 2. Check against 'questions' collection (complete question data with embeddings from index.ts)
     let lastDocQuestions: DocumentSnapshot | null = null;
     let hasMoreQuestions = true;
 
     while (hasMoreQuestions) {
-        let query = db.collection('questions')
-            .where('phase', '==', phase)
-            .orderBy('createdAt', 'desc')
-            .limit(PAGINATION_BATCH_SIZE);
+        // Build query - filter by phase only if checkAllPhases is false
+        let query = checkAllPhases
+            ? db.collection('questions')
+                .orderBy('createdAt', 'desc')
+                .limit(PAGINATION_BATCH_SIZE)
+            : db.collection('questions')
+                .where('phase', '==', phase)
+                .orderBy('createdAt', 'desc')
+                .limit(PAGINATION_BATCH_SIZE);
 
         if (lastDocQuestions) {
             query = query.startAfter(lastDocQuestions);
@@ -227,10 +247,15 @@ export async function findSemanticDuplicatesWithEmbeddings(
     let hasMoreEmbeddings = true;
 
     while (hasMoreEmbeddings) {
-        let query = db.collection('question_embeddings')
-            .where('phase', '==', phase)
-            .orderBy('createdAt', 'desc')
-            .limit(PAGINATION_BATCH_SIZE);
+        // Build query - filter by phase only if checkAllPhases is false
+        let query = checkAllPhases
+            ? db.collection('question_embeddings')
+                .orderBy('createdAt', 'desc')
+                .limit(PAGINATION_BATCH_SIZE)
+            : db.collection('question_embeddings')
+                .where('phase', '==', phase)
+                .orderBy('createdAt', 'desc')
+                .limit(PAGINATION_BATCH_SIZE);
 
         if (lastDocEmbeddings) {
             query = query.startAfter(lastDocEmbeddings);

@@ -5,6 +5,7 @@
 
 import { useEffect, useLayoutEffect, useMemo, useRef, useState, useCallback } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { motion } from 'framer-motion';
 import { RotateCcw, Trophy } from 'lucide-react';
 import { GenerationLoadingCard } from '../components/ui/GenerationLoadingCard';
@@ -26,6 +27,7 @@ import type { PhaseStatus } from '../services/gameService';
 // Inner component that uses the context
 function SoloGameInner() {
     const navigate = useNavigate();
+    const { t } = useTranslation('common');
     const prefersReducedMotion = useReducedMotion();
     const { user } = useAuthUser();
     const context = useSoloGame();
@@ -253,7 +255,7 @@ function SoloGameInner() {
                     className="bg-slate-900/95 backdrop-blur-xl border border-white/10 rounded-3xl p-6 shadow-2xl max-w-md w-full"
                 >
                     <GenerationLoadingCard
-                        error={genStatus === 'error' ? (error || 'Une erreur est survenue') : null}
+                        error={genStatus === 'error' ? (error || t('solo.errorOccurred')) : null}
                         onRetry={() => retryBackgroundGeneration(phase)}
                     />
                 </motion.div>
@@ -285,7 +287,7 @@ function SoloGameInner() {
                          state.totalScore >= SOLO_MAX_SCORE * 0.3 ? '👍' : '💪'}
                     </motion.div>
 
-                    <h2 className="text-3xl font-black mb-2">Partie terminée !</h2>
+                    <h2 className="text-3xl font-black mb-2">{t('solo.gameOver')}</h2>
 
                     <div className="text-6xl font-black bg-gradient-to-r from-orange-400 to-red-400 bg-clip-text text-transparent my-6">
                         {state.totalScore} / {SOLO_MAX_SCORE}
@@ -313,13 +315,13 @@ function SoloGameInner() {
                     <div className="grid grid-cols-2 gap-4 mb-6">
                         <div className="bg-slate-800/50 rounded-lg p-3">
                             <div className="text-2xl font-bold text-green-400">{accuracy}%</div>
-                            <div className="text-sm text-gray-400">Précision</div>
+                            <div className="text-sm text-gray-400">{t('solo.accuracy')}</div>
                         </div>
                         <div className="bg-slate-800/50 rounded-lg p-3">
                             <div className="text-2xl font-bold text-blue-400">
                                 {Math.floor((state.totalTimeMs || 0) / 1000)}s
                             </div>
-                            <div className="text-sm text-gray-400">Temps total</div>
+                            <div className="text-sm text-gray-400">{t('solo.totalTime')}</div>
                         </div>
                     </div>
 
@@ -330,20 +332,20 @@ function SoloGameInner() {
                             className="w-full bg-gradient-to-r from-orange-600 to-red-600 hover:from-orange-500 hover:to-red-500 px-6 py-4 rounded-xl font-bold flex items-center justify-center gap-2"
                         >
                             <RotateCcw className="w-5 h-5" />
-                            Rejouer
+                            {t('solo.playAgain')}
                         </button>
                         <button
                             onClick={() => navigate('/leaderboard')}
                             className="w-full bg-slate-800 hover:bg-slate-700 px-6 py-3 rounded-xl font-bold flex items-center justify-center gap-2"
                         >
                             <Trophy className="w-5 h-5" />
-                            Classement
+                            {t('solo.leaderboard')}
                         </button>
                         <button
                             onClick={() => navigate('/')}
                             className="w-full text-gray-400 hover:text-white py-2 transition-colors"
                         >
-                            Retour à l'accueil
+                            {t('solo.backToHome')}
                         </button>
                     </div>
                 </motion.div>

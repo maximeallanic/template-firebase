@@ -35,7 +35,15 @@
     "password": "Mot de passe",
     "name": "Nom",
     "optional": "Optionnel",
-    "required": "Requis"
+    "required": "Requis",
+    "vs": "vs",
+    "phase": "Phase",
+    "mvp": "MVP"
+  },
+  "rankings": {
+    "first": "1er",
+    "second": "2e",
+    "third": "3e"
   },
   "errors": {
     "generic": "Une erreur est survenue",
@@ -127,5 +135,34 @@
     "cancel": "Annuler",
     "errorNameRequired": "Le nom ne peut pas etre vide",
     "errorSaveFailed": "Echec de la mise a jour du profil. Veuillez reessayer."
+  },
+  "solo": {
+    "mode": "Mode Solo",
+    "arcadeChallenge": "Arcade Challenge",
+    "maxScore": "Score max : {{score}} points",
+    "configureProfile": "Configure ton profil pour jouer en solo ! Clique sur ton avatar en haut a droite.",
+    "startGame": "Lancer la partie",
+    "viewLeaderboard": "Voir le classement",
+    "leaderboardTitle": "Classement Solo",
+    "leaderboardSubtitle": "Les meilleurs scores du mode Arcade",
+    "myBestScore": "Mon meilleur score",
+    "loadingLeaderboard": "Chargement du classement...",
+    "noScores": "Aucun score enregistre",
+    "beFirstToPlay": "Soyez le premier a jouer en mode Solo !",
+    "playSolo": "Jouer en Solo",
+    "player": "Joueur",
+    "accuracy": "Precision",
+    "time": "Temps",
+    "totalTime": "Temps total",
+    "gameOver": "Partie terminee !",
+    "playAgain": "Rejouer",
+    "leaderboard": "Classement",
+    "backToHome": "Retour a l'accueil",
+    "errorOccurred": "Une erreur est survenue",
+    "phases": {
+      "phase1Subtitle": "Reponds aux questions !",
+      "phase2Subtitle": "Classe les elements !",
+      "phase4Subtitle": "Reponds vite pour plus de points !"
+    }
   }
 }

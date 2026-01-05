@@ -446,6 +446,7 @@ Vérifie que chaque item appartient VRAIMENT à la catégorie assignée (A, B, o
 
             // Run semantic deduplication on the approved set
             // Use findSemanticDuplicatesWithEmbeddings to generate embeddings once and reuse
+            // IMPORTANT: Check against ALL phases to prevent cross-phase duplicates
             const itemsAsQuestions = lastSet.items.map(item => ({ text: item.text }));
             let semanticDuplicates: SemanticDuplicate[] = [];
             let internalDuplicates: SemanticDuplicate[] = [];
@@ -453,7 +454,12 @@ Vérifie que chaque item appartient VRAIMENT à la catégorie assignée (A, B, o
 
             try {
                 // Generate embeddings once and reuse for both dedup checks and storage
-                const dedupResult = await findSemanticDuplicatesWithEmbeddings(itemsAsQuestions, 'phase2');
+                // checkAllPhases: true to detect cross-phase duplicates (P1↔P2, P2↔P4, etc.)
+                const dedupResult = await findSemanticDuplicatesWithEmbeddings(
+                    itemsAsQuestions,
+                    'phase2',
+                    { checkAllPhases: true }
+                );
                 semanticDuplicates = dedupResult.duplicates;
                 finalEmbeddings = dedupResult.embeddings;
                 internalDuplicates = findInternalDuplicates(finalEmbeddings, itemsAsQuestions);
@@ -461,24 +467,48 @@ Vérifie que chaque item appartient VRAIMENT à la catégorie assignée (A, B, o
                 console.warn('⚠️ Duplicate check failed, skipping:', err);
             }
 
-            // If duplicates found, note them but continue (set was approved by reviewer)
+            // If duplicates found, REJECT and mark items for regeneration
             if (semanticDuplicates.length > 0 || internalDuplicates.length > 0) {
-                console.warn(`⚠️ Found ${semanticDuplicates.length} semantic + ${internalDuplicates.length} internal duplicates`);
-                for (const dup of [...semanticDuplicates, ...internalDuplicates]) {
+                const allDuplicates = [...semanticDuplicates, ...internalDuplicates];
+                const duplicateIndices = new Set(allDuplicates.map(d => d.index));
+
+                console.error(`❌ Found ${semanticDuplicates.length} semantic + ${internalDuplicates.length} internal duplicates - BLOCKING`);
+                for (const dup of allDuplicates) {
                     console.log(`   - "${lastSet.items[dup.index].text}" ≈ "${dup.similarTo.slice(0, 30)}..." (${(dup.score * 100).toFixed(0)}%)`);
                 }
-            }
 
-            // Store questions with embeddings for future deduplication (reusing already-generated embeddings)
-            if (finalEmbeddings.length > 0) {
-                await storeQuestionsWithEmbeddings(
-                    itemsAsQuestions,
-                    finalEmbeddings,
-                    'phase2'
-                );
-            }
+                // Filter out duplicate items and keep only unique ones
+                const uniqueItems = lastSet.items.filter((_, idx) => !duplicateIndices.has(idx));
+                const uniqueEmbeddings = finalEmbeddings.filter((_, idx) => !duplicateIndices.has(idx));
 
-            return { set: lastSet, embeddings: finalEmbeddings };
+                // If too many duplicates, trigger full regeneration by continuing loop
+                if (uniqueItems.length < 6) {
+                    console.warn(`⚠️ Only ${uniqueItems.length} unique items remaining - need full regeneration`);
+                    // Don't return, let the loop continue for regeneration
+                } else {
+                    // Store only unique items and return partial set
+                    console.log(`📦 Storing ${uniqueItems.length} unique items (filtered ${duplicateIndices.size} duplicates)`);
+                    const uniqueItemsAsQuestions = uniqueItems.map(item => ({ text: item.text }));
+                    if (uniqueEmbeddings.length > 0) {
+                        await storeQuestionsWithEmbeddings(
+                            uniqueItemsAsQuestions,
+                            uniqueEmbeddings,
+                            'phase2'
+                        );
+                    }
+                    return { set: { ...lastSet, items: uniqueItems }, embeddings: uniqueEmbeddings };
+                }
+            } else {
+                // No duplicates - store all items and return
+                if (finalEmbeddings.length > 0) {
+                    await storeQuestionsWithEmbeddings(
+                        itemsAsQuestions,
+                        finalEmbeddings,
+                        'phase2'
+                    );
+                }
+                return { set: lastSet, embeddings: finalEmbeddings };
+            }
         }
 
         // 4. Decide: targeted item regeneration or full regeneration?

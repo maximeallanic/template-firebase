@@ -35,7 +35,15 @@
     "password": "Senha",
     "name": "Nome",
     "optional": "Opcional",
-    "required": "Obrigatorio"
+    "required": "Obrigatorio",
+    "vs": "vs",
+    "phase": "Fase",
+    "mvp": "MVP"
+  },
+  "rankings": {
+    "first": "1o",
+    "second": "2o",
+    "third": "3o"
   },
   "errors": {
     "generic": "Ocorreu um erro",
@@ -127,5 +135,34 @@
     "cancel": "Cancelar",
     "errorNameRequired": "O nome nao pode estar vazio",
     "errorSaveFailed": "Falha ao atualizar o perfil. Tente novamente."
+  },
+  "solo": {
+    "mode": "Modo Solo",
+    "arcadeChallenge": "Arcade Challenge",
+    "maxScore": "Pontuacao maxima: {{score}} pontos",
+    "configureProfile": "Configure seu perfil para jogar solo! Clique no seu avatar no canto superior direito.",
+    "startGame": "Iniciar partida",
+    "viewLeaderboard": "Ver classificacao",
+    "leaderboardTitle": "Classificacao Solo",
+    "leaderboardSubtitle": "Melhores pontuacoes do modo Arcade",
+    "myBestScore": "Minha melhor pontuacao",
+    "loadingLeaderboard": "Carregando classificacao...",
+    "noScores": "Sem pontuacoes registradas",
+    "beFirstToPlay": "Seja o primeiro a jogar no modo Solo!",
+    "playSolo": "Jogar Solo",
+    "player": "Jogador",
+    "accuracy": "Precisao",
+    "time": "Tempo",
+    "totalTime": "Tempo total",
+    "gameOver": "Partida terminada!",
+    "playAgain": "Jogar novamente",
+    "leaderboard": "Classificacao",
+    "backToHome": "Voltar ao inicio",
+    "errorOccurred": "Ocorreu um erro",
+    "phases": {
+      "phase1Subtitle": "Responda as perguntas!",
+      "phase2Subtitle": "Classifique os elementos!",
+      "phase4Subtitle": "Responda rapido para mais pontos!"
+    }
   }
 }

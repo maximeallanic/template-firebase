@@ -12,11 +12,11 @@ interface PlayerLeaderboardProps {
     topN?: number;
 }
 
-// Medal colors for top 3
+// Medal colors for top 3 - labels are translation keys
 const MEDAL_STYLES = [
-    { bg: 'bg-yellow-500', text: 'text-yellow-900', icon: Trophy, label: '1er' },
-    { bg: 'bg-slate-300', text: 'text-slate-800', icon: Medal, label: '2e' },
-    { bg: 'bg-amber-600', text: 'text-amber-100', icon: Medal, label: '3e' },
+    { bg: 'bg-yellow-500', text: 'text-yellow-900', icon: Trophy, labelKey: 'rankings.first' },
+    { bg: 'bg-slate-300', text: 'text-slate-800', icon: Medal, labelKey: 'rankings.second' },
+    { bg: 'bg-amber-600', text: 'text-amber-100', icon: Medal, labelKey: 'rankings.third' },
 ];
 
 export function PlayerLeaderboard({ players, topN = 3 }: PlayerLeaderboardProps) {
@@ -110,7 +110,7 @@ export function PlayerLeaderboard({ players, topN = 3 }: PlayerLeaderboardProps)
                                     </span>
                                     {isMvp && (
                                         <span className="text-xs bg-yellow-500/20 text-yellow-400 px-2 py-0.5 rounded-full font-semibold">
-                                            MVP
+                                            {t('common:labels.mvp')}
                                         </span>
                                     )}
                                 </div>

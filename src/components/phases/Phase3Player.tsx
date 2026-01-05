@@ -196,10 +196,10 @@ export const Phase3Player: React.FC<Phase3PlayerProps> = ({ room, playerId, isHo
                     >
                         <div className="text-6xl mb-4">🍽️</div>
                         <h2 className="text-3xl font-black mb-2">{t('game-phases:phase3.title')}</h2>
-                        <p className="text-xl text-gray-400 mb-6">{t('game-phases:phase3.complete', 'Phase terminée !')}</p>
+                        <p className="text-xl text-gray-400 mb-6">{t('phase3.phaseComplete')}</p>
 
                         <div className="bg-white/10 rounded-xl p-4 mb-6">
-                            <div className="text-lg text-gray-300">Score cette phase</div>
+                            <div className="text-lg text-gray-300">{t('phase3.yourScore')}</div>
                             <div className="text-4xl font-black text-green-400">
                                 {ownProgress.score} / {ownTheme?.questions.length || 5}
                             </div>
@@ -210,7 +210,7 @@ export const Phase3Player: React.FC<Phase3PlayerProps> = ({ room, playerId, isHo
                             className="bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-400 hover:to-red-400 px-8 py-4 rounded-xl text-xl font-bold shadow-lg flex items-center gap-2 mx-auto transition-colors"
                         >
                             <ChevronRight className="w-6 h-6" />
-                            {t('common:actions.continue', 'Continuer')}
+                            {t('common:buttons.continue')}
                         </button>
                     </motion.div>
                 )}

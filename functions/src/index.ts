@@ -594,7 +594,7 @@ export const generateGameQuestions = onCall(
       try {
         if (phase === 'phase2') {
           // Phase 2: Save each item individually with its embedding
-          const setData = processedData as { optionA: string; optionB: string; optionADescription?: string; optionBDescription?: string; humorousDescription?: string; items: Array<{ text: string; answer: string }> };
+          const setData = processedData as { optionA: string; optionB: string; optionADescription?: string; optionBDescription?: string; humorousDescription?: string; items: Array<{ text: string; answer: string; justification?: string; anecdote?: string }> };
           const batch = db.batch();
           const questionsRef = db.collection('questions');
 
@@ -612,6 +612,8 @@ export const generateGameQuestions = onCall(
               humorousDescription: setData.humorousDescription || null,
               text: item.text,
               answer: item.answer,
+              justification: item.justification || null,
+              anecdote: item.anecdote || null,
               embedding: embeddings[i] || null,
               embeddingModel: embeddings[i] ? 'text-embedding-004' : null,
               createdAt: FieldValue.serverTimestamp(),

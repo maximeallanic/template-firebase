@@ -95,8 +95,8 @@ export const Phase3ThemeSelection: React.FC<Phase3ThemeSelectionProps> = ({
             {/* Solo mode header */}
             {isSolo && (
                 <div className="text-center mb-4">
-                    <h2 className="text-2xl font-black text-white mb-2">{t('phase3.chooseMenu', 'Choisissez votre menu')}</h2>
-                    <p className="text-white/60">{t('phase3.selectThemeDescription', 'Sélectionnez un thème pour débloquer ses questions')}</p>
+                    <h2 className="text-2xl font-black text-white mb-2">{t('phase3.chooseMenu')}</h2>
+                    <p className="text-white/60">{t('phase3.selectionOrderInfo')}</p>
                 </div>
             )}
 
