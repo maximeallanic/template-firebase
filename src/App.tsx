@@ -2,6 +2,7 @@ import { Suspense, lazy, useMemo } from 'react';
 import { Routes, Route, useLocation } from 'react-router-dom';
 import { AnimatePresence, LayoutGroup } from 'framer-motion';
 import { AuthRequired } from './components/auth/AuthRequired';
+import { ProfileGate } from './components/auth/ProfileGate';
 import { PageTransition } from './components/ui/PageTransition';
 import { SharedBackground, type BackgroundVariant } from './components/ui/SharedBackground';
 import { FoodLoader } from './components/ui/FoodLoader';
@@ -46,9 +47,11 @@ function App() {
       {/* Shared background - outside AnimatePresence for smooth transitions */}
       <SharedBackground variant={bgVariant} />
 
-      <Suspense fallback={<LoadingFallback />}>
-        <AnimatePresence mode="wait">
-          <Routes location={location} key={location.pathname}>
+      {/* Profile gate - shows mandatory setup modal for users without complete profile */}
+      <ProfileGate>
+        <Suspense fallback={<LoadingFallback />}>
+          <AnimatePresence mode="wait">
+            <Routes location={location} key={location.pathname}>
           <Route path="/" element={
             <PageTransition>
               <HomePage />
@@ -110,9 +113,10 @@ function App() {
               <TermsOfService />
             </PageTransition>
           } />
-        </Routes>
-      </AnimatePresence>
-    </Suspense>
+          </Routes>
+        </AnimatePresence>
+      </Suspense>
+      </ProfileGate>
     </LayoutGroup>
   );
 }

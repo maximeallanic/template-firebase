@@ -39,5 +39,17 @@
     "termsOfService": "Términos de Servicio",
     "termsAndConditions": "Términos y Condiciones"
   },
-  "loading": "Cargando..."
+  "loading": "Cargando...",
+  "profileSetup": {
+    "title": "Crea tu Perfil de Chef",
+    "subtitle": "¡Configura tu identidad para jugar!",
+    "nameLabel": "Nombre del Chef",
+    "namePlaceholder": "Tu apodo (máx 12 car.)",
+    "avatarLabel": "Elige tu Avatar",
+    "saveButton": "¡Vamos!",
+    "saving": "Guardando...",
+    "errorNameRequired": "Se requiere un nombre",
+    "errorAvatarRequired": "Elige un avatar",
+    "errorSaveFailed": "Error al guardar. Inténtalo de nuevo."
+  }
 }

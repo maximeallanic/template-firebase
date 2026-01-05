@@ -166,5 +166,17 @@
     "signUpComplete": "✅ Sign-up completed",
     "analysisComplete": "✅ Analysis completed"
   },
-  "loading": "Loading..."
+  "loading": "Loading...",
+  "profileSetup": {
+    "title": "Create Your Chef Profile",
+    "subtitle": "Set up your identity to play!",
+    "nameLabel": "Chef Name",
+    "namePlaceholder": "Your nickname (max 12 chars)",
+    "avatarLabel": "Choose Your Avatar",
+    "saveButton": "Let's Go!",
+    "saving": "Saving...",
+    "errorNameRequired": "A name is required",
+    "errorAvatarRequired": "Please choose an avatar",
+    "errorSaveFailed": "Save failed. Please try again."
+  }
 }

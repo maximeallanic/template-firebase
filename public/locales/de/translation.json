@@ -18,5 +18,17 @@
   "footer": {
     "poweredBy": "© 2025 • Angetrieben von Gemini AI"
   },
-  "loading": "Laden..."
+  "loading": "Laden...",
+  "profileSetup": {
+    "title": "Erstelle dein Chef-Profil",
+    "subtitle": "Richte deine Identität ein, um zu spielen!",
+    "nameLabel": "Chef-Name",
+    "namePlaceholder": "Dein Spitzname (max 12 Zeichen)",
+    "avatarLabel": "Wähle deinen Avatar",
+    "saveButton": "Los geht's!",
+    "saving": "Speichern...",
+    "errorNameRequired": "Ein Name ist erforderlich",
+    "errorAvatarRequired": "Bitte wähle einen Avatar",
+    "errorSaveFailed": "Speichern fehlgeschlagen. Bitte erneut versuchen."
+  }
 }

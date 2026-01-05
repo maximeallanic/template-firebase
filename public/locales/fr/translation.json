@@ -166,5 +166,17 @@
     "signUpComplete": "✅ Inscription terminée",
     "analysisComplete": "✅ Analyse terminée"
   },
-  "loading": "Chargement..."
+  "loading": "Chargement...",
+  "profileSetup": {
+    "title": "Crée ton profil Chef",
+    "subtitle": "Pour jouer, configure ton identité !",
+    "nameLabel": "Nom du Chef",
+    "namePlaceholder": "Ton pseudo (max 12 car.)",
+    "avatarLabel": "Choisis ton Avatar",
+    "saveButton": "C'est parti !",
+    "saving": "Enregistrement...",
+    "errorNameRequired": "Un nom est requis",
+    "errorAvatarRequired": "Choisis un avatar",
+    "errorSaveFailed": "Échec de l'enregistrement. Réessaie."
+  }
 }

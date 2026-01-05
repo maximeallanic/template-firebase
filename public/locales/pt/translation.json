@@ -18,5 +18,17 @@
   "footer": {
     "poweredBy": "© 2025 • Desenvolvido por Gemini AI"
   },
-  "loading": "Carregando..."
+  "loading": "Carregando...",
+  "profileSetup": {
+    "title": "Crie seu Perfil de Chef",
+    "subtitle": "Configure sua identidade para jogar!",
+    "nameLabel": "Nome do Chef",
+    "namePlaceholder": "Seu apelido (máx 12 car.)",
+    "avatarLabel": "Escolha seu Avatar",
+    "saveButton": "Vamos lá!",
+    "saving": "Salvando...",
+    "errorNameRequired": "Um nome é necessário",
+    "errorAvatarRequired": "Escolha um avatar",
+    "errorSaveFailed": "Falha ao salvar. Tente novamente."
+  }
 }
