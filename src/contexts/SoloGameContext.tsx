@@ -590,6 +590,12 @@ export function SoloGameProvider({
                             console.log(`[SOLO] ✅ Phase2 completed: ${(filteredData as { items: unknown[] }).items.length} items`);
                         }
                     }
+                    // Ensure we don't exceed the expected count
+                    const phase2Items = (filteredData as { items: unknown[] }).items;
+                    if (phase2Items.length > minRequired) {
+                        filteredData = { ...filteredData as object, items: phase2Items.slice(0, minRequired) };
+                        console.log(`[SOLO] 📏 Phase2 trimmed to ${minRequired} items`);
+                    }
                 } else if (phase === 'phase4' && Array.isArray(filteredData)) {
                     filteredData = await filterUnseenQuestions(filteredData as { text: string }[], (q: { text: string }) => q.text);
                     console.log(`[SOLO] Filtered phase4 questions: ${(result.data as unknown[]).length} -> ${(filteredData as unknown[]).length}`);

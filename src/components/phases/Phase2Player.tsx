@@ -230,7 +230,7 @@ export function Phase2Player({ room, playerId, isHost, mode = 'multiplayer', sol
         <div className="fixed inset-0 flex overflow-hidden">
             {/* Team Status Bar - Top (multiplayer only) */}
             {!isSolo && (
-                <div className="absolute top-4 left-1/2 -translate-x-1/2 z-10 flex flex-col items-center gap-3">
+                <div className="absolute top-4 left-1/2 -translate-x-1/2 z-5 flex flex-col items-center gap-3">
                     {/* Discreet Timer */}
                     <Phase2Timer
                         timeRemaining={timeRemaining}
@@ -341,7 +341,7 @@ export function Phase2Player({ room, playerId, isHost, mode = 'multiplayer', sol
                         animate={{ opacity: 1 }}
                         exit={{ opacity: 0 }}
                         transition={{ duration: 0.3 }}
-                        className="absolute inset-0 flex flex-col items-center justify-center p-4 pb-24 md:pb-28 lg:pb-32 pointer-events-none z-30"
+                        className="absolute inset-0 flex flex-col items-center justify-center p-4 pb-24 md:pb-28 lg:pb-32 pointer-events-none z-20"
                     >
                         {/* Team Lock Overlay - When teammate answered but round not over (multiplayer only) */}
                         {!isSolo && (

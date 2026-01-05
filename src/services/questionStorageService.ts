@@ -30,6 +30,8 @@ export interface StoredQuestion {
     options?: string[];
     correctIndex?: number;
     anecdote?: string;
+    justification?: string;  // For phase2 item explanations
+    acceptedAnswers?: ('A' | 'B' | 'Both')[];  // For phase2 alternative answers
     question?: string; // For phase3, phase4, phase5
     answer?: string;   // For phase3, phase4, phase5
     optionA?: string;  // For phase2 (e.g., "Sucré")
@@ -102,10 +104,15 @@ export async function getAvailableQuestions(
                 options: data.options,
                 correctIndex: data.correctIndex,
                 anecdote: data.anecdote,
+                justification: data.justification,  // For phase2 explanations
+                acceptedAnswers: data.acceptedAnswers,  // For phase2 alternative answers
                 question: data.question,
                 answer: data.answer,
                 optionA: data.optionA,  // For phase2
                 optionB: data.optionB,  // For phase2
+                optionADescription: data.optionADescription,  // For phase2 homonyms
+                optionBDescription: data.optionBDescription,  // For phase2 homonyms
+                humorousDescription: data.humorousDescription,  // For phase2
                 createdAt: data.createdAt instanceof Timestamp
                     ? data.createdAt.toDate()
                     : new Date(data.createdAt),
@@ -147,7 +154,7 @@ export async function getRandomQuestionSet(
     // Determine count based on phase
     const countByPhase: Record<string, number> = {
         phase1: 10,
-        phase2: 15,
+        phase2: 12, // Match MINIMUM_QUESTION_COUNTS.phase2
         phase3: 15, // 3 menus × 5 questions
         phase4: 15,
         phase5: 10,
@@ -193,6 +200,9 @@ export async function getRandomQuestionSet(
             items: questions.map(q => ({
                 text: q.text || '',
                 answer: q.answer || 'A',
+                anecdote: q.anecdote,
+                justification: q.justification,
+                acceptedAnswers: q.acceptedAnswers,
             })),
         } as unknown as Question[];
     } else if (phase === 'phase4') {

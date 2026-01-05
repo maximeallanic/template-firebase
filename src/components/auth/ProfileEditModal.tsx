@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useTranslation } from 'react-i18next';
 import { X, Save, User } from 'lucide-react';
 import { updatePlayerProfile, type Avatar, AVATAR_LIST } from '../../services/gameService';
 import { saveProfile } from '../../services/profileService';
@@ -24,6 +25,7 @@ export const ProfileEditModal: React.FC<ProfileEditModalProps> = ({
     playerId,
     onSave
 }) => {
+    const { t } = useTranslation();
     const [name, setName] = useState(currentName);
     const [avatar, setAvatar] = useState<Avatar>(currentAvatar);
     const [isSaving, setIsSaving] = useState(false);
@@ -40,7 +42,7 @@ export const ProfileEditModal: React.FC<ProfileEditModalProps> = ({
 
     const handleSave = async () => {
         if (!name.trim()) {
-            setError('Le nom ne peut pas être vide');
+            setError(t('profileEdit.errorNameRequired'));
             return;
         }
 
@@ -60,7 +62,7 @@ export const ProfileEditModal: React.FC<ProfileEditModalProps> = ({
             onSave(name.trim(), avatar);
         } catch (err) {
             console.error('Failed to update profile:', err);
-            setError('Échec de la mise à jour du profil. Veuillez réessayer.');
+            setError(t('profileEdit.errorSaveFailed'));
         } finally {
             setIsSaving(false);
         }
@@ -95,7 +97,7 @@ export const ProfileEditModal: React.FC<ProfileEditModalProps> = ({
                     <div className="p-5 border-b border-slate-700 flex justify-between items-center bg-slate-800/50">
                         <h2 className="text-xl font-bold text-white flex items-center gap-2">
                             <User className="w-5 h-5 text-indigo-400" />
-                            Modifier le Profil
+                            {t('profileEdit.title')}
                         </h2>
                         <button
                             onClick={onClose}
@@ -110,13 +112,13 @@ export const ProfileEditModal: React.FC<ProfileEditModalProps> = ({
                         {/* Name Input */}
                         <div className="space-y-2">
                             <label className="block text-sm font-bold text-indigo-300 uppercase tracking-wide">
-                                Nom du Chef
+                                {t('profileEdit.nameLabel')}
                             </label>
                             <input
                                 type="text"
                                 value={name}
                                 onChange={(e) => setName(e.target.value)}
-                                placeholder="Votre nom"
+                                placeholder={t('profileEdit.namePlaceholder')}
                                 maxLength={12}
                                 className="w-full bg-slate-950/60 border-2 border-indigo-500/30 rounded-xl p-3 text-lg font-bold focus:border-pink-500 focus:outline-none transition-all placeholder:text-slate-600 text-white"
                             />
@@ -125,7 +127,7 @@ export const ProfileEditModal: React.FC<ProfileEditModalProps> = ({
                         {/* Avatar Selection */}
                         <div className="space-y-3">
                             <label className="block text-sm font-bold text-indigo-300 uppercase tracking-wide">
-                                Choisir un Avatar
+                                {t('profileEdit.avatarLabel')}
                             </label>
                             <div className="grid grid-cols-5 gap-2">
                                 {AVATAR_LIST.map(item => (
@@ -160,7 +162,7 @@ export const ProfileEditModal: React.FC<ProfileEditModalProps> = ({
                             disabled={isSaving}
                             className="px-5 py-2 rounded-xl font-bold text-slate-400 hover:text-white transition-colors"
                         >
-                            Annuler
+                            {t('profileEdit.cancel')}
                         </button>
                         <button
                             onClick={handleSave}
@@ -168,10 +170,10 @@ export const ProfileEditModal: React.FC<ProfileEditModalProps> = ({
                             className="bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-400 hover:to-purple-500 text-white px-6 py-2 rounded-xl font-bold shadow-lg disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 transition-all"
                         >
                             {isSaving ? (
-                                <>Enregistrement...</>
+                                <>{t('profileEdit.saving')}</>
                             ) : (
                                 <>
-                                    <Save className="w-4 h-4" /> Enregistrer
+                                    <Save className="w-4 h-4" /> {t('profileEdit.save')}
                                 </>
                             )}
                         </button>

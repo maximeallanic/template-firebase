@@ -30,5 +30,16 @@
     "errorNameRequired": "Ein Name ist erforderlich",
     "errorAvatarRequired": "Bitte wähle einen Avatar",
     "errorSaveFailed": "Speichern fehlgeschlagen. Bitte erneut versuchen."
+  },
+  "profileEdit": {
+    "title": "Profil bearbeiten",
+    "nameLabel": "Chef-Name",
+    "namePlaceholder": "Dein Name",
+    "avatarLabel": "Avatar wählen",
+    "save": "Speichern",
+    "saving": "Speichern...",
+    "cancel": "Abbrechen",
+    "errorNameRequired": "Name darf nicht leer sein",
+    "errorSaveFailed": "Profil konnte nicht aktualisiert werden. Bitte erneut versuchen."
   }
 }

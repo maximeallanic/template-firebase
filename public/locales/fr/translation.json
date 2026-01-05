@@ -178,5 +178,16 @@
     "errorNameRequired": "Un nom est requis",
     "errorAvatarRequired": "Choisis un avatar",
     "errorSaveFailed": "Échec de l'enregistrement. Réessaie."
+  },
+  "profileEdit": {
+    "title": "Modifier le Profil",
+    "nameLabel": "Nom du Chef",
+    "namePlaceholder": "Votre nom",
+    "avatarLabel": "Choisir un Avatar",
+    "save": "Enregistrer",
+    "saving": "Enregistrement...",
+    "cancel": "Annuler",
+    "errorNameRequired": "Le nom ne peut pas être vide",
+    "errorSaveFailed": "Échec de la mise à jour du profil. Veuillez réessayer."
   }
 }

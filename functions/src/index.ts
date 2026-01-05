@@ -47,6 +47,7 @@ function validateCurrency(currency: string | undefined): SupportedCurrency {
  */
 const ALLOWED_ORIGINS = [
   process.env.APP_URL,
+  'https://spicy-vs-sweet.com',
   'https://spicyvssweet.com',
   'https://spicy-vs-sweet.web.app',
   'https://spicy-vs-sweet.firebaseapp.com',
@@ -56,7 +57,7 @@ const ALLOWED_ORIGINS = [
  * Validates return URLs to prevent open redirect attacks (SEC-001)
  */
 function validateReturnUrl(url: string | undefined): string {
-  const defaultUrl = process.env.APP_URL || 'https://spicy-vs-sweet.web.app';
+  const defaultUrl = process.env.APP_URL || 'https://spicy-vs-sweet.com';
   if (!url) return defaultUrl;
 
   try {

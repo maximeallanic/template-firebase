@@ -30,5 +30,16 @@
     "errorNameRequired": "Um nome é necessário",
     "errorAvatarRequired": "Escolha um avatar",
     "errorSaveFailed": "Falha ao salvar. Tente novamente."
+  },
+  "profileEdit": {
+    "title": "Editar Perfil",
+    "nameLabel": "Nome do Chef",
+    "namePlaceholder": "Seu nome",
+    "avatarLabel": "Escolher um Avatar",
+    "save": "Salvar",
+    "saving": "Salvando...",
+    "cancel": "Cancelar",
+    "errorNameRequired": "O nome não pode estar vazio",
+    "errorSaveFailed": "Falha ao atualizar o perfil. Tente novamente."
   }
 }

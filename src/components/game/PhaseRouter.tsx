@@ -294,6 +294,7 @@ export function PhaseRouter({
             >
                 <Phase3Player
                     room={room}
+                    playerId={myId || ''}
                     isHost={isHost}
                 />
                 {/* Phase 3 Onboarding */}

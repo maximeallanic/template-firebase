@@ -178,5 +178,16 @@
     "errorNameRequired": "A name is required",
     "errorAvatarRequired": "Please choose an avatar",
     "errorSaveFailed": "Save failed. Please try again."
+  },
+  "profileEdit": {
+    "title": "Edit Profile",
+    "nameLabel": "Chef Name",
+    "namePlaceholder": "Your name",
+    "avatarLabel": "Choose an Avatar",
+    "save": "Save",
+    "saving": "Saving...",
+    "cancel": "Cancel",
+    "errorNameRequired": "Name cannot be empty",
+    "errorSaveFailed": "Failed to update profile. Please try again."
   }
 }
