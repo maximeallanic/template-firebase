@@ -4,7 +4,8 @@ import { motion } from 'framer-motion';
 import { ChevronRight, Check } from 'lucide-react';
 import { FoodLoader } from '../ui/FoodLoader';
 import type { Room, Phase4Question as Phase4QuestionType } from '../../services/gameService';
-import { submitPhase4Answer, handlePhase4Timeout, nextPhase4Question, showPhaseResults } from '../../services/gameService';
+import { submitPhase4Answer, handlePhase4Timeout, nextPhase4Question } from '../../services/gameService';
+import { usePhaseTransition } from '../../hooks/usePhaseTransition';
 import { markQuestionAsSeen } from '../../services/historyService';
 import { audioService } from '../../services/audioService';
 import { useReducedMotion } from '../../hooks/useReducedMotion';
@@ -37,6 +38,13 @@ export function Phase4Player({ room, playerId, isHost, mode = 'multiplayer', sol
     const prefersReducedMotion = useReducedMotion();
     const haptic = useHaptic();
     const isSolo = mode === 'solo';
+
+    // Use centralized phase transition hook for multiplayer transitions
+    const { showPhaseResults } = usePhaseTransition({
+        room,
+        isHost,
+        isSolo,
+    });
 
     const player = room.players[playerId];
     const team = player?.team;
@@ -193,11 +201,11 @@ export function Phase4Player({ room, playerId, isHost, mode = 'multiplayer', sol
         if (isFinished && !isSolo && isHost) {
             const delay = RESULT_DISPLAY_TIME;
             const timer = setTimeout(() => {
-                showPhaseResults(room.code);
+                showPhaseResults();
             }, delay);
             return () => clearTimeout(timer);
         }
-    }, [isFinished, isSolo, isHost, room.code]);
+    }, [isFinished, isSolo, isHost, showPhaseResults]);
 
     // Handle answer submission with parallel animations
     const handleAnswerClick = useCallback(async (answerIndex: number) => {
@@ -274,7 +282,7 @@ export function Phase4Player({ room, playerId, isHost, mode = 'multiplayer', sol
                         initial={prefersReducedMotion ? { opacity: 0 } : { opacity: 0, y: 20 }}
                         animate={prefersReducedMotion ? { opacity: 1 } : { opacity: 1, y: 0 }}
                         transition={{ delay: 0.3 }}
-                        onClick={() => showPhaseResults(room.code)}
+                        onClick={() => showPhaseResults()}
                         className="bg-yellow-500 hover:bg-yellow-400 px-8 py-4 rounded-xl text-xl font-bold shadow-lg flex items-center gap-2 text-black transition-colors"
                     >
                         <span>{t('host.startPhase5')}</span>

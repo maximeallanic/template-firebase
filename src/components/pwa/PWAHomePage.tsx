@@ -9,8 +9,7 @@ import { LandscapeWarning } from '../ui/LandscapeWarning';
 import { PWABackground } from './PWABackground';
 import { FloatingMascots } from './FloatingMascots';
 import { PWAPlayerProfile } from './PWAPlayerProfile';
-import { PlayButton } from './PlayButton';
-import { PWAActionMenu } from './PWAActionMenu';
+import { PWAActionButtons } from './PWAActionButtons';
 import { QuickSettings } from './QuickSettings';
 import { useOrientationLock } from '../../hooks/useOrientationLock';
 import { useAuthUser } from '../../hooks/useAuthUser';
@@ -32,7 +31,6 @@ export function PWAHomePage() {
   useOrientationLock(true);
 
   // UI state
-  const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isCreatingRoom, setIsCreatingRoom] = useState(false);
   const [isJoiningRoom, setIsJoiningRoom] = useState(false);
   const [showProfileEdit, setShowProfileEdit] = useState(false);
@@ -82,8 +80,6 @@ export function PWAHomePage() {
 
   // Handle "Create Room"
   const handleCreateRoom = async () => {
-    setIsMenuOpen(false);
-
     if (!profile?.profileName || !user || profileLoading) {
       navigate('/host');
       return;
@@ -113,7 +109,6 @@ export function PWAHomePage() {
 
   // Handle "Join Room"
   const handleJoinRoom = () => {
-    setIsMenuOpen(false);
     setShowJoinInput(true);
   };
 
@@ -170,7 +165,6 @@ export function PWAHomePage() {
 
   // Handle "Solo Mode"
   const handleSoloMode = () => {
-    setIsMenuOpen(false);
     navigate('/solo');
   };
 
@@ -210,11 +204,14 @@ export function PWAHomePage() {
           paddingBottom: 'env(safe-area-inset-bottom)',
         }}
       >
-        {/* Header with settings */}
-        <header className="flex items-center justify-between p-4 bg-slate-900/80 backdrop-blur-sm">
-          <QuickSettings onEditProfile={() => setShowProfileEdit(true)} />
-          {/* Logo small */}
-          <div className="w-10 h-10">
+        {/* Header with settings - transparent */}
+        <header className="relative flex items-center justify-center p-4">
+          {/* Settings button - positioned absolutely on the left */}
+          <div className="absolute left-4 top-1/2 -translate-y-1/2">
+            <QuickSettings onEditProfile={() => setShowProfileEdit(true)} />
+          </div>
+          {/* Logo - centered and larger */}
+          <div className="w-32 h-32">
             <Logo className="w-full h-full" />
           </div>
         </header>
@@ -222,24 +219,16 @@ export function PWAHomePage() {
         {/* Player profile */}
         <PWAPlayerProfile />
 
-        {/* Center: PLAY button */}
-        <div className="flex-1 flex items-center justify-center">
-          <PlayButton onPress={() => setIsMenuOpen(true)} />
+        {/* Action buttons */}
+        <div className="flex-1 flex items-center justify-center py-4">
+          <PWAActionButtons
+            onCreateRoom={handleCreateRoom}
+            onJoinRoom={handleJoinRoom}
+            onSoloMode={handleSoloMode}
+            isCreatingRoom={isCreatingRoom}
+          />
         </div>
-
-        {/* Bottom spacer for action menu - minimal to prevent content overlap */}
-        <div className="h-4" />
       </div>
-
-      {/* Action menu */}
-      <PWAActionMenu
-        isOpen={isMenuOpen}
-        onClose={() => setIsMenuOpen(false)}
-        onCreateRoom={handleCreateRoom}
-        onJoinRoom={handleJoinRoom}
-        onSoloMode={handleSoloMode}
-        isCreatingRoom={isCreatingRoom}
-      />
 
       {/* Join code input modal */}
       <AnimatePresence>

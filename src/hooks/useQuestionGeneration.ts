@@ -1,7 +1,7 @@
 import { useEffect, useState, useRef, useCallback } from 'react';
 import { ref, get, child } from 'firebase/database';
 import { rtdb } from '../services/firebase';
-import { type Room, setGameStatus, overwriteGameQuestions, setGeneratingState, setPhase2GeneratingState, getPhase2GeneratingState } from '../services/gameService';
+import { type Room, setGameStatus, overwriteGameQuestions, setGeneratingState } from '../services/gameService';
 import { getRoomDifficulty } from '../services/game/roomService';
 import { type Question, hasEnoughQuestions, getMissingQuestionCount, MINIMUM_QUESTION_COUNTS } from '../types/gameTypes';
 import { generateWithRetry } from '../services/aiClient';
@@ -9,34 +9,12 @@ import { filterUnseenQuestions } from '../services/historyService';
 import { getRandomQuestionSet } from '../services/questionStorageService';
 import { PHASE4_QUESTIONS } from '../data/phase4';
 import { PHASE5_QUESTIONS } from '../data/phase5';
-
-// Module-level lock to survive React StrictMode remounts
-// Keys are formatted as `${roomCode}_${phase}`
-const generationInProgress: Record<string, boolean> = {};
-// Track when locks were acquired to clean up stale locks (>5 minutes old)
-const generationStartTimes: Record<string, number> = {};
-
-// Stale lock threshold: 5 minutes
-const STALE_LOCK_THRESHOLD_MS = 5 * 60 * 1000;
-
-/**
- * Clean up stale locks that are older than the threshold.
- * This prevents locks from persisting indefinitely if a generation fails silently.
- */
-function cleanupStaleLocks(): void {
-    const now = Date.now();
-    Object.keys(generationInProgress).forEach(key => {
-        const startTime = generationStartTimes[key];
-        if (startTime && now - startTime > STALE_LOCK_THRESHOLD_MS) {
-            console.warn('[QUESTION-GEN] 🧹 Cleaning up stale lock:', key, {
-                ageMs: now - startTime,
-                thresholdMs: STALE_LOCK_THRESHOLD_MS
-            });
-            delete generationInProgress[key];
-            delete generationStartTimes[key];
-        }
-    });
-}
+import {
+    acquireGenerationLock,
+    releaseGenerationLock,
+    isGenerationLocked,
+    cleanupStaleLock
+} from '../services/lockService';
 
 interface UseQuestionGenerationOptions {
     room: Room | null;
@@ -98,7 +76,7 @@ export function useQuestionGeneration({
     // instead of automatically during lobby, to avoid unnecessary API calls before the game begins.
 
     // Automatic Phase 2 Generation (fallback if pregen failed or wasn't done)
-    // Uses Firebase lock to prevent double generation with triggerPhase2Pregen
+    // Uses Firebase-based distributed lock to prevent double generation across all clients
     const roomStatus = room?.state.status;
     useEffect(() => {
         if (roomStatus !== 'phase2') return;
@@ -106,7 +84,7 @@ export function useQuestionGeneration({
         const generatePhase2Questions = async () => {
             const currentRoom = roomRef.current;
             const currentMyId = myIdRef.current;
-            if (!currentRoom) return;
+            if (!currentRoom || !currentMyId) return;
 
             console.log('[QUESTION-GEN] 📍 Phase 2 entered, checking generation needs...', {
                 roomCode: currentRoom.code,
@@ -114,8 +92,8 @@ export function useQuestionGeneration({
                 isHost: currentRoom.hostId === currentMyId
             });
 
-            // Check Firebase lock (shared with triggerPhase2Pregen)
-            const isAlreadyGenerating = await getPhase2GeneratingState(currentRoom.code);
+            // Check Firebase distributed lock (works across all clients/tabs)
+            const isAlreadyGenerating = await isGenerationLocked(currentRoom.code);
             if (isAlreadyGenerating) {
                 console.log('[QUESTION-GEN] Phase 2: Skipping - generation already in progress (Firebase lock)');
                 return;
@@ -138,8 +116,13 @@ export function useQuestionGeneration({
                 return;
             }
 
-            // Take the Firebase lock
-            await setPhase2GeneratingState(currentRoom.code, true);
+            // Try to acquire the Firebase distributed lock (atomic operation)
+            const lockAcquired = await acquireGenerationLock(currentRoom.code, currentMyId, 'phase2');
+            if (!lockAcquired) {
+                console.log('[QUESTION-GEN] Phase 2: Could not acquire lock, another client is generating');
+                return;
+            }
+
             // Also set visible generation state for loading UI
             await setGeneratingState(currentRoom.code, true);
 
@@ -215,8 +198,8 @@ export function useQuestionGeneration({
                 });
                 setGenerationError("Échec de la génération Phase 2. Questions par défaut utilisées.");
             } finally {
-                // Clear both locks
-                await setPhase2GeneratingState(currentRoom.code, false);
+                // Release the Firebase distributed lock
+                await releaseGenerationLock(currentRoom.code, currentMyId);
                 await setGeneratingState(currentRoom.code, false);
             }
         };
@@ -225,13 +208,14 @@ export function useQuestionGeneration({
     }, [roomStatus]);
 
     // Automatic Phase 3 Generation (AI-generated menus)
+    // Uses Firebase-based distributed lock to prevent double generation across all clients
     useEffect(() => {
         if (roomStatus !== 'phase3') return;
 
         const generatePhase3Questions = async () => {
             const currentRoom = roomRef.current;
             const currentMyId = myIdRef.current;
-            if (!currentRoom) return;
+            if (!currentRoom || !currentMyId) return;
             if (hasFilteredPhase3.current) return;
 
             // Check if we have Phase 3 custom questions (menus)
@@ -255,6 +239,20 @@ export function useQuestionGeneration({
             const currentIsHost = currentRoom.hostId === currentMyId;
             if (!currentIsHost) {
                 console.log('[QUESTION-GEN] Phase 3: Not host, waiting for host to generate...');
+                return;
+            }
+
+            // Check Firebase distributed lock (works across all clients/tabs)
+            const isAlreadyGenerating = await isGenerationLocked(currentRoom.code);
+            if (isAlreadyGenerating) {
+                console.log('[QUESTION-GEN] Phase 3: Skipping - generation already in progress (Firebase lock)');
+                return;
+            }
+
+            // Try to acquire the Firebase distributed lock (atomic operation)
+            const lockAcquired = await acquireGenerationLock(currentRoom.code, currentMyId, 'phase3');
+            if (!lockAcquired) {
+                console.log('[QUESTION-GEN] Phase 3: Could not acquire lock, another client is generating');
                 return;
             }
 
@@ -299,6 +297,8 @@ export function useQuestionGeneration({
                 setGenerationError('Phase 3 generation failed - using default menus');
                 // Phase 3 will fallback to PHASE3_DATA in the component
             } finally {
+                // Release the Firebase distributed lock
+                await releaseGenerationLock(currentRoom.code, currentMyId);
                 await setGeneratingState(currentRoom.code, false);
             }
         };
@@ -307,13 +307,14 @@ export function useQuestionGeneration({
     }, [roomStatus]);
 
     // Automatic Phase 4 Generation (AI or fallback to static questions)
+    // Uses Firebase-based distributed lock to prevent double generation across all clients
     useEffect(() => {
         if (roomStatus !== 'phase4') return;
 
         const generatePhase4Questions = async () => {
             const currentRoom = roomRef.current;
             const currentMyId = myIdRef.current;
-            if (!currentRoom) return;
+            if (!currentRoom || !currentMyId) return;
             if (hasFilteredPhase4.current) return;
 
             // Check if we have enough Phase 4 questions
@@ -339,6 +340,20 @@ export function useQuestionGeneration({
             const currentIsHost = currentRoom.hostId === currentMyId;
             if (!currentIsHost) {
                 console.log('[QUESTION-GEN] Phase 4: Not host, waiting for host to generate...');
+                return;
+            }
+
+            // Check Firebase distributed lock (works across all clients/tabs)
+            const isAlreadyGenerating = await isGenerationLocked(currentRoom.code);
+            if (isAlreadyGenerating) {
+                console.log('[QUESTION-GEN] Phase 4: Skipping - generation already in progress (Firebase lock)');
+                return;
+            }
+
+            // Try to acquire the Firebase distributed lock (atomic operation)
+            const lockAcquired = await acquireGenerationLock(currentRoom.code, currentMyId, 'phase4');
+            if (!lockAcquired) {
+                console.log('[QUESTION-GEN] Phase 4: Could not acquire lock, another client is generating');
                 return;
             }
 
@@ -416,6 +431,8 @@ export function useQuestionGeneration({
                 await overwriteGameQuestions(currentRoom.code, 'phase4', filtered);
                 console.log('[QUESTION-GEN] ✅ Phase 4: Fallback questions saved');
             } finally {
+                // Release the Firebase distributed lock
+                await releaseGenerationLock(currentRoom.code, currentMyId);
                 await setGeneratingState(currentRoom.code, false);
             }
         };
@@ -464,15 +481,19 @@ export function useQuestionGeneration({
 
     // Helper function to trigger background pre-generation for all phases (non-blocking)
     // Chains Phase 2 -> Phase 3 -> Phase 4 -> Phase 5 generation
+    // Uses Firebase-based distributed locks to prevent duplicate generation across all clients
     const triggerPhase2Pregen = useCallback(async (pregenRoomCode: string) => {
+        const currentMyId = myIdRef.current;
+        if (!currentMyId) {
+            console.warn('[QUESTION-GEN] triggerPhase2Pregen: No player ID available');
+            return;
+        }
+
         // ===== PHASE 2 =====
         if (!hasPhase2CustomQuestions) {
-            // Check Firebase lock before starting
-            const isAlreadyGenerating = await getPhase2GeneratingState(pregenRoomCode);
-            if (!isAlreadyGenerating) {
-                // Take the Firebase lock
-                await setPhase2GeneratingState(pregenRoomCode, true);
-
+            // Try to acquire Firebase distributed lock
+            const lockAcquired = await acquireGenerationLock(pregenRoomCode, currentMyId, 'phase2-pregen');
+            if (lockAcquired) {
                 console.log('[QUESTION-GEN] 🎯 Phase 2: Starting background pre-generation...', {
                     roomCode: pregenRoomCode,
                     timestamp: new Date().toISOString()
@@ -495,8 +516,10 @@ export function useQuestionGeneration({
                 } catch (err) {
                     console.warn('[QUESTION-GEN] ❌ Phase 2: Pre-generation failed:', (err as Error).message);
                 } finally {
-                    await setPhase2GeneratingState(pregenRoomCode, false);
+                    await releaseGenerationLock(pregenRoomCode, currentMyId);
                 }
+            } else {
+                console.log('[QUESTION-GEN] Phase 2: Skipping pregen - lock already held');
             }
         } else {
             console.log('[QUESTION-GEN] Phase 2: Skipping pregen - already has custom questions');
@@ -504,34 +527,42 @@ export function useQuestionGeneration({
 
         // ===== PHASE 3 =====
         if (!hasPhase3CustomQuestions) {
-            console.log('[QUESTION-GEN] 🎯 Phase 3: Starting background pre-generation...', {
-                roomCode: pregenRoomCode,
-                timestamp: new Date().toISOString()
-            });
+            // Try to acquire Firebase distributed lock
+            const lockAcquired = await acquireGenerationLock(pregenRoomCode, currentMyId, 'phase3-pregen');
+            if (lockAcquired) {
+                console.log('[QUESTION-GEN] 🎯 Phase 3: Starting background pre-generation...', {
+                    roomCode: pregenRoomCode,
+                    timestamp: new Date().toISOString()
+                });
 
-            try {
-                const result = await generateWithRetry({ phase: 'phase3', roomCode: pregenRoomCode, difficulty: getRoomDifficulty(roomRef.current) });
-                console.log('[QUESTION-GEN] Phase 3: Pregen result received, filtering and saving...');
+                try {
+                    const result = await generateWithRetry({ phase: 'phase3', roomCode: pregenRoomCode, difficulty: getRoomDifficulty(roomRef.current) });
+                    console.log('[QUESTION-GEN] Phase 3: Pregen result received, filtering and saving...');
 
-                let filteredData = result.data;
-                if (Array.isArray(filteredData)) {
-                    const menus = filteredData as Array<{ title: string; description: string; isTrap?: boolean; questions: { question: string; answer: string }[] }>;
-                    for (const menu of menus) {
-                        if (menu.questions && Array.isArray(menu.questions)) {
-                            const filteredQuestions = await filterUnseenQuestions(
-                                menu.questions,
-                                (q: { question: string }) => q.question
-                            );
-                            menu.questions = filteredQuestions;
+                    let filteredData = result.data;
+                    if (Array.isArray(filteredData)) {
+                        const menus = filteredData as Array<{ title: string; description: string; isTrap?: boolean; questions: { question: string; answer: string }[] }>;
+                        for (const menu of menus) {
+                            if (menu.questions && Array.isArray(menu.questions)) {
+                                const filteredQuestions = await filterUnseenQuestions(
+                                    menu.questions,
+                                    (q: { question: string }) => q.question
+                                );
+                                menu.questions = filteredQuestions;
+                            }
                         }
+                        filteredData = menus;
                     }
-                    filteredData = menus;
-                }
 
-                await overwriteGameQuestions(pregenRoomCode, 'phase3', filteredData as unknown[]);
-                console.log('[QUESTION-GEN] ✅ Phase 3: Pre-generation successful!');
-            } catch (err) {
-                console.warn('[QUESTION-GEN] ❌ Phase 3: Pre-generation failed:', (err as Error).message);
+                    await overwriteGameQuestions(pregenRoomCode, 'phase3', filteredData as unknown[]);
+                    console.log('[QUESTION-GEN] ✅ Phase 3: Pre-generation successful!');
+                } catch (err) {
+                    console.warn('[QUESTION-GEN] ❌ Phase 3: Pre-generation failed:', (err as Error).message);
+                } finally {
+                    await releaseGenerationLock(pregenRoomCode, currentMyId);
+                }
+            } else {
+                console.log('[QUESTION-GEN] Phase 3: Skipping pregen - lock already held');
             }
         } else {
             console.log('[QUESTION-GEN] Phase 3: Skipping pregen - already has custom questions');
@@ -539,24 +570,32 @@ export function useQuestionGeneration({
 
         // ===== PHASE 4 =====
         if (!hasPhase4CustomQuestions) {
-            console.log('[QUESTION-GEN] 🎯 Phase 4: Starting background pre-generation...', {
-                roomCode: pregenRoomCode,
-                timestamp: new Date().toISOString()
-            });
+            // Try to acquire Firebase distributed lock
+            const lockAcquired = await acquireGenerationLock(pregenRoomCode, currentMyId, 'phase4-pregen');
+            if (lockAcquired) {
+                console.log('[QUESTION-GEN] 🎯 Phase 4: Starting background pre-generation...', {
+                    roomCode: pregenRoomCode,
+                    timestamp: new Date().toISOString()
+                });
 
-            try {
-                const result = await generateWithRetry({ phase: 'phase4', roomCode: pregenRoomCode, difficulty: getRoomDifficulty(roomRef.current) });
-                console.log('[QUESTION-GEN] Phase 4: Pregen result received, filtering and saving...');
+                try {
+                    const result = await generateWithRetry({ phase: 'phase4', roomCode: pregenRoomCode, difficulty: getRoomDifficulty(roomRef.current) });
+                    console.log('[QUESTION-GEN] Phase 4: Pregen result received, filtering and saving...');
 
-                let filteredData = result.data;
-                if (Array.isArray(filteredData)) {
-                    filteredData = await filterUnseenQuestions(filteredData as { text: string }[], (q: { text: string }) => q.text);
+                    let filteredData = result.data;
+                    if (Array.isArray(filteredData)) {
+                        filteredData = await filterUnseenQuestions(filteredData as { text: string }[], (q: { text: string }) => q.text);
+                    }
+
+                    await overwriteGameQuestions(pregenRoomCode, 'phase4', filteredData as unknown[]);
+                    console.log('[QUESTION-GEN] ✅ Phase 4: Pre-generation successful!');
+                } catch (err) {
+                    console.warn('[QUESTION-GEN] ❌ Phase 4: Pre-generation failed:', (err as Error).message);
+                } finally {
+                    await releaseGenerationLock(pregenRoomCode, currentMyId);
                 }
-
-                await overwriteGameQuestions(pregenRoomCode, 'phase4', filteredData as unknown[]);
-                console.log('[QUESTION-GEN] ✅ Phase 4: Pre-generation successful!');
-            } catch (err) {
-                console.warn('[QUESTION-GEN] ❌ Phase 4: Pre-generation failed:', (err as Error).message);
+            } else {
+                console.log('[QUESTION-GEN] Phase 4: Skipping pregen - lock already held');
             }
         } else {
             console.log('[QUESTION-GEN] Phase 4: Skipping pregen - already has custom questions');
@@ -564,24 +603,32 @@ export function useQuestionGeneration({
 
         // ===== PHASE 5 =====
         if (!hasPhase5CustomQuestions) {
-            console.log('[QUESTION-GEN] 🎯 Phase 5: Starting background pre-generation...', {
-                roomCode: pregenRoomCode,
-                timestamp: new Date().toISOString()
-            });
+            // Try to acquire Firebase distributed lock
+            const lockAcquired = await acquireGenerationLock(pregenRoomCode, currentMyId, 'phase5-pregen');
+            if (lockAcquired) {
+                console.log('[QUESTION-GEN] 🎯 Phase 5: Starting background pre-generation...', {
+                    roomCode: pregenRoomCode,
+                    timestamp: new Date().toISOString()
+                });
 
-            try {
-                const result = await generateWithRetry({ phase: 'phase5', roomCode: pregenRoomCode, difficulty: getRoomDifficulty(roomRef.current) });
-                console.log('[QUESTION-GEN] Phase 5: Pregen result received, filtering and saving...');
+                try {
+                    const result = await generateWithRetry({ phase: 'phase5', roomCode: pregenRoomCode, difficulty: getRoomDifficulty(roomRef.current) });
+                    console.log('[QUESTION-GEN] Phase 5: Pregen result received, filtering and saving...');
 
-                let filteredData = result.data;
-                if (Array.isArray(filteredData)) {
-                    filteredData = await filterUnseenQuestions(filteredData as { text: string }[], (q: { text: string }) => q.text);
+                    let filteredData = result.data;
+                    if (Array.isArray(filteredData)) {
+                        filteredData = await filterUnseenQuestions(filteredData as { text: string }[], (q: { text: string }) => q.text);
+                    }
+
+                    await overwriteGameQuestions(pregenRoomCode, 'phase5', filteredData as unknown[]);
+                    console.log('[QUESTION-GEN] ✅ Phase 5: Pre-generation successful!');
+                } catch (err) {
+                    console.warn('[QUESTION-GEN] ❌ Phase 5: Pre-generation failed:', (err as Error).message);
+                } finally {
+                    await releaseGenerationLock(pregenRoomCode, currentMyId);
                 }
-
-                await overwriteGameQuestions(pregenRoomCode, 'phase5', filteredData as unknown[]);
-                console.log('[QUESTION-GEN] ✅ Phase 5: Pre-generation successful!');
-            } catch (err) {
-                console.warn('[QUESTION-GEN] ❌ Phase 5: Pre-generation failed:', (err as Error).message);
+            } else {
+                console.log('[QUESTION-GEN] Phase 5: Skipping pregen - lock already held');
             }
         } else {
             console.log('[QUESTION-GEN] Phase 5: Skipping pregen - already has custom questions');
@@ -591,10 +638,12 @@ export function useQuestionGeneration({
     }, [hasPhase2CustomQuestions, hasPhase3CustomQuestions, hasPhase4CustomQuestions, hasPhase5CustomQuestions]);
 
     // Handler for starting the game with automatic AI generation if needed
+    // Uses Firebase-based distributed lock to prevent duplicate generation across all clients
     const handleStartGame = useCallback(async () => {
         const currentRoom = roomRef.current;
-        if (!currentRoom || !roomCode) {
-            console.warn('[QUESTION-GEN] handleStartGame called with no room!');
+        const currentMyId = myIdRef.current;
+        if (!currentRoom || !roomCode || !currentMyId) {
+            console.warn('[QUESTION-GEN] handleStartGame called with no room or player ID!');
             return;
         }
 
@@ -606,19 +655,23 @@ export function useQuestionGeneration({
             timestamp: new Date().toISOString()
         });
 
-        const lockKey = `${currentRoom.code}_phase1`;
-
         // Clean up any stale locks before checking
-        cleanupStaleLocks();
+        await cleanupStaleLock(currentRoom.code);
 
-        if (generationInProgress[lockKey]) {
-            console.log('[QUESTION-GEN] ⏸️ Phase 1 generation already in progress, skipping');
+        // Check if generation is already in progress (Firebase distributed lock)
+        const isAlreadyGenerating = await isGenerationLocked(currentRoom.code);
+        if (isAlreadyGenerating) {
+            console.log('[QUESTION-GEN] ⏸️ Phase 1 generation already in progress (Firebase lock), skipping');
             return;
         }
 
-        // CRITICAL: Set lock IMMEDIATELY after check to prevent race conditions
-        generationInProgress[lockKey] = true;
-        generationStartTimes[lockKey] = Date.now(); // Track when lock was acquired
+        // Try to acquire the Firebase distributed lock (atomic operation)
+        const lockAcquired = await acquireGenerationLock(currentRoom.code, currentMyId, 'phase1');
+        if (!lockAcquired) {
+            console.log('[QUESTION-GEN] ⏸️ Could not acquire Phase 1 lock, another client is generating');
+            return;
+        }
+
         setGenerationError(null);
 
         try {
@@ -753,13 +806,9 @@ export function useQuestionGeneration({
             });
             setGenerationError("Impossible de charger les questions. Reessayez.");
         } finally {
-            // Always release lock and reset loading state in Firebase
-            generationInProgress[lockKey] = false;
-            delete generationStartTimes[lockKey]; // Clean up start time tracking
-            const finalRoom = roomRef.current;
-            if (finalRoom) {
-                await setGeneratingState(finalRoom.code, false);
-            }
+            // Always release the Firebase distributed lock and reset loading state
+            await releaseGenerationLock(currentRoom.code, currentMyId);
+            await setGeneratingState(currentRoom.code, false);
         }
     }, [roomCode, triggerPhase2Pregen]);
 

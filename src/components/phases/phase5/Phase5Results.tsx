@@ -1,7 +1,8 @@
 import { useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { useTranslation } from 'react-i18next';
-import { type Room, endGameWithVictory } from '../../../services/gameService';
+import { type Room } from '../../../services/gameService';
+import { usePhaseTransition } from '../../../hooks/usePhaseTransition';
 import { AvatarIcon } from '../../AvatarIcon';
 import { Check, X, Trophy, Star, Flame } from 'lucide-react';
 import { audioService } from '../../../services/audioService';
@@ -17,6 +18,13 @@ interface Phase5ResultsProps {
 export function Phase5Results({ room, isHost }: Phase5ResultsProps) {
     const { t } = useTranslation(['game-ui', 'common']);
     const prefersReducedMotion = useReducedMotion();
+
+    // Use centralized phase transition hook for end game
+    const { endGame } = usePhaseTransition({
+        room,
+        isHost,
+        isSolo: false, // Phase 5 is multiplayer only
+    });
 
     const results = room.state.phase5Results;
 
@@ -200,7 +208,7 @@ export function Phase5Results({ room, isHost }: Phase5ResultsProps) {
                     <button
                         onClick={() => {
                             audioService.playClick();
-                            endGameWithVictory(room.code);
+                            endGame();
                         }}
                         className="bg-gradient-to-r from-yellow-500 to-orange-500 text-black px-12 py-4 rounded-2xl text-xl font-black shadow-2xl hover:shadow-yellow-500/30 transition-all"
                     >

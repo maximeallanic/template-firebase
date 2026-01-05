@@ -3,7 +3,8 @@ import { useTranslation } from 'react-i18next';
 import { motion, useAnimation, AnimatePresence } from 'framer-motion';
 import { Lock, CheckCircle, XCircle, AlertTriangle } from 'lucide-react';
 import { FoodLoader } from '../ui/FoodLoader';
-import { submitPhase2Answer as submitPhase2AnswerToRoom, showPhaseResults, endPhase2Round } from '../../services/gameService';
+import { submitPhase2Answer as submitPhase2AnswerToRoom, endPhase2Round } from '../../services/gameService';
+import { usePhaseTransition } from '../../hooks/usePhaseTransition';
 import type { Room, Team } from '../../services/gameService';
 import type { SimplePhase2Set } from '../../types/gameTypes';
 import { PHASE2_SETS } from '../../data/phase2';
@@ -35,6 +36,13 @@ export function Phase2Player({ room, playerId, isHost, mode = 'multiplayer', sol
     const haptic = useHaptic();
     const controls = useAnimation();
     const isSolo = mode === 'solo';
+
+    // Use centralized phase transition hook for multiplayer transitions
+    const { showPhaseResults } = usePhaseTransition({
+        room,
+        isHost,
+        isSolo,
+    });
 
     // Extract values from room
     const roomId = room.code;
@@ -204,9 +212,9 @@ export function Phase2Player({ room, playerId, isHost, mode = 'multiplayer', sol
     // Guard: only trigger if we're still in phase2 (prevents re-triggering after phase3 starts)
     useEffect(() => {
         if ((!currentSet || !currentItem) && isHost && !isSolo && room.state.status === 'phase2') {
-            showPhaseResults(roomId);
+            showPhaseResults();
         }
-    }, [currentSet, currentItem, isHost, isSolo, roomId, room.state.status]);
+    }, [currentSet, currentItem, isHost, isSolo, room.state.status, showPhaseResults]);
 
     // --- FINISHED VIEW ---
     // Phase 2 complete - show brief loading while auto-transitioning to results

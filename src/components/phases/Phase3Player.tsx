@@ -1,7 +1,8 @@
 import { useEffect, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { motion } from 'framer-motion';
-import { initPhase3, showPhaseResults } from '../../services/gameService';
+import { initPhase3 } from '../../services/gameService';
+import { usePhaseTransition } from '../../hooks/usePhaseTransition';
 import type { Room } from '../../services/gameService';
 import type { Phase3Theme, Team } from '../../types/gameTypes';
 import type { SoloPhaseHandlers } from '../../types/soloTypes';
@@ -25,6 +26,13 @@ interface Phase3PlayerProps {
 export const Phase3Player: React.FC<Phase3PlayerProps> = ({ room, playerId, isHost, mode = 'multiplayer', soloHandlers }) => {
     const { t } = useTranslation(['game-ui', 'game-phases', 'common']);
     const isSolo = mode === 'solo';
+
+    // Use centralized phase transition hook for multiplayer transitions
+    const { showPhaseResults } = usePhaseTransition({
+        room,
+        isHost,
+        isSolo,
+    });
 
     // Get current player info (use playerId prop in solo mode, auth in multiplayer)
     const currentUserId = isSolo && playerId ? playerId : auth.currentUser?.uid;
@@ -87,11 +95,11 @@ export const Phase3Player: React.FC<Phase3PlayerProps> = ({ room, playerId, isHo
     useEffect(() => {
         if (phase3State === 'finished' && isHost && !isSolo) {
             const timer = setTimeout(() => {
-                showPhaseResults(room.code);
+                showPhaseResults();
             }, 2000); // 2 second delay to show final scores
             return () => clearTimeout(timer);
         }
-    }, [phase3State, isHost, room.code, isSolo]);
+    }, [phase3State, isHost, isSolo, showPhaseResults]);
 
     // Loading state
     if (!phase3State || !phase3SelectionOrder) {
@@ -215,7 +223,7 @@ export const Phase3Player: React.FC<Phase3PlayerProps> = ({ room, playerId, isHo
                         className="fixed bottom-0 left-0 right-0 p-4 bg-slate-900/90 backdrop-blur border-t border-slate-700 flex justify-center gap-4 z-50"
                     >
                         <button
-                            onClick={() => showPhaseResults(room.code)}
+                            onClick={() => showPhaseResults()}
                             className="bg-gradient-to-r from-yellow-400 to-orange-500 text-brand-dark px-12 py-4 rounded-full font-black text-xl shadow-xl hover:scale-105 transition-transform flex items-center gap-2"
                         >
                             <Zap className="w-6 h-6" />

@@ -1,7 +1,8 @@
 import { useRef, useState, useEffect, useCallback, memo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { motion, AnimatePresence, LayoutGroup, type Variants } from 'framer-motion';
-import { submitAnswer, startNextQuestion, showPhaseResults, handlePhase1Timeout, type Room } from '../../services/gameService';
+import { submitAnswer, startNextQuestion, handlePhase1Timeout, type Room } from '../../services/gameService';
+import { usePhaseTransition } from '../../hooks/usePhaseTransition';
 import { audioService } from '../../services/audioService';
 import { markQuestionAsSeen } from '../../services/historyService';
 import { SimpleConfetti } from '../ui/SimpleConfetti';
@@ -134,6 +135,14 @@ export function Phase1Player({ room, playerId, isHost, mode = 'multiplayer', sol
     const prefersReducedMotion = useReducedMotion();
     const haptic = useHaptic();
     const isSolo = mode === 'solo';
+
+    // Use centralized phase transition hook for multiplayer transitions
+    const { showPhaseResults } = usePhaseTransition({
+        room,
+        isHost: isHost ?? false,
+        isSolo,
+    });
+
     const { state, players } = room;
     const { phaseState, currentQuestionIndex, phase1Answers, phase1BlockedTeams, phase1TriedWrongOptions } = state;
 
@@ -551,7 +560,7 @@ export function Phase1Player({ room, playerId, isHost, mode = 'multiplayer', sol
                 } else {
                     // Multiplayer: Only host triggers transition (prevents race conditions)
                     if (isFinished) {
-                        showPhaseResults(room.code);
+                        showPhaseResults();
                     } else {
                         startNextQuestion(room.code, nextQIndex);
                     }
@@ -559,7 +568,7 @@ export function Phase1Player({ room, playerId, isHost, mode = 'multiplayer', sol
             }, delay);
             return () => clearTimeout(timer);
         }
-    }, [isResult, isHost, isFinished, room.code, nextQIndex, currentQuestion?.anecdote, isSolo, soloHandlers]);
+    }, [isResult, isHost, isFinished, room.code, nextQIndex, currentQuestion?.anecdote, isSolo, soloHandlers, showPhaseResults]);
 
     // Show transition for question number display (1-indexed)
     const displayQuestionNumber = (currentQuestionIndex ?? 0) + 1;

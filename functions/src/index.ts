@@ -852,3 +852,228 @@ export const validatePhase5Answers = onCall(
   }
 );
 
+// ============================================================================
+// SOLO LEADERBOARD SCORE VALIDATION
+// ============================================================================
+
+/**
+ * Scoring constants for solo mode (must match frontend soloTypes.ts)
+ */
+const SOLO_SCORING_SERVER = {
+  phase1: {
+    correctAnswer: 1, // +1 per correct answer
+    maxQuestions: 10,
+  },
+  phase2: {
+    correctAnswer: 1, // +1 per correct classification
+    maxItems: 12,
+  },
+  phase4: {
+    // Speed-based scoring
+    fast: { threshold: 5000, points: 3 },    // < 5s = 3 pts
+    medium: { threshold: 15000, points: 2 }, // < 15s = 2 pts
+    slow: { threshold: 30000, points: 1 },   // < 30s = 1 pt
+    timeout: 0, // timeout = 0 pts
+    maxQuestions: 10,
+    questionTimeLimit: 30000, // 30 seconds
+  },
+} as const;
+
+/**
+ * Calculate Phase 4 score based on response time (server-side)
+ */
+function calculatePhase4ScoreServer(timeMs: number): number {
+  const { fast, medium, slow, timeout, questionTimeLimit } = SOLO_SCORING_SERVER.phase4;
+
+  if (timeMs >= questionTimeLimit) return timeout;
+  if (timeMs < fast.threshold) return fast.points;
+  if (timeMs < medium.threshold) return medium.points;
+  return slow.points;
+}
+
+/**
+ * Zod schema for solo score validation input
+ */
+const ValidateSoloScoreSchema = z.object({
+  // Player info
+  playerName: z.string().min(1).max(50),
+  playerAvatar: z.string().min(1).max(30),
+
+  // Phase 1 answers: array of { answerIndex, isCorrect }
+  phase1Answers: z.array(z.object({
+    answerIndex: z.number().int().min(0).max(3),
+    isCorrect: z.boolean(),
+  })).max(SOLO_SCORING_SERVER.phase1.maxQuestions),
+
+  // Phase 2 answers: array of { answer: 'A'|'B'|'Both', isCorrect }
+  phase2Answers: z.array(z.object({
+    answer: z.enum(['A', 'B', 'Both']),
+    isCorrect: z.boolean(),
+  })).max(SOLO_SCORING_SERVER.phase2.maxItems),
+
+  // Phase 4 answers: array of { answerIndex, isCorrect, timeMs }
+  phase4Answers: z.array(z.object({
+    answerIndex: z.number().int().min(-1).max(3), // -1 for timeout
+    isCorrect: z.boolean(),
+    timeMs: z.number().int().min(0).max(SOLO_SCORING_SERVER.phase4.questionTimeLimit + 1000), // +1s tolerance
+  })).max(SOLO_SCORING_SERVER.phase4.maxQuestions),
+
+  // Submitted scores (for validation)
+  submittedScore: z.number().int().min(0).max(100), // Max possible is ~52
+  submittedPhase1Score: z.number().int().min(0).max(SOLO_SCORING_SERVER.phase1.maxQuestions),
+  submittedPhase2Score: z.number().int().min(0).max(SOLO_SCORING_SERVER.phase2.maxItems),
+  submittedPhase4Score: z.number().int().min(0).max(SOLO_SCORING_SERVER.phase4.fast.points * SOLO_SCORING_SERVER.phase4.maxQuestions),
+
+  // Stats
+  totalTimeMs: z.number().int().min(0).max(1800000), // Max 30 minutes
+});
+
+/**
+ * Validate Solo Score
+ * Recalculates the score from answer history and writes to leaderboard if valid.
+ * Protected by authentication - only logged-in users can submit scores.
+ * SEC-010: Server-side validation prevents score manipulation.
+ */
+export const validateSoloScore = onCall(
+  {
+    consumeAppCheckToken: true,
+  },
+  async ({ data, auth }) => {
+    // 1. Auth Check
+    if (!auth) {
+      throw new HttpsError('unauthenticated', 'Must be logged in to submit score');
+    }
+
+    // 2. Validate input with Zod schema
+    let validatedData;
+    try {
+      validatedData = ValidateSoloScoreSchema.parse(data);
+    } catch (zodError) {
+      const message = zodError instanceof z.ZodError
+        ? zodError.errors.map(e => e.message).join(', ')
+        : 'Invalid input';
+      throw new HttpsError('invalid-argument', message);
+    }
+
+    const {
+      playerName,
+      playerAvatar,
+      phase1Answers,
+      phase2Answers,
+      phase4Answers,
+      submittedScore,
+      submittedPhase1Score,
+      submittedPhase2Score,
+      submittedPhase4Score,
+      totalTimeMs,
+    } = validatedData;
+
+    // 3. Recalculate scores from answers
+    const calculatedPhase1Score = phase1Answers.reduce((sum, a) => sum + (a.isCorrect ? SOLO_SCORING_SERVER.phase1.correctAnswer : 0), 0);
+    const calculatedPhase2Score = phase2Answers.reduce((sum, a) => sum + (a.isCorrect ? SOLO_SCORING_SERVER.phase2.correctAnswer : 0), 0);
+    const calculatedPhase4Score = phase4Answers.reduce((sum, a) => sum + (a.isCorrect ? calculatePhase4ScoreServer(a.timeMs) : 0), 0);
+    const calculatedTotalScore = calculatedPhase1Score + calculatedPhase2Score + calculatedPhase4Score;
+
+    // 4. Validate scores match (with small tolerance for edge cases)
+    const scoreTolerance = 1; // Allow 1 point tolerance for timing edge cases
+
+    if (Math.abs(calculatedPhase1Score - submittedPhase1Score) > scoreTolerance) {
+      console.warn(`[validateSoloScore] Phase 1 score mismatch: calculated=${calculatedPhase1Score}, submitted=${submittedPhase1Score}`);
+      throw new HttpsError('invalid-argument', 'Score validation failed: Phase 1 mismatch');
+    }
+
+    if (Math.abs(calculatedPhase2Score - submittedPhase2Score) > scoreTolerance) {
+      console.warn(`[validateSoloScore] Phase 2 score mismatch: calculated=${calculatedPhase2Score}, submitted=${submittedPhase2Score}`);
+      throw new HttpsError('invalid-argument', 'Score validation failed: Phase 2 mismatch');
+    }
+
+    if (Math.abs(calculatedPhase4Score - submittedPhase4Score) > scoreTolerance) {
+      console.warn(`[validateSoloScore] Phase 4 score mismatch: calculated=${calculatedPhase4Score}, submitted=${submittedPhase4Score}`);
+      throw new HttpsError('invalid-argument', 'Score validation failed: Phase 4 mismatch');
+    }
+
+    if (Math.abs(calculatedTotalScore - submittedScore) > scoreTolerance) {
+      console.warn(`[validateSoloScore] Total score mismatch: calculated=${calculatedTotalScore}, submitted=${submittedScore}`);
+      throw new HttpsError('invalid-argument', 'Score validation failed: Total mismatch');
+    }
+
+    // 5. Calculate accuracy
+    const totalQuestions = phase1Answers.length + phase2Answers.length + phase4Answers.length;
+    const correctAnswers = phase1Answers.filter(a => a.isCorrect).length +
+                          phase2Answers.filter(a => a.isCorrect).length +
+                          phase4Answers.filter(a => a.isCorrect).length;
+    const accuracy = totalQuestions > 0 ? Math.round((correctAnswers / totalQuestions) * 100) : 0;
+
+    // 6. Check if player already has a score - only keep best score
+    const userId = auth.uid;
+    const leaderboardRef = db.collection('soloLeaderboard');
+
+    const existingQuery = leaderboardRef.where('playerId', '==', userId).limit(1);
+    const existingDocs = await existingQuery.get();
+
+    // Use the calculated score (server-validated) for the leaderboard
+    const validatedScore = calculatedTotalScore;
+
+    if (!existingDocs.empty) {
+      const existingDoc = existingDocs.docs[0];
+      const existingData = existingDoc.data();
+
+      // Only update if new score is better
+      if (validatedScore > existingData.score) {
+        await existingDoc.ref.update({
+          playerName,
+          playerAvatar,
+          score: validatedScore,
+          phase1Score: calculatedPhase1Score,
+          phase2Score: calculatedPhase2Score,
+          phase4Score: calculatedPhase4Score,
+          accuracy,
+          totalTimeMs,
+          isAuthenticated: true,
+          createdAt: FieldValue.serverTimestamp(),
+        });
+
+        console.log(`[validateSoloScore] Updated score for ${userId}: ${existingData.score} -> ${validatedScore}`);
+        return {
+          success: true,
+          validatedScore,
+          isNewBest: true,
+          previousScore: existingData.score,
+        };
+      }
+
+      // Score is not better, don't update
+      console.log(`[validateSoloScore] Score not better for ${userId}: current=${existingData.score}, new=${validatedScore}`);
+      return {
+        success: true,
+        validatedScore,
+        isNewBest: false,
+        previousScore: existingData.score,
+      };
+    }
+
+    // 7. Create new leaderboard entry
+    await leaderboardRef.add({
+      playerId: userId,
+      playerName,
+      playerAvatar,
+      score: validatedScore,
+      phase1Score: calculatedPhase1Score,
+      phase2Score: calculatedPhase2Score,
+      phase4Score: calculatedPhase4Score,
+      accuracy,
+      totalTimeMs,
+      isAuthenticated: true,
+      createdAt: FieldValue.serverTimestamp(),
+    });
+
+    console.log(`[validateSoloScore] New score for ${userId}: ${validatedScore}`);
+    return {
+      success: true,
+      validatedScore,
+      isNewBest: true,
+      previousScore: null,
+    };
+  }
+);
+

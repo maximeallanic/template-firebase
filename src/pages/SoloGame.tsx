@@ -8,7 +8,7 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { RotateCcw, Trophy } from 'lucide-react';
 import { GenerationLoadingCard } from '../components/ui/GenerationLoadingCard';
-import { submitScore } from '../services/leaderboardService';
+import { submitValidatedScore, type Phase1Answer, type Phase2Answer, type Phase4Answer } from '../services/leaderboardService';
 import { useAuthUser } from '../hooks/useAuthUser';
 import type { Room, Avatar, Difficulty } from '../types/gameTypes';
 import { DEFAULT_DIFFICULTY } from '../types/gameTypes';
@@ -95,32 +95,77 @@ function SoloGameInner() {
         }
     }, [state.status, state.isGenerating, startGame]);
 
-    // Submit score to leaderboard when game ends
+    // Submit score to leaderboard when game ends (with server-side validation)
     useEffect(() => {
         if (state.status === 'results' && user && !hasSubmittedRef.current) {
             hasSubmittedRef.current = true;
 
-            const accuracy = state.totalQuestions > 0
-                ? Math.round((state.correctAnswers / state.totalQuestions) * 100)
-                : 0;
+            // Build Phase 1 answer history with isCorrect flags
+            const phase1Questions = state.customQuestions?.phase1 || [];
+            const phase1Answers: Phase1Answer[] = (state.phase1State?.answers || [])
+                .map((answerIndex, idx) => {
+                    if (answerIndex === null) {
+                        // Timeout - count as wrong answer with index 0
+                        return { answerIndex: 0, isCorrect: false };
+                    }
+                    const question = phase1Questions[idx];
+                    const isCorrect = question ? answerIndex === question.correctIndex : false;
+                    return { answerIndex, isCorrect };
+                });
 
-            submitScore({
-                playerId: user.uid,
+            // Build Phase 2 answer history with isCorrect flags
+            const phase2Set = state.customQuestions?.phase2;
+            const phase2Items = phase2Set?.items || [];
+            const phase2Answers: Phase2Answer[] = (state.phase2State?.answers || [])
+                .map((answer, idx) => {
+                    if (answer === null) {
+                        // Timeout - count as wrong answer
+                        return { answer: 'A' as const, isCorrect: false };
+                    }
+                    const item = phase2Items[idx];
+                    // Check if answer matches correctAnswer or is in acceptedAnswers
+                    const isCorrect = item
+                        ? (answer === item.answer || (item.acceptedAnswers?.includes(answer) ?? false))
+                        : false;
+                    return { answer, isCorrect };
+                });
+
+            // Build Phase 4 answer history with isCorrect flags and timing
+            const phase4Questions = state.customQuestions?.phase4 || [];
+            const phase4TimeTaken = state.phase4State?.timeTaken || [];
+            const phase4Answers: Phase4Answer[] = (state.phase4State?.answers || [])
+                .map((answerIndex, idx) => {
+                    const timeMs = phase4TimeTaken[idx] || SOLO_SCORING.phase4.questionTimeLimit;
+                    if (answerIndex === null) {
+                        // Timeout - count as wrong answer
+                        return { answerIndex: -1, isCorrect: false, timeMs };
+                    }
+                    const question = phase4Questions[idx];
+                    const isCorrect = question ? answerIndex === question.correctIndex : false;
+                    return { answerIndex, isCorrect, timeMs };
+                });
+
+            // Submit with server-side validation
+            submitValidatedScore({
                 playerName: state.playerName,
                 playerAvatar: state.playerAvatar,
-                score: state.totalScore,
-                phase1Score: state.phaseScores.phase1,
-                phase2Score: state.phaseScores.phase2,
-                phase4Score: state.phaseScores.phase4,
-                accuracy,
+                phase1Answers,
+                phase2Answers,
+                phase4Answers,
+                submittedScore: state.totalScore,
+                submittedPhase1Score: state.phaseScores.phase1,
+                submittedPhase2Score: state.phaseScores.phase2,
+                submittedPhase4Score: state.phaseScores.phase4,
                 totalTimeMs: state.totalTimeMs || 0,
-                isAuthenticated: true,
+            }).then(result => {
+                console.log('[SoloGame] Score validated:', result);
             }).catch(err => {
-                console.error('[SoloGame] Failed to submit score:', err);
+                console.error('[SoloGame] Failed to submit validated score:', err);
             });
         }
     }, [state.status, user, state.totalQuestions, state.correctAnswers, state.playerName,
-        state.playerAvatar, state.totalScore, state.phaseScores, state.totalTimeMs]);
+        state.playerAvatar, state.totalScore, state.phaseScores, state.totalTimeMs,
+        state.customQuestions, state.phase1State, state.phase2State, state.phase4State]);
 
     // Phase Transition detection (synchronous before paint, like GameRoom.tsx)
     useLayoutEffect(() => {

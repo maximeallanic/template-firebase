@@ -303,6 +303,9 @@ export const endPhase2Round = async (roomCode: string) => {
 
 /**
  * Set the Phase 2 generation lock state (prevents double generation)
+ * @deprecated Use acquireGenerationLock/releaseGenerationLock from lockService.ts instead.
+ * This function is kept for backward compatibility but the new Firebase-based
+ * distributed lock system should be used for all new code.
  */
 export const setPhase2GeneratingState = async (code: string, isGenerating: boolean) => {
     const roomId = code.toUpperCase();
@@ -311,6 +314,9 @@ export const setPhase2GeneratingState = async (code: string, isGenerating: boole
 
 /**
  * Get the Phase 2 generation lock state
+ * @deprecated Use isGenerationLocked from lockService.ts instead.
+ * This function is kept for backward compatibility but the new Firebase-based
+ * distributed lock system should be used for all new code.
  */
 export const getPhase2GeneratingState = async (code: string): Promise<boolean> => {
     const roomId = code.toUpperCase();

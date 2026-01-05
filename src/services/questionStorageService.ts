@@ -2,6 +2,7 @@ import { collection, query, where, getDocs, orderBy, limit, Timestamp, updateDoc
 import { db } from './firebase';
 import type { Question } from '../data/questions';
 import { generateQuestionHash } from '../utils/hash';
+import { createQuestionCache, createQuestionByIdCache, generateQuestionCacheKey } from '../utils/questionCache';
 
 /**
  * Service for fetching AI-generated questions from Firestore.
@@ -55,8 +56,100 @@ export interface StoredQuestionSet {
 }
 
 /**
+ * LRU cache for question sets fetched from Firestore.
+ * Reduces Firestore reads by caching frequently accessed questions.
+ * - Max 100 question sets
+ * - 1 hour TTL
+ */
+const questionCache = createQuestionCache<StoredQuestion>();
+
+/**
+ * LRU cache for individual questions by document ID.
+ * - Max 200 questions
+ * - 1 hour TTL
+ */
+const questionByIdCache = createQuestionByIdCache<StoredQuestion>();
+
+/**
+ * Clears all question caches. Useful when new questions are generated.
+ */
+export function clearQuestionCaches(): void {
+    questionCache.clear();
+    questionByIdCache.clear();
+    console.log('🗑️ Question caches cleared');
+}
+
+/**
+ * Gets cache statistics for debugging/monitoring.
+ */
+export function getQuestionCacheStats(): { questionCache: { size: number; maxSize: number; ttlMs: number }; questionByIdCache: { size: number; maxSize: number; ttlMs: number } } {
+    return {
+        questionCache: questionCache.getStats(),
+        questionByIdCache: questionByIdCache.getStats(),
+    };
+}
+
+/**
+ * Fetches questions from Firestore (raw, without filtering).
+ * This is used internally to populate the cache.
+ */
+async function fetchQuestionsFromFirestore(
+    phase: 'phase1' | 'phase2' | 'phase3' | 'phase4' | 'phase5',
+    fetchLimit: number
+): Promise<StoredQuestion[]> {
+    const questionsRef = collection(db, 'questions');
+    const q = query(
+        questionsRef,
+        where('phase', '==', phase),
+        orderBy('usageCount', 'asc'), // Prefer less-used questions
+        orderBy('createdAt', 'desc'),
+        limit(fetchLimit)
+    );
+
+    const snapshot = await getDocs(q);
+    console.log('📦 Firestore returned:', snapshot.size, 'documents for phase', phase);
+
+    const questions: StoredQuestion[] = [];
+
+    snapshot.forEach((docSnap) => {
+        const data = docSnap.data();
+        const question: StoredQuestion = {
+            id: docSnap.id,
+            phase: data.phase,
+            topic: data.topic,
+            difficulty: data.difficulty,
+            text: data.text,
+            options: data.options,
+            correctIndex: data.correctIndex,
+            anecdote: data.anecdote,
+            justification: data.justification,
+            acceptedAnswers: data.acceptedAnswers,
+            question: data.question,
+            answer: data.answer,
+            optionA: data.optionA,
+            optionB: data.optionB,
+            optionADescription: data.optionADescription,
+            optionBDescription: data.optionBDescription,
+            humorousDescription: data.humorousDescription,
+            createdAt: data.createdAt instanceof Timestamp
+                ? data.createdAt.toDate()
+                : new Date(data.createdAt),
+            usageCount: data.usageCount || 0,
+        };
+
+        questions.push(question);
+
+        // Cache individual questions by ID for future lookups
+        questionByIdCache.set(docSnap.id, question);
+    });
+
+    return questions;
+}
+
+/**
  * Fetches individual questions from Firestore and groups them into a set.
  * Returns questions that haven't been seen by any player in the room.
+ * Uses LRU cache to reduce Firestore reads.
  *
  * @param phase - The game phase to fetch questions for
  * @param seenQuestionIds - Set of question IDs already seen by players
@@ -68,62 +161,44 @@ export async function getAvailableQuestions(
     count = 10
 ): Promise<StoredQuestion[]> {
     console.log('🔍 getAvailableQuestions called:', { phase, seenCount: seenQuestionIds.size, requestedCount: count });
+
     try {
-        const questionsRef = collection(db, 'questions');
-        const q = query(
-            questionsRef,
-            where('phase', '==', phase),
-            orderBy('usageCount', 'asc'), // Prefer less-used questions
-            orderBy('createdAt', 'desc'),
-            limit(count * 3) // Fetch more to filter out seen ones
-        );
+        const fetchLimit = count * 3; // Fetch more to filter out seen ones
+        const cacheKey = generateQuestionCacheKey(phase, seenQuestionIds, fetchLimit);
 
-        const snapshot = await getDocs(q);
-        console.log('📦 Firestore returned:', snapshot.size, 'documents for phase', phase);
+        // Check cache first
+        let allQuestions = questionCache.get(cacheKey);
+
+        if (allQuestions) {
+            console.log('✅ Cache hit for', phase, '- retrieved', allQuestions.length, 'questions');
+        } else {
+            console.log('⚠️ Cache miss for', phase, '- fetching from Firestore');
+            allQuestions = await fetchQuestionsFromFirestore(phase, fetchLimit);
+
+            // Store in cache for future requests
+            if (allQuestions.length > 0) {
+                questionCache.set(cacheKey, allQuestions);
+            }
+        }
+
+        // Filter out seen questions
         const questions: StoredQuestion[] = [];
-
         let skippedCount = 0;
 
-        snapshot.forEach((docSnap) => {
-            const data = docSnap.data();
-            const questionText = data.text || data.question || '';
+        for (const q of allQuestions) {
+            const questionText = q.text || q.question || '';
             const qId = generateQuestionHash(questionText);
 
-            // Skip if already seen
             if (seenQuestionIds.has(qId)) {
                 skippedCount++;
-                return;
+                continue;
             }
 
-            questions.push({
-                id: docSnap.id,
-                phase: data.phase,
-                topic: data.topic,
-                difficulty: data.difficulty,
-                text: data.text,
-                options: data.options,
-                correctIndex: data.correctIndex,
-                anecdote: data.anecdote,
-                justification: data.justification,  // For phase2 explanations
-                acceptedAnswers: data.acceptedAnswers,  // For phase2 alternative answers
-                question: data.question,
-                answer: data.answer,
-                optionA: data.optionA,  // For phase2
-                optionB: data.optionB,  // For phase2
-                optionADescription: data.optionADescription,  // For phase2 homonyms
-                optionBDescription: data.optionBDescription,  // For phase2 homonyms
-                humorousDescription: data.humorousDescription,  // For phase2
-                createdAt: data.createdAt instanceof Timestamp
-                    ? data.createdAt.toDate()
-                    : new Date(data.createdAt),
-                usageCount: data.usageCount || 0,
-            });
-        });
+            questions.push(q);
+        }
 
-        // If not enough unseen questions, return empty to trigger AI generation
-        // Phase 1 needs 10 questions minimum
         console.log('✅ getAvailableQuestions result:', {
-            fromFirestore: snapshot.size,
+            fromCache: allQuestions.length,
             skipped: skippedCount,
             available: questions.length,
             requested: count

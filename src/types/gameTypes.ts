@@ -265,6 +265,18 @@ export interface GameOptions {
     difficulty?: Difficulty;
 }
 
+/**
+ * Distributed lock for AI question generation.
+ * Stored in Firebase to work across all clients/tabs.
+ */
+export interface GenerationLock {
+    isLocked: boolean;
+    ownerId: string;
+    acquiredAt: number;
+    expiresAt: number;
+    phase: string; // Which phase is being generated
+}
+
 export interface Room {
     code: string;
     hostId: string;
@@ -275,6 +287,8 @@ export interface Room {
     hostIsPremium?: boolean;
     /** Game options configured before starting (difficulty, etc.) */
     gameOptions?: GameOptions;
+    /** Distributed lock for AI generation (replaces module-level lock) */
+    generationLock?: GenerationLock;
     customQuestions?: {
         phase1?: Question[];
         phase2?: SimplePhase2Set | SimplePhase2Set[]; // Solo mode uses single set, multiplayer uses array

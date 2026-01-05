@@ -5,19 +5,17 @@
 
 import {
     collection,
-    addDoc,
     query,
     orderBy,
     limit,
     getDocs,
     where,
     Timestamp,
-    serverTimestamp,
     doc,
-    updateDoc,
     deleteDoc,
 } from 'firebase/firestore';
-import { db, auth } from './firebase';
+import { httpsCallable } from 'firebase/functions';
+import { db, auth, functions } from './firebase';
 import type { Avatar } from '../types/gameTypes';
 
 export interface LeaderboardEntry {
@@ -37,90 +35,97 @@ export interface LeaderboardEntry {
 
 const COLLECTION_NAME = 'soloLeaderboard';
 
+// ============================================================================
+// SERVER-VALIDATED SCORE SUBMISSION
+// ============================================================================
+
 /**
- * Validate score entry before submission
- * Basic client-side validation to catch obvious errors
- * Note: For real security, validation should happen in a Cloud Function
+ * Answer history for Phase 1 (MCQ)
  */
-function validateScoreEntry(entry: Omit<LeaderboardEntry, 'id' | 'createdAt'>): void {
-    // Validate total score
-    if (!Number.isInteger(entry.score) || entry.score < 0 || entry.score > 300) {
-        throw new Error(`Invalid score value: ${entry.score}`);
-    }
-
-    // Validate accuracy percentage
-    if (typeof entry.accuracy !== 'number' || entry.accuracy < 0 || entry.accuracy > 100) {
-        throw new Error(`Invalid accuracy value: ${entry.accuracy}`);
-    }
-
-    // Validate phase scores are non-negative integers
-    if (!Number.isInteger(entry.phase1Score) || entry.phase1Score < 0) {
-        throw new Error(`Invalid phase1Score: ${entry.phase1Score}`);
-    }
-    if (!Number.isInteger(entry.phase2Score) || entry.phase2Score < 0) {
-        throw new Error(`Invalid phase2Score: ${entry.phase2Score}`);
-    }
-    if (!Number.isInteger(entry.phase4Score) || entry.phase4Score < 0) {
-        throw new Error(`Invalid phase4Score: ${entry.phase4Score}`);
-    }
-
-    // Check score consistency (sum of phases should roughly equal total)
-    const sumPhaseScores = entry.phase1Score + entry.phase2Score + entry.phase4Score;
-    if (Math.abs(entry.score - sumPhaseScores) > 10) {
-        console.warn('[Leaderboard] Score mismatch detected:', {
-            totalScore: entry.score,
-            sumPhaseScores,
-            difference: Math.abs(entry.score - sumPhaseScores),
-        });
-    }
-
-    // Validate time is positive
-    if (typeof entry.totalTimeMs !== 'number' || entry.totalTimeMs < 0) {
-        throw new Error(`Invalid totalTimeMs: ${entry.totalTimeMs}`);
-    }
+export interface Phase1Answer {
+    answerIndex: number;
+    isCorrect: boolean;
 }
 
 /**
- * Submit a score to the leaderboard
- * If the player already has an entry, only updates if the new score is better
+ * Answer history for Phase 2 (Sucre Sale)
  */
-export async function submitScore(entry: Omit<LeaderboardEntry, 'id' | 'createdAt'>): Promise<string> {
-    // Validate entry before submission
-    validateScoreEntry(entry);
+export interface Phase2Answer {
+    answer: 'A' | 'B' | 'Both';
+    isCorrect: boolean;
+}
 
+/**
+ * Answer history for Phase 4 (Speed round)
+ */
+export interface Phase4Answer {
+    answerIndex: number; // -1 for timeout
+    isCorrect: boolean;
+    timeMs: number;
+}
+
+/**
+ * Input for server-validated score submission
+ */
+export interface ValidatedScoreInput {
+    playerName: string;
+    playerAvatar: Avatar;
+    phase1Answers: Phase1Answer[];
+    phase2Answers: Phase2Answer[];
+    phase4Answers: Phase4Answer[];
+    submittedScore: number;
+    submittedPhase1Score: number;
+    submittedPhase2Score: number;
+    submittedPhase4Score: number;
+    totalTimeMs: number;
+}
+
+/**
+ * Response from server-validated score submission
+ */
+export interface ValidatedScoreResponse {
+    success: boolean;
+    validatedScore: number;
+    isNewBest: boolean;
+    previousScore: number | null;
+}
+
+// Callable function for server-validated score submission
+const validateSoloScoreFunction = httpsCallable<ValidatedScoreInput, ValidatedScoreResponse>(
+    functions,
+    'validateSoloScore'
+);
+
+/**
+ * Submit a score with server-side validation
+ * The server recalculates the score from answer history to prevent cheating.
+ * Requires authentication.
+ */
+export async function submitValidatedScore(input: ValidatedScoreInput): Promise<ValidatedScoreResponse> {
     try {
-        // Check if player already has an entry
-        const q = query(
-            collection(db, COLLECTION_NAME),
-            where('playerId', '==', entry.playerId),
-            limit(1)
-        );
-        const snapshot = await getDocs(q);
-
-        if (!snapshot.empty) {
-            const existingDoc = snapshot.docs[0];
-            const existingData = existingDoc.data() as LeaderboardEntry;
-
-            // Only update if new score is better
-            if (entry.score > existingData.score) {
-                await updateDoc(doc(db, COLLECTION_NAME, existingDoc.id), {
-                    ...entry,
-                    createdAt: serverTimestamp(),
-                });
-            }
-            return existingDoc.id;
-        }
-
-        // No existing entry, create new one
-        const docRef = await addDoc(collection(db, COLLECTION_NAME), {
-            ...entry,
-            createdAt: serverTimestamp(),
-        });
-        return docRef.id;
+        const result = await validateSoloScoreFunction(input);
+        console.log('[Leaderboard] Validated score submitted:', result.data);
+        return result.data;
     } catch (error) {
-        console.error('[Leaderboard] Failed to submit score:', error);
+        console.error('[Leaderboard] Failed to submit validated score:', error);
         throw error;
     }
+}
+
+// ============================================================================
+// LEGACY DIRECT SUBMISSION (DEPRECATED - Use submitValidatedScore instead)
+// ============================================================================
+
+/**
+ * @deprecated Use submitValidatedScore for secure score submission
+ * This function writes directly to Firestore without server validation.
+ * Kept for backwards compatibility but should not be used for new code.
+ */
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+export async function submitScore(_entry: Omit<LeaderboardEntry, 'id' | 'createdAt'>): Promise<string> {
+    // This function is deprecated - validated scores go through Cloud Function
+    console.warn('[Leaderboard] submitScore is deprecated. Use submitValidatedScore instead.');
+    throw new Error('Direct score submission is disabled. Use submitValidatedScore for server-validated submission.');
 }
 
 /**
