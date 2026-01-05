@@ -12,6 +12,33 @@ const geminiApiKey = defineSecret('GEMINI_API_KEY');
 const googleCseEngineId = defineSecret('GOOGLE_CSE_ENGINE_ID');
 
 // ============================================================================
+// MULTI-CURRENCY PRICING CONFIGURATION
+// ============================================================================
+
+type SupportedCurrency = 'eur' | 'usd' | 'gbp' | 'brl';
+
+const ALLOWED_CURRENCIES: SupportedCurrency[] = ['eur', 'usd', 'gbp', 'brl'];
+
+/**
+ * Pricing in cents for each currency (all end with .99)
+ * EUR/USD/GBP: 1.99, BRL: 11.99 (~6x EUR due to exchange rate)
+ */
+const CURRENCY_PRICING: Record<SupportedCurrency, number> = {
+  eur: 199,   // 1.99 EUR
+  usd: 199,   // $1.99
+  gbp: 199,   // £1.99
+  brl: 1199,  // R$ 11.99
+};
+
+/**
+ * Validates and returns a supported currency, defaulting to EUR
+ */
+function validateCurrency(currency: string | undefined): SupportedCurrency {
+  const normalized = (currency || 'eur').toLowerCase() as SupportedCurrency;
+  return ALLOWED_CURRENCIES.includes(normalized) ? normalized : 'eur';
+}
+
+// ============================================================================
 // SECURITY UTILITIES
 // ============================================================================
 
@@ -231,6 +258,10 @@ export const createCheckoutSession = onCall(
       // SEC-001: Validate return URL to prevent open redirect
       const validatedReturnUrl = validateReturnUrl(data.returnUrl);
 
+      // Validate and use currency from client (with whitelist validation)
+      const currency = validateCurrency(data.currency);
+      const unitAmount = CURRENCY_PRICING[currency];
+
       // Create checkout session for Premium subscription (phases 3-5 access)
       const session = await stripe.checkout.sessions.create({
         customer: customerId,
@@ -239,12 +270,12 @@ export const createCheckoutSession = onCall(
         line_items: [
           {
             price_data: {
-              currency: 'eur',
+              currency: currency,
               product_data: {
                 name: 'Spicy vs Sweet Premium',
-                description: 'Accès illimité aux 5 phases de jeu',
+                description: 'Unlimited access to all 5 game phases',
               },
-              unit_amount: 499, // 4.99 EUR
+              unit_amount: unitAmount,
               recurring: { interval: 'month' },
             },
             quantity: 1,
@@ -252,7 +283,11 @@ export const createCheckoutSession = onCall(
         ],
         success_url: `${validatedReturnUrl}?session_id={CHECKOUT_SESSION_ID}`,
         cancel_url: validatedReturnUrl,
-        metadata: { firebaseUID: userId, subscriptionType: 'premium' },
+        metadata: {
+          firebaseUID: userId,
+          subscriptionType: 'premium',
+          currency: currency,
+        },
       });
 
       return { sessionId: session.id, url: session.url };

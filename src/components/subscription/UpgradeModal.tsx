@@ -4,6 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { createCheckoutSession } from '../../services/firebase';
 import { PHASE_NAMES } from '../../types/gameTypes';
 import { FoodLoader } from '../ui/FoodLoader';
+import { useCurrency } from '../../hooks/useCurrency';
 
 interface UpgradeModalProps {
   isOpen: boolean;
@@ -15,13 +16,17 @@ export const UpgradeModal: React.FC<UpgradeModalProps> = ({ isOpen, onClose }) =
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  // Get user's currency based on their location
+  const { price, loading: priceLoading } = useCurrency();
+
   const handleUpgrade = async () => {
     setIsLoading(true);
     setError(null);
 
     try {
       const returnUrl = window.location.href;
-      const { url } = await createCheckoutSession(returnUrl);
+      // Pass detected currency to Stripe checkout
+      const { url } = await createCheckoutSession(returnUrl, price.currency);
 
       if (url) {
         window.location.href = url;
@@ -126,7 +131,7 @@ export const UpgradeModal: React.FC<UpgradeModalProps> = ({ isOpen, onClose }) =
                   <span role="img" aria-label="star">⭐</span>
                   {t('subscription.upgradeButton', 'Passer à Premium')}
                   <span className="text-amber-100">—</span>
-                  {t('subscription.price', '4,99 €/mois')}
+                  {priceLoading ? '...' : `${price.formatted}/${t('subscription.perMonth', 'mois')}`}
                 </span>
               )}
             </button>

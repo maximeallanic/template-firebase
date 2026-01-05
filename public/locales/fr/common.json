@@ -77,7 +77,7 @@
     "upgradeTitle": "Débloquer toutes les phases",
     "upgradeDescription": "Accédez aux phases 3, 4 et 5 avec un abonnement Premium",
     "phasesIncluded": "Phases incluses :",
-    "price": "4,99 €/mois",
+    "perMonth": "mois",
     "upgradeButton": "Passer à Premium",
     "cancel": "Plus tard",
     "loading": "Chargement...",

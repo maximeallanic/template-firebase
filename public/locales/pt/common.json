@@ -16,5 +16,19 @@
     "sweet": "Sweet",
     "neutral": "Neutro",
     "yourTeam": "Sua Equipe"
+  },
+  "subscription": {
+    "premium": "Premium",
+    "free": "Grátis",
+    "upgradeTitle": "Desbloquear Todas as Fases",
+    "upgradeDescription": "Acesse as fases 3, 4 e 5 com uma assinatura Premium",
+    "phasesIncluded": "Fases incluídas:",
+    "perMonth": "mês",
+    "upgradeButton": "Atualizar para Premium",
+    "cancel": "Mais tarde",
+    "loading": "Carregando...",
+    "error": "Ocorreu um erro. Tente novamente.",
+    "premiumRequired": "Fase Premium necessária",
+    "hostMustUpgrade": "O anfitrião precisa de Premium para acessar esta fase"
   }
 }

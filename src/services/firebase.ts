@@ -464,10 +464,10 @@ const getUserSubscriptionFunction = httpsCallable<void, {
   currentPeriodEnd?: unknown;
 }>(functions, 'getUserSubscription');
 
-const createCheckoutSessionFunction = httpsCallable<{ returnUrl: string }, { sessionId: string; url: string }>(
-  functions,
-  'createCheckoutSession'
-);
+const createCheckoutSessionFunction = httpsCallable<
+  { returnUrl: string; currency?: string },
+  { sessionId: string; url: string }
+>(functions, 'createCheckoutSession');
 
 const cancelSubscriptionFunction = httpsCallable<void, { success: boolean; message: string }>(
   functions,
@@ -544,9 +544,9 @@ export async function getUserSubscriptionDirect() {
   }
 }
 
-export async function createCheckoutSession(returnUrl: string) {
+export async function createCheckoutSession(returnUrl: string, currency?: string) {
   try {
-    const result = await createCheckoutSessionFunction({ returnUrl });
+    const result = await createCheckoutSessionFunction({ returnUrl, currency });
     return result.data;
   } catch (error: unknown) {
     console.error('Error creating checkout session:', error);

@@ -70,7 +70,7 @@
     "upgradeTitle": "Unlock All Phases",
     "upgradeDescription": "Get access to phases 3, 4 and 5 with a Premium subscription",
     "phasesIncluded": "Phases included:",
-    "price": "€4.99/month",
+    "perMonth": "month",
     "upgradeButton": "Upgrade to Premium",
     "cancel": "Maybe Later",
     "loading": "Loading...",

@@ -16,5 +16,19 @@
     "sweet": "Sweet",
     "neutral": "Neutral",
     "yourTeam": "Dein Team"
+  },
+  "subscription": {
+    "premium": "Premium",
+    "free": "Kostenlos",
+    "upgradeTitle": "Alle Phasen freischalten",
+    "upgradeDescription": "Erhalte Zugang zu Phase 3, 4 und 5 mit einem Premium-Abo",
+    "phasesIncluded": "Enthaltene Phasen:",
+    "perMonth": "Monat",
+    "upgradeButton": "Auf Premium upgraden",
+    "cancel": "Später",
+    "loading": "Lädt...",
+    "error": "Ein Fehler ist aufgetreten. Bitte erneut versuchen.",
+    "premiumRequired": "Premium-Phase erforderlich",
+    "hostMustUpgrade": "Der Host benötigt Premium für diese Phase"
   }
 }
