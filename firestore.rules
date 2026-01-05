@@ -8,19 +8,19 @@ service cloud.firestore {
       // Users can only read their own data
       allow read: if request.auth != null && request.auth.uid == userId;
 
-      // Allow users to update ONLY their profile fields (profileName, profileAvatar)
+      // Allow users to update ONLY their profile fields (profileName, profileAvatar, onboardingProgress)
       // CRITICAL: Users CANNOT modify subscription data (subscriptionStatus, analysesLimit, etc.)
       allow update: if request.auth != null
         && request.auth.uid == userId
         && request.resource.data.diff(resource.data).affectedKeys()
-            .hasOnly(['profileName', 'profileAvatar', 'updatedAt']);
+            .hasOnly(['profileName', 'profileAvatar', 'onboardingProgress', 'updatedAt']);
 
       // Allow users to create their own document with profile fields only
       // (for first-time users before subscription is fetched)
       allow create: if request.auth != null
         && request.auth.uid == userId
         && request.resource.data.keys()
-            .hasOnly(['profileName', 'profileAvatar', 'createdAt', 'updatedAt']);
+            .hasOnly(['profileName', 'profileAvatar', 'onboardingProgress', 'createdAt', 'updatedAt']);
 
       // Note: Cloud Functions use Firebase Admin SDK which bypasses these rules
       // and can write directly to any document (for subscription management)
