@@ -125,6 +125,18 @@
     "rotateDevice": "Gerat drehen",
     "portraitRequired": "Dieses Spiel wird im Hochformat gespielt"
   },
+  "profileSetup": {
+    "title": "Erstelle dein Chef-Profil",
+    "subtitle": "Richte deine Identitat ein, um zu spielen!",
+    "nameLabel": "Chef-Name",
+    "namePlaceholder": "Dein Spitzname (max 12 Zeichen)",
+    "avatarLabel": "Wahle deinen Avatar",
+    "saveButton": "Los geht's!",
+    "saving": "Speichern...",
+    "errorNameRequired": "Ein Name ist erforderlich",
+    "errorAvatarRequired": "Bitte wahle einen Avatar",
+    "errorSaveFailed": "Speichern fehlgeschlagen. Bitte erneut versuchen."
+  },
   "profileEdit": {
     "title": "Profil bearbeiten",
     "nameLabel": "Chef-Name",

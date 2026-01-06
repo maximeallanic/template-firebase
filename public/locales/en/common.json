@@ -125,6 +125,18 @@
     "rotateDevice": "Rotate Your Device",
     "portraitRequired": "This game is played in portrait mode"
   },
+  "profileSetup": {
+    "title": "Create Your Chef Profile",
+    "subtitle": "Set up your identity to play!",
+    "nameLabel": "Chef Name",
+    "namePlaceholder": "Your nickname (max 12 chars)",
+    "avatarLabel": "Choose Your Avatar",
+    "saveButton": "Let's Go!",
+    "saving": "Saving...",
+    "errorNameRequired": "A name is required",
+    "errorAvatarRequired": "Please choose an avatar",
+    "errorSaveFailed": "Save failed. Please try again."
+  },
   "profileEdit": {
     "title": "Edit Profile",
     "nameLabel": "Chef Name",

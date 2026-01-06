@@ -125,6 +125,18 @@
     "rotateDevice": "Gira tu dispositivo",
     "portraitRequired": "Este juego se juega en modo vertical"
   },
+  "profileSetup": {
+    "title": "Crea tu Perfil de Chef",
+    "subtitle": "Configura tu identidad para jugar!",
+    "nameLabel": "Nombre del Chef",
+    "namePlaceholder": "Tu apodo (max 12 car.)",
+    "avatarLabel": "Elige tu Avatar",
+    "saveButton": "Vamos!",
+    "saving": "Guardando...",
+    "errorNameRequired": "Se requiere un nombre",
+    "errorAvatarRequired": "Elige un avatar",
+    "errorSaveFailed": "Error al guardar. Intentalo de nuevo."
+  },
   "profileEdit": {
     "title": "Editar Perfil",
     "nameLabel": "Nombre del Chef",
