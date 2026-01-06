@@ -134,7 +134,11 @@ export const createRoom = async (hostName: string, avatar: Avatar): Promise<{ co
         hostIsPremium, // Store premium status for all players to access
         players: { [playerId]: hostPlayer },
         state: initialGameState,
-        createdAt: Date.now()
+        createdAt: Date.now(),
+        // Initialize game options with host's language (no "Auto" mode)
+        gameOptions: {
+            forcedLanguage: playerLanguage
+        }
     };
 
     await set(ref(rtdb, `rooms/${roomId}`), roomData);

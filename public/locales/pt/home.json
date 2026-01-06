@@ -1,68 +1,68 @@
 {
   "hero": {
-    "tagline": "O quiz de cozinha mais doido do mundo!",
-    "description": "Batalha de times <spicy>Spicy</spicy> vs <sweet>Sweet</sweet> em desafios absurdos!"
+    "tagline": "O quiz onde ninguém entende as regras!",
+    "description": "Batalha épica: <spicy>Time Pimenta</spicy> vs <sweet>Time Doce</sweet>. Que vença o melhor trapaceiro!"
   },
   "features": {
-    "players": "2-20 guerreiros",
-    "challenges": "5 desafios malucos",
-    "winner": "1 time campeão"
+    "players": "2-20 cobaias",
+    "challenges": "5 desafios absurdos",
+    "winner": "1 time sobrevivente"
   },
   "create": {
-    "title": "ABRIR A COZINHA",
-    "subtitle": "Liga o fogão e convoca os adversários!",
-    "button": "Eu sou o Chef!"
+    "title": "ABRIR O RESTAURANTE",
+    "subtitle": "Liga o fogão e convoca as vítimas!",
+    "button": "EU SOU O CHEF!"
   },
   "join": {
-    "title": "INVADIR",
-    "subtitle": "Entra com o código e escolhe teu destino!",
+    "title": "INVADIR A FESTA",
+    "subtitle": "Solta o código secreto e sela teu destino!",
     "placeholder": "CÓDIGO",
-    "button": "Bora!",
-    "invalidCode": "Código errado, campeão"
+    "button": "DEIXA EU ENTRAR!",
+    "invalidCode": "Código inexistente. Tenta no chute."
   },
   "phases": {
-    "title": "5 Desafios Absurdos",
+    "title": "5 Desafios Sem Pé Nem Cabeça",
     "tenders": {
       "name": "Tenders",
-      "description": "Quem buzina primeiro tem razão. Ou não."
+      "description": "Primeiro a buzinar, primeiro a se lascar."
     },
     "sucreSale": {
       "name": "Doce & Salgado",
-      "description": "Esquerda, direita, ou indeciso."
+      "description": "Desliza tua vida. Tipo Tinder, mas pra batatas."
     },
     "laCarte": {
       "name": "O Cardápio",
-      "description": "Pede o menu e reza pros teus neurônios."
+      "description": "Pede teu menu. Arrepende das escolhas."
     },
     "laNote": {
       "name": "A Conta",
-      "description": "Cultura geral em formato QCM. Moleza!"
+      "description": "Quiz de cultura geral. A conta vai ser salgada."
     },
     "burgerUltime": {
       "name": "Burger Supremo",
-      "description": "10 perguntas. 1 cérebro. 0 margem de erro."
+      "description": "10 perguntas de memória. Teu cérebro vai chorar."
     }
   },
   "loading": {
-    "joining": "Entrando na cozinha...",
+    "joining": "Infiltrando...",
     "creating": "Esquentando o fogão..."
   },
   "premium": {
-    "badge": "PREMIUM",
-    "title": "Desbloqueia o cardápio completo",
-    "description": "Premium = Fases 3, 4 e 5 liberadas pro teu time!",
+    "badge": "PRO",
+    "title": "O cardápio completo, sem limites",
+    "description": "Vira Pro e desbloqueia as 3 últimas fases!",
     "features": {
       "laCarte": "O Cardápio",
       "laNote": "A Conta",
       "burgerUltime": "Burger Supremo"
     },
     "price": "1,99 €/mês",
-    "cta": "Virar Premium",
-    "hostOnly": "Só o chef precisa de assinatura"
+    "cta": "VIRAR PRO",
+    "hostOnly": "Só o Chef paga a conta"
   },
   "install": {
     "title": "Instala o app!",
-    "subtitle": "Atalho direto na tela inicial",
+    "subtitle": "Um atalho direto pra loucura",
     "button": "Instalar"
   },
   "pwa": {
@@ -74,17 +74,17 @@
     "language": "Idioma",
     "profile": "Perfil",
     "rotateDevice": "Vira o celular!",
-    "portraitRequired": "Modo retrato, por favor!"
+    "portraitRequired": "Modo retrato obrigatório. Não somos selvagens."
   },
   "createGame": "Criar jogo",
   "joinGame": "Entrar",
   "soloMode": "Modo Solo",
-  "hostDescription": "Convoca os amigos",
+  "hostDescription": "Convoca as vítimas",
   "joinDescription": "Código secreto",
   "soloDescription": "Contra ti mesmo",
-  "enterCode": "Digita o código",
-  "joining": "Conectando...",
-  "creatingRoom": "Criando...",
-  "joiningRoom": "Entrando...",
+  "enterCode": "O código mágico",
+  "joining": "Chegando...",
+  "creatingRoom": "Cozinhando...",
+  "joiningRoom": "Conectando...",
   "editProfile": "Editar perfil"
 }

@@ -1,68 +1,68 @@
 {
   "hero": {
-    "tagline": "The totally unhinged culinary quiz!",
-    "description": "Face off in <spicy>Spicy</spicy> VS <sweet>Sweet</sweet> through 5 chaotic challenges!"
+    "tagline": "The quiz where nobody knows the rules!",
+    "description": "Epic showdown: <spicy>Team Spicy</spicy> vs <sweet>Team Sweet</sweet>. May the best cheater win!"
   },
   "features": {
-    "players": "2-20 players",
-    "challenges": "5 crazy challenges",
-    "winner": "1 team to crush them all"
+    "players": "2-20 test subjects",
+    "challenges": "5 absurd challenges",
+    "winner": "1 surviving team"
   },
   "create": {
-    "title": "CREATE A GAME",
-    "subtitle": "Fire up your kitchen and summon your friends!",
-    "button": "I'm the Chef!"
+    "title": "OPEN THE KITCHEN",
+    "subtitle": "Fire up your stove and summon your victims!",
+    "button": "I'M THE CHEF!"
   },
   "join": {
-    "title": "JOIN THE CHAOS",
-    "subtitle": "Drop the code, pick your side!",
+    "title": "CRASH THE PARTY",
+    "subtitle": "Drop the secret code and seal your fate!",
     "placeholder": "CODE",
-    "button": "Let me in!",
-    "invalidCode": "This code doesn't exist..."
+    "button": "LET ME IN!",
+    "invalidCode": "Code doesn't exist. Try again blindly."
   },
   "phases": {
-    "title": "5 Totally Bonkers Challenges",
+    "title": "5 Challenges That Make No Sense",
     "tenders": {
       "name": "Tenders",
-      "description": "First to buzz is always right. Or not."
+      "description": "First to buzz, first to mess up."
     },
     "sucreSale": {
       "name": "Sweet & Salty",
-      "description": "Left, right, or commitment issues?"
+      "description": "Swipe your life away. Like Tinder, but for potatoes."
     },
     "laCarte": {
       "name": "The Menu",
-      "description": "Order up and pray for your neurons."
+      "description": "Order your menu. Regret your choices."
     },
     "laNote": {
       "name": "The Bill",
-      "description": "The check, but make it multiple choice."
+      "description": "Multiple choice trivia. The bill will be spicy."
     },
     "burgerUltime": {
       "name": "Ultimate Burger",
-      "description": "10 questions. 1 brain. 0 room for error."
+      "description": "10 memory questions. Your brain will cry."
     }
   },
   "loading": {
-    "joining": "Coming right up...",
-    "creating": "Firing up the stove..."
+    "joining": "Infiltrating...",
+    "creating": "Heating up the stove..."
   },
   "premium": {
     "badge": "PRO",
-    "title": "Unlock the full menu",
-    "description": "Go Pro to play phases 3, 4 and 5!",
+    "title": "The full menu, no limits",
+    "description": "Go Pro and unlock the final 3 challenges!",
     "features": {
       "laCarte": "The Menu",
       "laNote": "The Bill",
       "burgerUltime": "Ultimate Burger"
     },
     "price": "€1.99/month",
-    "cta": "Go Pro",
-    "hostOnly": "Only the Chef needs the subscription"
+    "cta": "GO PRO",
+    "hostOnly": "Only the Chef pays the bill"
   },
   "install": {
     "title": "Install the app!",
-    "subtitle": "Quick access from your home screen",
+    "subtitle": "A direct shortcut to madness",
     "button": "Install"
   },
   "pwa": {
@@ -73,18 +73,18 @@
     "soundOff": "Off",
     "language": "Language",
     "profile": "Profile",
-    "rotateDevice": "Flip that phone!",
-    "portraitRequired": "This game is played in portrait mode"
+    "rotateDevice": "Flip your phone!",
+    "portraitRequired": "Portrait mode required. We're not savages."
   },
   "createGame": "Create a game",
   "joinGame": "Join",
   "soloMode": "Solo Mode",
-  "hostDescription": "Invite your squad",
-  "joinDescription": "Drop the code",
-  "soloDescription": "Fly solo",
-  "enterCode": "Room code",
+  "hostDescription": "Summon your victims",
+  "joinDescription": "Secret code",
+  "soloDescription": "Against yourself",
+  "enterCode": "The magic code",
   "joining": "Coming...",
-  "creatingRoom": "Heating up...",
+  "creatingRoom": "Simmering...",
   "joiningRoom": "Connecting...",
   "editProfile": "Edit profile"
 }

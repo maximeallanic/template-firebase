@@ -21,6 +21,8 @@ interface RoomLanguageSelectorProps {
     disabled?: boolean;
     /** Show as compact version (for small spaces) */
     compact?: boolean;
+    /** Show the "Auto" option (default: false) */
+    showAuto?: boolean;
 }
 
 /**
@@ -38,7 +40,8 @@ export function RoomLanguageSelector({
     unanimousLanguage,
     onChange,
     disabled = false,
-    compact = false
+    compact = false,
+    showAuto = false
 }: RoomLanguageSelectorProps) {
     const { t } = useTranslation('game-ui');
 
@@ -63,27 +66,29 @@ export function RoomLanguageSelector({
                 </label>
             )}
             <div className={`flex flex-wrap ${compact ? 'gap-1' : 'gap-2'} justify-center`}>
-                {/* Auto option */}
-                <button
-                    type="button"
-                    onClick={() => !disabled && onChange(null)}
-                    disabled={disabled}
-                    title={autoTooltip}
-                    className={`
-                        ${compact ? 'px-2 py-1 text-xs' : 'px-3 py-2 text-sm'}
-                        font-bold rounded-lg transition-all duration-200
-                        ${isAutoMode
-                            ? 'bg-gradient-to-r from-cyan-600 to-blue-600 text-white ring-2 ring-cyan-500 shadow-lg scale-105'
-                            : 'bg-cyan-900/30 hover:bg-cyan-800/40 text-gray-300 hover:text-white'
-                        }
-                        ${disabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}
-                        flex items-center gap-1
-                    `}
-                    aria-pressed={isAutoMode}
-                    aria-label={t('language.auto')}
-                >
-                    <span>{autoLabel}</span>
-                </button>
+                {/* Auto option - only shown if showAuto is true */}
+                {showAuto && (
+                    <button
+                        type="button"
+                        onClick={() => !disabled && onChange(null)}
+                        disabled={disabled}
+                        title={autoTooltip}
+                        className={`
+                            ${compact ? 'px-2 py-1 text-xs' : 'px-3 py-2 text-sm'}
+                            font-bold rounded-lg transition-all duration-200
+                            ${isAutoMode
+                                ? 'bg-gradient-to-r from-cyan-600 to-blue-600 text-white ring-2 ring-cyan-500 shadow-lg scale-105'
+                                : 'bg-cyan-900/30 hover:bg-cyan-800/40 text-gray-300 hover:text-white'
+                            }
+                            ${disabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}
+                            flex items-center gap-1
+                        `}
+                        aria-pressed={isAutoMode}
+                        aria-label={t('language.auto')}
+                    >
+                        <span>{autoLabel}</span>
+                    </button>
+                )}
 
                 {/* Language options */}
                 {GAME_LANGUAGES.map((lang) => {

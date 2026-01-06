@@ -1,68 +1,68 @@
 {
   "hero": {
-    "tagline": "Le quiz culinaire complètement barré !",
-    "description": "Affrontez-vous en <spicy>Spicy</spicy> VS <sweet>Sweet</sweet> dans 5 épreuves délirantes !"
+    "tagline": "Le quiz où personne ne comprend les règles !",
+    "description": "Bataille épique entre <spicy>Team Piment</spicy> et <sweet>Team Sucre</sweet>. Que le meilleur triche !"
   },
   "features": {
-    "players": "2-20 joueurs",
-    "challenges": "5 épreuves de ouf",
-    "winner": "1 équipe qui écrase l'autre"
+    "players": "2-20 cobayes",
+    "challenges": "5 épreuves absurdes",
+    "winner": "1 équipe survivante"
   },
   "create": {
-    "title": "CRÉER UNE PARTIE",
-    "subtitle": "Ouvre ta cuisine et convoque tes potes !",
-    "button": "Je suis le Chef !"
+    "title": "OUVRIR LE RESTO",
+    "subtitle": "Enflamme ta cuisine et convoque les victimes !",
+    "button": "JE SUIS LE CHEF !"
   },
   "join": {
-    "title": "REJOINDRE",
-    "subtitle": "Balance le code, choisis ton camp !",
+    "title": "S'INCRUSTER",
+    "subtitle": "Balance le code secret et choisis ton destin !",
     "placeholder": "CODE",
-    "button": "J'arrive !",
-    "invalidCode": "Ce code n'existe pas..."
+    "button": "J'ARRIVE !",
+    "invalidCode": "Code inexistant. Essaie au pif."
   },
   "phases": {
-    "title": "5 Épreuves Complètement Barrées",
+    "title": "5 Épreuves Sans Queue Ni Tête",
     "tenders": {
       "name": "Tenders",
-      "description": "Le premier qui buzze a raison. Ou pas."
+      "description": "Premier arrivé, premier à se planter."
     },
     "sucreSale": {
       "name": "Sucré Salé",
-      "description": "Gauche, droite, ou on assume pas ?"
+      "description": "Swipe ta vie. Comme Tinder, mais pour des patates."
     },
     "laCarte": {
       "name": "La Carte",
-      "description": "Commande et prie pour tes neurones."
+      "description": "Commande ton menu. Regrette tes choix."
     },
     "laNote": {
       "name": "La Note",
-      "description": "L'addition, mais en QCM."
+      "description": "QCM culture G. L'addition sera salée."
     },
     "burgerUltime": {
       "name": "Burger Ultime",
-      "description": "10 questions. 1 cerveau. 0 erreur."
+      "description": "10 questions de mémoire. Ton cerveau va pleurer."
     }
   },
   "loading": {
-    "joining": "Ça arrive...",
-    "creating": "On allume les fourneaux..."
+    "joining": "Infiltration en cours...",
+    "creating": "Les fourneaux chauffent..."
   },
   "premium": {
     "badge": "PRO",
-    "title": "Débloquez tout le menu",
-    "description": "Passez Pro pour jouer les phases 3, 4 et 5 !",
+    "title": "Tout le menu, sans modération",
+    "description": "Passe Pro et débloque les 3 dernières épreuves !",
     "features": {
       "laCarte": "La Carte",
       "laNote": "La Note",
       "burgerUltime": "Burger Ultime"
     },
     "price": "1,99 €/mois",
-    "cta": "Passer Pro",
-    "hostOnly": "Seul le Chef a besoin de l'abonnement"
+    "cta": "DEVENIR PRO",
+    "hostOnly": "Seul le Chef paye l'addition"
   },
   "install": {
     "title": "Installe l'app !",
-    "subtitle": "Accès direct depuis ton écran d'accueil",
+    "subtitle": "Un raccourci direct vers la folie",
     "button": "Installer"
   },
   "pwa": {
@@ -73,18 +73,18 @@
     "soundOff": "Muet",
     "language": "Langue",
     "profile": "Profil",
-    "rotateDevice": "Tourne ton téléphone !",
-    "portraitRequired": "Ce jeu se joue en mode portrait"
+    "rotateDevice": "Retourne ton téléphone !",
+    "portraitRequired": "Mode portrait obligatoire, on est pas des sauvages"
   },
   "createGame": "Créer une partie",
   "joinGame": "Rejoindre",
   "soloMode": "Mode Solo",
-  "hostDescription": "Invite tes potes",
-  "joinDescription": "Balance le code",
-  "soloDescription": "Joue solo",
-  "enterCode": "Code de la room",
+  "hostDescription": "Convoque tes victimes",
+  "joinDescription": "Code secret",
+  "soloDescription": "Contre toi-même",
+  "enterCode": "Le code magique",
   "joining": "Ça arrive...",
-  "creatingRoom": "Ça chauffe...",
+  "creatingRoom": "Ça mijote...",
   "joiningRoom": "Connexion...",
   "editProfile": "Modifier le profil"
 }

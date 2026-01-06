@@ -1,68 +1,68 @@
 {
   "hero": {
-    "tagline": "¡El quiz culinario totalmente desquiciado!",
-    "description": "¡Enfréntate en <spicy>Spicy</spicy> VS <sweet>Sweet</sweet> en 5 pruebas caóticas!"
+    "tagline": "El quiz donde nadie entiende las reglas!",
+    "description": "Batalla épica: <spicy>Team Picante</spicy> vs <sweet>Team Dulce</sweet>. Que gane el mejor tramposo!"
   },
   "features": {
-    "players": "2-20 jugadores",
-    "challenges": "5 pruebas locas",
-    "winner": "1 equipo para aplastarlos a todos"
+    "players": "2-20 conejillos de indias",
+    "challenges": "5 pruebas absurdas",
+    "winner": "1 equipo superviviente"
   },
   "create": {
-    "title": "CREAR PARTIDA",
-    "subtitle": "¡Enciende tu cocina y convoca a tus colegas!",
-    "button": "¡Soy el Chef!"
+    "title": "ABRIR EL RESTAURANTE",
+    "subtitle": "Enciende los fogones y convoca a las víctimas!",
+    "button": "SOY EL CHEF!"
   },
   "join": {
-    "title": "UNIRSE AL CAOS",
-    "subtitle": "¡Suelta el código, elige tu bando!",
+    "title": "COLARSE EN LA FIESTA",
+    "subtitle": "Suelta el código secreto y sella tu destino!",
     "placeholder": "CÓDIGO",
-    "button": "¡Déjame entrar!",
-    "invalidCode": "Este código no existe..."
+    "button": "DÉJAME ENTRAR!",
+    "invalidCode": "Código inexistente. Prueba a lo loco."
   },
   "phases": {
-    "title": "5 Pruebas Totalmente Locas",
+    "title": "5 Pruebas Sin Pies Ni Cabeza",
     "tenders": {
       "name": "Tenders",
-      "description": "El primero que pulsa siempre tiene razón. O no."
+      "description": "El primero en pulsar, el primero en fallar."
     },
     "sucreSale": {
       "name": "Dulce y Salado",
-      "description": "¿Izquierda, derecha, o problemas de compromiso?"
+      "description": "Desliza tu vida. Como Tinder, pero con patatas."
     },
     "laCarte": {
       "name": "El Menú",
-      "description": "Pide y reza por tus neuronas."
+      "description": "Pide tu menú. Arrepiéntete de tus decisiones."
     },
     "laNote": {
       "name": "La Cuenta",
-      "description": "La cuenta, pero en tipo test."
+      "description": "Test de cultura general. La cuenta será picante."
     },
     "burgerUltime": {
       "name": "Burger Definitivo",
-      "description": "10 preguntas. 1 cerebro. 0 margen de error."
+      "description": "10 preguntas de memoria. Tu cerebro llorará."
     }
   },
   "loading": {
-    "joining": "Llegando...",
-    "creating": "Encendiendo el fuego..."
+    "joining": "Infiltrándose...",
+    "creating": "Calentando fogones..."
   },
   "premium": {
     "badge": "PRO",
-    "title": "Desbloquea el menú completo",
-    "description": "¡Hazte Pro para jugar las fases 3, 4 y 5!",
+    "title": "Todo el menú, sin límites",
+    "description": "Hazte Pro y desbloquea las 3 últimas pruebas!",
     "features": {
       "laCarte": "El Menú",
       "laNote": "La Cuenta",
       "burgerUltime": "Burger Definitivo"
     },
     "price": "1,99 €/mes",
-    "cta": "Ser Pro",
-    "hostOnly": "Solo el Chef necesita la suscripción"
+    "cta": "SER PRO",
+    "hostOnly": "Solo el Chef paga la cuenta"
   },
   "install": {
-    "title": "¡Instala la app!",
-    "subtitle": "Acceso rápido desde tu pantalla de inicio",
+    "title": "Instala la app!",
+    "subtitle": "Un atajo directo a la locura",
     "button": "Instalar"
   },
   "pwa": {
@@ -73,18 +73,18 @@
     "soundOff": "Off",
     "language": "Idioma",
     "profile": "Perfil",
-    "rotateDevice": "¡Gira el móvil!",
-    "portraitRequired": "Este juego se juega en modo vertical"
+    "rotateDevice": "Dale la vuelta al móvil!",
+    "portraitRequired": "Modo vertical obligatorio. No somos salvajes."
   },
   "createGame": "Crear partida",
   "joinGame": "Unirse",
   "soloMode": "Modo Solo",
-  "hostDescription": "Invita a tu pandilla",
-  "joinDescription": "Suelta el código",
-  "soloDescription": "Vuela solo",
-  "enterCode": "Código de la sala",
+  "hostDescription": "Convoca a tus víctimas",
+  "joinDescription": "Código secreto",
+  "soloDescription": "Contra ti mismo",
+  "enterCode": "El código mágico",
   "joining": "Llegando...",
-  "creatingRoom": "Calentando...",
+  "creatingRoom": "Cocinando...",
   "joiningRoom": "Conectando...",
   "editProfile": "Editar perfil"
 }

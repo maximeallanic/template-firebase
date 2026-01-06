@@ -1,68 +1,68 @@
 {
   "hero": {
-    "tagline": "Das total durchgeknallte Küchen-Quiz!",
-    "description": "Kämpft in <spicy>Spicy</spicy> VS <sweet>Sweet</sweet> durch 5 chaotische Runden!"
+    "tagline": "Das Quiz wo keiner die Regeln versteht!",
+    "description": "Episches Duell: <spicy>Team Scharf</spicy> vs <sweet>Team Süß</sweet>. Möge der beste Schummler gewinnen!"
   },
   "features": {
-    "players": "2-20 Spieler",
-    "challenges": "5 verrückte Challenges",
-    "winner": "1 Team um sie alle zu vernichten"
+    "players": "2-20 Versuchskaninchen",
+    "challenges": "5 absurde Runden",
+    "winner": "1 überlebendes Team"
   },
   "create": {
-    "title": "SPIEL ERSTELLEN",
-    "subtitle": "Heiz den Ofen an und ruf deine Crew!",
-    "button": "Ich bin der Chef!"
+    "title": "KÜCHE ERÖFFNEN",
+    "subtitle": "Heiz den Ofen an und ruf deine Opfer zusammen!",
+    "button": "ICH BIN DER CHEF!"
   },
   "join": {
-    "title": "INS CHAOS REIN",
-    "subtitle": "Code rein, Team wählen, los!",
+    "title": "PARTY CRASHEN",
+    "subtitle": "Geheimcode rein und besiegle dein Schicksal!",
     "placeholder": "CODE",
-    "button": "Lass mich rein!",
-    "invalidCode": "Code gibt's nicht..."
+    "button": "LASS MICH REIN!",
+    "invalidCode": "Code existiert nicht. Versuch's blind."
   },
   "phases": {
-    "title": "5 Total Verrückte Runden",
+    "title": "5 Runden Die Keinen Sinn Ergeben",
     "tenders": {
       "name": "Tenders",
-      "description": "Wer zuerst drückt, hat immer recht. Oder nicht."
+      "description": "Wer zuerst drückt, fliegt zuerst auf die Nase."
     },
     "sucreSale": {
       "name": "Süß & Salzig",
-      "description": "Links, rechts, oder Bindungsangst?"
+      "description": "Swipe dein Leben. Wie Tinder, aber für Kartoffeln."
     },
     "laCarte": {
       "name": "Die Speisekarte",
-      "description": "Bestell und bet für deine Neuronen."
+      "description": "Bestell dein Menü. Bereue deine Entscheidungen."
     },
     "laNote": {
       "name": "Die Rechnung",
-      "description": "Die Rechnung, aber als Multiple Choice."
+      "description": "Multiple-Choice Allgemeinwissen. Die Rechnung wird scharf."
     },
     "burgerUltime": {
       "name": "Ultimate Burger",
-      "description": "10 Fragen. 1 Gehirn. 0 Fehlertoleranz."
+      "description": "10 Gedächtnisfragen. Dein Hirn wird heulen."
     }
   },
   "loading": {
-    "joining": "Komme rein...",
-    "creating": "Feuer wird angezündet..."
+    "joining": "Infiltriere...",
+    "creating": "Ofen wird angeheizt..."
   },
   "premium": {
     "badge": "PRO",
-    "title": "Das volle Menü freischalten",
-    "description": "Hol dir Pro für Phase 3, 4 und 5!",
+    "title": "Das volle Menü, ohne Grenzen",
+    "description": "Werde Pro und schalte die letzten 3 Runden frei!",
     "features": {
       "laCarte": "Die Speisekarte",
       "laNote": "Die Rechnung",
       "burgerUltime": "Ultimate Burger"
     },
     "price": "1,99 €/Monat",
-    "cta": "Pro werden",
-    "hostOnly": "Nur der Chef braucht das Abo"
+    "cta": "PRO WERDEN",
+    "hostOnly": "Nur der Chef zahlt die Rechnung"
   },
   "install": {
     "title": "App installieren!",
-    "subtitle": "Schnellzugriff vom Homescreen",
+    "subtitle": "Eine Abkürzung direkt in den Wahnsinn",
     "button": "Installieren"
   },
   "pwa": {
@@ -73,18 +73,18 @@
     "soundOff": "Aus",
     "language": "Sprache",
     "profile": "Profil",
-    "rotateDevice": "Handy drehen!",
-    "portraitRequired": "Dieses Spiel braucht Hochformat"
+    "rotateDevice": "Dreh dein Handy!",
+    "portraitRequired": "Hochformat Pflicht. Wir sind keine Barbaren."
   },
   "createGame": "Spiel erstellen",
   "joinGame": "Beitreten",
   "soloMode": "Solo-Modus",
-  "hostDescription": "Ruf deine Crew",
-  "joinDescription": "Code eingeben",
-  "soloDescription": "Alleine fliegen",
-  "enterCode": "Raum-Code",
-  "joining": "Komme rein...",
-  "creatingRoom": "Heize auf...",
+  "hostDescription": "Ruf deine Opfer",
+  "joinDescription": "Geheimcode",
+  "soloDescription": "Gegen dich selbst",
+  "enterCode": "Der magische Code",
+  "joining": "Komme...",
+  "creatingRoom": "Köchelt...",
   "joiningRoom": "Verbinde...",
   "editProfile": "Profil bearbeiten"
 }
