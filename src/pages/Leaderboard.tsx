@@ -103,7 +103,7 @@ export default function Leaderboard() {
                 {isInstalled ? (
                     <QuickSettings onEditProfile={() => setShowProfileEdit(true)} />
                 ) : (
-                    <UserBar attachedToEdge />
+                    <UserBar />
                 )}
             </div>
 

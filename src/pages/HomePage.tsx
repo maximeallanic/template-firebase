@@ -282,7 +282,7 @@ export default function HomePage() {
 
       {/* UserBar */}
       <div className="fixed top-4 right-0 z-50">
-        <UserBar attachedToEdge />
+        <UserBar />
       </div>
 
       {/* Install Banner - Show when installable and not dismissed */}

@@ -311,21 +311,23 @@ export default function GameRoom() {
                     <div className="absolute top-4 left-4 right-4 z-[100] flex items-center justify-between">
                         <PWABackButton onClick={handleLeaveLobby} />
                         {currentPlayer && (
-                            isInstalled ? (
-                                <QuickSettings
-                                    onEditProfile={() => setShowProfileEdit(true)}
-                                    roomCode={room.code}
-                                    playerId={myId || undefined}
-                                />
-                            ) : (
-                                <UserBar
-                                    playerName={currentPlayer.name}
-                                    avatar={currentPlayer.avatar}
-                                    roomCode={room.code}
-                                    playerId={myId || undefined}
-                                    onProfileUpdate={handleProfileUpdate}
-                                />
-                            )
+                            <div className="ml-auto">
+                                {isInstalled ? (
+                                    <QuickSettings
+                                        onEditProfile={() => setShowProfileEdit(true)}
+                                        roomCode={room.code}
+                                        playerId={myId || undefined}
+                                    />
+                                ) : (
+                                    <UserBar
+                                        playerName={currentPlayer.name}
+                                        avatar={currentPlayer.avatar}
+                                        roomCode={room.code}
+                                        playerId={myId || undefined}
+                                        onProfileUpdate={handleProfileUpdate}
+                                    />
+                                )}
+                            </div>
                         )}
                     </div>
 

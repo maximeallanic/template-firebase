@@ -161,11 +161,13 @@ export default function HostLobby() {
             {/* Header: Back Button + Settings */}
             <div className="fixed top-4 left-4 right-4 z-50 flex items-center justify-between">
                 <PWABackButton />
-                {isInstalled ? (
-                    <QuickSettings onEditProfile={() => setShowProfileEdit(true)} />
-                ) : (
-                    <UserBar attachedToEdge />
-                )}
+                <div className="ml-auto">
+                    {isInstalled ? (
+                        <QuickSettings onEditProfile={() => setShowProfileEdit(true)} />
+                    ) : (
+                        <UserBar />
+                    )}
+                </div>
             </div>
 
             <div className="bg-white/5 backdrop-blur-xl border border-white/10 rounded-3xl shadow-2xl p-8 max-w-md w-full relative z-10">

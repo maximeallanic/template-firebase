@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { LogOut, ChevronDown, Settings, Power, Crown } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
+import { LogOut, ChevronDown, Settings, Power, Crown, Globe, Check } from 'lucide-react';
 import { ProfileEditModal } from './ProfileEditModal';
 import { AvatarIcon } from '../AvatarIcon';
 import { safeStorage } from '../../utils/storage';
@@ -9,6 +10,7 @@ import { leaveRoom, type Avatar } from '../../services/gameService';
 import { signOut, createCheckoutSession } from '../../services/firebase';
 import { useAuthUser } from '../../hooks/useAuthUser';
 import { useCurrentUserSubscription } from '../../hooks/useHostSubscription';
+import { SUPPORTED_LANGUAGES, type SupportedLanguage } from '../../i18n/types';
 
 interface UserBarProps {
     playerName?: string;
@@ -16,8 +18,6 @@ interface UserBarProps {
     roomCode?: string;
     playerId?: string;
     onProfileUpdate?: (name: string, avatar: Avatar) => void;
-    /** When true, applies edge-attached styling (rounded left only, no right border) */
-    attachedToEdge?: boolean;
 }
 
 export const UserBar: React.FC<UserBarProps> = ({
@@ -25,13 +25,17 @@ export const UserBar: React.FC<UserBarProps> = ({
     avatar: propAvatar,
     roomCode,
     playerId,
-    onProfileUpdate,
-    attachedToEdge = false
+    onProfileUpdate
 }) => {
     const [isDropdownOpen, setIsDropdownOpen] = useState(false);
     const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
     const [isUpgrading, setIsUpgrading] = useState(false);
+    const [showLanguageMenu, setShowLanguageMenu] = useState(false);
     const dropdownRef = useRef<HTMLDivElement>(null);
+
+    // i18n
+    const { t, i18n } = useTranslation('common');
+    const currentLanguage = SUPPORTED_LANGUAGES.find(lang => lang.code === i18n.language) || SUPPORTED_LANGUAGES[0];
 
     // Get authenticated user and their subscription status
     const { user } = useAuthUser();
@@ -148,6 +152,11 @@ export const UserBar: React.FC<UserBarProps> = ({
         }
     };
 
+    const handleLanguageChange = (languageCode: SupportedLanguage) => {
+        i18n.changeLanguage(languageCode);
+        setShowLanguageMenu(false);
+    };
+
     return (
         <>
             <div ref={dropdownRef} className="relative">
@@ -156,9 +165,7 @@ export const UserBar: React.FC<UserBarProps> = ({
                     aria-expanded={isDropdownOpen}
                     aria-haspopup="menu"
                     aria-label={`Menu utilisateur pour ${playerName}`}
-                    className={`flex items-center gap-2 bg-slate-800/80 backdrop-blur-sm border border-slate-700/50 hover:border-indigo-500/50 px-3 py-2 transition-all hover:bg-slate-700/80 ${
-                        attachedToEdge ? 'rounded-l-full border-r-0' : 'rounded-full'
-                    }`}
+                    className={`flex items-center gap-2 bg-slate-800/80 backdrop-blur-sm border border-slate-700/50 hover:border-indigo-500/50 px-3 py-2 transition-all hover:bg-slate-700/80 rounded-full`}
                 >
                     <div className="w-8 h-8 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center overflow-hidden">
                         <AvatarIcon avatar={avatar} size={28} />
@@ -189,10 +196,10 @@ export const UserBar: React.FC<UserBarProps> = ({
                                             {isPremium ? (
                                                 <>
                                                     <Crown className="w-3 h-3 text-amber-400" />
-                                                    <span className="text-amber-400">Premium</span>
+                                                    <span className="text-amber-400">{t('subscription.premium')}</span>
                                                 </>
                                             ) : (
-                                                'Joueur'
+                                                t('labels.player')
                                             )}
                                         </p>
                                     </div>
@@ -209,7 +216,7 @@ export const UserBar: React.FC<UserBarProps> = ({
                                         className="w-full px-4 py-2 text-left text-sm bg-gradient-to-r from-amber-500/10 to-orange-500/10 text-amber-400 hover:from-amber-500/20 hover:to-orange-500/20 transition-colors flex items-center gap-2 disabled:opacity-50"
                                     >
                                         <Crown className="w-4 h-4" aria-hidden="true" />
-                                        {isUpgrading ? 'Chargement...' : 'Passer Premium — 4,99 €/mois'}
+                                        {isUpgrading ? t('pwa.upgrading') : `${t('pwa.upgrade')} — 4,99 €/${t('subscription.perMonth')}`}
                                     </button>
                                 )}
                                 <button
@@ -218,8 +225,50 @@ export const UserBar: React.FC<UserBarProps> = ({
                                     className="w-full px-4 py-2 text-left text-sm text-slate-300 hover:bg-slate-700/50 hover:text-white transition-colors flex items-center gap-2"
                                 >
                                     <Settings className="w-4 h-4" aria-hidden="true" />
-                                    Modifier le Profil
+                                    {t('pwa.editProfile')}
                                 </button>
+                                {/* Language selector */}
+                                <div>
+                                    <button
+                                        onClick={() => setShowLanguageMenu(!showLanguageMenu)}
+                                        role="menuitem"
+                                        className="w-full px-4 py-2 text-left text-sm text-slate-300 hover:bg-slate-700/50 hover:text-white transition-colors flex items-center gap-2"
+                                    >
+                                        <Globe className="w-4 h-4" aria-hidden="true" />
+                                        <span className="flex-1">{t('pwa.language')}</span>
+                                        <span className="text-lg">{currentLanguage.flag}</span>
+                                        <ChevronDown className={`w-4 h-4 text-slate-400 transition-transform ${showLanguageMenu ? 'rotate-180' : ''}`} />
+                                    </button>
+                                    <AnimatePresence>
+                                        {showLanguageMenu && (
+                                            <motion.div
+                                                initial={{ opacity: 0, height: 0 }}
+                                                animate={{ opacity: 1, height: 'auto' }}
+                                                exit={{ opacity: 0, height: 0 }}
+                                                transition={{ duration: 0.15 }}
+                                                className="overflow-hidden bg-slate-900/50"
+                                            >
+                                                {SUPPORTED_LANGUAGES.map((language) => (
+                                                    <button
+                                                        key={language.code}
+                                                        onClick={() => handleLanguageChange(language.code)}
+                                                        className={`w-full px-4 pl-8 py-2 text-left text-sm transition-colors flex items-center gap-2 ${
+                                                            language.code === currentLanguage.code
+                                                                ? 'bg-indigo-500/20 text-indigo-300'
+                                                                : 'text-slate-300 hover:bg-slate-700/50 hover:text-white'
+                                                        }`}
+                                                    >
+                                                        <span className="text-lg">{language.flag}</span>
+                                                        <span className="flex-1">{language.nativeName}</span>
+                                                        {language.code === currentLanguage.code && (
+                                                            <Check className="w-4 h-4 text-indigo-400" />
+                                                        )}
+                                                    </button>
+                                                ))}
+                                            </motion.div>
+                                        )}
+                                    </AnimatePresence>
+                                </div>
                                 {roomCode && (
                                     <button
                                         onClick={handleLeaveGame}
@@ -227,7 +276,7 @@ export const UserBar: React.FC<UserBarProps> = ({
                                         className="w-full px-4 py-2 text-left text-sm text-red-400 hover:bg-red-500/10 hover:text-red-300 transition-colors flex items-center gap-2"
                                     >
                                         <LogOut className="w-4 h-4" aria-hidden="true" />
-                                        Quitter la Partie
+                                        {t('pwa.leaveGame')}
                                     </button>
                                 )}
                                 <button
@@ -236,7 +285,7 @@ export const UserBar: React.FC<UserBarProps> = ({
                                     className="w-full px-4 py-2 text-left text-sm text-slate-400 hover:bg-slate-700/50 hover:text-slate-200 transition-colors flex items-center gap-2"
                                 >
                                     <Power className="w-4 h-4" aria-hidden="true" />
-                                    Se déconnecter
+                                    {t('pwa.logout')}
                                 </button>
                             </div>
                         </motion.div>
