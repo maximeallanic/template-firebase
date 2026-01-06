@@ -72,6 +72,7 @@ export interface GameState {
     phase1TriedWrongOptions?: number[]; // Options already tried and wrong (for rebond system)
     phase1LastWrongTeam?: Team; // Team that just answered wrong (for rebond feedback)
     roundWinner?: { playerId: string | 'ALL'; name: string; team: Team | 'neutral' } | null;
+    isTimeout?: boolean; // True when round ended due to timer expiring
     // Phase 2 - Team-based (1 réponse par équipe suffit)
     currentPhase2Set?: number;
     currentPhase2Item?: number;

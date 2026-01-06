@@ -20,13 +20,15 @@ interface Phase4ResultProps {
     winner: WinnerInfo | null;
     myAnswer: { answer: number; timestamp: number } | undefined;
     isSolo?: boolean;
+    isTimeout?: boolean;  // True when round ended due to timer expiring
 }
 
 export function Phase4Result({
     question,
     winner,
     myAnswer,
-    isSolo = false
+    isSolo = false,
+    isTimeout = false
 }: Phase4ResultProps) {
     const { t } = useTranslation(['game-ui']);
     const prefersReducedMotion = useReducedMotion();
@@ -111,9 +113,11 @@ export function Phase4Result({
                             aria-live="polite"
                         >
                             {isSolo
-                                ? (myAnswer !== undefined
-                                    ? t('phase4.solo.wrongAnswer')
-                                    : t('phase4.solo.noWinner'))
+                                ? (isTimeout
+                                    ? t('phase4.solo.noWinner')      // Timer expired
+                                    : (myAnswer !== undefined
+                                        ? t('phase4.solo.wrongAnswer')  // Player answered wrong
+                                        : t('phase4.solo.noWinner')))   // Fallback
                                 : t('phase4.noWinner')}
                         </div>
                     </motion.div>

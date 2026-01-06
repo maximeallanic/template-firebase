@@ -1,52 +1,52 @@
 {
   "howToPlay": "Comment jouer",
-  "step": "Etape {{number}}",
+  "step": "Étape {{number}}",
   "continue": "Compris !",
   "letsGo": "C'est parti !",
 
   "home": {
     "title": "Bienvenue !",
-    "subtitle": "Le quiz culinaire en equipe",
+    "subtitle": "Le quiz culinaire en équipe",
     "steps": {
       "createJoin": {
-        "label": "Creer ou Rejoindre",
-        "text": "Cree une room ou rejoins avec un code"
+        "label": "Créer ou Rejoindre",
+        "text": "Crée une room ou rejoins avec un code"
       },
       "pickTeam": {
-        "label": "Choisis ton equipe",
-        "text": "Choisis l'equipe Spicy ou Sweet"
+        "label": "Choisis ton équipe",
+        "text": "Choisis l'équipe Spicy ou Sweet"
       },
       "challenges": {
-        "label": "5 Defis",
-        "text": "Affronte-toi dans 5 rounds delirants"
+        "label": "5 Défis",
+        "text": "Affronte-toi dans 5 rounds délirants"
       },
       "win": {
         "label": "Gagne ensemble",
-        "text": "L'equipe avec le plus de points gagne !"
+        "text": "L'équipe avec le plus de points gagne !"
       }
     },
     "button": "C'est parti !"
   },
 
   "lobby": {
-    "title": "Tu es l'hote !",
+    "title": "Tu es l'hôte !",
     "subtitle": "Voici ce que tu peux faire",
     "steps": {
       "share": {
         "label": "Partage le code",
-        "text": "Donne le code de la room a tes amis"
+        "text": "Donne le code de la room à tes amis"
       },
       "assign": {
-        "label": "Assigne les equipes",
-        "text": "Deplace les joueurs vers Spicy ou Sweet"
+        "label": "Assigne les équipes",
+        "text": "Déplace les joueurs vers Spicy ou Sweet"
       },
       "balance": {
-        "label": "Equilibre",
-        "text": "Garde les equipes equilibrees"
+        "label": "Équilibre",
+        "text": "Garde les équipes équilibrées"
       },
       "start": {
         "label": "Lance la partie",
-        "text": "Appuie sur Demarrer quand tout le monde est pret"
+        "text": "Appuie sur Démarrer quand tout le monde est prêt"
       }
     },
     "button": "Compris !"
@@ -57,44 +57,44 @@
     "subtitle": "Questions rapides",
     "steps": {
       "speed": {
-        "label": "Rapidite",
-        "text": "Sois le premier a repondre correctement !"
+        "label": "Rapidité",
+        "text": "Sois le premier à répondre correctement !"
       },
       "tap": {
-        "label": "Tape pour repondre",
-        "text": "Selectionne la bonne option vite"
+        "label": "Tape pour répondre",
+        "text": "Sélectionne la bonne option vite"
       },
       "points": {
         "label": "Gagne des points",
-        "text": "La premiere bonne reponse gagne le point"
+        "text": "La première bonne réponse gagne le point"
       },
       "team": {
-        "label": "Score d'equipe",
-        "text": "Les points vont a ton equipe"
+        "label": "Score d'équipe",
+        "text": "Les points vont à ton équipe"
       }
     },
-    "button": "Pret !"
+    "button": "Prêt !"
   },
 
   "phase2": {
-    "title": "Sucre Sale",
+    "title": "Sucré Salé",
     "subtitle": "Classe les items",
     "steps": {
       "classify": {
         "label": "Classe",
-        "text": "Trie chaque item dans la bonne categorie"
+        "text": "Trie chaque item dans la bonne catégorie"
       },
       "swipe": {
         "label": "Swipe ou Tape",
-        "text": "Glisse a gauche/droite ou tape les zones"
+        "text": "Glisse à gauche/droite ou tape les zones"
       },
       "both": {
         "label": "Les deux",
-        "text": "Glisse vers le haut si ca rentre dans les deux"
+        "text": "Glisse vers le haut si ça rentre dans les deux"
       },
       "race": {
-        "label": "Course d'equipe",
-        "text": "La premiere equipe a repondre verrouille"
+        "label": "Course d'équipe",
+        "text": "La première équipe à répondre verrouille"
       }
     },
     "button": "Trions !"
@@ -102,23 +102,23 @@
 
   "phase3": {
     "title": "La Carte",
-    "subtitle": "Questions a theme",
+    "subtitle": "Questions à thème",
     "steps": {
       "pick": {
         "label": "Choisis le menu",
-        "text": "Chaque equipe choisit un theme"
+        "text": "Chaque équipe choisit un thème"
       },
       "answer": {
-        "label": "Tape tes reponses",
-        "text": "Ecris tes reponses aux questions"
+        "label": "Tape tes réponses",
+        "text": "Écris tes réponses aux questions"
       },
       "spelling": {
         "label": "Orthographe OK",
-        "text": "L'orthographe approximative est acceptee"
+        "text": "L'orthographe approximative est acceptée"
       },
       "clock": {
         "label": "Bats le chrono",
-        "text": "Reponds avant la fin du temps !"
+        "text": "Réponds avant la fin du temps !"
       }
     },
     "button": "Commande !"
@@ -130,11 +130,11 @@
     "steps": {
       "individual": {
         "label": "Individuel",
-        "text": "Chacun repond seul"
+        "text": "Chacun répond seul"
       },
       "pick": {
         "label": "Choisis une",
-        "text": "Selectionne la bonne option"
+        "text": "Sélectionne la bonne option"
       },
       "timer": {
         "label": "30 secondes",
@@ -142,7 +142,7 @@
       },
       "first": {
         "label": "Premier gagne",
-        "text": "La premiere bonne reponse gagne des points"
+        "text": "La première bonne réponse gagne des points"
       }
     },
     "button": "Calculons !"
@@ -150,22 +150,22 @@
 
   "phase5": {
     "title": "Burger Ultime",
-    "subtitle": "Le Defi Final",
+    "subtitle": "Le Défi Final",
     "steps": {
       "listen": {
-        "label": "Ecoute d'abord",
-        "text": "Ecoute les 10 questions avant de repondre"
+        "label": "Écoute d'abord",
+        "text": "Écoute les 10 questions avant de répondre"
       },
       "remember": {
-        "label": "Memorise",
-        "text": "Retiens les questions et les reponses"
+        "label": "Mémorise",
+        "text": "Retiens les questions et les réponses"
       },
       "answer": {
-        "label": "Reponds a tout",
-        "text": "Reponds a toutes les questions dans l'ordre"
+        "label": "Réponds à tout",
+        "text": "Réponds à toutes les questions dans l'ordre"
       },
       "team": {
-        "label": "Effort d'equipe",
+        "label": "Effort d'équipe",
         "text": "Travaillez ensemble pour un max de points"
       }
     },

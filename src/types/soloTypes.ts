@@ -293,7 +293,10 @@ export function mapSoloStateToGameState(state: SoloGameState): import('./gameTyp
         if (currentAnswered && state.customQuestions.phase1) {
             const question = state.customQuestions.phase1[currentIdx];
             const playerAnswer = state.phase1State.answers[currentIdx];
-            if (question && playerAnswer === question.correctIndex) {
+            if (playerAnswer === null) {
+                // Timeout occurred - set isTimeout flag
+                baseState.isTimeout = true;
+            } else if (question && playerAnswer === question.correctIndex) {
                 baseState.roundWinner = {
                     playerId: state.playerId,
                     name: state.playerName,
@@ -328,6 +331,11 @@ export function mapSoloStateToGameState(state: SoloGameState): import('./gameTyp
                     timestamp: Date.now()
                 }
             };
+
+            // Set isTimeout if the answer was null (timeout occurred)
+            if (answerValue === null) {
+                baseState.isTimeout = true;
+            }
 
             // Set phase4Winner if answer was correct
             if (answerValue !== null && state.customQuestions.phase4) {

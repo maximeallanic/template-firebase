@@ -46,6 +46,7 @@ export const startNextQuestion = async (code: string, nextIndex: number): Promis
     updates[`rooms/${roomId}/state/currentQuestionIndex`] = nextIndex;
     updates[`rooms/${roomId}/state/phaseState`] = 'answering'; // Skip reading delay, go directly to answering
     updates[`rooms/${roomId}/state/roundWinner`] = null;
+    updates[`rooms/${roomId}/state/isTimeout`] = false; // Reset timeout flag for new question
     updates[`rooms/${roomId}/state/phase1Answers`] = {};
     updates[`rooms/${roomId}/state/phase1BlockedTeams`] = []; // Reset blocked teams
     updates[`rooms/${roomId}/state/phase1TriedWrongOptions`] = []; // Reset tried wrong options for rebond
@@ -79,7 +80,8 @@ export const handlePhase1Timeout = async (code: string): Promise<void> => {
     // Transition to 'result' with no winner (timeout)
     await update(ref(rtdb, `rooms/${roomId}/state`), {
         phaseState: 'result',
-        roundWinner: null
+        roundWinner: null,
+        isTimeout: true
     });
 };
 

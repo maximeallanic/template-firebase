@@ -3,20 +3,20 @@
     "start": "Commencer",
     "continue": "Continuer",
     "next": "Suivant",
-    "retry": "Reessayer",
+    "retry": "Réessayer",
     "back": "Retour",
     "confirm": "Confirmer",
     "cancel": "Annuler",
     "skip": "Passer",
     "join": "Rejoindre",
-    "create": "Creer",
+    "create": "Créer",
     "playAgain": "Rejouer",
     "save": "Enregistrer",
     "close": "Fermer",
     "delete": "Supprimer",
     "edit": "Modifier",
     "submit": "Soumettre",
-    "upgrade": "Ameliorer"
+    "upgrade": "Améliorer"
   },
   "labels": {
     "loading": "Chargement...",
@@ -25,11 +25,11 @@
     "score": "Score",
     "round": "Manche",
     "question": "Question",
-    "answer": "Reponse",
-    "correctAnswer": "Bonne reponse",
+    "answer": "Réponse",
+    "correctAnswer": "Bonne réponse",
     "player": "Joueur",
     "players": "Joueurs",
-    "host": "Hote",
+    "host": "Hôte",
     "spectator": "Spectateur",
     "email": "Email",
     "password": "Mot de passe",
@@ -49,26 +49,26 @@
     "generic": "Une erreur est survenue",
     "roomNotFound": "Room introuvable",
     "connectionLost": "Connexion perdue",
-    "gameAlreadyStarted": "La partie a deja commence",
+    "gameAlreadyStarted": "La partie a déjà commencé",
     "roomFull": "La room est pleine",
-    "createFailed": "Echec de la creation de la room"
+    "createFailed": "Échec de la création de la room"
   },
   "messages": {
-    "success": "Succes !",
+    "success": "Succès !",
     "error": "Erreur",
     "warning": "Attention",
     "info": "Information",
     "loading": "Chargement...",
     "saving": "Enregistrement...",
     "processing": "Traitement...",
-    "noData": "Aucune donnee disponible",
-    "comingSoon": "Bientot disponible"
+    "noData": "Aucune donnée disponible",
+    "comingSoon": "Bientôt disponible"
   },
   "teams": {
     "spicy": "Spicy",
     "sweet": "Sweet",
     "neutral": "Neutre",
-    "yourTeam": "Ton equipe"
+    "yourTeam": "Ton équipe"
   },
   "time": {
     "seconds": "secondes",
@@ -86,33 +86,33 @@
     "pro": "Plan Pro",
     "active": "Actif",
     "inactive": "Inactif",
-    "expired": "Expire",
-    "canceled": "Annule"
+    "expired": "Expiré",
+    "canceled": "Annulé"
   },
   "footer": {
     "terms": "CGU",
-    "privacy": "Confidentialite",
+    "privacy": "Confidentialité",
     "copyright": "25g de Sel"
   },
   "subscription": {
     "premium": "Premium",
     "free": "Gratuit",
-    "upgradeTitle": "Debloquer toutes les phases",
-    "upgradeDescription": "Accedez aux phases 3, 4 et 5 avec un abonnement Premium",
+    "upgradeTitle": "Débloquer toutes les phases",
+    "upgradeDescription": "Accédez aux phases 3, 4 et 5 avec un abonnement Premium",
     "phasesIncluded": "Phases incluses :",
     "perMonth": "mois",
-    "upgradeButton": "Passer a Premium",
+    "upgradeButton": "Passer à Premium",
     "cancel": "Plus tard",
     "loading": "Chargement...",
-    "error": "Une erreur est survenue. Reessayez.",
+    "error": "Une erreur est survenue. Réessayez.",
     "premiumRequired": "Phase Premium requise",
-    "hostMustUpgrade": "L'hote doit etre Premium pour acceder a cette phase"
+    "hostMustUpgrade": "L'hôte doit être Premium pour accéder à cette phase"
   },
   "pwa": {
-    "settings": "Reglages",
+    "settings": "Réglages",
     "sound": "Son",
-    "soundOn": "Active",
-    "soundOff": "Desactive",
+    "soundOn": "Activé",
+    "soundOff": "Désactivé",
     "language": "Langue",
     "profile": "Profil",
     "editProfile": "Modifier le profil",
@@ -120,7 +120,7 @@
     "upgrade": "Passer Premium",
     "upgrading": "Chargement...",
     "leaveGame": "Quitter la partie",
-    "logout": "Se deconnecter",
+    "logout": "Se déconnecter",
     "play": "JOUER",
     "rotateDevice": "Tournez votre appareil",
     "portraitRequired": "Ce jeu se joue en mode portrait"
@@ -145,36 +145,36 @@
     "save": "Enregistrer",
     "saving": "Enregistrement...",
     "cancel": "Annuler",
-    "errorNameRequired": "Le nom ne peut pas etre vide",
-    "errorSaveFailed": "Echec de la mise a jour du profil. Veuillez reessayer."
+    "errorNameRequired": "Le nom ne peut pas être vide",
+    "errorSaveFailed": "Échec de la mise à jour du profil. Veuillez réessayer."
   },
   "solo": {
     "mode": "Mode Solo",
     "arcadeChallenge": "Arcade Challenge",
     "maxScore": "Score max : {{score}} points",
-    "configureProfile": "Configure ton profil pour jouer en solo ! Clique sur ton avatar en haut a droite.",
+    "configureProfile": "Configure ton profil pour jouer en solo ! Clique sur ton avatar en haut à droite.",
     "startGame": "Lancer la partie",
     "viewLeaderboard": "Voir le classement",
     "leaderboardTitle": "Classement Solo",
     "leaderboardSubtitle": "Les meilleurs scores du mode Arcade",
     "myBestScore": "Mon meilleur score",
     "loadingLeaderboard": "Chargement du classement...",
-    "noScores": "Aucun score enregistre",
-    "beFirstToPlay": "Soyez le premier a jouer en mode Solo !",
+    "noScores": "Aucun score enregistré",
+    "beFirstToPlay": "Soyez le premier à jouer en mode Solo !",
     "playSolo": "Jouer en Solo",
     "player": "Joueur",
-    "accuracy": "Precision",
+    "accuracy": "Précision",
     "time": "Temps",
     "totalTime": "Temps total",
-    "gameOver": "Partie terminee !",
+    "gameOver": "Partie terminée !",
     "playAgain": "Rejouer",
     "leaderboard": "Classement",
-    "backToHome": "Retour a l'accueil",
+    "backToHome": "Retour à l'accueil",
     "errorOccurred": "Une erreur est survenue",
     "phases": {
-      "phase1Subtitle": "Reponds aux questions !",
-      "phase2Subtitle": "Classe les elements !",
-      "phase4Subtitle": "Reponds vite pour plus de points !"
+      "phase1Subtitle": "Réponds aux questions !",
+      "phase2Subtitle": "Classe les éléments !",
+      "phase4Subtitle": "Réponds vite pour plus de points !"
     }
   }
 }

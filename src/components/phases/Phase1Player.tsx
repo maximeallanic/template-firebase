@@ -484,6 +484,8 @@ export function Phase1Player({ room, playerId, isHost, mode = 'multiplayer', sol
     if (isResult) {
         const winnerTeam = state.roundWinner?.team;
         const didMyTeamWin = winnerTeam && winnerTeam === myTeam;
+        // Check if all answer options were exhausted (3 wrong options tried = only correct answer remains)
+        const allOptionsExhausted = triedWrongOptions.length >= 3;
 
         if (state.roundWinner?.playerId === playerId) {
             resultMessage = t('results.bravo');
@@ -494,12 +496,20 @@ export function Phase1Player({ room, playerId, isHost, mode = 'multiplayer', sol
         } else if (winnerTeam && winnerTeam !== 'neutral') {
             resultMessage = t('results.teamWins', { team: t(`common:teams.${winnerTeam}`) });
             resultIcon = <XCircle className="w-8 h-8 text-white" />;
+        } else if (state.isTimeout) {
+            // Timer expired - show timeout message (even if player answered before timeout)
+            resultMessage = isSolo ? t('results.solo.timeout') : t('results.nobodyFound');
+            resultIcon = <XCircle className="w-8 h-8 text-white" />;
+        } else if (allOptionsExhausted) {
+            // All options were tried (rebond system exhausted)
+            resultMessage = t('results.allOptionsExhausted');
+            resultIcon = <XCircle className="w-8 h-8 text-white" />;
         } else if (myAnswer !== null) {
-            // Player answered but was wrong - check this BEFORE !state.roundWinner
+            // Player answered but was wrong (round didn't end by timeout)
             resultMessage = t('results.wrongAnswer');
             resultIcon = <XCircle className="w-8 h-8 text-white" />;
         } else if (!state.roundWinner) {
-            // No winner and player didn't answer (timeout)
+            // No winner and player didn't answer - fallback
             resultMessage = isSolo ? t('results.solo.timeout') : t('results.nobodyFound');
             resultIcon = <XCircle className="w-8 h-8 text-white" />;
         } else {

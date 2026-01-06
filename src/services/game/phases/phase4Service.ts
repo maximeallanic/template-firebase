@@ -170,7 +170,8 @@ export const handlePhase4Timeout = async (roomCode: string): Promise<void> => {
         return {
             ...currentState,
             phase4State: 'result',
-            phase4Winner: null
+            phase4Winner: null,
+            isTimeout: true
         };
     });
 };
@@ -193,7 +194,8 @@ export const nextPhase4Question = async (roomCode: string): Promise<void> => {
         [`rooms/${roomId}/state/phase4State`]: 'questioning',
         [`rooms/${roomId}/state/phase4Answers`]: {},
         [`rooms/${roomId}/state/phase4QuestionStartTime`]: Date.now(),
-        [`rooms/${roomId}/state/phase4Winner`]: null
+        [`rooms/${roomId}/state/phase4Winner`]: null,
+        [`rooms/${roomId}/state/isTimeout`]: false  // Reset timeout flag for new question
     };
 
     await update(ref(rtdb), updates);

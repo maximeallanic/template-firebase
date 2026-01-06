@@ -48,7 +48,7 @@ export function Phase4Player({ room, playerId, isHost, mode = 'multiplayer', sol
 
     const player = room.players[playerId];
     const team = player?.team;
-    const { phase4State, currentPhase4QuestionIndex, phase4Answers, phase4Winner, phase4QuestionStartTime } = room.state;
+    const { phase4State, currentPhase4QuestionIndex, phase4Answers, phase4Winner, phase4QuestionStartTime, isTimeout } = room.state;
 
     // Use custom AI-generated questions if available, fallback to static questions
     const questionsList: Phase4QuestionType[] = room.customQuestions?.phase4 || PHASE4_QUESTIONS;
@@ -344,6 +344,7 @@ export function Phase4Player({ room, playerId, isHost, mode = 'multiplayer', sol
                 winner={phase4Winner || null}
                 myAnswer={myAnswer}
                 isSolo={isSolo}
+                isTimeout={isTimeout}
             />
         );
     }
