@@ -40,8 +40,16 @@ export async function loadProfile(): Promise<UserProfile | null> {
       }
     }
 
-    // No Firestore profile - user needs to create one
-    // Don't auto-migrate localStorage (could be from a different account)
+    // No Firestore profile - try to migrate from localStorage
+    const localProfile = getLocalProfile();
+    if (localProfile) {
+      console.log('Auto-migrating profile from localStorage to Firestore');
+      // Save the localStorage profile to Firestore for this authenticated user
+      await saveProfile(localProfile.profileName, localProfile.profileAvatar);
+      return localProfile;
+    }
+
+    // No profile anywhere - user needs to create one
     return null;
   } catch (error) {
     console.error('Error loading profile from Firestore:', error);
@@ -95,10 +103,16 @@ export async function saveProfile(name: string, avatar: Avatar): Promise<void> {
 
 /**
  * Get profile from localStorage only (for quick access)
+ * Checks multiple legacy keys for backwards compatibility
  */
 export function getLocalProfile(): UserProfile | null {
-  const name = safeStorage.getItem(STORAGE_KEY_NAME);
-  const avatar = safeStorage.getItem(STORAGE_KEY_AVATAR) as Avatar | null;
+  // Check current key first, then legacy keys
+  const name = safeStorage.getItem(STORAGE_KEY_NAME)
+    || safeStorage.getItem('spicy_player_name')
+    || safeStorage.getItem('spicy_host_name');
+  const avatar = (safeStorage.getItem(STORAGE_KEY_AVATAR)
+    || safeStorage.getItem('spicy_player_avatar')
+    || safeStorage.getItem('spicy_host_avatar')) as Avatar | null;
 
   if (!name) return null;
 

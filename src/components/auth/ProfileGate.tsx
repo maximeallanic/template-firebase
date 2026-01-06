@@ -1,4 +1,4 @@
-import { useState, useEffect, type ReactNode } from 'react';
+import { type ReactNode } from 'react';
 import { useProfileComplete } from '../../hooks/useProfileComplete';
 import { useAuthUser } from '../../hooks/useAuthUser';
 import { MandatoryProfileSetupModal } from './MandatoryProfileSetupModal';
@@ -15,19 +15,14 @@ interface ProfileGateProps {
 export function ProfileGate({ children }: ProfileGateProps) {
     const { needsSetup, loading } = useProfileComplete();
     const { refreshProfile } = useAuthUser();
-    const [showModal, setShowModal] = useState(false);
 
-    useEffect(() => {
-        // Show modal when authenticated user has incomplete profile
-        if (needsSetup && !loading) {
-            setShowModal(true);
-        }
-    }, [needsSetup, loading]);
+    // Only show modal when loading is complete AND profile setup is needed
+    // This prevents flash of modal during profile loading/migration
+    const showModal = !loading && needsSetup;
 
     const handleComplete = async () => {
         // Refresh profile to update state
         await refreshProfile();
-        setShowModal(false);
     };
 
     return (
