@@ -5,6 +5,7 @@
 
 import { motion } from 'framer-motion';
 import { Zap } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import { useReducedMotion } from '../../hooks/useReducedMotion';
 
 interface SoloGameHeaderProps {
@@ -16,6 +17,7 @@ interface SoloGameHeaderProps {
 }
 
 export function SoloGameHeader({ score, maxScore, phaseName, currentRound, totalRounds }: SoloGameHeaderProps) {
+    const { t } = useTranslation('common');
     const prefersReducedMotion = useReducedMotion();
     const scorePercentage = Math.round((score / maxScore) * 100);
 
@@ -29,7 +31,7 @@ export function SoloGameHeader({ score, maxScore, phaseName, currentRound, total
                     </div>
                     <div>
                         <div className="text-xs text-gray-400 uppercase tracking-wider">
-                            Mode Solo
+                            {t('solo.mode')}
                         </div>
                         <div className="font-bold text-white">
                             {phaseName}
@@ -58,7 +60,7 @@ export function SoloGameHeader({ score, maxScore, phaseName, currentRound, total
                 {currentRound !== undefined && totalRounds !== undefined && (
                     <div className="flex items-center gap-2">
                         <span className="text-xs text-gray-400 uppercase tracking-wider hidden sm:inline">
-                            Manche
+                            {t('labels.round')}
                         </span>
                         <span className="font-bold text-white bg-slate-700 px-2 py-1 rounded text-sm">
                             {currentRound} / {totalRounds}

@@ -27,7 +27,7 @@ import type { PhaseStatus } from '../services/gameService';
 // Inner component that uses the context
 function SoloGameInner() {
     const navigate = useNavigate();
-    const { t } = useTranslation('common');
+    const { t } = useTranslation(['common', 'game-phases']);
     const prefersReducedMotion = useReducedMotion();
     const { user } = useAuthUser();
     const context = useSoloGame();
@@ -361,7 +361,7 @@ function SoloGameInner() {
             <SoloGameHeader
                 score={state.totalScore}
                 maxScore={SOLO_MAX_SCORE}
-                phaseName={currentPhase?.shortName || ''}
+                phaseName={currentPhase ? t(`phases.${displayStatus}.shortName`, { ns: 'game-phases' }) : ''}
                 currentRound={roundInfo?.current}
                 totalRounds={roundInfo?.total}
             />
