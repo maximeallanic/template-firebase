@@ -100,10 +100,17 @@ export function Phase2Zones({
                     aria-hidden="true"
                 />
                 <div
-                    className="text-4xl md:text-6xl font-black text-red-400 opacity-60 select-none uppercase tracking-tighter transform -rotate-90 md:rotate-0 origin-left drop-shadow-lg"
+                    className="flex flex-col items-start"
                     aria-hidden="true"
                 >
-                    {optionA}
+                    <div className="text-4xl md:text-6xl font-black text-red-400 opacity-60 select-none uppercase tracking-tighter transform -rotate-90 md:rotate-0 origin-left drop-shadow-lg">
+                        {optionA}
+                    </div>
+                    {areIdentical && optionADescription && (
+                        <div className="text-xs md:text-sm text-red-300/70 mt-1 hidden md:block font-medium normal-case tracking-normal">
+                            {optionADescription}
+                        </div>
+                    )}
                 </div>
 
                 {/* Mobile Arrow Hint */}
@@ -142,10 +149,17 @@ export function Phase2Zones({
                     aria-hidden="true"
                 />
                 <div
-                    className="text-4xl md:text-6xl font-black text-pink-400 opacity-60 select-none uppercase tracking-tighter transform rotate-90 md:rotate-0 origin-right drop-shadow-lg"
+                    className="flex flex-col items-end"
                     aria-hidden="true"
                 >
-                    {optionB}
+                    <div className="text-4xl md:text-6xl font-black text-pink-400 opacity-60 select-none uppercase tracking-tighter transform rotate-90 md:rotate-0 origin-right drop-shadow-lg">
+                        {optionB}
+                    </div>
+                    {areIdentical && optionBDescription && (
+                        <div className="text-xs md:text-sm text-pink-300/70 mt-1 hidden md:block font-medium normal-case tracking-normal">
+                            {optionBDescription}
+                        </div>
+                    )}
                 </div>
 
                 {/* Mobile Arrow Hint */}

@@ -13,7 +13,19 @@
     "phaseComplete": "That's a wrap!",
     "lastQuestion": "Last one!",
     "submitError": "Oops! Try again?",
-    "wrongAnswer": "Nope!"
+    "wrongAnswer": "Nope!",
+    "wrongAnswer_variants": [
+      "Nope!",
+      "Wrong!",
+      "Not even close!",
+      "Try again!",
+      "Almost! Just kidding.",
+      "That ain't it.",
+      "Swing and a miss!",
+      "Nice try though.",
+      "In your dreams!",
+      "Denied!"
+    ]
   },
   "host": {
     "startReading": "Let's go!",
@@ -31,11 +43,47 @@
   },
   "results": {
     "bravo": "BRILLIANT! +1 POINT",
+    "bravo_variants": [
+      "BRILLIANT! +1 POINT",
+      "NAILED IT!",
+      "EXACTLY!",
+      "GENIUS!",
+      "Yes! Bravo!",
+      "You're on fire!",
+      "Flawless!",
+      "That's it! Class!",
+      "BINGO!",
+      "What a machine!"
+    ],
     "teamWins": "Team {{team}} crushes it!",
     "yourTeamWins": "BOOM! Your team just dominated!",
     "nobodyFound": "Nobody?! Seriously?!",
+    "nobodyFound_variants": [
+      "Nobody?! Seriously?!",
+      "Hello? Anyone home?",
+      "Humanity disappoints me.",
+      "It was easy though...",
+      "Nobody. Nothing. Nada.",
+      "The void stares back.",
+      "Let's say it was hard.",
+      "Radio silence from both sides...",
+      "Okay... moving on.",
+      "Collective failure unlocked."
+    ],
     "allOptionsExhausted": "You tried EVERYTHING... nice effort though.",
     "wrongAnswer": "Nope. Just... nope.",
+    "wrongAnswer_variants": [
+      "Nope. Just... nope.",
+      "Wrong!",
+      "That wasn't it.",
+      "Missed by a lot... or a little.",
+      "And no!",
+      "Too bad!",
+      "Not even close.",
+      "Nope!",
+      "Oh, absolutely not.",
+      "In your dreams!"
+    ],
     "roundOver": "And that's done!",
     "correctAnswer": "The answer was:",
     "winner": "The boss:",
@@ -71,6 +119,7 @@
     "elementNumber": "Item {{current}}/{{total}}",
     "completed": "done!",
     "optionBoth": "Both!",
+    "funFact": "Did you know?",
     "swipeHint": "Swipe like Tinder, but for food.",
     "homophoneHint": "Careful, they sound the same!",
     "classify": "\"{{item}}\": left for {{optionA}}, right for {{optionB}}, up if you can't commit.",
@@ -79,7 +128,27 @@
     "orBoth": "or both?",
     "team": "Team:",
     "correct": "Nice one!",
+    "correct_variants": [
+      "Nice one!",
+      "Exactly!",
+      "Perfect!",
+      "Sorted!",
+      "Got it!",
+      "You rock!",
+      "That's it!",
+      "Validated!"
+    ],
     "wrongAnswer": "Nope!",
+    "wrongAnswer_variants": [
+      "Nope!",
+      "Wrong!",
+      "Wrong side!",
+      "It was the other one!",
+      "Oops!",
+      "No!",
+      "Bad swipe!",
+      "Missed!"
+    ],
     "alsoAccepted": "That worked too",
     "teammateAnswered": "A buddy answered for you!",
     "waitingForResult": "{{name}} has swiped...",
@@ -92,7 +161,27 @@
     "lockedIn": "Sent!",
     "solo": {
       "correct": "Bullseye!",
+      "correct_variants": [
+        "Bullseye!",
+        "Perfect!",
+        "Exactly!",
+        "Nailed it!",
+        "You rock!",
+        "Got it!",
+        "That's it!",
+        "Boom!"
+      ],
       "incorrect": "Nope!",
+      "incorrect_variants": [
+        "Nope!",
+        "Wrong!",
+        "Wrong side!",
+        "It was the other one!",
+        "Oops!",
+        "Missed!",
+        "Not quite!",
+        "Try again!"
+      ],
       "timeout": "Too slow!"
     }
   },
@@ -151,6 +240,16 @@
     "firstCorrect": "First! Legend!",
     "pointsWon": "+{{points}} points",
     "noWinner": "Time is money... and you're bankrupt!",
+    "noWinner_variants": [
+      "Time is money... and you're bankrupt!",
+      "Time's up! Nobody got it.",
+      "The bank is closed. Zero points.",
+      "Everyone failed! Congrats.",
+      "The bill remains unpaid...",
+      "Collective failure unlocked.",
+      "Nothing. Nada. Zilch.",
+      "Let's say it was hard..."
+    ],
     "correctAnswerWas": "It was:",
     "youAnswered": "You said",
     "waitingForPlayers": "Waiting for the slowpokes...",
@@ -159,7 +258,25 @@
     "prepareForQuestion": "Focus...",
     "solo": {
       "noWinner": "Too slow!",
-      "wrongAnswer": "Nope!"
+      "noWinner_variants": [
+        "Too slow!",
+        "Time's up!",
+        "Tick tock... too late.",
+        "Bank's closed!",
+        "No point this time.",
+        "The timer wins."
+      ],
+      "wrongAnswer": "Nope!",
+      "wrongAnswer_variants": [
+        "Nope!",
+        "Wrong!",
+        "No!",
+        "That wasn't it.",
+        "Bad pick!",
+        "Try again!",
+        "In your dreams.",
+        "Way off!"
+      ]
     }
   },
   "phase5": {

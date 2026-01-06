@@ -13,7 +13,19 @@
     "phaseComplete": "Et voilà, c'est plié !",
     "lastQuestion": "La der des ders !",
     "submitError": "Raté ! On retente ?",
-    "wrongAnswer": "Perdu !"
+    "wrongAnswer": "Perdu !",
+    "wrongAnswer_variants": [
+      "Perdu !",
+      "Raté !",
+      "Non !",
+      "C'est pas ça...",
+      "Presque ! Non en fait.",
+      "Nope.",
+      "Essaie encore !",
+      "Ah bah non.",
+      "Même pas en rêve.",
+      "T'étais pas loin... si."
+    ]
   },
   "host": {
     "startReading": "C'est parti !",
@@ -31,11 +43,47 @@
   },
   "results": {
     "bravo": "MAGNIFIQUE ! +1 POINT",
+    "bravo_variants": [
+      "MAGNIFIQUE ! +1 POINT",
+      "DANS LE MILLE !",
+      "EXACTEMENT !",
+      "GÉNIE !",
+      "Mais oui ! Bravo !",
+      "T'es chaud(e) !",
+      "Impeccable !",
+      "C'est ça ! Classe !",
+      "BINGO !",
+      "Quelle machine !"
+    ],
     "teamWins": "L'équipe {{team}} écrase tout !",
     "yourTeamWins": "BOOM ! Ton équipe a tout déchiré !",
     "nobodyFound": "Personne ?! Sérieusement ?!",
+    "nobodyFound_variants": [
+      "Personne ?! Sérieusement ?!",
+      "Allo ? Y'a quelqu'un ?",
+      "L'humanité me déçoit.",
+      "C'était pourtant facile...",
+      "Personne. Rien. Nada.",
+      "Le vide intersidéral.",
+      "On va dire que c'était dur.",
+      "Silence radio des deux côtés...",
+      "Bon... on oublie cette question.",
+      "C'est la loose collective."
+    ],
     "allOptionsExhausted": "Vous avez TOUT essayé... bravo quand même.",
     "wrongAnswer": "Non. Juste... non.",
+    "wrongAnswer_variants": [
+      "Non. Juste... non.",
+      "Perdu !",
+      "C'était pas ça.",
+      "Raté de peu... ou pas.",
+      "Et non !",
+      "Dommage !",
+      "Même pas proche.",
+      "Nope !",
+      "Ah bah non alors.",
+      "Dans tes rêves !"
+    ],
     "roundOver": "Et c'est fini !",
     "correctAnswer": "La réponse c'était :",
     "winner": "Le boss :",
@@ -71,6 +119,7 @@
     "elementNumber": "Élément {{current}}/{{total}}",
     "completed": "fini !",
     "optionBoth": "Les Deux !",
+    "funFact": "Le saviez-vous ?",
     "swipeHint": "Swipe comme sur Tinder, mais pour des patates.",
     "homophoneHint": "Attention, ça se prononce pareil !",
     "classify": "\"{{item}}\" : gauche pour {{optionA}}, droite pour {{optionB}}, haut si t'assumes les deux.",
@@ -79,7 +128,27 @@
     "orBoth": "ou les deux ?",
     "team": "Équipe :",
     "correct": "Bien joué !",
+    "correct_variants": [
+      "Bien joué !",
+      "Exact !",
+      "Parfait !",
+      "Classé !",
+      "Dans la poche !",
+      "Tu gères !",
+      "C'est ça !",
+      "Validé !"
+    ],
     "wrongAnswer": "Raté !",
+    "wrongAnswer_variants": [
+      "Raté !",
+      "Perdu !",
+      "Mauvais côté !",
+      "C'était l'autre !",
+      "Oups !",
+      "Non !",
+      "Mal swipé !",
+      "À côté !"
+    ],
     "alsoAccepted": "Ça marchait aussi",
     "teammateAnswered": "Un pote a répondu pour toi !",
     "waitingForResult": "{{name}} a swipé...",
@@ -92,7 +161,27 @@
     "lockedIn": "C'est envoyé !",
     "solo": {
       "correct": "Dans le mille !",
+      "correct_variants": [
+        "Dans le mille !",
+        "Parfait !",
+        "Exact !",
+        "Bien joué !",
+        "Tu gères !",
+        "Validé !",
+        "C'est ça !",
+        "Impec !"
+      ],
       "incorrect": "Perdu !",
+      "incorrect_variants": [
+        "Perdu !",
+        "Raté !",
+        "Non !",
+        "Mauvais côté !",
+        "C'était l'autre !",
+        "Oups !",
+        "À côté !",
+        "Pas du tout !"
+      ],
       "timeout": "Trop lent !"
     }
   },
@@ -151,6 +240,16 @@
     "firstCorrect": "Premier ! Chapeau !",
     "pointsWon": "+{{points}} points",
     "noWinner": "Le temps c'est de l'argent... et vous en avez plus !",
+    "noWinner_variants": [
+      "Le temps c'est de l'argent... et vous en avez plus !",
+      "Temps écoulé ! Personne n'a trouvé.",
+      "La banque est fermée. Zéro point.",
+      "Tout le monde a foiré !",
+      "L'addition reste impayée...",
+      "Collectivement nuls. Félicitations.",
+      "Le néant. Rien. Nada.",
+      "On va dire que c'était dur..."
+    ],
     "correctAnswerWas": "C'était :",
     "youAnswered": "T'as mis",
     "waitingForPlayers": "On attend les retardataires...",
@@ -159,7 +258,25 @@
     "prepareForQuestion": "Concentration...",
     "solo": {
       "noWinner": "Trop lent !",
-      "wrongAnswer": "Raté !"
+      "noWinner_variants": [
+        "Trop lent !",
+        "Temps écoulé !",
+        "Tic tac... trop tard.",
+        "La banque ferme !",
+        "Pas de point cette fois.",
+        "Le chrono a gagné."
+      ],
+      "wrongAnswer": "Raté !",
+      "wrongAnswer_variants": [
+        "Raté !",
+        "Perdu !",
+        "Non !",
+        "C'était pas ça.",
+        "Mauvaise pioche !",
+        "Essaie encore !",
+        "Même pas en rêve.",
+        "À côté de la plaque !"
+      ]
     }
   },
   "phase5": {

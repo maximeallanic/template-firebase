@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom';
 import { motion, useAnimation } from 'framer-motion';
 import type { PanInfo } from 'framer-motion';
 import { useTranslation } from 'react-i18next';
+import { useRandomTranslation } from '../../../hooks/useGameTranslation';
 import { ArrowLeft, ArrowRight, ArrowUp, Check, X, AlertCircle } from 'lucide-react';
 import { audioService } from '../../../services/audioService';
 import { useReducedMotion } from '../../../hooks/useReducedMotion';
@@ -30,6 +31,8 @@ interface Phase2CardProps {
     // New props for adjacent message
     optionA?: string;
     optionB?: string;
+    optionADescription?: string;
+    optionBDescription?: string;
     roundWinner?: Team | 'both' | null;
     myTeamAnswer?: Phase2TeamAnswer;
     isSolo?: boolean;
@@ -44,12 +47,15 @@ export function Phase2Card({
     onAnswer,
     optionA,
     optionB,
+    optionADescription,
+    optionBDescription,
     roundWinner,
     myTeamAnswer,
     isSolo = false,
     bothTeamsCorrect = false
 }: Phase2CardProps) {
     const { t } = useTranslation(['game-ui']);
+    const { tRandom } = useRandomTranslation();
     const prefersReducedMotion = useReducedMotion();
     const controls = useAnimation();
     const hasPlayedAudioRef = useRef(false);
@@ -58,7 +64,6 @@ export function Phase2Card({
     // Use != null to check for both null and undefined
     // 'both' means both teams won - treat as a win for everyone
     const hasWinner = roundWinner != null;
-    const noWinner = !hasWinner && !bothTeamsCorrect;
     const otherTeamWon = !didWin && hasWinner && roundWinner !== 'both' && !bothTeamsCorrect;
 
     // Reset card position and animate to visible when item changes
@@ -184,29 +189,21 @@ export function Phase2Card({
         return 'bottom-24 inset-x-0 flex justify-center';
     };
 
-    // Get result style based on outcome
-    const getResultStyle = () => {
-        if (bothTeamsCorrect) {
-            // Both teams win - purple/gradient to celebrate both
-            return 'bg-gradient-to-br from-purple-500 to-pink-600 border-white text-white';
-        }
-        if (didWin) {
-            return 'bg-gradient-to-br from-green-500 to-emerald-600 border-white text-white';
-        }
-        if (otherTeamWon) {
-            return 'bg-white border-red-500 text-red-500';
-        }
-        // No winner
-        return 'bg-white border-amber-500 text-amber-600';
+    // Get accent color based on outcome (for top bar and glow)
+    const getAccentColor = () => {
+        if (bothTeamsCorrect) return 'purple';
+        if (didWin) return 'emerald';
+        if (otherTeamWon) return 'red';
+        return 'amber'; // No winner
     };
 
     // Get result message
     const getResultMessage = () => {
         if (isSolo) {
             if (didWin) {
-                return t('phase2.solo.correct', { defaultValue: 'Correct !' });
+                return tRandom('phase2.solo.correct');
             }
-            return t('phase2.solo.incorrect', { defaultValue: 'Raté !' });
+            return tRandom('phase2.solo.incorrect');
         }
         // Both teams correct - both win!
         if (bothTeamsCorrect) {
@@ -229,11 +226,26 @@ export function Phase2Card({
         return <AlertCircle className="w-8 h-8" />;
     };
 
-    // Get answer display text
+    // Check if both options are spelled identically (true homonyms)
+    const areIdentical = optionA && optionB && optionA.toLowerCase() === optionB.toLowerCase();
+
+    // Get answer display text with description for homophones
     const getAnswerText = (answer: Phase2Answer) => {
         switch (answer) {
-            case 'A': return optionA || 'A';
-            case 'B': return optionB || 'B';
+            case 'A': {
+                const text = optionA || 'A';
+                if (areIdentical && optionADescription) {
+                    return `${text} (${optionADescription})`;
+                }
+                return text;
+            }
+            case 'B': {
+                const text = optionB || 'B';
+                if (areIdentical && optionBDescription) {
+                    return `${text} (${optionBDescription})`;
+                }
+                return text;
+            }
             case 'Both': return t('phase2.optionBoth');
         }
     };
@@ -333,78 +345,159 @@ export function Phase2Card({
                     aria-live="assertive"
                     className={`fixed ${getMessagePosition()} pointer-events-none z-50`}
                 >
-                    <div className={`w-72 max-w-[90vw] md:w-48 md:max-w-[200px] p-4 rounded-xl shadow-xl border-2 ${getResultStyle()}`}>
-                        {/* Result Icon */}
-                        <motion.div
-                            initial={prefersReducedMotion ? { opacity: 0 } : { scale: 0 }}
-                            animate={prefersReducedMotion ? { opacity: 1 } : { scale: 1 }}
-                            transition={{ delay: 0.5, ...bouncySpring }}
-                            className="flex justify-center mb-2"
-                            aria-hidden="true"
-                        >
-                            {getResultIcon()}
-                        </motion.div>
+                    {/* TV Quiz Style Result Card */}
+                    <div className="relative w-[340px] max-w-[90vw] md:w-96 overflow-hidden rounded-2xl bg-slate-900/95 backdrop-blur-sm border border-white/10 shadow-2xl">
+                        {/* Top accent bar */}
+                        <div className={`
+                            absolute top-0 left-0 right-0 h-1.5
+                            ${getAccentColor() === 'emerald'
+                                ? 'bg-gradient-to-r from-emerald-500 via-teal-400 to-emerald-500'
+                                : getAccentColor() === 'purple'
+                                    ? 'bg-gradient-to-r from-purple-500 via-pink-400 to-purple-500'
+                                    : getAccentColor() === 'red'
+                                        ? 'bg-gradient-to-r from-red-500 via-rose-400 to-red-500'
+                                        : 'bg-gradient-to-r from-amber-500 via-yellow-400 to-amber-500'
+                            }
+                        `} />
 
-                        {/* Result Text */}
-                        <div className="text-sm font-black tracking-wide uppercase text-center">
-                            {getResultMessage()}
+                        <div className="p-4 pt-5">
+                            {/* Result Icon */}
+                            <motion.div
+                                initial={prefersReducedMotion ? { opacity: 0 } : { scale: 0 }}
+                                animate={prefersReducedMotion ? { opacity: 1 } : { scale: 1 }}
+                                transition={{ delay: 0.5, ...bouncySpring }}
+                                className="flex justify-center mb-3"
+                                aria-hidden="true"
+                            >
+                                <div className={`
+                                    w-12 h-12 rounded-xl flex items-center justify-center
+                                    ${getAccentColor() === 'emerald'
+                                        ? 'bg-emerald-500/20 text-emerald-400'
+                                        : getAccentColor() === 'purple'
+                                            ? 'bg-purple-500/20 text-purple-400'
+                                            : getAccentColor() === 'red'
+                                                ? 'bg-red-500/20 text-red-400'
+                                                : 'bg-amber-500/20 text-amber-400'
+                                    }
+                                `}>
+                                    {getResultIcon()}
+                                </div>
+                            </motion.div>
+
+                            {/* Result Text */}
+                            <div className={`
+                                text-sm font-black tracking-wide uppercase text-center
+                                ${getAccentColor() === 'emerald'
+                                    ? 'text-emerald-400'
+                                    : getAccentColor() === 'purple'
+                                        ? 'text-purple-400'
+                                        : getAccentColor() === 'red'
+                                            ? 'text-red-400'
+                                            : 'text-amber-400'
+                                }
+                            `}>
+                                {getResultMessage()}
+                            </div>
+
+                            {/* Winner team badge (hidden in solo mode or when both teams win) */}
+                            {!isSolo && roundWinner && roundWinner !== 'both' && (
+                                <div className="text-xs mt-2 text-center text-white/60">
+                                    {getTeamName(roundWinner)}
+                                </div>
+                            )}
+
+                            {/* Who answered for my team (hidden in solo mode) */}
+                            {!isSolo && myTeamAnswer && (
+                                <div className="text-xs mt-1 text-center text-white/50">
+                                    {myTeamAnswer.playerName}
+                                </div>
+                            )}
+
+                            {/* Correct answer (show if team lost or no winner) */}
+                            {!didWin && (
+                                <div className="text-xs mt-3 text-center select-none text-white/60">
+                                    {t('phase2.itWas')}{' '}
+                                    <span className={`
+                                        font-bold
+                                        ${getAccentColor() === 'red' ? 'text-red-400' : 'text-amber-400'}
+                                    `}>
+                                        {getAnswerText(item.answer)}
+                                    </span>
+                                </div>
+                            )}
+
+                            {/* Justification */}
+                            {item.justification && (
+                                <motion.p
+                                    initial={{ opacity: 0 }}
+                                    animate={{ opacity: 1 }}
+                                    transition={{ delay: 0.7, duration: durations.normal }}
+                                    className="text-xs mt-3 pt-3 border-t border-white/10 italic text-white/70 select-none text-center"
+                                >
+                                    {item.justification}
+                                </motion.p>
+                            )}
+
+                            {/* Anecdote Card - Nested TV Quiz Style */}
+                            {item.anecdote && (
+                                <motion.div
+                                    initial={{ opacity: 0, y: 10 }}
+                                    animate={{ opacity: 1, y: 0 }}
+                                    transition={{ delay: 1, duration: durations.normal, ease: 'easeOut' }}
+                                    className="mt-4 w-full"
+                                >
+                                    <div className="relative overflow-hidden rounded-xl bg-white/5 border border-white/10 p-3">
+                                        {/* Header with icon */}
+                                        <div className="flex items-center gap-2 mb-2">
+                                            <div className={`
+                                                flex items-center justify-center w-5 h-5 rounded-md
+                                                ${getAccentColor() === 'emerald'
+                                                    ? 'bg-emerald-500/20'
+                                                    : getAccentColor() === 'purple'
+                                                        ? 'bg-purple-500/20'
+                                                        : getAccentColor() === 'red'
+                                                            ? 'bg-purple-500/20'
+                                                            : 'bg-amber-500/20'
+                                                }
+                                            `}>
+                                                <span className="text-xs">💡</span>
+                                            </div>
+                                            <span className={`
+                                                text-[9px] font-black uppercase tracking-widest
+                                                ${getAccentColor() === 'emerald'
+                                                    ? 'text-emerald-400/80'
+                                                    : getAccentColor() === 'purple'
+                                                        ? 'text-purple-400/80'
+                                                        : getAccentColor() === 'red'
+                                                            ? 'text-purple-400/80'
+                                                            : 'text-amber-400/80'
+                                                }
+                                            `}>
+                                                {t('phase2.funFact', { defaultValue: 'Le saviez-vous ?' })}
+                                            </span>
+                                        </div>
+
+                                        {/* Anecdote text */}
+                                        <p className="text-[11px] leading-relaxed text-white/70 select-none">
+                                            {item.anecdote}
+                                        </p>
+                                    </div>
+                                </motion.div>
+                            )}
                         </div>
 
-                        {/* Winner team badge (hidden in solo mode or when both teams win) */}
-                        {!isSolo && roundWinner && roundWinner !== 'both' && (
-                            <div className="text-xs mt-1 text-center opacity-80">
-                                {getTeamName(roundWinner)}
-                            </div>
-                        )}
-
-                        {/* Who answered for my team (hidden in solo mode) */}
-                        {!isSolo && myTeamAnswer && (
-                            <div className={`text-xs mt-1 text-center ${didWin ? 'text-white/70' : 'text-current opacity-60'}`}>
-                                {myTeamAnswer.playerName}
-                            </div>
-                        )}
-
-                        {/* Correct answer (show if team lost or no winner) */}
-                        {!didWin && (
-                            <div className={`text-xs mt-2 select-none ${noWinner ? 'text-amber-700' : 'text-red-400'}`}>
-                                {t('phase2.itWas')}{' '}
-                                <span className={`font-bold ${noWinner ? 'text-amber-800' : 'text-red-600'}`}>
-                                    {getAnswerText(item.answer)}
-                                </span>
-                            </div>
-                        )}
-
-                        {/* Justification */}
-                        {item.justification && (
-                            <motion.p
-                                initial={{ opacity: 0 }}
-                                animate={{ opacity: 1 }}
-                                transition={{ delay: 0.7, duration: durations.normal }}
-                                className={`text-xs mt-2 pt-2 border-t italic select-none ${
-                                    didWin
-                                        ? 'border-white/20 text-white/90'
-                                        : noWinner
-                                        ? 'border-amber-200 text-amber-700'
-                                        : 'border-red-200 text-red-600'
-                                }`}
-                            >
-                                {item.justification}
-                            </motion.p>
-                        )}
-
-                        {/* Anecdote */}
-                        {item.anecdote && (
-                            <motion.p
-                                initial={{ opacity: 0 }}
-                                animate={{ opacity: 1 }}
-                                transition={{ delay: 0.9, duration: durations.normal }}
-                                className={`text-sm md:text-xs mt-2 italic select-none ${
-                                    didWin ? 'text-white/70' : 'opacity-60'
-                                }`}
-                            >
-                                💡 {item.anecdote}
-                            </motion.p>
-                        )}
+                        {/* Subtle corner glow effect */}
+                        <div className={`
+                            absolute -bottom-6 -right-6 w-24 h-24 rounded-full blur-2xl opacity-20
+                            ${getAccentColor() === 'emerald'
+                                ? 'bg-emerald-500'
+                                : getAccentColor() === 'purple'
+                                    ? 'bg-purple-500'
+                                    : getAccentColor() === 'red'
+                                        ? 'bg-red-500'
+                                        : 'bg-amber-500'
+                            }
+                        `} />
                     </div>
                 </motion.div>,
                 document.body

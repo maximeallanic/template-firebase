@@ -1,6 +1,7 @@
 import { useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useTranslation } from 'react-i18next';
+import { useRandomTranslation } from '../../../hooks/useGameTranslation';
 import { Trophy, X, Check, Sparkles } from 'lucide-react';
 import { audioService } from '../../../services/audioService';
 import { useReducedMotion } from '../../../hooks/useReducedMotion';
@@ -31,6 +32,7 @@ export function Phase4Result({
     isTimeout = false
 }: Phase4ResultProps) {
     const { t } = useTranslation(['game-ui']);
+    const { tRandom } = useRandomTranslation();
     const prefersReducedMotion = useReducedMotion();
     const hasPlayedAudioRef = useRef(false);
 
@@ -114,11 +116,11 @@ export function Phase4Result({
                         >
                             {isSolo
                                 ? (isTimeout
-                                    ? t('phase4.solo.noWinner')      // Timer expired
+                                    ? tRandom('phase4.solo.noWinner')      // Timer expired
                                     : (myAnswer !== undefined
-                                        ? t('phase4.solo.wrongAnswer')  // Player answered wrong
-                                        : t('phase4.solo.noWinner')))   // Fallback
-                                : t('phase4.noWinner')}
+                                        ? tRandom('phase4.solo.wrongAnswer')  // Player answered wrong
+                                        : tRandom('phase4.solo.noWinner')))   // Fallback
+                                : tRandom('phase4.noWinner')}
                         </div>
                     </motion.div>
                 )}

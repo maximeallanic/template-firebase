@@ -109,3 +109,36 @@ export function useHomeTranslation() {
     currentLanguage: i18n.language,
   };
 }
+
+/**
+ * Hook for random translations - picks a random variant from an array
+ * Use with keys that have _variants suffix in translation files
+ * Example: "wrongAnswer_variants": ["Raté !", "Perdu !", "Non !", "Pas du tout !"]
+ */
+export function useRandomTranslation() {
+  const { t, i18n } = useTranslation(['game-ui', 'common']);
+
+  /**
+   * Get a random translation from an array of variants
+   * Falls back to the base key if no variants exist
+   */
+  const tRandom = (key: string, namespace: string = 'game-ui'): string => {
+    const variantsKey = `${key}_variants`;
+    const variants = t(`${namespace}:${variantsKey}`, { returnObjects: true });
+
+    if (Array.isArray(variants) && variants.length > 0) {
+      const randomIndex = Math.floor(Math.random() * variants.length);
+      return variants[randomIndex];
+    }
+
+    // Fallback to base key
+    return t(`${namespace}:${key}`);
+  };
+
+  return {
+    t,
+    tRandom,
+    i18n,
+    currentLanguage: i18n.language,
+  };
+}

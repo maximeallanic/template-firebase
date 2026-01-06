@@ -13,7 +13,19 @@
     "phaseComplete": "Era isso!",
     "lastQuestion": "Última!",
     "submitError": "Opa! De novo?",
-    "wrongAnswer": "Errado!"
+    "wrongAnswer": "Errado!",
+    "wrongAnswer_variants": [
+      "Errado!",
+      "Não!",
+      "Nem perto!",
+      "Tenta de novo!",
+      "Quase! Brincadeira.",
+      "Não era isso.",
+      "Errou feio!",
+      "Boa tentativa...",
+      "Só em sonho!",
+      "Negado!"
+    ]
   },
   "host": {
     "startReading": "Bora lá!",
@@ -31,11 +43,47 @@
   },
   "results": {
     "bravo": "GENIAL! +1 PONTO",
+    "bravo_variants": [
+      "GENIAL! +1 PONTO",
+      "ACERTOU EM CHEIO!",
+      "EXATO!",
+      "GÊNIO!",
+      "Sim! Bravo!",
+      "Tu tá pegando fogo!",
+      "Perfeito!",
+      "É isso! Que classe!",
+      "BINGO!",
+      "Que máquina!"
+    ],
     "teamWins": "Equipe {{team}} arrasa!",
     "yourTeamWins": "BUM! Teu time acabou de dominar!",
     "nobodyFound": "Ninguém?! Sério?!",
+    "nobodyFound_variants": [
+      "Ninguém?! Sério?!",
+      "Alô? Tem alguém aí?",
+      "A humanidade me decepciona.",
+      "Era fácil...",
+      "Ninguém. Nada. Zero.",
+      "O vazio cósmico.",
+      "Vamos dizer que era difícil.",
+      "Silêncio dos dois lados...",
+      "Beleza... próxima.",
+      "Fracasso coletivo."
+    ],
     "allOptionsExhausted": "Vocês tentaram TUDO... boa tentativa.",
     "wrongAnswer": "Não. Simplesmente... não.",
+    "wrongAnswer_variants": [
+      "Não. Simplesmente... não.",
+      "Errado!",
+      "Não era isso.",
+      "Errou por pouco... ou muito.",
+      "E não!",
+      "Que pena!",
+      "Nem perto.",
+      "Nope!",
+      "Ah, definitivamente não.",
+      "Só em sonho!"
+    ],
     "roundOver": "E era isso!",
     "correctAnswer": "A resposta era:",
     "winner": "O mestre:",
@@ -71,6 +119,7 @@
     "elementNumber": "Item {{current}}/{{total}}",
     "completed": "feito!",
     "optionBoth": "Os dois!",
+    "funFact": "Sabia que?",
     "swipeHint": "Desliza tipo Tinder, mas pra comida.",
     "homophoneHint": "Cuidado, essas soam igual!",
     "classify": "\"{{item}}\": esquerda pra {{optionA}}, direita pra {{optionB}}, cima se não consegue escolher.",
@@ -79,7 +128,27 @@
     "orBoth": "ou os dois?",
     "team": "Equipe:",
     "correct": "Mandou bem!",
+    "correct_variants": [
+      "Mandou bem!",
+      "Exato!",
+      "Perfeito!",
+      "Classificado!",
+      "No papo!",
+      "Tu manda!",
+      "É isso!",
+      "Validado!"
+    ],
     "wrongAnswer": "Errou!",
+    "wrongAnswer_variants": [
+      "Errou!",
+      "Não!",
+      "Lado errado!",
+      "Era o outro!",
+      "Opa!",
+      "Nope!",
+      "Deslizou errado!",
+      "Passou longe!"
+    ],
     "alsoAccepted": "Também valia",
     "teammateAnswered": "Um parceiro respondeu por ti!",
     "waitingForResult": "{{name}} deslizou...",
@@ -92,7 +161,27 @@
     "lockedIn": "Enviado!",
     "solo": {
       "correct": "Acertou!",
+      "correct_variants": [
+        "Acertou!",
+        "Perfeito!",
+        "Exato!",
+        "Mandou bem!",
+        "Tu manda!",
+        "Validado!",
+        "É isso!",
+        "Boom!"
+      ],
       "incorrect": "Errou!",
+      "incorrect_variants": [
+        "Errou!",
+        "Não!",
+        "Lado errado!",
+        "Era o outro!",
+        "Opa!",
+        "Passou longe!",
+        "Quase!",
+        "Tenta de novo!"
+      ],
       "timeout": "Devagar demais!"
     }
   },
@@ -151,6 +240,16 @@
     "firstCorrect": "Primeiro! BOOM!",
     "pointsWon": "+{{points}} pontos",
     "noWinner": "Tempo esgotado! Todos falharam.",
+    "noWinner_variants": [
+      "Tempo esgotado! Todos falharam.",
+      "Acabou o tempo! Ninguém acertou.",
+      "Banco fechado. Zero pontos.",
+      "Todo mundo errou! Parabéns.",
+      "A conta continua aberta...",
+      "Fracasso coletivo desbloqueado.",
+      "Nada. Zero. Zilch.",
+      "Vamos dizer que era difícil..."
+    ],
     "correctAnswerWas": "Era:",
     "youAnswered": "Tu disse",
     "waitingForPlayers": "Juntando jogadores...",
@@ -159,7 +258,25 @@
     "prepareForQuestion": "Se prepara...",
     "solo": {
       "noWinner": "Devagar demais!",
-      "wrongAnswer": "Errado!"
+      "noWinner_variants": [
+        "Devagar demais!",
+        "Tempo esgotado!",
+        "Tic tac... tarde demais.",
+        "Banco fechou!",
+        "Sem ponto dessa vez.",
+        "O cronômetro ganhou."
+      ],
+      "wrongAnswer": "Errado!",
+      "wrongAnswer_variants": [
+        "Errado!",
+        "Não!",
+        "Nope!",
+        "Não era isso.",
+        "Escolha errada!",
+        "Tenta de novo!",
+        "Só em sonho.",
+        "Passou longe!"
+      ]
     }
   },
   "phase5": {

@@ -13,7 +13,19 @@
     "phaseComplete": "¡Se acabó!",
     "lastQuestion": "¡Última!",
     "submitError": "¡Ups! ¿Otra vez?",
-    "wrongAnswer": "¡No!"
+    "wrongAnswer": "¡No!",
+    "wrongAnswer_variants": [
+      "¡No!",
+      "¡Mal!",
+      "¡Ni de cerca!",
+      "¡Intenta otra vez!",
+      "¡Casi! Es broma.",
+      "Eso no era.",
+      "¡Fallaste!",
+      "Buen intento...",
+      "¡En tus sueños!",
+      "¡Denegado!"
+    ]
   },
   "host": {
     "startReading": "¡Vamos!",
@@ -31,11 +43,47 @@
   },
   "results": {
     "bravo": "¡GENIAL! +1 PUNTO",
+    "bravo_variants": [
+      "¡GENIAL! +1 PUNTO",
+      "¡EN EL CLAVO!",
+      "¡EXACTO!",
+      "¡CRACK!",
+      "¡Sí! ¡Bravo!",
+      "¡Estás on fire!",
+      "¡Perfecto!",
+      "¡Eso es! ¡Clase!",
+      "¡BINGO!",
+      "¡Qué máquina!"
+    ],
     "teamWins": "¡Equipo {{team}} arrasa!",
     "yourTeamWins": "¡BUM! ¡Tu equipo acaba de dominar!",
     "nobodyFound": "¿Nadie?! ¡¿En serio?!",
+    "nobodyFound_variants": [
+      "¿Nadie?! ¡¿En serio?!",
+      "¿Hola? ¿Hay alguien?",
+      "La humanidad me decepciona.",
+      "Era fácil...",
+      "Nadie. Nada. Cero.",
+      "El vacío cósmico.",
+      "Digamos que era difícil.",
+      "Silencio de ambos lados...",
+      "Vale... siguiente.",
+      "Fracaso colectivo."
+    ],
     "allOptionsExhausted": "Lo habéis probado TODO... buen intento.",
     "wrongAnswer": "No. Simplemente... no.",
+    "wrongAnswer_variants": [
+      "No. Simplemente... no.",
+      "¡Mal!",
+      "No era eso.",
+      "Fallaste por poco... o mucho.",
+      "¡Y no!",
+      "¡Qué pena!",
+      "Ni cerca.",
+      "¡Nope!",
+      "Ah, rotundamente no.",
+      "¡En tus sueños!"
+    ],
     "roundOver": "¡Y eso fue todo!",
     "correctAnswer": "La respuesta era:",
     "winner": "El jefe:",
@@ -71,6 +119,7 @@
     "elementNumber": "Item {{current}}/{{total}}",
     "completed": "¡hecho!",
     "optionBoth": "¡Ambos!",
+    "funFact": "¿Lo sabías?",
     "swipeHint": "Desliza como Tinder, pero para comida.",
     "homophoneHint": "¡Cuidado, suenan igual!",
     "classify": "\"{{item}}\": izquierda para {{optionA}}, derecha para {{optionB}}, arriba si no puedes decidirte.",
@@ -79,7 +128,27 @@
     "orBoth": "¿o ambos?",
     "team": "Equipo:",
     "correct": "¡Bien!",
+    "correct_variants": [
+      "¡Bien!",
+      "¡Exacto!",
+      "¡Perfecto!",
+      "¡Clasificado!",
+      "¡En el bolsillo!",
+      "¡Eres un crack!",
+      "¡Eso es!",
+      "¡Validado!"
+    ],
     "wrongAnswer": "¡No!",
+    "wrongAnswer_variants": [
+      "¡No!",
+      "¡Mal!",
+      "¡Lado equivocado!",
+      "¡Era el otro!",
+      "¡Ups!",
+      "¡Nope!",
+      "¡Mal deslizado!",
+      "¡Fallaste!"
+    ],
     "alsoAccepted": "Eso también valía",
     "teammateAnswered": "¡Un colega respondió por ti!",
     "waitingForResult": "{{name}} ha deslizado...",
@@ -92,7 +161,27 @@
     "lockedIn": "¡Enviado!",
     "solo": {
       "correct": "¡Diana!",
+      "correct_variants": [
+        "¡Diana!",
+        "¡Perfecto!",
+        "¡Exacto!",
+        "¡Bien hecho!",
+        "¡Eres crack!",
+        "¡Correcto!",
+        "¡Eso es!",
+        "¡Boom!"
+      ],
       "incorrect": "¡No!",
+      "incorrect_variants": [
+        "¡No!",
+        "¡Mal!",
+        "¡Lado equivocado!",
+        "¡Era el otro!",
+        "¡Ups!",
+        "¡Fallaste!",
+        "¡Casi!",
+        "¡Inténtalo otra vez!"
+      ],
       "timeout": "¡Muy lento!"
     }
   },
@@ -151,6 +240,16 @@
     "firstCorrect": "¡Primero! ¡Leyenda!",
     "pointsWon": "+{{points}} puntos",
     "noWinner": "El tiempo es dinero... y estáis en bancarrota.",
+    "noWinner_variants": [
+      "El tiempo es dinero... y estáis en bancarrota.",
+      "¡Se acabó el tiempo! Nadie acertó.",
+      "El banco está cerrado. Cero puntos.",
+      "¡Todos fallaron! Felicidades.",
+      "La cuenta queda sin pagar...",
+      "Fracaso colectivo desbloqueado.",
+      "Nada. Cero. Niente.",
+      "Digamos que era difícil..."
+    ],
     "correctAnswerWas": "Era:",
     "youAnswered": "Dijiste",
     "waitingForPlayers": "Esperando a los lentos...",
@@ -159,7 +258,25 @@
     "prepareForQuestion": "Concentración...",
     "solo": {
       "noWinner": "¡Muy lento!",
-      "wrongAnswer": "¡No!"
+      "noWinner_variants": [
+        "¡Muy lento!",
+        "¡Se acabó el tiempo!",
+        "Tic tac... demasiado tarde.",
+        "¡Banco cerrado!",
+        "Sin punto esta vez.",
+        "El cronómetro gana."
+      ],
+      "wrongAnswer": "¡No!",
+      "wrongAnswer_variants": [
+        "¡No!",
+        "¡Mal!",
+        "¡Nope!",
+        "Eso no era.",
+        "¡Mala elección!",
+        "¡Inténtalo otra vez!",
+        "Ni en sueños.",
+        "¡Muy lejos!"
+      ]
     }
   },
   "phase5": {

@@ -13,7 +13,19 @@
     "phaseComplete": "Das war's!",
     "lastQuestion": "Letzte!",
     "submitError": "Ups! Nochmal?",
-    "wrongAnswer": "Nope!"
+    "wrongAnswer": "Nope!",
+    "wrongAnswer_variants": [
+      "Nope!",
+      "Falsch!",
+      "Nicht mal nah dran!",
+      "Nochmal versuchen!",
+      "Fast! War'n Witz.",
+      "Das war's nicht.",
+      "Daneben!",
+      "Guter Versuch...",
+      "Träum weiter!",
+      "Abgelehnt!"
+    ]
   },
   "host": {
     "startReading": "Los geht's!",
@@ -31,11 +43,47 @@
   },
   "results": {
     "bravo": "GENIAL! +1 PUNKT",
+    "bravo_variants": [
+      "GENIAL! +1 PUNKT",
+      "VOLLTREFFER!",
+      "GENAU!",
+      "GENIE!",
+      "Ja! Bravo!",
+      "Du brennst!",
+      "Makellos!",
+      "Das ist es! Klasse!",
+      "BINGO!",
+      "Was für eine Maschine!"
+    ],
     "teamWins": "Team {{team}} räumt ab!",
     "yourTeamWins": "BÄM! Dein Team hat gerade dominiert!",
     "nobodyFound": "Niemand?! Echt jetzt?!",
+    "nobodyFound_variants": [
+      "Niemand?! Echt jetzt?!",
+      "Hallo? Ist da jemand?",
+      "Die Menschheit enttäuscht mich.",
+      "War doch einfach...",
+      "Niemand. Nichts. Nada.",
+      "Die Leere starrt zurück.",
+      "Sagen wir, es war schwer.",
+      "Funkstille von beiden Seiten...",
+      "Okay... weiter.",
+      "Kollektives Versagen."
+    ],
     "allOptionsExhausted": "Ihr habt ALLES probiert... guter Versuch.",
     "wrongAnswer": "Nein. Einfach... nein.",
+    "wrongAnswer_variants": [
+      "Nein. Einfach... nein.",
+      "Falsch!",
+      "Das war's nicht.",
+      "Knapp daneben... oder weit weg.",
+      "Und nein!",
+      "Schade!",
+      "Nicht mal nah dran.",
+      "Nope!",
+      "Oh, absolut nicht.",
+      "Träum weiter!"
+    ],
     "roundOver": "Und das war's!",
     "correctAnswer": "Die Antwort war:",
     "winner": "Der Boss:",
@@ -71,6 +119,7 @@
     "elementNumber": "Item {{current}}/{{total}}",
     "completed": "erledigt!",
     "optionBoth": "Beides!",
+    "funFact": "Wusstest du?",
     "swipeHint": "Wische wie bei Tinder, aber für Essen.",
     "homophoneHint": "Achtung, die klingen gleich!",
     "classify": "\"{{item}}\": links für {{optionA}}, rechts für {{optionB}}, hoch wenn du dich nicht festlegen kannst.",
@@ -79,7 +128,27 @@
     "orBoth": "oder beides?",
     "team": "Team:",
     "correct": "Gut gemacht!",
+    "correct_variants": [
+      "Gut gemacht!",
+      "Genau!",
+      "Perfekt!",
+      "Sortiert!",
+      "In der Tasche!",
+      "Du rockst!",
+      "Das ist es!",
+      "Bestätigt!"
+    ],
     "wrongAnswer": "Nope!",
+    "wrongAnswer_variants": [
+      "Nope!",
+      "Falsch!",
+      "Falsche Seite!",
+      "Das war das andere!",
+      "Ups!",
+      "Nein!",
+      "Falsch gewischt!",
+      "Daneben!"
+    ],
     "alsoAccepted": "Das ging auch",
     "teammateAnswered": "Ein Kumpel hat für dich geantwortet!",
     "waitingForResult": "{{name}} hat gewischt...",
@@ -92,7 +161,27 @@
     "lockedIn": "Abgeschickt!",
     "solo": {
       "correct": "Volltreffer!",
+      "correct_variants": [
+        "Volltreffer!",
+        "Perfekt!",
+        "Genau!",
+        "Gut gemacht!",
+        "Du rockst!",
+        "Stimmt!",
+        "Das ist es!",
+        "Boom!"
+      ],
       "incorrect": "Nope!",
+      "incorrect_variants": [
+        "Nope!",
+        "Falsch!",
+        "Falsche Seite!",
+        "Das war das andere!",
+        "Ups!",
+        "Daneben!",
+        "Nicht ganz!",
+        "Nochmal versuchen!"
+      ],
       "timeout": "Zu langsam!"
     }
   },
@@ -151,6 +240,16 @@
     "firstCorrect": "Erster! BOOM!",
     "pointsWon": "+{{points}} Punkte",
     "noWinner": "Zeit um! Alle haben versagt.",
+    "noWinner_variants": [
+      "Zeit um! Alle haben versagt.",
+      "Zeit abgelaufen! Niemand hat's geschafft.",
+      "Bank ist zu. Null Punkte.",
+      "Alle haben's vergeigt! Glückwunsch.",
+      "Die Rechnung bleibt offen...",
+      "Kollektives Versagen freigeschaltet.",
+      "Nichts. Nada. Null.",
+      "Sagen wir, es war schwer..."
+    ],
     "correctAnswerWas": "Es war:",
     "youAnswered": "Du sagtest",
     "waitingForPlayers": "Spieler sammeln...",
@@ -159,7 +258,25 @@
     "prepareForQuestion": "Bereit machen...",
     "solo": {
       "noWinner": "Zu langsam!",
-      "wrongAnswer": "Falsch!"
+      "noWinner_variants": [
+        "Zu langsam!",
+        "Zeit um!",
+        "Tick tack... zu spät.",
+        "Bank geschlossen!",
+        "Diesmal kein Punkt.",
+        "Der Timer gewinnt."
+      ],
+      "wrongAnswer": "Falsch!",
+      "wrongAnswer_variants": [
+        "Falsch!",
+        "Nope!",
+        "Nein!",
+        "Das war's nicht.",
+        "Falsche Wahl!",
+        "Nochmal versuchen!",
+        "Träum weiter.",
+        "Weit daneben!"
+      ]
     }
   },
   "phase5": {

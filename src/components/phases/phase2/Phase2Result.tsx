@@ -40,7 +40,6 @@ export function Phase2Result({
     const hasPlayedAudioRef = useRef(false);
 
     // Determine result type
-    const noWinner = roundWinner === null;
     const otherTeamWon = !didWin && roundWinner !== null;
 
     // Play audio feedback once when result is shown
@@ -71,16 +70,11 @@ export function Phase2Result({
         return team === 'spicy' ? '🌶️ Spicy' : '🍬 Sweet';
     };
 
-    // Get result style based on outcome
-    const getResultStyle = () => {
-        if (didWin) {
-            return 'bg-gradient-to-br from-green-500 to-emerald-600 border-white text-white';
-        }
-        if (otherTeamWon) {
-            return 'bg-white border-red-500 text-red-500';
-        }
-        // No winner
-        return 'bg-white border-amber-500 text-amber-600';
+    // Get accent color based on outcome (for top bar and glow)
+    const getAccentColor = () => {
+        if (didWin) return 'emerald';
+        if (otherTeamWon) return 'red';
+        return 'amber'; // No winner
     };
 
     // Get result message
@@ -111,96 +105,164 @@ export function Phase2Result({
             aria-live="assertive"
             className="absolute inset-0 z-40 flex flex-col items-center justify-center bg-black/60 backdrop-blur-sm"
         >
-            {/* Result Badge */}
+            {/* TV Quiz Style Result Card */}
             <motion.div
                 initial={prefersReducedMotion ? { opacity: 0 } : { y: 50, opacity: 0 }}
                 animate={prefersReducedMotion ? { opacity: 1 } : { y: 0, opacity: 1 }}
                 transition={{ delay: 0.3, ...bouncySpring }}
                 className="mt-auto mb-8"
             >
-                <div className={`p-6 rounded-2xl shadow-2xl border-4 ${getResultStyle()}`}>
-                    {/* Result Icon */}
-                    <motion.div
-                        initial={prefersReducedMotion ? { opacity: 0 } : { scale: 0 }}
-                        animate={prefersReducedMotion ? { opacity: 1 } : { scale: 1 }}
-                        transition={{ delay: 0.5, ...bouncySpring }}
-                        className="text-4xl mb-2 flex justify-center"
-                        aria-hidden="true"
-                    >
-                        {getResultIcon()}
-                    </motion.div>
+                <div className="relative w-[400px] max-w-[90vw] md:w-[480px] overflow-hidden rounded-3xl bg-slate-900/95 backdrop-blur-sm border border-white/10 shadow-2xl">
+                    {/* Top accent bar */}
+                    <div className={`
+                        absolute top-0 left-0 right-0 h-2
+                        ${getAccentColor() === 'emerald'
+                            ? 'bg-gradient-to-r from-emerald-500 via-teal-400 to-emerald-500'
+                            : getAccentColor() === 'red'
+                                ? 'bg-gradient-to-r from-red-500 via-rose-400 to-red-500'
+                                : 'bg-gradient-to-r from-amber-500 via-yellow-400 to-amber-500'
+                        }
+                    `} />
 
-                    {/* Result Text */}
-                    <div className="text-2xl font-black tracking-wider uppercase text-center">
-                        {getResultMessage()}
+                    <div className="p-6 pt-8">
+                        {/* Result Icon */}
+                        <motion.div
+                            initial={prefersReducedMotion ? { opacity: 0 } : { scale: 0 }}
+                            animate={prefersReducedMotion ? { opacity: 1 } : { scale: 1 }}
+                            transition={{ delay: 0.5, ...bouncySpring }}
+                            className="flex justify-center mb-4"
+                            aria-hidden="true"
+                        >
+                            <div className={`
+                                w-20 h-20 rounded-2xl flex items-center justify-center
+                                ${getAccentColor() === 'emerald'
+                                    ? 'bg-emerald-500/20 text-emerald-400'
+                                    : getAccentColor() === 'red'
+                                        ? 'bg-red-500/20 text-red-400'
+                                        : 'bg-amber-500/20 text-amber-400'
+                                }
+                            `}>
+                                {getResultIcon()}
+                            </div>
+                        </motion.div>
+
+                        {/* Result Text */}
+                        <div className={`
+                            text-xl font-black tracking-wider uppercase text-center
+                            ${getAccentColor() === 'emerald'
+                                ? 'text-emerald-400'
+                                : getAccentColor() === 'red'
+                                    ? 'text-red-400'
+                                    : 'text-amber-400'
+                            }
+                        `}>
+                            {getResultMessage()}
+                        </div>
+
+                        {/* Winner team badge */}
+                        {roundWinner && (
+                            <div className="text-sm mt-3 text-center text-white/60">
+                                {getTeamName(roundWinner)}
+                            </div>
+                        )}
+
+                        {/* Who answered for my team */}
+                        {myTeamAnswer && (
+                            <div className="text-xs mt-2 text-center text-white/50">
+                                {myTeamAnswer.playerName} {t('phase2.answeredFor', { defaultValue: 'a répondu pour' })} {getTeamName(myTeam)}
+                            </div>
+                        )}
+
+                        {/* Correct answer (show if team lost or no winner) */}
+                        {!didWin && (
+                            <div className="text-sm mt-4 text-center text-white/60">
+                                {t('phase2.itWas')}{' '}
+                                <span className={`
+                                    font-bold
+                                    ${getAccentColor() === 'red' ? 'text-red-400' : 'text-amber-400'}
+                                `}>
+                                    {getAnswerText(item.answer)}
+                                </span>
+
+                                {/* Alternative accepted answers */}
+                                {item.acceptedAnswers && item.acceptedAnswers.length > 1 && (
+                                    <span className="text-white/40 text-xs block mt-1">
+                                        {t('phase2.alsoAccepted')}:{' '}
+                                        {item.acceptedAnswers
+                                            .filter(a => a !== item.answer)
+                                            .map(a => getAnswerText(a))
+                                            .join(', ')}
+                                    </span>
+                                )}
+                            </div>
+                        )}
+
+                        {/* Justification */}
+                        {item.justification && (
+                            <motion.p
+                                initial={{ opacity: 0 }}
+                                animate={{ opacity: 1 }}
+                                transition={{ delay: 0.7, duration: durations.normal }}
+                                className="text-sm mt-4 pt-4 border-t border-white/10 italic text-white/70 text-center"
+                            >
+                                <span aria-hidden="true">📝</span> {item.justification}
+                            </motion.p>
+                        )}
+
+                        {/* Anecdote Card - Nested TV Quiz Style */}
+                        {item.anecdote && (
+                            <motion.div
+                                initial={{ opacity: 0, y: 10 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                transition={{ delay: 1, duration: durations.normal, ease: 'easeOut' }}
+                                className="mt-4 w-full"
+                            >
+                                <div className="relative overflow-hidden rounded-xl bg-white/5 border border-white/10 p-3">
+                                    {/* Header with icon */}
+                                    <div className="flex items-center justify-center gap-2 mb-2">
+                                        <div className={`
+                                            flex items-center justify-center w-6 h-6 rounded-lg
+                                            ${getAccentColor() === 'emerald'
+                                                ? 'bg-emerald-500/20'
+                                                : getAccentColor() === 'red'
+                                                    ? 'bg-purple-500/20'
+                                                    : 'bg-amber-500/20'
+                                            }
+                                        `}>
+                                            <span className="text-sm" aria-hidden="true">💡</span>
+                                        </div>
+                                        <span className={`
+                                            text-[10px] font-black uppercase tracking-widest
+                                            ${getAccentColor() === 'emerald'
+                                                ? 'text-emerald-400/80'
+                                                : getAccentColor() === 'red'
+                                                    ? 'text-purple-400/80'
+                                                    : 'text-amber-400/80'
+                                            }
+                                        `}>
+                                            {t('phase2.funFact', { defaultValue: 'Le saviez-vous ?' })}
+                                        </span>
+                                    </div>
+
+                                    {/* Anecdote text */}
+                                    <p className="text-xs leading-relaxed text-center text-white/70 select-none">
+                                        {item.anecdote}
+                                    </p>
+                                </div>
+                            </motion.div>
+                        )}
                     </div>
 
-                    {/* Winner team badge */}
-                    {roundWinner && (
-                        <div className="text-sm mt-2 text-center opacity-80">
-                            {getTeamName(roundWinner)}
-                        </div>
-                    )}
-
-                    {/* Who answered for my team */}
-                    {myTeamAnswer && (
-                        <div className={`text-xs mt-2 text-center ${didWin ? 'text-white/70' : 'text-current opacity-60'}`}>
-                            {myTeamAnswer.playerName} {t('phase2.answeredFor', { defaultValue: 'a répondu pour' })} {getTeamName(myTeam)}
-                        </div>
-                    )}
-
-                    {/* Correct answer (show if team lost or no winner) */}
-                    {!didWin && (
-                        <div className={`text-sm mt-3 ${noWinner ? 'text-amber-700' : 'text-red-400'}`}>
-                            {t('phase2.itWas')}{' '}
-                            <span className={`font-bold ${noWinner ? 'text-amber-800' : 'text-red-600'}`}>
-                                {getAnswerText(item.answer)}
-                            </span>
-
-                            {/* Alternative accepted answers */}
-                            {item.acceptedAnswers && item.acceptedAnswers.length > 1 && (
-                                <span className="opacity-70 text-xs block mt-1">
-                                    {t('phase2.alsoAccepted')}:{' '}
-                                    {item.acceptedAnswers
-                                        .filter(a => a !== item.answer)
-                                        .map(a => getAnswerText(a))
-                                        .join(', ')}
-                                </span>
-                            )}
-                        </div>
-                    )}
-
-                    {/* Justification */}
-                    {item.justification && (
-                        <motion.p
-                            initial={{ opacity: 0 }}
-                            animate={{ opacity: 1 }}
-                            transition={{ delay: 0.7, duration: durations.normal }}
-                            className={`text-sm mt-3 pt-3 border-t italic max-w-xs text-center ${
-                                didWin
-                                    ? 'border-white/20 text-white/90'
-                                    : noWinner
-                                    ? 'border-amber-200 text-amber-700'
-                                    : 'border-red-200 text-red-600'
-                            }`}
-                        >
-                            <span aria-hidden="true">📝</span> {item.justification}
-                        </motion.p>
-                    )}
-
-                    {/* Anecdote */}
-                    {item.anecdote && (
-                        <motion.p
-                            initial={{ opacity: 0 }}
-                            animate={{ opacity: 1 }}
-                            transition={{ delay: 0.9, duration: durations.normal }}
-                            className={`text-xs mt-2 italic max-w-xs text-center ${
-                                didWin ? 'text-white/70' : 'opacity-60'
-                            }`}
-                        >
-                            <span aria-hidden="true">💡</span> {item.anecdote}
-                        </motion.p>
-                    )}
+                    {/* Subtle corner glow effect */}
+                    <div className={`
+                        absolute -bottom-8 -right-8 w-32 h-32 rounded-full blur-3xl opacity-20
+                        ${getAccentColor() === 'emerald'
+                            ? 'bg-emerald-500'
+                            : getAccentColor() === 'red'
+                                ? 'bg-red-500'
+                                : 'bg-amber-500'
+                        }
+                    `} />
                 </div>
             </motion.div>
         </motion.div>

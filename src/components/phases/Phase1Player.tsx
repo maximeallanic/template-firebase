@@ -1,5 +1,6 @@
 import { useRef, useState, useEffect, useCallback, memo } from 'react';
 import { useTranslation } from 'react-i18next';
+import { useRandomTranslation } from '../../hooks/useGameTranslation';
 import { motion, AnimatePresence, LayoutGroup, type Variants } from 'framer-motion';
 import { submitAnswer, startNextQuestion, handlePhase1Timeout, type Room } from '../../services/gameService';
 import { usePhaseTransition } from '../../hooks/usePhaseTransition';
@@ -132,6 +133,7 @@ const QuestionCard = memo(({ questionText, questionIndex, prefersReducedMotion }
 
 export function Phase1Player({ room, playerId, isHost, mode = 'multiplayer', soloHandlers }: Phase1PlayerProps) {
     const { t } = useTranslation(['game-ui', 'common']);
+    const { tRandom } = useRandomTranslation();
     const prefersReducedMotion = useReducedMotion();
     const haptic = useHaptic();
     const isSolo = mode === 'solo';
@@ -488,7 +490,7 @@ export function Phase1Player({ room, playerId, isHost, mode = 'multiplayer', sol
         const allOptionsExhausted = triedWrongOptions.length >= 3;
 
         if (state.roundWinner?.playerId === playerId) {
-            resultMessage = t('results.bravo');
+            resultMessage = tRandom('results.bravo');
             resultIcon = <Trophy className="w-8 h-8 text-white" />;
         } else if (didMyTeamWin) {
             resultMessage = t('results.yourTeamWins');
@@ -498,7 +500,7 @@ export function Phase1Player({ room, playerId, isHost, mode = 'multiplayer', sol
             resultIcon = <XCircle className="w-8 h-8 text-white" />;
         } else if (state.isTimeout) {
             // Timer expired - show timeout message (even if player answered before timeout)
-            resultMessage = isSolo ? t('results.solo.timeout') : t('results.nobodyFound');
+            resultMessage = isSolo ? t('results.solo.timeout') : tRandom('results.nobodyFound');
             resultIcon = <XCircle className="w-8 h-8 text-white" />;
         } else if (allOptionsExhausted) {
             // All options were tried (rebond system exhausted)
@@ -506,11 +508,11 @@ export function Phase1Player({ room, playerId, isHost, mode = 'multiplayer', sol
             resultIcon = <XCircle className="w-8 h-8 text-white" />;
         } else if (myAnswer !== null) {
             // Player answered but was wrong (round didn't end by timeout)
-            resultMessage = t('results.wrongAnswer');
+            resultMessage = tRandom('results.wrongAnswer');
             resultIcon = <XCircle className="w-8 h-8 text-white" />;
         } else if (!state.roundWinner) {
             // No winner and player didn't answer - fallback
-            resultMessage = isSolo ? t('results.solo.timeout') : t('results.nobodyFound');
+            resultMessage = isSolo ? t('results.solo.timeout') : tRandom('results.nobodyFound');
             resultIcon = <XCircle className="w-8 h-8 text-white" />;
         } else {
             resultMessage = t('results.roundOver');
