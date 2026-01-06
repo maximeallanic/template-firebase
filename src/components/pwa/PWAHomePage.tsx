@@ -4,13 +4,11 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useTranslation } from 'react-i18next';
 import { Logo } from '../ui/Logo';
 import { FoodLoader } from '../ui/FoodLoader';
-import { ProfileEditModal } from '../auth/ProfileEditModal';
 import { LandscapeWarning } from '../ui/LandscapeWarning';
 import { PWABackground } from './PWABackground';
 import { FloatingMascots } from './FloatingMascots';
 import { PWAPlayerProfile } from './PWAPlayerProfile';
 import { PWAActionButtons } from './PWAActionButtons';
-import { QuickSettings } from './QuickSettings';
 import { useOrientationLock } from '../../hooks/useOrientationLock';
 import { useAuthUser } from '../../hooks/useAuthUser';
 import { createRoom, joinRoom, AVATAR_LIST } from '../../services/gameService';
@@ -33,7 +31,6 @@ export function PWAHomePage() {
   // UI state
   const [isCreatingRoom, setIsCreatingRoom] = useState(false);
   const [isJoiningRoom, setIsJoiningRoom] = useState(false);
-  const [showProfileEdit, setShowProfileEdit] = useState(false);
   const [joinCode, setJoinCode] = useState('');
   const [showJoinInput, setShowJoinInput] = useState(false);
   const [joinError, setJoinError] = useState<string | null>(null);
@@ -204,13 +201,8 @@ export function PWAHomePage() {
           paddingBottom: 'env(safe-area-inset-bottom)',
         }}
       >
-        {/* Header with settings - transparent */}
-        <header className="relative flex items-center justify-center p-4">
-          {/* Settings button - positioned absolutely on the left */}
-          <div className="absolute left-4 top-1/2 -translate-y-1/2">
-            <QuickSettings onEditProfile={() => setShowProfileEdit(true)} />
-          </div>
-          {/* Logo - centered and larger */}
+        {/* Header with logo */}
+        <header className="flex items-center justify-center p-4">
           <div className="w-32 h-32">
             <Logo className="w-full h-full" />
           </div>
@@ -286,14 +278,6 @@ export function PWAHomePage() {
         )}
       </AnimatePresence>
 
-      {/* Profile edit modal */}
-      <ProfileEditModal
-        isOpen={showProfileEdit}
-        onClose={() => setShowProfileEdit(false)}
-        currentName={profile?.profileName || ''}
-        currentAvatar={(profile?.profileAvatar as import('../../types/gameTypes').Avatar) || 'burger'}
-        onSave={() => setShowProfileEdit(false)}
-      />
     </div>
   );
 }

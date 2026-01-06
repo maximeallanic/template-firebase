@@ -2,7 +2,6 @@ import { useState, useEffect, useRef, useLayoutEffect } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useTranslation } from 'react-i18next';
-import { UserBar } from '../components/auth/UserBar';
 import { EmailActionHandler } from '../components/auth/EmailActionHandler';
 import { PWAHomePage } from '../components/pwa/PWAHomePage';
 import { Logo } from '../components/ui/Logo';
@@ -279,11 +278,6 @@ export default function HomePage() {
           </motion.div>
         )}
       </AnimatePresence>
-
-      {/* UserBar */}
-      <div className="fixed top-4 right-0 z-50">
-        <UserBar />
-      </div>
 
       {/* Install Banner - Show when installable and not dismissed */}
       <AnimatePresence>

@@ -2,37 +2,37 @@
   "phases": {
     "lobby": {
       "name": "Lobby",
-      "subtitle": "En attente...",
+      "subtitle": "On attend les retardataires...",
       "shortName": "Lobby"
     },
     "phase1": {
       "name": "Tenders",
-      "subtitle": "Sois le plus rapide à buzzer !",
+      "subtitle": "Le premier qui buzze a toujours raison... ou pas.",
       "shortName": "Tenders"
     },
     "phase2": {
       "name": "Sucré Salé",
-      "subtitle": "Plutôt A ou plutôt B ?",
+      "subtitle": "Gauche, droite, ou on assume pas ?",
       "shortName": "Sucré Salé"
     },
     "phase3": {
       "name": "La Carte",
-      "subtitle": "Retiens un max de plats !",
+      "subtitle": "Commande ton menu et prie pour tes neurones.",
       "shortName": "La Carte"
     },
     "phase4": {
       "name": "La Note",
-      "subtitle": "Questions de culture G !",
+      "subtitle": "L'addition s'il vous plaît ! (Mais en QCM)",
       "shortName": "La Note"
     },
     "phase5": {
       "name": "Burger Ultime",
-      "subtitle": "Le défi final pour la victoire !",
+      "subtitle": "10 questions. 1 cerveau. 0 droit à l'erreur.",
       "shortName": "Burger Ultime"
     },
     "victory": {
       "name": "Victoire",
-      "subtitle": "Le gagnant est...",
+      "subtitle": "Et le champion toutes catégories est...",
       "shortName": "Victoire"
     }
   },
@@ -40,11 +40,11 @@
     "phaseNumber": "Phase {{number}}"
   },
   "navigation": {
-    "startPhase3": "DÉMARRER PHASE 3: LA CARTE",
-    "startPhase4": "Démarrer Phase 4: La Note"
+    "startPhase3": "À TABLE ! (Phase 3)",
+    "startPhase4": "L'ADDITION ! (Phase 4)"
   },
   "endPhase": {
-    "phase2Complete": "Fin de la Phase 2 !",
-    "gettingMenusReady": "Préparation des menus..."
+    "phase2Complete": "Sucré Salé terminé ! Ouf.",
+    "gettingMenusReady": "Le chef prépare les menus..."
   }
 }

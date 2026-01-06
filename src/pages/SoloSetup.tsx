@@ -8,22 +8,15 @@ import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { AVATAR_LIST, type Avatar, type Difficulty, DEFAULT_DIFFICULTY } from '../types/gameTypes';
 import { Play, Trophy, Zap, AlertCircle } from 'lucide-react';
-import { UserBar } from '../components/auth/UserBar';
-import { ProfileEditModal } from '../components/auth/ProfileEditModal';
-import { PWABackButton } from '../components/pwa/PWABackButton';
-import { QuickSettings } from '../components/pwa/QuickSettings';
 import { DifficultySelector } from '../components/ui/DifficultySelector';
 import { useAuthUser } from '../hooks/useAuthUser';
-import { useAppInstall } from '../hooks/useAppInstall';
 import { SOLO_MAX_SCORE, SOLO_PHASE_NAMES } from '../types/soloTypes';
 
 export default function SoloSetup() {
     const navigate = useNavigate();
     const { t } = useTranslation('common');
     const { profile, loading: profileLoading, user } = useAuthUser();
-    const { isInstalled } = useAppInstall();
     const [difficulty, setDifficulty] = useState<Difficulty>(DEFAULT_DIFFICULTY);
-    const [showProfileEdit, setShowProfileEdit] = useState(false);
 
     // Check if profile is complete
     const profileComplete = !!(
@@ -47,18 +40,6 @@ export default function SoloSetup() {
 
     return (
         <div className="min-h-screen flex flex-col items-center justify-center p-4 relative overflow-hidden">
-            {/* Header: Back Button + Settings */}
-            <div className="fixed top-4 left-4 right-4 z-50 flex items-center justify-between">
-                <PWABackButton />
-                <div className="ml-auto">
-                    {isInstalled ? (
-                        <QuickSettings onEditProfile={() => setShowProfileEdit(true)} />
-                    ) : (
-                        <UserBar />
-                    )}
-                </div>
-            </div>
-
             <div className="bg-white/5 backdrop-blur-xl border border-white/10 rounded-3xl shadow-2xl p-8 max-w-md w-full relative z-10">
                 <div className="text-center mb-8">
                     <h2 className="text-orange-500 font-bold uppercase tracking-widest text-sm mb-2 flex items-center justify-center gap-2">
@@ -81,7 +62,7 @@ export default function SoloSetup() {
                         >
                             <div>
                                 <span className="font-bold text-white">{info.name}</span>
-                                <span className="text-gray-400 text-sm ml-2">{t(`solo.phases.${key}Subtitle`)}</span>
+                                <span className="hidden sm:inline text-gray-400 text-sm ml-2">{t(`solo.phases.${key}Subtitle`)}</span>
                             </div>
                             <span className="text-orange-400 font-mono text-sm">
                                 +{info.maxScore} pts
@@ -130,15 +111,6 @@ export default function SoloSetup() {
                     </button>
                 </div>
             </div>
-
-            {/* Profile Edit Modal - for PWA mode */}
-            <ProfileEditModal
-                isOpen={showProfileEdit}
-                onClose={() => setShowProfileEdit(false)}
-                currentName={profile?.profileName || ''}
-                currentAvatar={(profile?.profileAvatar as Avatar) || 'burger'}
-                onSave={() => setShowProfileEdit(false)}
-            />
         </div>
     );
 }

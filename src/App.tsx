@@ -6,6 +6,7 @@ import { ProfileGate } from './components/auth/ProfileGate';
 import { PageTransition } from './components/ui/PageTransition';
 import { SharedBackground, type BackgroundVariant } from './components/ui/SharedBackground';
 import { FoodLoader } from './components/ui/FoodLoader';
+import { PersistentHeader } from './components/layout/PersistentHeader';
 
 // Game Modules
 const HomePage = lazy(() => import('./pages/HomePage'));
@@ -49,6 +50,9 @@ function App() {
 
       {/* Profile gate - shows mandatory setup modal for users without complete profile */}
       <ProfileGate>
+        {/* Persistent header - outside AnimatePresence to stay visible during transitions */}
+        <PersistentHeader />
+
         <Suspense fallback={<LoadingFallback />}>
           <AnimatePresence mode="wait">
             <Routes location={location} key={location.pathname}>

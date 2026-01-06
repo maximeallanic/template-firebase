@@ -1,64 +1,64 @@
 {
   "hero": {
-    "tagline": "The culinary quiz game with friends!",
-    "description": "Battle in teams <spicy>Spicy</spicy> vs <sweet>Sweet</sweet> in hilarious challenges!"
+    "tagline": "The totally unhinged culinary quiz!",
+    "description": "Face off in <spicy>Spicy</spicy> VS <sweet>Sweet</sweet> through 5 chaotic challenges!"
   },
   "features": {
     "players": "2-20 players",
-    "challenges": "5 fun challenges",
-    "winner": "1 winning team"
+    "challenges": "5 crazy challenges",
+    "winner": "1 team to crush them all"
   },
   "create": {
     "title": "CREATE A GAME",
-    "subtitle": "Open your kitchen and invite your friends!",
-    "button": "Become the Chef"
+    "subtitle": "Fire up your kitchen and summon your friends!",
+    "button": "I'm the Chef!"
   },
   "join": {
-    "title": "JOIN",
-    "subtitle": "Enter the code and pick your team!",
+    "title": "JOIN THE CHAOS",
+    "subtitle": "Drop the code, pick your side!",
     "placeholder": "CODE",
-    "button": "Join",
-    "invalidCode": "Invalid code"
+    "button": "Let me in!",
+    "invalidCode": "This code doesn't exist..."
   },
   "phases": {
-    "title": "5 Hilarious Challenges",
+    "title": "5 Totally Bonkers Challenges",
     "tenders": {
       "name": "Tenders",
-      "description": "Be the fastest to buzz!"
+      "description": "First to buzz is always right. Or not."
     },
     "sucreSale": {
       "name": "Sweet & Salty",
-      "description": "A or B?"
+      "description": "Left, right, or commitment issues?"
     },
     "laCarte": {
       "name": "The Menu",
-      "description": "Remember as many dishes as you can!"
+      "description": "Order up and pray for your neurons."
     },
     "laNote": {
       "name": "The Bill",
-      "description": "General knowledge questions!"
+      "description": "The check, but make it multiple choice."
     },
     "burgerUltime": {
       "name": "Ultimate Burger",
-      "description": "The final challenge for victory!"
+      "description": "10 questions. 1 brain. 0 room for error."
     }
   },
   "loading": {
-    "joining": "Joining the game...",
-    "creating": "Opening the kitchen..."
+    "joining": "Coming right up...",
+    "creating": "Firing up the stove..."
   },
   "premium": {
-    "badge": "PREMIUM",
-    "title": "Unlock all phases",
-    "description": "Go Premium to access phases 3, 4 and 5 with your team!",
+    "badge": "PRO",
+    "title": "Unlock the full menu",
+    "description": "Go Pro to play phases 3, 4 and 5!",
     "features": {
       "laCarte": "The Menu",
       "laNote": "The Bill",
       "burgerUltime": "Ultimate Burger"
     },
     "price": "€1.99/month",
-    "cta": "Go Premium",
-    "hostOnly": "Only the host needs a subscription"
+    "cta": "Go Pro",
+    "hostOnly": "Only the Chef needs the subscription"
   },
   "install": {
     "title": "Install the app!",
@@ -73,18 +73,18 @@
     "soundOff": "Off",
     "language": "Language",
     "profile": "Profile",
-    "rotateDevice": "Rotate your device",
+    "rotateDevice": "Flip that phone!",
     "portraitRequired": "This game is played in portrait mode"
   },
   "createGame": "Create a game",
   "joinGame": "Join",
   "soloMode": "Solo Mode",
-  "hostDescription": "Invite your friends",
-  "joinDescription": "Enter a code",
-  "soloDescription": "Play alone",
-  "enterCode": "Enter the code",
-  "joining": "Joining...",
-  "creatingRoom": "Creating...",
-  "joiningRoom": "Joining...",
+  "hostDescription": "Invite your squad",
+  "joinDescription": "Drop the code",
+  "soloDescription": "Fly solo",
+  "enterCode": "Room code",
+  "joining": "Coming...",
+  "creatingRoom": "Heating up...",
+  "joiningRoom": "Connecting...",
   "editProfile": "Edit profile"
 }

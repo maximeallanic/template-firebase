@@ -2,49 +2,49 @@
   "phases": {
     "lobby": {
       "name": "Lobby",
-      "subtitle": "Aguardando...",
+      "subtitle": "Esperando os atrasados...",
       "shortName": "Lobby"
     },
     "phase1": {
       "name": "Tenders",
-      "subtitle": "Seja o mais rapido a buzinar!",
+      "subtitle": "Quem aperta primeiro tem razão... ou não.",
       "shortName": "Tenders"
     },
     "phase2": {
       "name": "Doce e Salgado",
-      "subtitle": "A ou B?",
+      "subtitle": "Esquerda, direita, ou medo de compromisso?",
       "shortName": "Doce e Salgado"
     },
     "phase3": {
-      "name": "O Menu",
-      "subtitle": "Lembre-se de todos os pratos!",
-      "shortName": "O Menu"
+      "name": "O Cardápio",
+      "subtitle": "Faça seu pedido e reze pelos seus neurônios.",
+      "shortName": "O Cardápio"
     },
     "phase4": {
       "name": "A Conta",
-      "subtitle": "Perguntas de cultura geral!",
+      "subtitle": "A conta, por favor! (Mas em múltipla escolha)",
       "shortName": "A Conta"
     },
     "phase5": {
       "name": "Burger Supremo",
-      "subtitle": "O desafio final pela vitoria!",
+      "subtitle": "10 perguntas. 1 cérebro. 0 margem de erro.",
       "shortName": "Burger Supremo"
     },
     "victory": {
-      "name": "Vitoria",
-      "subtitle": "O vencedor e...",
-      "shortName": "Vitoria"
+      "name": "Vitória",
+      "subtitle": "E o campeão supremo é...",
+      "shortName": "Vitória"
     }
   },
   "transitions": {
     "phaseNumber": "Fase {{number}}"
   },
   "navigation": {
-    "startPhase3": "INICIAR FASE 3: O MENU",
-    "startPhase4": "Iniciar Fase 4: A Conta"
+    "startPhase3": "FAZER PEDIDO! (Fase 3)",
+    "startPhase4": "A CONTA! (Fase 4)"
   },
   "endPhase": {
-    "phase2Complete": "Fim da Fase 2!",
-    "gettingMenusReady": "Preparando os menus..."
+    "phase2Complete": "Doce e Salgado finalizado! Ufa.",
+    "gettingMenusReady": "O chef está preparando os cardápios..."
   }
 }

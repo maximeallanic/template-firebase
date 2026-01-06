@@ -29,6 +29,7 @@ import {
 } from 'lucide-react';
 import { AvatarIcon } from '../components/AvatarIcon';
 import { audioService } from '../services/audioService';
+import { safeStorage } from '../utils/storage';
 import { SimpleConfetti } from '../components/ui/SimpleConfetti';
 import { DifficultySelector } from '../components/ui/DifficultySelector';
 import { RoomLanguageSelector } from '../components/ui/RoomLanguageSelector';
@@ -201,6 +202,10 @@ export default function GameRoom() {
 
     // Handler for PWA back button - leave lobby and go home
     const handleLeaveLobby = useCallback(async () => {
+        // Clear storage FIRST to prevent useGameRoom from redirecting back
+        safeStorage.removeItem('spicy_room_code');
+        safeStorage.removeItem('spicy_player_id');
+
         if (room?.code && myId) {
             try {
                 await leaveRoom(room.code, myId);

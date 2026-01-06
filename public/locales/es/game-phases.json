@@ -2,37 +2,37 @@
   "phases": {
     "lobby": {
       "name": "Lobby",
-      "subtitle": "Esperando...",
+      "subtitle": "Esperando a los rezagados...",
       "shortName": "Lobby"
     },
     "phase1": {
       "name": "Tenders",
-      "subtitle": "Se el mas rapido en pulsar!",
+      "subtitle": "El primero que pulsa tiene razón... o no.",
       "shortName": "Tenders"
     },
     "phase2": {
       "name": "Dulce y Salado",
-      "subtitle": "A o B?",
+      "subtitle": "Izquierda, derecha, o no te comprometas.",
       "shortName": "Dulce y Salado"
     },
     "phase3": {
-      "name": "El Menu",
-      "subtitle": "Recuerda todos los platos!",
-      "shortName": "El Menu"
+      "name": "El Menú",
+      "subtitle": "Pide tu menú y reza por tus neuronas.",
+      "shortName": "El Menú"
     },
     "phase4": {
       "name": "La Cuenta",
-      "subtitle": "Preguntas de cultura general!",
+      "subtitle": "¡La cuenta! (Pero en tipo test)",
       "shortName": "La Cuenta"
     },
     "phase5": {
       "name": "Burger Definitivo",
-      "subtitle": "El desafio final por la victoria!",
+      "subtitle": "10 preguntas. 1 cerebro. 0 margen de error.",
       "shortName": "Burger Definitivo"
     },
     "victory": {
       "name": "Victoria",
-      "subtitle": "El ganador es...",
+      "subtitle": "Y el campeón definitivo es...",
       "shortName": "Victoria"
     }
   },
@@ -40,11 +40,11 @@
     "phaseNumber": "Fase {{number}}"
   },
   "navigation": {
-    "startPhase3": "INICIAR FASE 3: EL MENU",
-    "startPhase4": "Iniciar Fase 4: La Cuenta"
+    "startPhase3": "¡A PEDIR! (Fase 3)",
+    "startPhase4": "¡LA CUENTA! (Fase 4)"
   },
   "endPhase": {
-    "phase2Complete": "Fin de la Fase 2!",
-    "gettingMenusReady": "Preparando los menus..."
+    "phase2Complete": "¡Dulce y Salado terminado! Uf.",
+    "gettingMenusReady": "El chef prepara los menús..."
   }
 }

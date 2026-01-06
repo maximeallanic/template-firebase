@@ -1,68 +1,68 @@
 {
   "hero": {
-    "tagline": "Le jeu de quiz culinaire entre amis !",
-    "description": "Affrontez-vous en équipes <spicy>Spicy</spicy> vs <sweet>Sweet</sweet> dans des épreuves délirantes !"
+    "tagline": "Le quiz culinaire complètement barré !",
+    "description": "Affrontez-vous en <spicy>Spicy</spicy> VS <sweet>Sweet</sweet> dans 5 épreuves délirantes !"
   },
   "features": {
     "players": "2-20 joueurs",
-    "challenges": "5 épreuves fun",
-    "winner": "1 équipe gagnante"
+    "challenges": "5 épreuves de ouf",
+    "winner": "1 équipe qui écrase l'autre"
   },
   "create": {
     "title": "CRÉER UNE PARTIE",
-    "subtitle": "Ouvre ta cuisine et invite tes amis !",
-    "button": "Devenir le Chef"
+    "subtitle": "Ouvre ta cuisine et convoque tes potes !",
+    "button": "Je suis le Chef !"
   },
   "join": {
     "title": "REJOINDRE",
-    "subtitle": "Entre le code et choisis ton équipe !",
+    "subtitle": "Balance le code, choisis ton camp !",
     "placeholder": "CODE",
-    "button": "Rejoindre",
-    "invalidCode": "Code invalide"
+    "button": "J'arrive !",
+    "invalidCode": "Ce code n'existe pas..."
   },
   "phases": {
-    "title": "5 Épreuves Délirantes",
+    "title": "5 Épreuves Complètement Barrées",
     "tenders": {
       "name": "Tenders",
-      "description": "Sois le plus rapide à buzzer !"
+      "description": "Le premier qui buzze a raison. Ou pas."
     },
     "sucreSale": {
       "name": "Sucré Salé",
-      "description": "Plutôt A ou plutôt B ?"
+      "description": "Gauche, droite, ou on assume pas ?"
     },
     "laCarte": {
       "name": "La Carte",
-      "description": "Retiens un max de plats !"
+      "description": "Commande et prie pour tes neurones."
     },
     "laNote": {
       "name": "La Note",
-      "description": "Questions de culture G !"
+      "description": "L'addition, mais en QCM."
     },
     "burgerUltime": {
       "name": "Burger Ultime",
-      "description": "Le défi final pour la victoire !"
+      "description": "10 questions. 1 cerveau. 0 erreur."
     }
   },
   "loading": {
-    "joining": "Connexion à la partie...",
-    "creating": "Ouverture de la cuisine..."
+    "joining": "Ça arrive...",
+    "creating": "On allume les fourneaux..."
   },
   "premium": {
-    "badge": "PREMIUM",
-    "title": "Débloquez toutes les phases",
-    "description": "Passez à Premium pour accéder aux phases 3, 4 et 5 avec votre équipe !",
+    "badge": "PRO",
+    "title": "Débloquez tout le menu",
+    "description": "Passez Pro pour jouer les phases 3, 4 et 5 !",
     "features": {
       "laCarte": "La Carte",
       "laNote": "La Note",
       "burgerUltime": "Burger Ultime"
     },
     "price": "1,99 €/mois",
-    "cta": "Devenir Premium",
-    "hostOnly": "Seul l'hôte a besoin de l'abonnement"
+    "cta": "Passer Pro",
+    "hostOnly": "Seul le Chef a besoin de l'abonnement"
   },
   "install": {
-    "title": "Installez l'app !",
-    "subtitle": "Accès rapide depuis votre écran d'accueil",
+    "title": "Installe l'app !",
+    "subtitle": "Accès direct depuis ton écran d'accueil",
     "button": "Installer"
   },
   "pwa": {
@@ -70,21 +70,21 @@
     "settings": "Réglages",
     "sound": "Son",
     "soundOn": "Activé",
-    "soundOff": "Désactivé",
+    "soundOff": "Muet",
     "language": "Langue",
     "profile": "Profil",
-    "rotateDevice": "Tournez votre appareil",
+    "rotateDevice": "Tourne ton téléphone !",
     "portraitRequired": "Ce jeu se joue en mode portrait"
   },
   "createGame": "Créer une partie",
   "joinGame": "Rejoindre",
   "soloMode": "Mode Solo",
-  "hostDescription": "Invitez vos amis",
-  "joinDescription": "Entrez un code",
-  "soloDescription": "Jouez seul",
-  "enterCode": "Entrez le code",
-  "joining": "Connexion...",
-  "creatingRoom": "Création...",
+  "hostDescription": "Invite tes potes",
+  "joinDescription": "Balance le code",
+  "soloDescription": "Joue solo",
+  "enterCode": "Code de la room",
+  "joining": "Ça arrive...",
+  "creatingRoom": "Ça chauffe...",
   "joiningRoom": "Connexion...",
   "editProfile": "Modifier le profil"
 }

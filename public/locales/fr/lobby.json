@@ -1,41 +1,41 @@
 {
   "create": {
     "title": "Ouvrir la Cuisine",
-    "hostAccess": "Accès Hôte",
+    "hostAccess": "Mode Chef",
     "joinGame": "Rejoindre la partie",
-    "createProfile": "Créer ton profil",
-    "chefName": "NOM DU CHEF",
+    "createProfile": "Crée ton perso",
+    "chefName": "TON BLAZE",
     "chefNamePlaceholder": "Gordon R.",
-    "chooseAvatar": "CHOISIR UN AVATAR",
-    "createButton": "À vos fourneaux !",
-    "joinButton": "Rejoindre la partie",
-    "creating": "Création...",
-    "connecting": "Connexion..."
+    "chooseAvatar": "CHOISIS TA TÊTE",
+    "createButton": "QUE LE SHOW COMMENCE !",
+    "joinButton": "J'arrive !",
+    "creating": "Ça chauffe...",
+    "connecting": "Connexion en cours..."
   },
   "room": {
-    "roomCode": "Code de la Room",
+    "roomCode": "Code secret",
     "code": "Code",
-    "copyCode": "Copier le code",
+    "copyCode": "Copier",
     "copyLink": "Copier le lien",
-    "linkCopied": "Lien copié",
-    "copyInviteLink": "Copier le lien d'invitation",
-    "waitingForPlayers": "En attente des joueurs...",
-    "gameInProgress": "Partie en cours."
+    "linkCopied": "C'est copié !",
+    "copyInviteLink": "Envoyer aux potes",
+    "waitingForPlayers": "On attend du monde...",
+    "gameInProgress": "C'est parti !"
   },
   "teams": {
-    "spicyTeam": "Équipe Spicy",
-    "sweetTeam": "Équipe Sweet",
-    "unassigned": "Joueurs non assignés",
-    "waitingSpicy": "En attente de braves...",
-    "waitingSweet": "En attente de gourmands...",
-    "assignPlayer": "Assigner {{name}} à une équipe",
-    "assignToSpicy": "Assigner {{name}} à l'équipe Spicy",
-    "assignToSweet": "Assigner {{name}} à l'équipe Sweet",
-    "allAssigned": "Tous les chefs sont assignés !"
+    "spicyTeam": "Team Spicy",
+    "sweetTeam": "Team Sweet",
+    "unassigned": "Les indécis",
+    "waitingSpicy": "On recrute des kamikazes du piment...",
+    "waitingSweet": "On cherche des gourmands assumés...",
+    "assignPlayer": "Caser {{name}} quelque part",
+    "assignToSpicy": "{{name}} rejoint les Spicy",
+    "assignToSweet": "{{name}} rejoint les Sweet",
+    "allAssigned": "Tout le monde est casé !"
   },
   "game": {
-    "startGame": "LANCER LA PARTIE",
-    "waitingForHost": "En attente que l'hôte lance la partie...",
-    "spectatorMode": "MODE SPECTATEUR"
+    "startGame": "QUE LE MEILLEUR GAGNE !",
+    "waitingForHost": "Le chef se prépare mentalement...",
+    "spectatorMode": "MODE POPCORN"
   }
 }

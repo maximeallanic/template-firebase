@@ -61,11 +61,19 @@ export function useGameRoom({ roomId, debugPlayerId }: UseGameRoomOptions): UseG
                     // Reset flag when player leaves room (for future rejoins)
                     hasMarkedOnline.current = false;
                     // User is NOT a recognized player
+                    // Check if they have a stored room code - if not, they left voluntarily
+                    const storedRoomCode = safeStorage.getItem('spicy_room_code');
+                    if (!storedRoomCode) {
+                        // User cleared storage (left voluntarily) - don't redirect
+                        return;
+                    }
                     // Case A: Game is in Lobby -> Redirect to Join
                     if (data.state.status === 'lobby') {
                         setTimeout(() => {
                             const currentId = debugPlayerId || safeStorage.getItem('spicy_player_id');
-                            if (!currentId || !data.players[currentId]) {
+                            const currentRoomCode = safeStorage.getItem('spicy_room_code');
+                            // Only redirect if storage still has room code (user didn't leave voluntarily)
+                            if (currentRoomCode && (!currentId || !data.players[currentId])) {
                                 const debugSuffix = debugPlayerId ? `&debugPlayerId=${debugPlayerId}` : '';
                                 navigate(`/?code=${data.code}${debugSuffix ? `&${debugSuffix.slice(1)}` : ''}`);
                             }

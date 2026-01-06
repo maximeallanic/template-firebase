@@ -1,41 +1,41 @@
 {
   "create": {
-    "title": "Kuche eroffnen",
-    "hostAccess": "Gastgeber-Zugang",
-    "joinGame": "Spiel beitreten",
-    "createProfile": "Erstelle dein Profil",
-    "chefName": "KOCH-NAME",
+    "title": "Küche öffnen",
+    "hostAccess": "Koch-Modus",
+    "joinGame": "Ins Chaos einsteigen",
+    "createProfile": "Erstelle deinen Avatar",
+    "chefName": "DEIN NAME",
     "chefNamePlaceholder": "Gordon R.",
-    "chooseAvatar": "WAHLE EINEN AVATAR",
-    "createButton": "Los kochen!",
-    "joinButton": "Spiel beitreten",
-    "creating": "Erstellen...",
+    "chooseAvatar": "WÄHLE DEIN GESICHT",
+    "createButton": "DIE SHOW KANN BEGINNEN!",
+    "joinButton": "Bin dabei!",
+    "creating": "Wird heiß...",
     "connecting": "Verbinden..."
   },
   "room": {
-    "roomCode": "Raum-Code",
+    "roomCode": "Geheimcode",
     "code": "Code",
-    "copyCode": "Code kopieren",
+    "copyCode": "Kopieren",
     "copyLink": "Link kopieren",
-    "linkCopied": "Link kopiert",
-    "copyInviteLink": "Einladungslink kopieren",
-    "waitingForPlayers": "Warten auf Spieler...",
-    "gameInProgress": "Spiel lauft."
+    "linkCopied": "Kopiert!",
+    "copyInviteLink": "An deine Kumpels schicken",
+    "waitingForPlayers": "Warten auf Leute...",
+    "gameInProgress": "Spiel läuft!"
   },
   "teams": {
     "spicyTeam": "Team Spicy",
     "sweetTeam": "Team Sweet",
-    "unassigned": "Nicht zugewiesene Spieler",
-    "waitingSpicy": "Warten auf Mutige...",
-    "waitingSweet": "Warten auf Naschkatzen...",
-    "assignPlayer": "{{name}} einem Team zuweisen",
-    "assignToSpicy": "{{name}} zu Team Spicy zuweisen",
-    "assignToSweet": "{{name}} zu Team Sweet zuweisen",
-    "allAssigned": "Alle Koche sind zugewiesen!"
+    "unassigned": "Die Unentschlossenen",
+    "waitingSpicy": "Schärfe-Draufgänger gesucht...",
+    "waitingSweet": "Naschkatzen gesucht...",
+    "assignPlayer": "{{name}} irgendwo hinpacken",
+    "assignToSpicy": "{{name}} geht zu Spicy",
+    "assignToSweet": "{{name}} geht zu Sweet",
+    "allAssigned": "Alle haben ein Team!"
   },
   "game": {
-    "startGame": "SPIEL STARTEN",
-    "waitingForHost": "Warten auf den Gastgeber, um das Spiel zu starten...",
-    "spectatorMode": "ZUSCHAUER-MODUS"
+    "startGame": "LOS GEHT'S!",
+    "waitingForHost": "Der Host bereitet sich mental vor...",
+    "spectatorMode": "POPCORN-MODUS"
   }
 }

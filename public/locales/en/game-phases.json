@@ -2,37 +2,37 @@
   "phases": {
     "lobby": {
       "name": "Lobby",
-      "subtitle": "Waiting...",
+      "subtitle": "Waiting for the stragglers...",
       "shortName": "Lobby"
     },
     "phase1": {
       "name": "Tenders",
-      "subtitle": "Be the fastest to buzz!",
+      "subtitle": "First to buzz is always right... or not.",
       "shortName": "Tenders"
     },
     "phase2": {
       "name": "Sweet & Salty",
-      "subtitle": "A or B?",
+      "subtitle": "Left, right, or commit to neither?",
       "shortName": "Sweet & Salty"
     },
     "phase3": {
       "name": "The Menu",
-      "subtitle": "Remember as many dishes as you can!",
+      "subtitle": "Order your menu and pray for your brain.",
       "shortName": "The Menu"
     },
     "phase4": {
       "name": "The Bill",
-      "subtitle": "General knowledge questions!",
+      "subtitle": "The check please! (But make it multiple choice)",
       "shortName": "The Bill"
     },
     "phase5": {
       "name": "Ultimate Burger",
-      "subtitle": "The final challenge for victory!",
+      "subtitle": "10 questions. 1 brain. 0 room for error.",
       "shortName": "Ultimate Burger"
     },
     "victory": {
       "name": "Victory",
-      "subtitle": "The winner is...",
+      "subtitle": "And the ultimate champion is...",
       "shortName": "Victory"
     }
   },
@@ -40,11 +40,11 @@
     "phaseNumber": "Phase {{number}}"
   },
   "navigation": {
-    "startPhase3": "START PHASE 3: THE MENU",
-    "startPhase4": "Start Phase 4: The Bill"
+    "startPhase3": "ORDER UP! (Phase 3)",
+    "startPhase4": "THE CHECK! (Phase 4)"
   },
   "endPhase": {
-    "phase2Complete": "End of Phase 2!",
-    "gettingMenusReady": "Getting menus ready..."
+    "phase2Complete": "Sweet & Salty done! Phew.",
+    "gettingMenusReady": "Chef is preparing the menus..."
   }
 }

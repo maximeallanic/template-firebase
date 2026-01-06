@@ -1,41 +1,41 @@
 {
   "create": {
     "title": "Abrir la Cocina",
-    "hostAccess": "Acceso de Anfitrion",
-    "joinGame": "Unirse a la partida",
-    "createProfile": "Crea tu perfil",
-    "chefName": "NOMBRE DEL CHEF",
+    "hostAccess": "Modo Chef",
+    "joinGame": "Unirse al caos",
+    "createProfile": "Crea tu avatar",
+    "chefName": "TU NOMBRE",
     "chefNamePlaceholder": "Gordon R.",
-    "chooseAvatar": "ELIGE UN AVATAR",
-    "createButton": "A cocinar!",
-    "joinButton": "Unirse a la partida",
-    "creating": "Creando...",
+    "chooseAvatar": "ELIGE TU CARA",
+    "createButton": "¡QUE EMPIECE EL SHOW!",
+    "joinButton": "¡Voy!",
+    "creating": "Calentando...",
     "connecting": "Conectando..."
   },
   "room": {
-    "roomCode": "Codigo de Sala",
-    "code": "Codigo",
-    "copyCode": "Copiar codigo",
+    "roomCode": "Código Secreto",
+    "code": "Código",
+    "copyCode": "Copiar",
     "copyLink": "Copiar enlace",
-    "linkCopied": "Enlace copiado",
-    "copyInviteLink": "Copiar enlace de invitacion",
-    "waitingForPlayers": "Esperando jugadores...",
-    "gameInProgress": "Partida en curso."
+    "linkCopied": "¡Copiado!",
+    "copyInviteLink": "Enviar a tus colegas",
+    "waitingForPlayers": "Esperando gente...",
+    "gameInProgress": "¡Partida en marcha!"
   },
   "teams": {
     "spicyTeam": "Equipo Spicy",
     "sweetTeam": "Equipo Sweet",
-    "unassigned": "Jugadores sin asignar",
-    "waitingSpicy": "Esperando valientes...",
-    "waitingSweet": "Esperando golosos...",
-    "assignPlayer": "Asignar {{name}} a un equipo",
-    "assignToSpicy": "Asignar {{name}} al Equipo Spicy",
-    "assignToSweet": "Asignar {{name}} al Equipo Sweet",
-    "allAssigned": "Todos los chefs estan asignados!"
+    "unassigned": "Los indecisos",
+    "waitingSpicy": "Reclutando kamikazes del picante...",
+    "waitingSweet": "Buscando golosos...",
+    "assignPlayer": "Poner a {{name}} en algún sitio",
+    "assignToSpicy": "{{name}} va a Spicy",
+    "assignToSweet": "{{name}} va a Sweet",
+    "allAssigned": "¡Todo el mundo tiene equipo!"
   },
   "game": {
-    "startGame": "INICIAR LA PARTIDA",
-    "waitingForHost": "Esperando que el anfitrion inicie la partida...",
-    "spectatorMode": "MODO ESPECTADOR"
+    "startGame": "¡ALLÁ VAMOS!",
+    "waitingForHost": "El anfitrión se prepara mentalmente...",
+    "spectatorMode": "MODO PALOMITAS"
   }
 }

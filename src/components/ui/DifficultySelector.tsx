@@ -47,7 +47,7 @@ export function DifficultySelector({ value, onChange, disabled = false, compact 
                     {t('difficulty.label')}
                 </label>
             )}
-            <div className={`flex ${compact ? 'gap-1' : 'gap-2'} justify-center`}>
+            <div className={`flex flex-wrap ${compact ? 'gap-1' : 'gap-1.5 sm:gap-2'} justify-center`}>
                 {DIFFICULTY_LIST.map((level) => {
                     const isSelected = value === level;
                     const styles = DIFFICULTY_STYLES[level];
@@ -59,7 +59,7 @@ export function DifficultySelector({ value, onChange, disabled = false, compact 
                             onClick={() => !disabled && onChange(level)}
                             disabled={disabled}
                             className={`
-                                ${compact ? 'px-2 py-1 text-xs' : 'px-3 py-2 text-sm'}
+                                ${compact ? 'px-2 py-1 text-xs' : 'px-2 sm:px-3 py-1.5 sm:py-2 text-xs sm:text-sm'}
                                 font-bold rounded-lg transition-all duration-200
                                 ${isSelected
                                     ? `${styles.bgSelected} text-white ring-2 ${styles.ring} shadow-lg scale-105`
@@ -71,7 +71,7 @@ export function DifficultySelector({ value, onChange, disabled = false, compact 
                             aria-pressed={isSelected}
                             aria-label={t(`difficulty.${level}`)}
                         >
-                            <span className={compact ? 'hidden sm:inline' : ''}>{styles.emoji}</span>
+                            <span className="hidden sm:inline">{styles.emoji}</span>
                             <span>{t(`difficulty.${level}`)}</span>
                         </button>
                     );

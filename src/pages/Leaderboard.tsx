@@ -12,19 +12,12 @@ import { FoodLoader } from '../components/ui/FoodLoader';
 import { getTopScores, getMyBestScore, getMyRank, type LeaderboardEntry } from '../services/leaderboardService';
 import { AvatarIcon } from '../components/AvatarIcon';
 import { useAuthUser } from '../hooks/useAuthUser';
-import { useAppInstall } from '../hooks/useAppInstall';
 import { useReducedMotion } from '../hooks/useReducedMotion';
-import { UserBar } from '../components/auth/UserBar';
-import { ProfileEditModal } from '../components/auth/ProfileEditModal';
-import { QuickSettings } from '../components/pwa/QuickSettings';
-import { PWABackButton } from '../components/pwa/PWABackButton';
-import type { Avatar } from '../types/gameTypes';
 
 export default function Leaderboard() {
     const navigate = useNavigate();
     const { t } = useTranslation('common');
-    const { user, profile } = useAuthUser();
-    const { isInstalled } = useAppInstall();
+    const { user } = useAuthUser();
     const prefersReducedMotion = useReducedMotion();
 
     const [scores, setScores] = useState<LeaderboardEntry[]>([]);
@@ -32,7 +25,6 @@ export default function Leaderboard() {
     const [myRank, setMyRank] = useState<number | null>(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
-    const [showProfileEdit, setShowProfileEdit] = useState(false);
 
     useEffect(() => {
         async function loadLeaderboard() {
@@ -97,21 +89,7 @@ export default function Leaderboard() {
     }, [user, myBest, scores]);
 
     return (
-        <div className="min-h-screen flex flex-col p-4 text-white">
-            {/* UserBar / QuickSettings (PWA) */}
-            <div className="fixed top-4 right-0 z-50">
-                {isInstalled ? (
-                    <QuickSettings onEditProfile={() => setShowProfileEdit(true)} />
-                ) : (
-                    <UserBar />
-                )}
-            </div>
-
-            {/* Header */}
-            <div className="flex items-center justify-between mb-6">
-                <PWABackButton />
-            </div>
-
+        <div className="min-h-screen flex flex-col p-4 pt-20 text-white">
             {/* Title */}
             <motion.div
                 initial={prefersReducedMotion ? { opacity: 0 } : { opacity: 0, y: -20 }}
@@ -316,14 +294,6 @@ export default function Leaderboard() {
                 </motion.div>
             )}
 
-            {/* Profile Edit Modal - for PWA mode */}
-            <ProfileEditModal
-                isOpen={showProfileEdit}
-                onClose={() => setShowProfileEdit(false)}
-                currentName={profile?.profileName || ''}
-                currentAvatar={(profile?.profileAvatar as Avatar) || 'burger'}
-                onSave={() => setShowProfileEdit(false)}
-            />
         </div>
     );
 }

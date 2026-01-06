@@ -1,174 +1,174 @@
 {
-  "howToPlay": "How to play",
+  "howToPlay": "How this works",
   "step": "Step {{number}}",
-  "continue": "Got it!",
-  "letsGo": "Let's Go!",
+  "continue": "Understood!",
+  "letsGo": "Let's do this!",
 
   "home": {
-    "title": "Welcome!",
-    "subtitle": "The culinary quiz showdown",
+    "title": "Welcome, brave soul!",
+    "subtitle": "The quiz that's totally out of control",
     "steps": {
       "createJoin": {
-        "label": "Create or Join",
-        "text": "Create a room as host or join with a code"
+        "label": "Create or Crash",
+        "text": "Host the party or sneak in with a code"
       },
       "pickTeam": {
-        "label": "Pick Your Team",
-        "text": "Choose Team Spicy or Team Sweet"
+        "label": "Pick Your Destiny",
+        "text": "Team Spicy or Team Sweet. Choose wisely. Or don't."
       },
       "challenges": {
-        "label": "5 Challenges",
-        "text": "Battle through 5 hilarious quiz rounds"
+        "label": "5 Crazy Rounds",
+        "text": "Survive 5 challenges. Brain cells optional."
       },
       "win": {
-        "label": "Win Together",
-        "text": "Team with the most points wins!"
+        "label": "Glory Awaits",
+        "text": "Most points = eternal bragging rights!"
       }
     },
-    "button": "Let's Cook!"
+    "button": "Fire up the grill!"
   },
 
   "lobby": {
-    "title": "You're the Host!",
-    "subtitle": "Here's what you can do",
+    "title": "You're the Chef!",
+    "subtitle": "With great power comes great responsibility",
     "steps": {
       "share": {
-        "label": "Share Code",
-        "text": "Share the room code with your friends"
+        "label": "Spread the Word",
+        "text": "Share the secret code with worthy opponents"
       },
       "assign": {
-        "label": "Assign Teams",
-        "text": "Drag players to Spicy or Sweet teams"
+        "label": "Play God",
+        "text": "Drag players to teams. Friendships may end."
       },
       "balance": {
-        "label": "Balance",
-        "text": "Keep teams roughly equal for fair play"
+        "label": "Be Fair-ish",
+        "text": "Try to keep teams balanced. Or don't. Chaos is fun."
       },
       "start": {
-        "label": "Start Game",
-        "text": "Press Start when everyone is ready"
+        "label": "Pull the Trigger",
+        "text": "Hit Start when everyone stops complaining"
       }
     },
-    "button": "Got it!"
+    "button": "Got it, chef!"
   },
 
   "phase1": {
     "title": "Tenders",
-    "subtitle": "Speed MCQ Challenge",
+    "subtitle": "First come, first served",
     "steps": {
       "speed": {
-        "label": "Speed Matters",
-        "text": "Be the first to answer correctly!"
+        "label": "Speed is Key",
+        "text": "First correct answer wins. Simple, right?"
       },
       "tap": {
-        "label": "Tap to Answer",
-        "text": "Select the right option quickly"
+        "label": "Tap Fast",
+        "text": "Pick the right answer before someone else does"
       },
       "points": {
-        "label": "Win Points",
-        "text": "Fastest correct answer wins the point"
+        "label": "Earn Glory",
+        "text": "Be quick and accurate. Or just quick and lucky."
       },
       "team": {
-        "label": "Team Score",
-        "text": "Points go to your team"
+        "label": "Team Spirit",
+        "text": "Your genius (or luck) benefits the whole team"
       }
     },
-    "button": "Ready!"
+    "button": "I was born ready!"
   },
 
   "phase2": {
     "title": "Sweet & Salty",
-    "subtitle": "Classify the items",
+    "subtitle": "Tinder for trivia",
     "steps": {
       "classify": {
-        "label": "Classify",
-        "text": "Sort each item into the right category"
+        "label": "Sort It Out",
+        "text": "Left or right? Life's full of hard choices."
       },
       "swipe": {
-        "label": "Swipe or Tap",
-        "text": "Swipe left/right or tap the zones"
+        "label": "Swipe Away",
+        "text": "Swipe like it's a dating app. But for food."
       },
       "both": {
-        "label": "Both Works",
-        "text": "Swipe up if it fits both categories"
+        "label": "Can't Decide?",
+        "text": "Swipe up if it's both. Commitment issues welcome."
       },
       "race": {
-        "label": "Team Race",
-        "text": "First team to answer locks it in"
+        "label": "Beat Them",
+        "text": "First team to answer locks it in. No take-backs!"
       }
     },
-    "button": "Let's Sort!"
+    "button": "Time to swipe!"
   },
 
   "phase3": {
     "title": "The Menu",
-    "subtitle": "Themed Q&A",
+    "subtitle": "Order at your own risk",
     "steps": {
       "pick": {
-        "label": "Pick Menu",
-        "text": "Each team chooses a theme"
+        "label": "Choose Wisely",
+        "text": "Pick a theme. Pray it's not impossible."
       },
       "answer": {
-        "label": "Type Answers",
-        "text": "Type your answers to the questions"
+        "label": "Type Fast",
+        "text": "Hammer that keyboard like your life depends on it"
       },
       "spelling": {
-        "label": "Spelling OK",
-        "text": "Approximate spelling is accepted"
+        "label": "Spelling?",
+        "text": "Close enough counts. We're not monsters."
       },
       "clock": {
-        "label": "Beat the Clock",
-        "text": "Answer before time runs out!"
+        "label": "Tick Tock",
+        "text": "Beat the clock or cry trying!"
       }
     },
-    "button": "Order Up!"
+    "button": "Waiter, we're ready!"
   },
 
   "phase4": {
     "title": "The Bill",
-    "subtitle": "Individual speed round",
+    "subtitle": "Every player for themselves",
     "steps": {
       "individual": {
-        "label": "Individual",
-        "text": "Everyone answers independently"
+        "label": "Solo Time",
+        "text": "No teamwork here. You're on your own, champ."
       },
       "pick": {
         "label": "Pick One",
-        "text": "Select the correct option"
+        "text": "Choose the right answer. Trust your gut."
       },
       "timer": {
         "label": "30 Seconds",
-        "text": "30 seconds per question"
+        "text": "Half a minute. An eternity. Or not enough."
       },
       "first": {
-        "label": "First Wins",
-        "text": "First correct answer earns points"
+        "label": "Speed Wins",
+        "text": "First correct answer takes all the glory"
       }
     },
-    "button": "Let's Calculate!"
+    "button": "Check please!"
   },
 
   "phase5": {
     "title": "Ultimate Burger",
-    "subtitle": "The Final Challenge",
+    "subtitle": "Where legends are made",
     "steps": {
       "listen": {
-        "label": "Listen First",
-        "text": "Hear all 10 questions before answering"
+        "label": "Listen Up",
+        "text": "Hear ALL 10 questions. No writing allowed. Yikes."
       },
       "remember": {
-        "label": "Remember",
-        "text": "Memorize both questions and answers"
+        "label": "Brain Power",
+        "text": "Memorize everything. Questions AND answers. Good luck."
       },
       "answer": {
-        "label": "Answer All",
-        "text": "Answer all questions in order"
+        "label": "Recall Time",
+        "text": "Answer all in order. Memory Olympics."
       },
       "team": {
-        "label": "Team Effort",
-        "text": "Work together for maximum points"
+        "label": "Team Brain",
+        "text": "One champion carries the team's hopes and dreams"
       }
     },
-    "button": "Final Showdown!"
+    "button": "Into the fire!"
   }
 }

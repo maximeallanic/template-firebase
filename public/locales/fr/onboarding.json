@@ -1,52 +1,52 @@
 {
-  "howToPlay": "Comment jouer",
+  "howToPlay": "Mode d'emploi",
   "step": "Étape {{number}}",
-  "continue": "Compris !",
+  "continue": "Pigé !",
   "letsGo": "C'est parti !",
 
   "home": {
     "title": "Bienvenue !",
-    "subtitle": "Le quiz culinaire en équipe",
+    "subtitle": "Le quiz culinaire où tout peut arriver",
     "steps": {
       "createJoin": {
-        "label": "Créer ou Rejoindre",
-        "text": "Crée une room ou rejoins avec un code"
+        "label": "Crée ou rejoins",
+        "text": "Ouvre une room ou débarque avec un code"
       },
       "pickTeam": {
-        "label": "Choisis ton équipe",
-        "text": "Choisis l'équipe Spicy ou Sweet"
+        "label": "Choisis ton camp",
+        "text": "Team Spicy ou Team Sweet ?"
       },
       "challenges": {
-        "label": "5 Défis",
-        "text": "Affronte-toi dans 5 rounds délirants"
+        "label": "5 épreuves",
+        "text": "5 rounds complètement barrés"
       },
       "win": {
-        "label": "Gagne ensemble",
+        "label": "Écrase les autres",
         "text": "L'équipe avec le plus de points gagne !"
       }
     },
-    "button": "C'est parti !"
+    "button": "Let's go !"
   },
 
   "lobby": {
-    "title": "Tu es l'hôte !",
-    "subtitle": "Voici ce que tu peux faire",
+    "title": "Tu es le Chef !",
+    "subtitle": "Tes super-pouvoirs",
     "steps": {
       "share": {
         "label": "Partage le code",
-        "text": "Donne le code de la room à tes amis"
+        "text": "Balance le code à tes potes"
       },
       "assign": {
-        "label": "Assigne les équipes",
-        "text": "Déplace les joueurs vers Spicy ou Sweet"
+        "label": "Fais les équipes",
+        "text": "Répartis tout le monde (et sème la zizanie)"
       },
       "balance": {
-        "label": "Équilibre",
-        "text": "Garde les équipes équilibrées"
+        "label": "Équilibre (ou pas)",
+        "text": "Essaie de faire des équipes équilibrées"
       },
       "start": {
-        "label": "Lance la partie",
-        "text": "Appuie sur Démarrer quand tout le monde est prêt"
+        "label": "Lance le show",
+        "text": "Quand tout le monde est prêt, GO !"
       }
     },
     "button": "Compris !"
@@ -54,121 +54,121 @@
 
   "phase1": {
     "title": "Tenders",
-    "subtitle": "Questions rapides",
+    "subtitle": "Le plus rapide gagne",
     "steps": {
       "speed": {
         "label": "Rapidité",
-        "text": "Sois le premier à répondre correctement !"
+        "text": "Premier arrivé, premier servi !"
       },
       "tap": {
-        "label": "Tape pour répondre",
-        "text": "Sélectionne la bonne option vite"
+        "label": "Tape vite",
+        "text": "Sélectionne la bonne réponse avant les autres"
       },
       "points": {
-        "label": "Gagne des points",
-        "text": "La première bonne réponse gagne le point"
+        "label": "1 point par bonne réponse",
+        "text": "Le premier à avoir bon rafle le point"
       },
       "team": {
         "label": "Score d'équipe",
-        "text": "Les points vont à ton équipe"
+        "text": "Tes points profitent à toute l'équipe"
       }
     },
-    "button": "Prêt !"
+    "button": "Go !"
   },
 
   "phase2": {
     "title": "Sucré Salé",
-    "subtitle": "Classe les items",
+    "subtitle": "Le tri sélectif du cerveau",
     "steps": {
       "classify": {
         "label": "Classe",
-        "text": "Trie chaque item dans la bonne catégorie"
+        "text": "Mets chaque item dans la bonne case"
       },
       "swipe": {
-        "label": "Swipe ou Tape",
-        "text": "Glisse à gauche/droite ou tape les zones"
+        "label": "Swipe !",
+        "text": "Gauche, droite, comme sur Tinder"
       },
       "both": {
         "label": "Les deux",
-        "text": "Glisse vers le haut si ça rentre dans les deux"
+        "text": "Vers le haut si ça rentre des deux côtés"
       },
       "race": {
-        "label": "Course d'équipe",
-        "text": "La première équipe à répondre verrouille"
+        "label": "Course",
+        "text": "Le premier qui swipe verrouille la réponse"
       }
     },
-    "button": "Trions !"
+    "button": "Je swipe !"
   },
 
   "phase3": {
     "title": "La Carte",
-    "subtitle": "Questions à thème",
+    "subtitle": "Quiz à thème",
     "steps": {
       "pick": {
         "label": "Choisis le menu",
-        "text": "Chaque équipe choisit un thème"
+        "text": "Chaque équipe choisit son thème préféré"
       },
       "answer": {
-        "label": "Tape tes réponses",
-        "text": "Écris tes réponses aux questions"
+        "label": "Tape ta réponse",
+        "text": "Écris la réponse (pas de QCM ici !)"
       },
       "spelling": {
         "label": "Orthographe OK",
-        "text": "L'orthographe approximative est acceptée"
+        "text": "Pas besoin d'être académicien"
       },
       "clock": {
-        "label": "Bats le chrono",
-        "text": "Réponds avant la fin du temps !"
+        "label": "Chrono",
+        "text": "Vite vite vite !"
       }
     },
-    "button": "Commande !"
+    "button": "Je commande !"
   },
 
   "phase4": {
     "title": "La Note",
-    "subtitle": "Round individuel rapide",
+    "subtitle": "Chacun pour soi",
     "steps": {
       "individual": {
-        "label": "Individuel",
-        "text": "Chacun répond seul"
+        "label": "Solo",
+        "text": "Chacun répond pour lui-même"
       },
       "pick": {
-        "label": "Choisis une",
-        "text": "Sélectionne la bonne option"
+        "label": "QCM",
+        "text": "Trouve la bonne option"
       },
       "timer": {
         "label": "30 secondes",
-        "text": "30 secondes par question"
+        "text": "Le chrono est serré !"
       },
       "first": {
-        "label": "Premier gagne",
-        "text": "La première bonne réponse gagne des points"
+        "label": "Rapidité = Points",
+        "text": "Plus tu réponds vite, plus tu gagnes"
       }
     },
-    "button": "Calculons !"
+    "button": "L'addition !"
   },
 
   "phase5": {
     "title": "Burger Ultime",
-    "subtitle": "Le Défi Final",
+    "subtitle": "L'épreuve finale",
     "steps": {
       "listen": {
         "label": "Écoute d'abord",
-        "text": "Écoute les 10 questions avant de répondre"
+        "text": "10 questions. Tu réponds APRÈS les avoir toutes entendues."
       },
       "remember": {
-        "label": "Mémorise",
-        "text": "Retiens les questions et les réponses"
+        "label": "Mémorise TOUT",
+        "text": "Questions ET réponses. Bonne chance."
       },
       "answer": {
-        "label": "Réponds à tout",
-        "text": "Réponds à toutes les questions dans l'ordre"
+        "label": "Réponds dans l'ordre",
+        "text": "Toutes les réponses, dans l'ordre, de mémoire."
       },
       "team": {
-        "label": "Effort d'équipe",
-        "text": "Travaillez ensemble pour un max de points"
+        "label": "Champion d'équipe",
+        "text": "Un seul joueur représente l'équipe. Pas de pression."
       }
     },
-    "button": "Finale !"
+    "button": "FINALE !"
   }
 }

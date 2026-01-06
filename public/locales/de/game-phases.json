@@ -2,37 +2,37 @@
   "phases": {
     "lobby": {
       "name": "Lobby",
-      "subtitle": "Warten...",
+      "subtitle": "Warten auf die Nachzügler...",
       "shortName": "Lobby"
     },
     "phase1": {
       "name": "Tenders",
-      "subtitle": "Sei der Schnellste beim Buzzen!",
+      "subtitle": "Wer zuerst drückt, hat immer recht... oder auch nicht.",
       "shortName": "Tenders"
     },
     "phase2": {
-      "name": "Suss und Salzig",
-      "subtitle": "A oder B?",
-      "shortName": "Suss und Salzig"
+      "name": "Süß & Salzig",
+      "subtitle": "Links, rechts, oder lieber nicht festlegen?",
+      "shortName": "Süß & Salzig"
     },
     "phase3": {
       "name": "Die Speisekarte",
-      "subtitle": "Merke dir so viele Gerichte wie moglich!",
+      "subtitle": "Bestell dein Menü und bete für deine Neuronen.",
       "shortName": "Die Speisekarte"
     },
     "phase4": {
       "name": "Die Rechnung",
-      "subtitle": "Allgemeinwissen-Fragen!",
+      "subtitle": "Die Rechnung bitte! (Aber als Multiple Choice)",
       "shortName": "Die Rechnung"
     },
     "phase5": {
       "name": "Ultimate Burger",
-      "subtitle": "Die finale Herausforderung fur den Sieg!",
+      "subtitle": "10 Fragen. 1 Gehirn. 0 Fehlertoleranz.",
       "shortName": "Ultimate Burger"
     },
     "victory": {
       "name": "Sieg",
-      "subtitle": "Der Gewinner ist...",
+      "subtitle": "Und der ultimative Champion ist...",
       "shortName": "Sieg"
     }
   },
@@ -40,11 +40,11 @@
     "phaseNumber": "Phase {{number}}"
   },
   "navigation": {
-    "startPhase3": "PHASE 3 STARTEN: DIE SPEISEKARTE",
-    "startPhase4": "Phase 4 starten: Die Rechnung"
+    "startPhase3": "BESTELLEN! (Phase 3)",
+    "startPhase4": "DIE RECHNUNG! (Phase 4)"
   },
   "endPhase": {
-    "phase2Complete": "Ende von Phase 2!",
-    "gettingMenusReady": "Menus werden vorbereitet..."
+    "phase2Complete": "Süß & Salzig erledigt! Puh.",
+    "gettingMenusReady": "Der Koch bereitet die Menüs vor..."
   }
 }

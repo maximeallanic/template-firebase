@@ -1,41 +1,41 @@
 {
   "create": {
     "title": "Open the Kitchen",
-    "hostAccess": "Host Access",
+    "hostAccess": "Chef Mode",
     "joinGame": "Join the game",
-    "createProfile": "Create your profile",
-    "chefName": "CHEF NAME",
+    "createProfile": "Create your avatar",
+    "chefName": "YOUR NAME",
     "chefNamePlaceholder": "Gordon R.",
-    "chooseAvatar": "CHOOSE AN AVATAR",
-    "createButton": "Let's Cook!",
-    "joinButton": "Join the game",
-    "creating": "Creating...",
+    "chooseAvatar": "PICK YOUR FACE",
+    "createButton": "LET THE SHOW BEGIN!",
+    "joinButton": "I'm in!",
+    "creating": "Heating up...",
     "connecting": "Connecting..."
   },
   "room": {
-    "roomCode": "Room Code",
+    "roomCode": "Secret Code",
     "code": "Code",
-    "copyCode": "Copy code",
+    "copyCode": "Copy",
     "copyLink": "Copy link",
-    "linkCopied": "Link copied",
-    "copyInviteLink": "Copy invite link",
-    "waitingForPlayers": "Waiting for players...",
-    "gameInProgress": "Game in progress."
+    "linkCopied": "Copied!",
+    "copyInviteLink": "Send to your buddies",
+    "waitingForPlayers": "Waiting for people...",
+    "gameInProgress": "Game on!"
   },
   "teams": {
     "spicyTeam": "Team Spicy",
     "sweetTeam": "Team Sweet",
-    "unassigned": "Unassigned players",
-    "waitingSpicy": "Waiting for brave ones...",
-    "waitingSweet": "Waiting for sweet tooths...",
-    "assignPlayer": "Assign {{name}} to a team",
-    "assignToSpicy": "Assign {{name}} to Team Spicy",
-    "assignToSweet": "Assign {{name}} to Team Sweet",
-    "allAssigned": "All chefs are assigned!"
+    "unassigned": "The undecided",
+    "waitingSpicy": "Recruiting spice daredevils...",
+    "waitingSweet": "Looking for sweet lovers...",
+    "assignPlayer": "Put {{name}} somewhere",
+    "assignToSpicy": "{{name}} joins Spicy",
+    "assignToSweet": "{{name}} joins Sweet",
+    "allAssigned": "Everyone's got a team!"
   },
   "game": {
-    "startGame": "START THE GAME",
-    "waitingForHost": "Waiting for the host to start the game...",
-    "spectatorMode": "SPECTATOR MODE"
+    "startGame": "LET'S GOOO!",
+    "waitingForHost": "Host is mentally preparing...",
+    "spectatorMode": "POPCORN MODE"
   }
 }

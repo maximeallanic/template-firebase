@@ -1,174 +1,174 @@
 {
-  "howToPlay": "Como jogar",
+  "howToPlay": "Como funciona esse negócio",
   "step": "Passo {{number}}",
   "continue": "Entendi!",
-  "letsGo": "Vamos la!",
+  "letsGo": "Bora!",
 
   "home": {
-    "title": "Bem-vindo!",
-    "subtitle": "O quiz culinario em equipe",
+    "title": "Bora, guerreiro!",
+    "subtitle": "O quiz completamente doido",
     "steps": {
       "createJoin": {
-        "label": "Criar ou Entrar",
-        "text": "Crie uma sala ou entre com um codigo"
+        "label": "Criar ou Invadir",
+        "text": "Faz a festa ou entra de penetra com um código"
       },
       "pickTeam": {
-        "label": "Escolha seu time",
-        "text": "Escolha o time Spicy ou Sweet"
+        "label": "Escolhe teu Destino",
+        "text": "Team Spicy ou Team Sweet. Escolhe bem. Ou não."
       },
       "challenges": {
-        "label": "5 Desafios",
-        "text": "Compita em 5 rodadas divertidas"
+        "label": "5 Rodadas Malucas",
+        "text": "Sobrevive 5 desafios. Cérebro opcional."
       },
       "win": {
-        "label": "Ganhe junto",
-        "text": "O time com mais pontos vence!"
+        "label": "Glória Eterna",
+        "text": "Mais pontos = direito de se gabar pra sempre!"
       }
     },
-    "button": "Vamos la!"
+    "button": "Liga o fogo!"
   },
 
   "lobby": {
-    "title": "Voce e o anfitriao!",
-    "subtitle": "Aqui esta o que voce pode fazer",
+    "title": "Tu é o Chef!",
+    "subtitle": "Grande poder, grande responsabilidade",
     "steps": {
       "share": {
-        "label": "Compartilhe o codigo",
-        "text": "De o codigo da sala aos seus amigos"
+        "label": "Espalha a Palavra",
+        "text": "Manda o código secreto pros adversários dignos"
       },
       "assign": {
-        "label": "Atribua times",
-        "text": "Mova jogadores para Spicy ou Sweet"
+        "label": "Banca o Deus",
+        "text": "Arrasta jogadores pros times. Amizades podem acabar."
       },
       "balance": {
-        "label": "Equilibre",
-        "text": "Mantenha os times equilibrados"
+        "label": "Seja Justo-ish",
+        "text": "Tenta equilibrar os times. Ou não. Caos também é legal."
       },
       "start": {
-        "label": "Inicie o jogo",
-        "text": "Pressione Iniciar quando todos estiverem prontos"
+        "label": "Aperta o Gatilho",
+        "text": "Clica em Iniciar quando todo mundo parar de reclamar"
       }
     },
-    "button": "Entendi!"
+    "button": "Fechado, chef!"
   },
 
   "phase1": {
     "title": "Tenders",
-    "subtitle": "Perguntas rapidas",
+    "subtitle": "Quem chega primeiro, bebe água limpa",
     "steps": {
       "speed": {
-        "label": "Rapidez",
-        "text": "Seja o primeiro a responder corretamente!"
+        "label": "Velocidade é Tudo",
+        "text": "Primeira resposta certa ganha. Simples assim."
       },
       "tap": {
-        "label": "Toque para responder",
-        "text": "Selecione a opcao correta rapidamente"
+        "label": "Toca Rápido",
+        "text": "Escolhe a resposta certa antes dos outros"
       },
       "points": {
-        "label": "Ganhe pontos",
-        "text": "A primeira resposta correta ganha o ponto"
+        "label": "Ganha Glória",
+        "text": "Rápido e certo. Ou só rápido e com sorte."
       },
       "team": {
-        "label": "Pontuacao do time",
-        "text": "Os pontos vao para seu time"
+        "label": "Espírito de Time",
+        "text": "Tua genialidade (ou sorte) vale pro time todo"
       }
     },
-    "button": "Pronto!"
+    "button": "Nasci pronto!"
   },
 
   "phase2": {
     "title": "Doce e Salgado",
-    "subtitle": "Classifique os itens",
+    "subtitle": "Tinder pra trivia",
     "steps": {
       "classify": {
-        "label": "Classifique",
-        "text": "Ordene cada item na categoria correta"
+        "label": "Classifica",
+        "text": "Esquerda ou direita? A vida tá cheia de decisões."
       },
       "swipe": {
-        "label": "Deslize ou Toque",
-        "text": "Deslize esquerda/direita ou toque nas zonas"
+        "label": "Desliza",
+        "text": "Swipe como app de namoro. Mas pra comida."
       },
       "both": {
-        "label": "Ambos",
-        "text": "Deslize para cima se cabe em ambas"
+        "label": "Não sabe escolher?",
+        "text": "Desliza pra cima se for os dois. Indecisos bem-vindos."
       },
       "race": {
-        "label": "Corrida de time",
-        "text": "O primeiro time a responder trava"
+        "label": "Pega Eles",
+        "text": "Primeiro time que responde trava. Sem devolução!"
       }
     },
-    "button": "Vamos classificar!"
+    "button": "Bora swipar!"
   },
 
   "phase3": {
-    "title": "O Menu",
-    "subtitle": "Perguntas tematicas",
+    "title": "O Cardápio",
+    "subtitle": "Pede por tua conta e risco",
     "steps": {
       "pick": {
-        "label": "Escolha o menu",
-        "text": "Cada time escolhe um tema"
+        "label": "Escolhe Bem",
+        "text": "Pega um tema. Reza pra não ser impossível."
       },
       "answer": {
-        "label": "Digite respostas",
-        "text": "Digite suas respostas as perguntas"
+        "label": "Digita Rápido",
+        "text": "Esmaga o teclado como se tua vida dependesse disso"
       },
       "spelling": {
-        "label": "Ortografia OK",
-        "text": "Ortografia aproximada e aceita"
+        "label": "Ortografia?",
+        "text": "Aproximado vale. Não somos monstros."
       },
       "clock": {
-        "label": "Contra o relogio",
-        "text": "Responda antes do tempo acabar!"
+        "label": "Tic Tac",
+        "text": "Vence o relógio ou chora tentando!"
       }
     },
-    "button": "Pedir!"
+    "button": "Garçom, tamos prontos!"
   },
 
   "phase4": {
     "title": "A Conta",
-    "subtitle": "Rodada individual rapida",
+    "subtitle": "Cada um por si",
     "steps": {
       "individual": {
-        "label": "Individual",
-        "text": "Cada um responde sozinho"
+        "label": "Modo Solo",
+        "text": "Sem trabalho em equipe aqui. Tá sozinho, campeão."
       },
       "pick": {
-        "label": "Escolha uma",
-        "text": "Selecione a opcao correta"
+        "label": "Escolhe Uma",
+        "text": "Pega a resposta certa. Confia no instinto."
       },
       "timer": {
-        "label": "30 segundos",
-        "text": "30 segundos por pergunta"
+        "label": "30 Segundos",
+        "text": "Meio minuto. Uma eternidade. Ou não."
       },
       "first": {
-        "label": "Primeiro ganha",
-        "text": "A primeira resposta correta ganha pontos"
+        "label": "Speed Ganha",
+        "text": "Primeira resposta certa leva toda a glória"
       }
     },
-    "button": "Vamos calcular!"
+    "button": "A conta, por favor!"
   },
 
   "phase5": {
     "title": "Burger Supremo",
-    "subtitle": "O Desafio Final",
+    "subtitle": "Onde lendas nascem",
     "steps": {
       "listen": {
-        "label": "Ouça primeiro",
-        "text": "Ouça as 10 perguntas antes de responder"
+        "label": "Escuta",
+        "text": "Ouve as 10 perguntas. Sem anotar. Ai."
       },
       "remember": {
-        "label": "Lembre-se",
-        "text": "Memorize as perguntas e respostas"
+        "label": "Poder Cerebral",
+        "text": "Decora tudo. Perguntas E respostas. Boa sorte."
       },
       "answer": {
-        "label": "Responda tudo",
-        "text": "Responda todas as perguntas em ordem"
+        "label": "Hora de Lembrar",
+        "text": "Responde todas em ordem. Olimpíada de memória."
       },
       "team": {
-        "label": "Esforço de equipe",
-        "text": "Trabalhem juntos para pontuação máxima"
+        "label": "Cérebro do Time",
+        "text": "Um campeão carrega as esperanças e sonhos do time"
       }
     },
-    "button": "Final épico!"
+    "button": "Pro fogo!"
   }
 }

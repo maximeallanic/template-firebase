@@ -26,7 +26,7 @@ export function PWAPlayerProfile() {
 
   return (
     <motion.div
-      className="flex flex-col items-center gap-2 pt-20 pb-4"
+      className="flex flex-col items-center gap-2 pb-4"
       variants={contentVariants}
       initial="hidden"
       animate="visible"

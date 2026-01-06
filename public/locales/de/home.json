@@ -1,68 +1,68 @@
 {
   "hero": {
-    "tagline": "Das kulinarische Quiz-Spiel mit Freunden!",
-    "description": "Kämpft in Teams <spicy>Spicy</spicy> vs <sweet>Sweet</sweet> in lustigen Herausforderungen!"
+    "tagline": "Das total durchgeknallte Küchen-Quiz!",
+    "description": "Kämpft in <spicy>Spicy</spicy> VS <sweet>Sweet</sweet> durch 5 chaotische Runden!"
   },
   "features": {
     "players": "2-20 Spieler",
-    "challenges": "5 lustige Herausforderungen",
-    "winner": "1 Gewinnerteam"
+    "challenges": "5 verrückte Challenges",
+    "winner": "1 Team um sie alle zu vernichten"
   },
   "create": {
     "title": "SPIEL ERSTELLEN",
-    "subtitle": "Öffne deine Küche und lade Freunde ein!",
-    "button": "Koch werden"
+    "subtitle": "Heiz den Ofen an und ruf deine Crew!",
+    "button": "Ich bin der Chef!"
   },
   "join": {
-    "title": "BEITRETEN",
-    "subtitle": "Gib den Code ein und wähle dein Team!",
+    "title": "INS CHAOS REIN",
+    "subtitle": "Code rein, Team wählen, los!",
     "placeholder": "CODE",
-    "button": "Beitreten",
-    "invalidCode": "Ungültiger Code"
+    "button": "Lass mich rein!",
+    "invalidCode": "Code gibt's nicht..."
   },
   "phases": {
-    "title": "5 Lustige Herausforderungen",
+    "title": "5 Total Verrückte Runden",
     "tenders": {
       "name": "Tenders",
-      "description": "Sei der Schnellste beim Buzzen!"
+      "description": "Wer zuerst drückt, hat immer recht. Oder nicht."
     },
     "sucreSale": {
       "name": "Süß & Salzig",
-      "description": "A oder B?"
+      "description": "Links, rechts, oder Bindungsangst?"
     },
     "laCarte": {
       "name": "Die Speisekarte",
-      "description": "Merke dir so viele Gerichte wie möglich!"
+      "description": "Bestell und bet für deine Neuronen."
     },
     "laNote": {
       "name": "Die Rechnung",
-      "description": "Allgemeinwissen-Fragen!"
+      "description": "Die Rechnung, aber als Multiple Choice."
     },
     "burgerUltime": {
       "name": "Ultimate Burger",
-      "description": "Die finale Herausforderung für den Sieg!"
+      "description": "10 Fragen. 1 Gehirn. 0 Fehlertoleranz."
     }
   },
   "loading": {
-    "joining": "Trete dem Spiel bei...",
-    "creating": "Öffne die Küche..."
+    "joining": "Komme rein...",
+    "creating": "Feuer wird angezündet..."
   },
   "premium": {
-    "badge": "PREMIUM",
-    "title": "Alle Phasen freischalten",
-    "description": "Werde Premium für Zugang zu Phase 3, 4 und 5 mit deinem Team!",
+    "badge": "PRO",
+    "title": "Das volle Menü freischalten",
+    "description": "Hol dir Pro für Phase 3, 4 und 5!",
     "features": {
       "laCarte": "Die Speisekarte",
       "laNote": "Die Rechnung",
       "burgerUltime": "Ultimate Burger"
     },
     "price": "1,99 €/Monat",
-    "cta": "Premium werden",
-    "hostOnly": "Nur der Gastgeber benötigt ein Abonnement"
+    "cta": "Pro werden",
+    "hostOnly": "Nur der Chef braucht das Abo"
   },
   "install": {
     "title": "App installieren!",
-    "subtitle": "Schneller Zugriff vom Startbildschirm",
+    "subtitle": "Schnellzugriff vom Homescreen",
     "button": "Installieren"
   },
   "pwa": {
@@ -73,18 +73,18 @@
     "soundOff": "Aus",
     "language": "Sprache",
     "profile": "Profil",
-    "rotateDevice": "Gerät drehen",
-    "portraitRequired": "Dieses Spiel wird im Hochformat gespielt"
+    "rotateDevice": "Handy drehen!",
+    "portraitRequired": "Dieses Spiel braucht Hochformat"
   },
   "createGame": "Spiel erstellen",
   "joinGame": "Beitreten",
   "soloMode": "Solo-Modus",
-  "hostDescription": "Lade Freunde ein",
+  "hostDescription": "Ruf deine Crew",
   "joinDescription": "Code eingeben",
-  "soloDescription": "Alleine spielen",
-  "enterCode": "Code eingeben",
-  "joining": "Verbinde...",
-  "creatingRoom": "Erstelle...",
+  "soloDescription": "Alleine fliegen",
+  "enterCode": "Raum-Code",
+  "joining": "Komme rein...",
+  "creatingRoom": "Heize auf...",
   "joiningRoom": "Verbinde...",
   "editProfile": "Profil bearbeiten"
 }

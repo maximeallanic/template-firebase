@@ -1,174 +1,174 @@
 {
-  "howToPlay": "Como jugar",
+  "howToPlay": "Cómo funciona esto",
   "step": "Paso {{number}}",
-  "continue": "Entendido!",
-  "letsGo": "Vamos!",
+  "continue": "¡Entendido!",
+  "letsGo": "¡Vamos allá!",
 
   "home": {
-    "title": "Bienvenido!",
-    "subtitle": "El quiz culinario en equipo",
+    "title": "¡Bienvenido, valiente!",
+    "subtitle": "El quiz totalmente descontrolado",
     "steps": {
       "createJoin": {
-        "label": "Crear o Unirse",
-        "text": "Crea una sala o unete con un codigo"
+        "label": "Crear o Colarte",
+        "text": "Organiza la fiesta o cuélate con un código"
       },
       "pickTeam": {
-        "label": "Elige tu equipo",
-        "text": "Elige el equipo Spicy o Sweet"
+        "label": "Elige tu Destino",
+        "text": "Equipo Spicy o Equipo Sweet. Elige bien. O no."
       },
       "challenges": {
-        "label": "5 Desafios",
-        "text": "Compite en 5 rondas divertidas"
+        "label": "5 Rondas Locas",
+        "text": "Sobrevive 5 desafíos. Neuronas opcionales."
       },
       "win": {
-        "label": "Gana juntos",
-        "text": "El equipo con mas puntos gana!"
+        "label": "Gloria Eterna",
+        "text": "¡Más puntos = derecho a presumir para siempre!"
       }
     },
-    "button": "Vamos!"
+    "button": "¡Encendemos el fuego!"
   },
 
   "lobby": {
-    "title": "Eres el anfitrion!",
-    "subtitle": "Esto es lo que puedes hacer",
+    "title": "¡Eres el Chef!",
+    "subtitle": "Un gran poder conlleva una gran responsabilidad",
     "steps": {
       "share": {
-        "label": "Comparte el codigo",
-        "text": "Da el codigo de la sala a tus amigos"
+        "label": "Corre la Voz",
+        "text": "Comparte el código secreto con oponentes dignos"
       },
       "assign": {
-        "label": "Asigna equipos",
-        "text": "Mueve jugadores a Spicy o Sweet"
+        "label": "Juega a Dios",
+        "text": "Arrastra jugadores a equipos. Las amistades pueden acabar."
       },
       "balance": {
-        "label": "Equilibra",
-        "text": "Manten los equipos equilibrados"
+        "label": "Sé Justo-ish",
+        "text": "Intenta equilibrar los equipos. O no. El caos mola."
       },
       "start": {
-        "label": "Inicia el juego",
-        "text": "Pulsa Iniciar cuando todos esten listos"
+        "label": "Aprieta el Gatillo",
+        "text": "Dale a Iniciar cuando todos dejen de quejarse"
       }
     },
-    "button": "Entendido!"
+    "button": "¡Captado, chef!"
   },
 
   "phase1": {
     "title": "Tenders",
-    "subtitle": "Preguntas rapidas",
+    "subtitle": "El primero que llega, gana",
     "steps": {
       "speed": {
-        "label": "Rapidez",
-        "text": "Se el primero en responder correctamente!"
+        "label": "La Velocidad Manda",
+        "text": "Primera respuesta correcta gana. Simple, ¿no?"
       },
       "tap": {
-        "label": "Toca para responder",
-        "text": "Selecciona la opcion correcta rapido"
+        "label": "Toca Rápido",
+        "text": "Elige la respuesta correcta antes que los demás"
       },
       "points": {
-        "label": "Gana puntos",
-        "text": "La primera respuesta correcta gana el punto"
+        "label": "Gana Gloria",
+        "text": "Sé rápido y preciso. O solo rápido y con suerte."
       },
       "team": {
-        "label": "Puntuacion de equipo",
-        "text": "Los puntos van a tu equipo"
+        "label": "Espíritu de Equipo",
+        "text": "Tu genialidad (o suerte) beneficia a todo el equipo"
       }
     },
-    "button": "Listo!"
+    "button": "¡Nací listo!"
   },
 
   "phase2": {
     "title": "Dulce y Salado",
-    "subtitle": "Clasifica los items",
+    "subtitle": "Tinder para trivia",
     "steps": {
       "classify": {
-        "label": "Clasifica",
-        "text": "Ordena cada item en la categoria correcta"
+        "label": "Ordena",
+        "text": "¿Izquierda o derecha? La vida está llena de decisiones."
       },
       "swipe": {
-        "label": "Desliza o Toca",
-        "text": "Desliza izquierda/derecha o toca las zonas"
+        "label": "Desliza",
+        "text": "Desliza como en una app de citas. Pero para comida."
       },
       "both": {
-        "label": "Ambos",
-        "text": "Desliza hacia arriba si encaja en ambas"
+        "label": "¿No puedes decidir?",
+        "text": "Desliza arriba si es ambos. Problemas de compromiso bienvenidos."
       },
       "race": {
-        "label": "Carrera de equipo",
-        "text": "El primer equipo en responder lo bloquea"
+        "label": "Gánalos",
+        "text": "¡El primer equipo que responde lo bloquea. Sin devoluciones!"
       }
     },
-    "button": "A clasificar!"
+    "button": "¡A deslizar!"
   },
 
   "phase3": {
-    "title": "El Menu",
-    "subtitle": "Preguntas tematicas",
+    "title": "El Menú",
+    "subtitle": "Pide bajo tu propio riesgo",
     "steps": {
       "pick": {
-        "label": "Elige el menu",
-        "text": "Cada equipo elige un tema"
+        "label": "Elige Bien",
+        "text": "Escoge un tema. Reza para que no sea imposible."
       },
       "answer": {
-        "label": "Escribe respuestas",
-        "text": "Escribe tus respuestas a las preguntas"
+        "label": "Escribe Rápido",
+        "text": "Machaca ese teclado como si tu vida dependiera de ello"
       },
       "spelling": {
-        "label": "Ortografia OK",
-        "text": "La ortografia aproximada es aceptada"
+        "label": "¿Ortografía?",
+        "text": "Aproximado vale. No somos monstruos."
       },
       "clock": {
-        "label": "Contra el reloj",
-        "text": "Responde antes de que se acabe el tiempo!"
+        "label": "Tic Tac",
+        "text": "¡Gana al reloj o llora intentándolo!"
       }
     },
-    "button": "A pedir!"
+    "button": "¡Camarero, estamos listos!"
   },
 
   "phase4": {
     "title": "La Cuenta",
-    "subtitle": "Ronda individual rapida",
+    "subtitle": "Cada uno por su cuenta",
     "steps": {
       "individual": {
-        "label": "Individual",
-        "text": "Cada uno responde solo"
+        "label": "Modo Solo",
+        "text": "Sin trabajo en equipo aquí. Estás solo, campeón."
       },
       "pick": {
-        "label": "Elige una",
-        "text": "Selecciona la opcion correcta"
+        "label": "Elige Una",
+        "text": "Escoge la respuesta correcta. Confía en tu instinto."
       },
       "timer": {
-        "label": "30 segundos",
-        "text": "30 segundos por pregunta"
+        "label": "30 Segundos",
+        "text": "Medio minuto. Una eternidad. O no suficiente."
       },
       "first": {
-        "label": "Primero gana",
-        "text": "La primera respuesta correcta gana puntos"
+        "label": "Velocidad Gana",
+        "text": "La primera respuesta correcta se lleva toda la gloria"
       }
     },
-    "button": "A calcular!"
+    "button": "¡La cuenta, por favor!"
   },
 
   "phase5": {
-    "title": "Burger Supremo",
-    "subtitle": "El Desafio Final",
+    "title": "Burger Definitivo",
+    "subtitle": "Donde nacen las leyendas",
     "steps": {
       "listen": {
-        "label": "Escucha primero",
-        "text": "Escucha las 10 preguntas antes de responder"
+        "label": "Escucha",
+        "text": "Escucha las 10 preguntas. Sin escribir. Uy."
       },
       "remember": {
-        "label": "Recuerda",
-        "text": "Memoriza las preguntas y respuestas"
+        "label": "Potencia Cerebral",
+        "text": "Memoriza todo. Preguntas Y respuestas. Suerte."
       },
       "answer": {
-        "label": "Responde todo",
-        "text": "Responde todas las preguntas en orden"
+        "label": "Hora de Recordar",
+        "text": "Responde todas en orden. Olimpiadas de memoria."
       },
       "team": {
-        "label": "Esfuerzo de equipo",
-        "text": "Trabajen juntos para maximos puntos"
+        "label": "Cerebro de Equipo",
+        "text": "Un campeón carga con las esperanzas y sueños del equipo"
       }
     },
-    "button": "Final epico!"
+    "button": "¡A las llamas!"
   }
 }

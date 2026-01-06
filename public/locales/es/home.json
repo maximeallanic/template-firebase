@@ -1,64 +1,64 @@
 {
   "hero": {
-    "tagline": "¡El juego de quiz culinario con amigos!",
-    "description": "¡Enfréntate en equipos <spicy>Spicy</spicy> vs <sweet>Sweet</sweet> en desafíos divertidos!"
+    "tagline": "¡El quiz culinario totalmente desquiciado!",
+    "description": "¡Enfréntate en <spicy>Spicy</spicy> VS <sweet>Sweet</sweet> en 5 pruebas caóticas!"
   },
   "features": {
     "players": "2-20 jugadores",
-    "challenges": "5 desafíos divertidos",
-    "winner": "1 equipo ganador"
+    "challenges": "5 pruebas locas",
+    "winner": "1 equipo para aplastarlos a todos"
   },
   "create": {
     "title": "CREAR PARTIDA",
-    "subtitle": "¡Abre tu cocina e invita a tus amigos!",
-    "button": "Ser el Chef"
+    "subtitle": "¡Enciende tu cocina y convoca a tus colegas!",
+    "button": "¡Soy el Chef!"
   },
   "join": {
-    "title": "UNIRSE",
-    "subtitle": "¡Ingresa el código y elige tu equipo!",
+    "title": "UNIRSE AL CAOS",
+    "subtitle": "¡Suelta el código, elige tu bando!",
     "placeholder": "CÓDIGO",
-    "button": "Unirse",
-    "invalidCode": "Código inválido"
+    "button": "¡Déjame entrar!",
+    "invalidCode": "Este código no existe..."
   },
   "phases": {
-    "title": "5 Desafíos Divertidos",
+    "title": "5 Pruebas Totalmente Locas",
     "tenders": {
       "name": "Tenders",
-      "description": "¡Sé el más rápido en pulsar!"
+      "description": "El primero que pulsa siempre tiene razón. O no."
     },
     "sucreSale": {
       "name": "Dulce y Salado",
-      "description": "¿A o B?"
+      "description": "¿Izquierda, derecha, o problemas de compromiso?"
     },
     "laCarte": {
       "name": "El Menú",
-      "description": "¡Recuerda todos los platos!"
+      "description": "Pide y reza por tus neuronas."
     },
     "laNote": {
       "name": "La Cuenta",
-      "description": "¡Preguntas de cultura general!"
+      "description": "La cuenta, pero en tipo test."
     },
     "burgerUltime": {
       "name": "Burger Definitivo",
-      "description": "¡El desafío final por la victoria!"
+      "description": "10 preguntas. 1 cerebro. 0 margen de error."
     }
   },
   "loading": {
-    "joining": "Uniéndose a la partida...",
-    "creating": "Abriendo la cocina..."
+    "joining": "Llegando...",
+    "creating": "Encendiendo el fuego..."
   },
   "premium": {
-    "badge": "PREMIUM",
-    "title": "Desbloquea todas las fases",
-    "description": "¡Hazte Premium para acceder a las fases 3, 4 y 5 con tu equipo!",
+    "badge": "PRO",
+    "title": "Desbloquea el menú completo",
+    "description": "¡Hazte Pro para jugar las fases 3, 4 y 5!",
     "features": {
       "laCarte": "El Menú",
       "laNote": "La Cuenta",
       "burgerUltime": "Burger Definitivo"
     },
     "price": "1,99 €/mes",
-    "cta": "Ser Premium",
-    "hostOnly": "Solo el anfitrión necesita suscripción"
+    "cta": "Ser Pro",
+    "hostOnly": "Solo el Chef necesita la suscripción"
   },
   "install": {
     "title": "¡Instala la app!",
@@ -69,22 +69,22 @@
     "play": "JUGAR",
     "settings": "Ajustes",
     "sound": "Sonido",
-    "soundOn": "Activado",
-    "soundOff": "Desactivado",
+    "soundOn": "On",
+    "soundOff": "Off",
     "language": "Idioma",
     "profile": "Perfil",
-    "rotateDevice": "Gira tu dispositivo",
+    "rotateDevice": "¡Gira el móvil!",
     "portraitRequired": "Este juego se juega en modo vertical"
   },
   "createGame": "Crear partida",
   "joinGame": "Unirse",
   "soloMode": "Modo Solo",
-  "hostDescription": "Invita a tus amigos",
-  "joinDescription": "Ingresa un código",
-  "soloDescription": "Juega solo",
-  "enterCode": "Ingresa el código",
-  "joining": "Conectando...",
-  "creatingRoom": "Creando...",
+  "hostDescription": "Invita a tu pandilla",
+  "joinDescription": "Suelta el código",
+  "soloDescription": "Vuela solo",
+  "enterCode": "Código de la sala",
+  "joining": "Llegando...",
+  "creatingRoom": "Calentando...",
   "joiningRoom": "Conectando...",
   "editProfile": "Editar perfil"
 }
