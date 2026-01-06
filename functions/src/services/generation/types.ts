@@ -274,14 +274,14 @@ export interface FactCheckBatchResponse {
 // --- SCHEMAS ---
 
 /** Supported languages for question generation */
-export type GenerationLanguage = 'fr' | 'en';
-export const SUPPORTED_LANGUAGES: GenerationLanguage[] = ['fr']; // Only FR is implemented for now
+export type GenerationLanguage = 'fr' | 'en' | 'es' | 'de' | 'pt';
+export const SUPPORTED_LANGUAGES: GenerationLanguage[] = ['fr', 'en', 'es', 'de', 'pt'];
 
 export const GameGenerationInputSchema = z.object({
     phase: z.enum(['phase1', 'phase2', 'phase3', 'phase4', 'phase5']),
     topic: z.string().optional().default('General Knowledge'),
     difficulty: z.enum(['easy', 'normal', 'hard', 'wtf']).optional().default('normal'),
-    language: z.enum(['fr', 'en']).optional().default('fr'),
+    language: z.enum(['fr', 'en', 'es', 'de', 'pt']).optional().default('fr'),
     // Completion mode: generate only missing questions
     completeCount: z.number().int().min(1).max(20).optional(),
     existingQuestions: z.array(z.unknown()).optional(),

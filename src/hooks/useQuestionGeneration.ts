@@ -2,7 +2,7 @@ import { useEffect, useState, useRef, useCallback } from 'react';
 import { ref, get, child } from 'firebase/database';
 import { rtdb } from '../services/firebase';
 import { type Room, setGameStatus, overwriteGameQuestions, setGeneratingState } from '../services/gameService';
-import { getRoomDifficulty } from '../services/game/roomService';
+import { getRoomDifficulty, getRoomLanguage } from '../services/game/roomService';
 import { type Question, hasEnoughQuestions, getMissingQuestionCount, MINIMUM_QUESTION_COUNTS } from '../types/gameTypes';
 import { generateWithRetry } from '../services/aiClient';
 import { filterUnseenQuestions } from '../services/historyService';
@@ -142,6 +142,7 @@ export function useQuestionGeneration({
                         phase: 'phase2',
                         roomCode: currentRoom.code,
                         difficulty: getRoomDifficulty(currentRoom),
+                        language: getRoomLanguage(currentRoom),
                         completeCount: missingCount,
                         existingQuestions: existingItems
                     });
@@ -177,7 +178,7 @@ export function useQuestionGeneration({
             });
 
             try {
-                const result = await generateWithRetry({ phase: 'phase2', roomCode: currentRoom.code, difficulty: getRoomDifficulty(currentRoom) });
+                const result = await generateWithRetry({ phase: 'phase2', roomCode: currentRoom.code, difficulty: getRoomDifficulty(currentRoom), language: getRoomLanguage(currentRoom) });
 
                 // Filter out already-seen items (Phase 2 has items array inside the object)
                 let filteredData = result.data;
@@ -268,7 +269,7 @@ export function useQuestionGeneration({
             });
 
             try {
-                const result = await generateWithRetry({ phase: 'phase3', roomCode: currentRoom.code, difficulty: getRoomDifficulty(currentRoom) });
+                const result = await generateWithRetry({ phase: 'phase3', roomCode: currentRoom.code, difficulty: getRoomDifficulty(currentRoom), language: getRoomLanguage(currentRoom) });
 
                 // Filter out already-seen questions from each menu
                 let filteredData = result.data;
@@ -375,6 +376,7 @@ export function useQuestionGeneration({
                         phase: 'phase4',
                         roomCode: currentRoom.code,
                         difficulty: getRoomDifficulty(currentRoom),
+                        language: getRoomLanguage(currentRoom),
                         completeCount: missingCount,
                         existingQuestions: existingPhase4
                     });
@@ -402,7 +404,7 @@ export function useQuestionGeneration({
             });
 
             try {
-                const result = await generateWithRetry({ phase: 'phase4', roomCode: currentRoom.code, difficulty: getRoomDifficulty(currentRoom) });
+                const result = await generateWithRetry({ phase: 'phase4', roomCode: currentRoom.code, difficulty: getRoomDifficulty(currentRoom), language: getRoomLanguage(currentRoom) });
 
                 // Filter out already-seen questions
                 let filteredData = result.data;
@@ -500,7 +502,7 @@ export function useQuestionGeneration({
                 });
 
                 try {
-                    const result = await generateWithRetry({ phase: 'phase2', roomCode: pregenRoomCode, difficulty: getRoomDifficulty(roomRef.current) });
+                    const result = await generateWithRetry({ phase: 'phase2', roomCode: pregenRoomCode, difficulty: getRoomDifficulty(roomRef.current), language: getRoomLanguage(roomRef.current) });
                     console.log('[QUESTION-GEN] Phase 2: Pregen result received, filtering and saving...');
 
                     let filteredData = result.data;
@@ -536,7 +538,7 @@ export function useQuestionGeneration({
                 });
 
                 try {
-                    const result = await generateWithRetry({ phase: 'phase3', roomCode: pregenRoomCode, difficulty: getRoomDifficulty(roomRef.current) });
+                    const result = await generateWithRetry({ phase: 'phase3', roomCode: pregenRoomCode, difficulty: getRoomDifficulty(roomRef.current), language: getRoomLanguage(roomRef.current) });
                     console.log('[QUESTION-GEN] Phase 3: Pregen result received, filtering and saving...');
 
                     let filteredData = result.data;
@@ -579,7 +581,7 @@ export function useQuestionGeneration({
                 });
 
                 try {
-                    const result = await generateWithRetry({ phase: 'phase4', roomCode: pregenRoomCode, difficulty: getRoomDifficulty(roomRef.current) });
+                    const result = await generateWithRetry({ phase: 'phase4', roomCode: pregenRoomCode, difficulty: getRoomDifficulty(roomRef.current), language: getRoomLanguage(roomRef.current) });
                     console.log('[QUESTION-GEN] Phase 4: Pregen result received, filtering and saving...');
 
                     let filteredData = result.data;
@@ -612,7 +614,7 @@ export function useQuestionGeneration({
                 });
 
                 try {
-                    const result = await generateWithRetry({ phase: 'phase5', roomCode: pregenRoomCode, difficulty: getRoomDifficulty(roomRef.current) });
+                    const result = await generateWithRetry({ phase: 'phase5', roomCode: pregenRoomCode, difficulty: getRoomDifficulty(roomRef.current), language: getRoomLanguage(roomRef.current) });
                     console.log('[QUESTION-GEN] Phase 5: Pregen result received, filtering and saving...');
 
                     let filteredData = result.data;
@@ -706,6 +708,7 @@ export function useQuestionGeneration({
                         phase: 'phase1',
                         roomCode: currentRoom.code,
                         difficulty: getRoomDifficulty(currentRoom),
+                        language: getRoomLanguage(currentRoom),
                         completeCount: missingCount,
                         existingQuestions: existingPhase1
                     });
@@ -776,7 +779,7 @@ export function useQuestionGeneration({
 
             // No suitable stored set found - generate new ones
             console.log('[QUESTION-GEN] 🤖 No stored questions available, starting AI generation...');
-            const result = await generateWithRetry({ phase: 'phase1', roomCode: currentRoom.code, difficulty: getRoomDifficulty(currentRoom) });
+            const result = await generateWithRetry({ phase: 'phase1', roomCode: currentRoom.code, difficulty: getRoomDifficulty(currentRoom), language: getRoomLanguage(currentRoom) });
 
             // Filter out already-seen questions (same logic as solo mode)
             let filteredData = result.data;

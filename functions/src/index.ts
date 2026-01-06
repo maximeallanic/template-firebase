@@ -140,7 +140,7 @@ const GenerateQuestionsSchema = z.object({
     .regex(/^[\w\s\-'àâäéèêëïîôùûüÿçÀÂÄÉÈÊËÏÎÔÙÛÜŸÇ.,!?]+$/i, 'Invalid characters in topic')
     .optional(),
   difficulty: z.enum(['easy', 'normal', 'hard', 'wtf']).optional(),
-  language: z.enum(['fr', 'en']).optional().default('fr'),
+  language: z.enum(['fr', 'en', 'es', 'de', 'pt']).optional().default('fr'),
   roomCode: z.string()
     .regex(/^[A-Z0-9]{4}$/, 'Room code must be 4 uppercase alphanumeric characters')
     .optional(),

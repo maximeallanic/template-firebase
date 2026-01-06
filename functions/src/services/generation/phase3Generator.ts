@@ -3,13 +3,8 @@
  * Generator/Reviewer iterative approach for themed menu questions
  */
 
-import {
-    PHASE3_GENERATOR_PROMPT,
-    PHASE3_DIALOGUE_REVIEWER_PROMPT,
-    PHASE3_TARGETED_REGENERATION_PROMPT,
-    getFullDifficultyContext,
-    type DifficultyLevel
-} from '../../prompts';
+import { getPrompts, type SupportedLanguage } from '../../prompts';
+import { getFullDifficultyContext, type DifficultyLevel } from '../../prompts/fr/difficulty';
 import {
     findSemanticDuplicatesWithEmbeddings,
     findInternalDuplicates,
@@ -25,6 +20,15 @@ import {
     Phase3DialogueReview,
 } from './types';
 
+/** Language names for AI prompts */
+const LANGUAGE_NAMES: Record<SupportedLanguage, string> = {
+    fr: 'French',
+    en: 'English',
+    es: 'Spanish',
+    de: 'German',
+    pt: 'Portuguese',
+};
+
 /**
  * Generate Phase 3 menus using dialogue between Generator and Reviewer agents
  * Creates 4 themed menus with 5 questions each: 3 normal + 1 trap menu
@@ -32,9 +36,19 @@ import {
 export async function generatePhase3WithDialogue(
     topic: string,
     difficulty: string,
+    language: SupportedLanguage = 'fr',
     maxIterations: number = 4
 ): Promise<{ menus: Phase3Menu[]; embeddings: number[][] }> {
-    console.log('🎭 Starting Generator/Reviewer dialogue for Phase 3...');
+    // Get language-specific prompts
+    const prompts = getPrompts(language);
+    const languageName = LANGUAGE_NAMES[language];
+
+    console.log(`🎭 Starting Generator/Reviewer dialogue for Phase 3 (lang: ${language})...`);
+
+    // Language instruction for non-English languages
+    const languageInstruction = language !== 'en'
+        ? `\n\n🌍 LANGUAGE: Generate ALL content in ${languageName}. Menu names, questions, and answers MUST be written in ${languageName}.`
+        : '';
 
     let previousFeedback = '';
     let lastMenus: Phase3Menu[] = [];
@@ -46,10 +60,11 @@ export async function generatePhase3WithDialogue(
 
         // 1. Generator proposes menus
         const difficultyContext = getFullDifficultyContext(difficulty as DifficultyLevel);
-        const generatorPrompt = PHASE3_GENERATOR_PROMPT
+        const generatorPrompt = prompts.PHASE3_GENERATOR_PROMPT
             .replace('{TOPIC}', topic)
             .replace('{DIFFICULTY}', difficultyContext)
-            .replace('{PREVIOUS_FEEDBACK}', previousFeedback);
+            .replace('{PREVIOUS_FEEDBACK}', previousFeedback)
+            + languageInstruction;
 
         console.log('🤖 Generator creating menus...');
         const proposalText = await callGemini(generatorPrompt, 'creative');
@@ -127,8 +142,9 @@ Recommence avec exactement 1 menu piège.
         lastMenus = proposal;
 
         // 2. Reviewer evaluates the menus
-        const reviewerPrompt = PHASE3_DIALOGUE_REVIEWER_PROMPT
-            .replace('{MENUS}', JSON.stringify(proposal, null, 2));
+        const reviewerPrompt = prompts.PHASE3_DIALOGUE_REVIEWER_PROMPT
+            .replace('{MENUS}', JSON.stringify(proposal, null, 2))
+            + languageInstruction;
 
         console.log('👨‍⚖️ Reviewer evaluating menus...');
         const reviewText = await callGeminiForReview(reviewerPrompt, 'creative');
@@ -283,10 +299,11 @@ Recommence la génération complète en vérifiant le compte.
 
                 const rejectionReasons = factCheckFailures.map(bq => bq.reason).join('; ');
 
-                const targetedPrompt = PHASE3_TARGETED_REGENERATION_PROMPT
+                const targetedPrompt = prompts.PHASE3_TARGETED_REGENERATION_PROMPT
                     .replace('{MENUS_STRUCTURE}', JSON.stringify(menusStructure, null, 2))
                     .replace('{BAD_QUESTIONS}', badQuestionsText)
-                    .replace('{REJECTION_REASONS}', rejectionReasons);
+                    .replace('{REJECTION_REASONS}', rejectionReasons)
+                    + languageInstruction;
 
                 try {
                     const regenText = await callGemini(targetedPrompt, 'creative');
@@ -386,10 +403,11 @@ Recommence la génération complète en vérifiant le compte.
 
             const rejectionReasons = badQuestions.map(bq => bq.reason).join('; ');
 
-            const targetedPrompt = PHASE3_TARGETED_REGENERATION_PROMPT
+            const targetedPrompt = prompts.PHASE3_TARGETED_REGENERATION_PROMPT
                 .replace('{MENUS_STRUCTURE}', JSON.stringify(menusStructure, null, 2))
                 .replace('{BAD_QUESTIONS}', badQuestionsText)
-                .replace('{REJECTION_REASONS}', rejectionReasons);
+                .replace('{REJECTION_REASONS}', rejectionReasons)
+                + languageInstruction;
 
             try {
                 const regenText = await callGemini(targetedPrompt, 'creative');

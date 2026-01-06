@@ -274,5 +274,12 @@
     "normal": "Normal",
     "hard": "Difficile",
     "wtf": "WTF"
+  },
+  "language": {
+    "label": "Langue des questions",
+    "auto": "Auto",
+    "autoUnanimous": "Auto : tous les joueurs parlent {{lang}}",
+    "autoMixed": "Auto : langues mixtes, utilisant l'anglais",
+    "hint": "Les questions seront générées en {{lang}}"
   }
 }

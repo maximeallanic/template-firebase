@@ -3,12 +3,8 @@
  * Generator/Reviewer iterative approach for high-quality trivia questions
  */
 
-import {
-    PHASE1_GENERATOR_PROMPT,
-    PHASE1_DIALOGUE_REVIEWER_PROMPT,
-    getFullDifficultyContext,
-    type DifficultyLevel
-} from '../../prompts';
+import { getPrompts, type SupportedLanguage } from '../../prompts';
+import { getFullDifficultyContext, type DifficultyLevel } from '../../prompts/fr/difficulty';
 import {
     findSemanticDuplicatesWithEmbeddings,
     findInternalDuplicates,
@@ -26,6 +22,15 @@ import {
     Phase1DialogueReview,
 } from './types';
 
+/** Language names for AI prompts */
+const LANGUAGE_NAMES: Record<SupportedLanguage, string> = {
+    fr: 'French',
+    en: 'English',
+    es: 'Spanish',
+    de: 'German',
+    pt: 'Portuguese',
+};
+
 /**
  * Generate Phase 1 questions using dialogue between Generator and Reviewer agents
  * The two agents iterate until questions pass quality criteria
@@ -33,15 +38,20 @@ import {
 export async function generatePhase1WithDialogue(
     topic: string,
     difficulty: string,
+    language: SupportedLanguage = 'fr',
     completeCount?: number,
     existingQuestions?: Phase1Question[],
     maxIterations: number = 4
 ): Promise<{ questions: Phase1Question[]; embeddings: number[][] }> {
+    // Get language-specific prompts
+    const prompts = getPrompts(language);
+    const languageName = LANGUAGE_NAMES[language];
+
     // Completion mode: generate fewer questions
     const isCompletion = completeCount !== undefined && completeCount > 0;
     const targetCount = isCompletion ? completeCount : 10;
 
-    console.log(`🎭 Starting Generator/Reviewer dialogue for Phase 1...${isCompletion ? ` (COMPLETION: ${targetCount} questions)` : ''}`);
+    console.log(`🎭 Starting Generator/Reviewer dialogue for Phase 1 (lang: ${language})...${isCompletion ? ` (COMPLETION: ${targetCount} questions)` : ''}`);
 
     let previousFeedback = '';
     let lastQuestions: Phase1Question[] = [];
@@ -50,11 +60,16 @@ export async function generatePhase1WithDialogue(
     let bestQuestions: Phase1Question[] = [];
     let bestScore = 0;
 
+    // Language instruction for non-English languages
+    const languageInstruction = language !== 'en'
+        ? `\n\n🌍 LANGUAGE: Generate ALL content in ${languageName}. Questions, answers, options, and anecdotes MUST be written in ${languageName}.`
+        : '';
+
     // For completion mode, build context about existing questions to avoid duplicates
     let existingContext = '';
     if (isCompletion && existingQuestions && existingQuestions.length > 0) {
         const existingSummary = existingQuestions.map((q, i) => `${i + 1}. ${q.text}`).join('\n');
-        existingContext = `\n\n⚠️ QUESTIONS DÉJÀ EXISTANTES (NE PAS RÉPÉTER):\n${existingSummary}\n\nGénère ${targetCount} nouvelles questions DIFFÉRENTES.`;
+        existingContext = `\n\n⚠️ EXISTING QUESTIONS (DO NOT REPEAT):\n${existingSummary}\n\nGenerate ${targetCount} NEW DIFFERENT questions.`;
     }
 
     for (let i = 0; i < maxIterations; i++) {
@@ -62,16 +77,18 @@ export async function generatePhase1WithDialogue(
 
         // 1. Generator proposes questions
         const difficultyContext = getFullDifficultyContext(difficulty as DifficultyLevel);
-        let generatorPrompt = PHASE1_GENERATOR_PROMPT
+        let generatorPrompt = prompts.PHASE1_GENERATOR_PROMPT
             .replace('{TOPIC}', topic)
             .replace('{DIFFICULTY}', difficultyContext)
-            .replace('{PREVIOUS_FEEDBACK}', previousFeedback);
+            .replace('{PREVIOUS_FEEDBACK}', previousFeedback)
+            + languageInstruction;
 
         // For completion mode, modify the prompt to request fewer questions
         if (isCompletion) {
             generatorPrompt = generatorPrompt
                 .replace(/10 questions/gi, `${targetCount} questions`)
-                .replace(/10 nouvelles/gi, `${targetCount} nouvelles`) + existingContext;
+                .replace(/10 nouvelles/gi, `${targetCount} nouvelles`)
+                .replace(/10 new/gi, `${targetCount} new`) + existingContext;
         }
 
         console.log('🤖 Generator creating questions...');
@@ -120,8 +137,9 @@ export async function generatePhase1WithDialogue(
         }));
 
         // 2. Reviewer evaluates the questions
-        const reviewerPrompt = PHASE1_DIALOGUE_REVIEWER_PROMPT
-            .replace('{QUESTIONS}', JSON.stringify(proposal, null, 2));
+        const reviewerPrompt = prompts.PHASE1_DIALOGUE_REVIEWER_PROMPT
+            .replace('{QUESTIONS}', JSON.stringify(proposal, null, 2))
+            + languageInstruction;
 
         console.log('👨‍⚖️ Reviewer evaluating questions...');
         const reviewText = await callGeminiForReview(reviewerPrompt, 'factual'); // Use factual config for Phase 1

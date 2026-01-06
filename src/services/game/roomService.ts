@@ -5,9 +5,15 @@
 
 import { ref, set, get, update, onValue, onDisconnect, remove } from 'firebase/database';
 import { rtdb, auth, getUserSubscriptionDirect } from '../firebase';
+import i18n from 'i18next';
 import type {
     Avatar, Team, Player, GameState, Room, Difficulty
 } from '../../types/gameTypes';
+import {
+    type GameLanguage,
+    DEFAULT_GAME_LANGUAGE,
+    toGameLanguage
+} from '../../types/languageTypes';
 
 // ============================================================================
 // UTILITY FUNCTIONS
@@ -102,6 +108,9 @@ export const createRoom = async (hostName: string, avatar: Avatar): Promise<{ co
         console.warn('[createRoom] Could not fetch host subscription, defaulting to free:', error);
     }
 
+    // Get current language from i18next
+    const playerLanguage = toGameLanguage(i18n.language);
+
     const hostPlayer: Player = {
         id: playerId,
         name: hostName,
@@ -110,7 +119,8 @@ export const createRoom = async (hostName: string, avatar: Avatar): Promise<{ co
         isHost: true,
         score: 0,
         joinedAt: Date.now(),
-        isOnline: true
+        isOnline: true,
+        language: playerLanguage
     };
 
     const initialGameState: GameState = {
@@ -165,13 +175,17 @@ export const joinRoom = async (code: string, playerName: string, avatar: Avatar)
 
     const room = validateRoom(snapshot.val());
 
+    // Get current language from i18next
+    const playerLanguage = toGameLanguage(i18n.language);
+
     // Check if player already exists in room (reconnection scenario)
     if (room.players && room.players[playerId]) {
         // Player is reconnecting - update their info and mark online
         await update(ref(rtdb, `rooms/${roomId}/players/${playerId}`), {
             name: playerName,
             avatar,
-            isOnline: true
+            isOnline: true,
+            language: playerLanguage
         });
         setupDisconnectHandler(roomId, playerId);
         return { playerId };
@@ -200,7 +214,8 @@ export const joinRoom = async (code: string, playerName: string, avatar: Avatar)
         isHost: false,
         score: 0,
         joinedAt: Date.now(),
-        isOnline: true
+        isOnline: true,
+        language: playerLanguage
     };
 
     await set(playerRef, newPlayer);
@@ -304,4 +319,128 @@ export const updateRoomDifficulty = async (code: string, difficulty: Difficulty)
  */
 export const getRoomDifficulty = (room: Room | null): Difficulty => {
     return room?.gameOptions?.difficulty ?? 'normal';
+};
+
+// ============================================================================
+// LANGUAGE MANAGEMENT
+// ============================================================================
+
+/**
+ * Calculate the room language based on players or host override.
+ * Priority:
+ * 1. If host forced a language -> use it
+ * 2. If all players have the same language -> use it
+ * 3. Otherwise -> default to English
+ *
+ * @param room - The room object
+ * @returns The language to use for AI question generation
+ */
+export const getRoomLanguage = (room: Room | null): GameLanguage => {
+    if (!room) return DEFAULT_GAME_LANGUAGE;
+
+    // 1. Host override takes priority
+    if (room.gameOptions?.forcedLanguage) {
+        return room.gameOptions.forcedLanguage;
+    }
+
+    // 2. Check player languages (exclude mock players and offline players)
+    const realPlayers = Object.values(room.players || {})
+        .filter(p => p.isOnline && !p.id.startsWith('mock_'));
+
+    if (realPlayers.length === 0) return DEFAULT_GAME_LANGUAGE;
+
+    // Get unique languages (default to 'en' if player has no language set)
+    const languages = new Set(
+        realPlayers.map(p => p.language || DEFAULT_GAME_LANGUAGE)
+    );
+
+    // 3. If all players have the same language, use it
+    if (languages.size === 1) {
+        return Array.from(languages)[0];
+    }
+
+    // 4. Mixed languages - default to English
+    return DEFAULT_GAME_LANGUAGE;
+};
+
+/**
+ * Check if all players in the room have the same language.
+ * Useful to show UI hints about language selection.
+ *
+ * @param room - The room object
+ * @returns Object with isUnanimous flag and the unanimous language (if any)
+ */
+export const getRoomLanguageInfo = (room: Room | null): {
+    isUnanimous: boolean;
+    unanimousLanguage: GameLanguage | null;
+    forcedLanguage: GameLanguage | null;
+    effectiveLanguage: GameLanguage;
+} => {
+    const effectiveLanguage = getRoomLanguage(room);
+    const forcedLanguage = room?.gameOptions?.forcedLanguage || null;
+
+    if (!room || !room.players) {
+        return {
+            isUnanimous: true,
+            unanimousLanguage: DEFAULT_GAME_LANGUAGE,
+            forcedLanguage,
+            effectiveLanguage
+        };
+    }
+
+    const realPlayers = Object.values(room.players)
+        .filter(p => p.isOnline && !p.id.startsWith('mock_'));
+
+    if (realPlayers.length === 0) {
+        return {
+            isUnanimous: true,
+            unanimousLanguage: DEFAULT_GAME_LANGUAGE,
+            forcedLanguage,
+            effectiveLanguage
+        };
+    }
+
+    const languages = new Set(
+        realPlayers.map(p => p.language || DEFAULT_GAME_LANGUAGE)
+    );
+
+    if (languages.size === 1) {
+        return {
+            isUnanimous: true,
+            unanimousLanguage: Array.from(languages)[0],
+            forcedLanguage,
+            effectiveLanguage
+        };
+    }
+
+    return {
+        isUnanimous: false,
+        unanimousLanguage: null,
+        forcedLanguage,
+        effectiveLanguage
+    };
+};
+
+/**
+ * Update room's forced language (host only action).
+ * Set to null to use automatic language detection.
+ *
+ * @param code - Room code
+ * @param language - Language to force, or null for auto-detection
+ */
+export const updateRoomForcedLanguage = async (
+    code: string,
+    language: GameLanguage | null
+): Promise<void> => {
+    const roomId = code.toUpperCase();
+    if (language) {
+        await update(ref(rtdb, `rooms/${roomId}`), {
+            'gameOptions/forcedLanguage': language
+        });
+    } else {
+        // Remove override (use auto-detection)
+        await update(ref(rtdb, `rooms/${roomId}/gameOptions`), {
+            forcedLanguage: null
+        });
+    }
 };

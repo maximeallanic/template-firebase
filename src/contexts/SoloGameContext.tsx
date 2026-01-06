@@ -5,8 +5,10 @@
 /* eslint-disable react-refresh/only-export-components */
 
 import { createContext, useContext, useReducer, useCallback, useRef, useEffect, type ReactNode } from 'react';
+import { useTranslation } from 'react-i18next';
 import { ref, child, get } from 'firebase/database';
 import type { Avatar, SimplePhase2Set, Difficulty } from '../types/gameTypes';
+import { toGameLanguage } from '../types/languageTypes';
 import { hasEnoughQuestions, MINIMUM_QUESTION_COUNTS } from '../types/gameTypes';
 import {
     type SoloGameState,
@@ -497,6 +499,7 @@ export function SoloGameProvider({
     initialPlayerAvatar = 'burger',
     initialDifficulty = 'normal',
 }: SoloGameProviderProps) {
+    const { i18n } = useTranslation();
     const [state, dispatch] = useReducer(
         soloGameReducer,
         createInitialSoloState(initialPlayerId, initialPlayerName, initialPlayerAvatar, initialDifficulty)
@@ -506,6 +509,13 @@ export function SoloGameProvider({
     const backgroundAbortRef = useRef<AbortController | null>(null);
     // Ref to store seenIds for retry
     const seenIdsRef = useRef<Set<string>>(new Set());
+    // Ref to store current language for AI generation
+    const languageRef = useRef(toGameLanguage(i18n.language));
+
+    // Keep language ref updated
+    useEffect(() => {
+        languageRef.current = toGameLanguage(i18n.language);
+    }, [i18n.language]);
 
     // Helper: Generate a phase with retries (silent retry on failure)
     const generatePhaseWithRetries = useCallback(async (
@@ -515,24 +525,30 @@ export function SoloGameProvider({
         difficulty: Difficulty,
         maxRetries = 3
     ): Promise<unknown> => {
+        const language = languageRef.current;
         let lastError: Error | null = null;
 
         for (let attempt = 1; attempt <= maxRetries; attempt++) {
             if (signal.aborted) throw new Error('Generation cancelled');
 
             try {
-                // Try Firestore cache first (fast path) - this already filters by seenIds
-                const storedSet = await getRandomQuestionSet(phase, seenIds);
-                if (storedSet) {
-                    console.log(`[SOLO] ✅ Using Firestore questions for ${phase}`);
-                    return phase === 'phase2'
-                        ? storedSet.questions as unknown as SimplePhase2Set
-                        : storedSet.questions;
+                // Try Firestore cache first (fast path) - only for French since stored questions are in French
+                // For other languages, skip cache and use AI generation directly
+                if (language === 'fr') {
+                    const storedSet = await getRandomQuestionSet(phase, seenIds);
+                    if (storedSet) {
+                        console.log(`[SOLO] ✅ Using Firestore questions for ${phase} (French cache)`);
+                        return phase === 'phase2'
+                            ? storedSet.questions as unknown as SimplePhase2Set
+                            : storedSet.questions;
+                    }
+                } else {
+                    console.log(`[SOLO] 🌍 Skipping Firestore cache for ${phase} (language: ${language})`);
                 }
 
-                // Fall back to AI generation with difficulty
-                console.log(`[SOLO] 🤖 AI generation for ${phase} (difficulty: ${difficulty}, seenIds: ${seenIds.size}, attempt ${attempt}/${maxRetries})`);
-                const result = await generateWithRetry({ phase, soloMode: true, difficulty });
+                // Fall back to AI generation with difficulty and language
+                console.log(`[SOLO] 🤖 AI generation for ${phase} (difficulty: ${difficulty}, language: ${language}, seenIds: ${seenIds.size}, attempt ${attempt}/${maxRetries})`);
+                const result = await generateWithRetry({ phase, soloMode: true, difficulty, language });
 
                 // Filter generated questions by seenIds (client-side safety filter)
                 const { filterUnseenQuestions } = await import('../services/historyService');
@@ -552,6 +568,7 @@ export function SoloGameProvider({
                             phase: 'phase1',
                             soloMode: true,
                             difficulty,
+                            language,
                             completeCount: missingCount,
                             existingQuestions: filteredData as unknown[]
                         });
@@ -580,6 +597,7 @@ export function SoloGameProvider({
                             phase: 'phase2',
                             soloMode: true,
                             difficulty,
+                            language,
                             completeCount: missingCount,
                             existingQuestions: filteredItems
                         });
@@ -610,6 +628,7 @@ export function SoloGameProvider({
                             phase: 'phase4',
                             soloMode: true,
                             difficulty,
+                            language,
                             completeCount: missingCount,
                             existingQuestions: filteredData as unknown[]
                         });

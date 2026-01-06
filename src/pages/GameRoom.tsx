@@ -2,6 +2,8 @@ import { useEffect, useLayoutEffect, useState, useRef, useCallback } from 'react
 import { useParams, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { type Player, type Difficulty, type PhaseStatus, setGameStatus, restartGame, updatePlayerTeam, updateRoomDifficulty, getRoomDifficulty, PREMIUM_PHASES, leaveRoom } from '../services/gameService';
+import { getRoomLanguageInfo, updateRoomForcedLanguage } from '../services/game/roomService';
+import type { GameLanguage } from '../types/languageTypes';
 import { useGameRoom } from '../hooks/useGameRoom';
 import { useQuestionGeneration } from '../hooks/useQuestionGeneration';
 import { useHostSubscription } from '../hooks/useHostSubscription';
@@ -29,6 +31,7 @@ import { AvatarIcon } from '../components/AvatarIcon';
 import { audioService } from '../services/audioService';
 import { SimpleConfetti } from '../components/ui/SimpleConfetti';
 import { DifficultySelector } from '../components/ui/DifficultySelector';
+import { RoomLanguageSelector } from '../components/ui/RoomLanguageSelector';
 import { TEAM_CONFETTI_COLORS } from '../components/ui/confettiColors';
 import { PlayerLeaderboard } from '../components/game/victory/PlayerLeaderboard';
 import { hasSeenIntro, markIntroSeen } from '../services/onboardingService';
@@ -375,6 +378,8 @@ export default function GameRoom() {
                                             onStart={handleStartGame}
                                             difficulty={getRoomDifficulty(room)}
                                             onDifficultyChange={(d) => updateRoomDifficulty(room.code, d)}
+                                            languageInfo={getRoomLanguageInfo(room)}
+                                            onLanguageChange={(lang) => updateRoomForcedLanguage(room.code, lang)}
                                         />
                                     </motion.div>
                                 )}
@@ -643,12 +648,20 @@ interface StartGameButtonProps {
     onStart: () => void;
     difficulty: Difficulty;
     onDifficultyChange: (difficulty: Difficulty) => void;
+    // Language props
+    languageInfo: {
+        isUnanimous: boolean;
+        unanimousLanguage: GameLanguage | null;
+        forcedLanguage: GameLanguage | null;
+        effectiveLanguage: GameLanguage;
+    };
+    onLanguageChange: (language: GameLanguage | null) => void;
 }
 
-function StartGameButton({ isHost, canStart, onStart, difficulty, onDifficultyChange }: StartGameButtonProps) {
+function StartGameButton({ isHost, canStart, onStart, difficulty, onDifficultyChange, languageInfo, onLanguageChange }: StartGameButtonProps) {
     const { t } = useTranslation('lobby');
 
-    // Non-host players see the current difficulty (read-only)
+    // Non-host players see the current difficulty and language (read-only)
     if (!isHost) {
         return (
             <div className="text-center space-y-4">
@@ -656,6 +669,15 @@ function StartGameButton({ isHost, canStart, onStart, difficulty, onDifficultyCh
                     value={difficulty}
                     onChange={() => {}} // Read-only for non-host
                     disabled={true}
+                />
+                <RoomLanguageSelector
+                    effectiveLanguage={languageInfo.effectiveLanguage}
+                    forcedLanguage={languageInfo.forcedLanguage}
+                    isUnanimous={languageInfo.isUnanimous}
+                    unanimousLanguage={languageInfo.unanimousLanguage}
+                    onChange={() => {}} // Read-only for non-host
+                    disabled={true}
+                    compact={true}
                 />
                 <p className="text-gray-400 font-medium animate-pulse">{t('game.waitingForHost')}</p>
             </div>
@@ -669,6 +691,16 @@ function StartGameButton({ isHost, canStart, onStart, difficulty, onDifficultyCh
                 value={difficulty}
                 onChange={onDifficultyChange}
                 disabled={false}
+            />
+            {/* Language Selector - Host can change */}
+            <RoomLanguageSelector
+                effectiveLanguage={languageInfo.effectiveLanguage}
+                forcedLanguage={languageInfo.forcedLanguage}
+                isUnanimous={languageInfo.isUnanimous}
+                unanimousLanguage={languageInfo.unanimousLanguage}
+                onChange={onLanguageChange}
+                disabled={false}
+                compact={true}
             />
             <button
                 onClick={onStart}

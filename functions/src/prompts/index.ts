@@ -2,23 +2,35 @@
  * Prompts Loader
  * Provides language-aware prompt loading for the game generator
  *
- * Currently supports:
+ * Supported languages:
  * - 'fr' (French) - Default
- *
- * Future languages can be added by creating new directories under prompts/
- * e.g., prompts/en/, prompts/es/, etc.
+ * - 'en' (English)
+ * - 'es' (Spanish) - Coming soon
+ * - 'de' (German) - Coming soon
+ * - 'pt' (Portuguese) - Coming soon
  */
 
 import * as frPrompts from './fr';
+import * as enPrompts from './en';
+// Future language imports (uncomment when ready):
+// import * as esPrompts from './es';
+// import * as dePrompts from './de';
+// import * as ptPrompts from './pt';
 
-export type SupportedLanguage = 'fr';
+export type SupportedLanguage = 'fr' | 'en' | 'es' | 'de' | 'pt';
 
 // Type for all prompts
 export type PromptSet = typeof frPrompts;
 
 // Language to prompts map
+// Note: ES, DE, PT will fall back to EN until their prompts are created
 const promptsByLanguage: Record<SupportedLanguage, PromptSet> = {
-    fr: frPrompts
+    fr: frPrompts,
+    en: enPrompts as unknown as PromptSet,
+    // Fallback to English for languages not yet implemented
+    es: enPrompts as unknown as PromptSet,  // TODO: Replace with esPrompts when ready
+    de: enPrompts as unknown as PromptSet,  // TODO: Replace with dePrompts when ready
+    pt: enPrompts as unknown as PromptSet   // TODO: Replace with ptPrompts when ready
 };
 
 /**
@@ -29,8 +41,8 @@ const promptsByLanguage: Record<SupportedLanguage, PromptSet> = {
 export function getPrompts(language: SupportedLanguage = 'fr'): PromptSet {
     const prompts = promptsByLanguage[language];
     if (!prompts) {
-        console.warn(`Prompts for language '${language}' not found, falling back to French`);
-        return promptsByLanguage.fr;
+        console.warn(`Prompts for language '${language}' not found, falling back to English`);
+        return promptsByLanguage.en;
     }
     return prompts;
 }

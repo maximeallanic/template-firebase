@@ -3,12 +3,8 @@
  * Generator/Reviewer iterative approach for buzzer-style trivia questions
  */
 
-import {
-    PHASE4_GENERATOR_PROMPT,
-    PHASE4_DIALOGUE_REVIEWER_PROMPT,
-    getFullDifficultyContext,
-    type DifficultyLevel,
-} from '../../prompts';
+import { getPrompts, type SupportedLanguage } from '../../prompts';
+import { getFullDifficultyContext, type DifficultyLevel } from '../../prompts/fr/difficulty';
 import {
     findSemanticDuplicatesWithEmbeddings,
     findInternalDuplicates,
@@ -24,6 +20,15 @@ import {
     Phase4DialogueReview,
 } from './types';
 
+/** Language names for AI prompts */
+const LANGUAGE_NAMES: Record<SupportedLanguage, string> = {
+    fr: 'French',
+    en: 'English',
+    es: 'Spanish',
+    de: 'German',
+    pt: 'Portuguese',
+};
+
 /**
  * Generate Phase 4 MCQ culture générale questions using dialogue between Generator and Reviewer agents
  * Creates 10 MCQ questions with 4 options each
@@ -31,15 +36,25 @@ import {
 export async function generatePhase4WithDialogue(
     topic: string,
     difficulty: string,
+    language: SupportedLanguage = 'fr',
     completeCount?: number,
     existingQuestions?: Phase4Question[],
     maxIterations: number = 4
 ): Promise<{ questions: Phase4Question[]; embeddings: number[][] }> {
+    // Get language-specific prompts
+    const prompts = getPrompts(language);
+    const languageName = LANGUAGE_NAMES[language];
+
     // Completion mode: generate fewer questions
     const isCompletion = completeCount !== undefined && completeCount > 0;
     const targetCount = isCompletion ? completeCount : 10;
 
-    console.log(`🎭 Starting Generator/Reviewer dialogue for Phase 4 MCQ...${isCompletion ? ` (COMPLETION: ${targetCount} questions)` : ''}`);
+    console.log(`🎭 Starting Generator/Reviewer dialogue for Phase 4 MCQ (lang: ${language})...${isCompletion ? ` (COMPLETION: ${targetCount} questions)` : ''}`);
+
+    // Language instruction for non-English languages
+    const languageInstruction = language !== 'en'
+        ? `\n\n🌍 LANGUAGE: Generate ALL content in ${languageName}. Questions, answers, and options MUST be written in ${languageName}.`
+        : '';
 
     let previousFeedback = '';
     let lastQuestions: Phase4Question[] = [];
@@ -50,7 +65,7 @@ export async function generatePhase4WithDialogue(
     let existingContext = '';
     if (isCompletion && existingQuestions && existingQuestions.length > 0) {
         const existingSummary = existingQuestions.map((q, i) => `${i + 1}. ${q.text}`).join('\n');
-        existingContext = `\n\n⚠️ QUESTIONS DÉJÀ EXISTANTES (NE PAS RÉPÉTER):\n${existingSummary}\n\nGénère ${targetCount} nouvelles questions DIFFÉRENTES.`;
+        existingContext = `\n\n⚠️ EXISTING QUESTIONS (DO NOT REPEAT):\n${existingSummary}\n\nGenerate ${targetCount} NEW DIFFERENT questions.`;
     }
 
     for (let i = 0; i < maxIterations; i++) {
@@ -58,10 +73,11 @@ export async function generatePhase4WithDialogue(
 
         // 1. Generator proposes questions
         const difficultyContext = getFullDifficultyContext(difficulty as DifficultyLevel);
-        let generatorPrompt = PHASE4_GENERATOR_PROMPT
+        let generatorPrompt = prompts.PHASE4_GENERATOR_PROMPT
             .replace('{TOPIC}', topic)
             .replace('{DIFFICULTY}', difficultyContext)
-            .replace('{PREVIOUS_FEEDBACK}', previousFeedback);
+            .replace('{PREVIOUS_FEEDBACK}', previousFeedback)
+            + languageInstruction;
 
         // For completion mode, modify the prompt
         if (isCompletion) {
@@ -103,8 +119,9 @@ export async function generatePhase4WithDialogue(
         lastQuestions = proposal;
 
         // 2. Reviewer evaluates the questions
-        const reviewerPrompt = PHASE4_DIALOGUE_REVIEWER_PROMPT
-            .replace('{QUESTIONS}', JSON.stringify(proposal, null, 2));
+        const reviewerPrompt = prompts.PHASE4_DIALOGUE_REVIEWER_PROMPT
+            .replace('{QUESTIONS}', JSON.stringify(proposal, null, 2))
+            + languageInstruction;
 
         console.log('👨‍⚖️ Reviewer evaluating MCQ questions...');
         const reviewText = await callGeminiForReview(reviewerPrompt, 'creative');

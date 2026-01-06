@@ -21,6 +21,9 @@ import {
     GameGenerationOutputSchema,
 } from './generation/types';
 
+// Import language type from prompts
+import { type SupportedLanguage } from '../prompts';
+
 // Import topic generation
 import { generateCreativeTopic } from './generation/topicGenerator';
 
@@ -57,6 +60,9 @@ export const generateGameQuestionsFlow = ai.defineFlow(
     async (input) => {
         const { phase, difficulty, language = 'fr', completeCount, existingQuestions } = input;
 
+        // Cast language to SupportedLanguage (validated below)
+        const lang = language as SupportedLanguage;
+
         // Check if we're in completion mode
         const isCompletionMode = completeCount !== undefined && completeCount > 0;
         if (isCompletionMode) {
@@ -64,7 +70,7 @@ export const generateGameQuestionsFlow = ai.defineFlow(
             console.log(`   Existing questions count: ${existingQuestions?.length || 0}`);
         }
 
-        // Validate language is supported (only FR for now)
+        // Validate language is supported
         if (!SUPPORTED_LANGUAGES.includes(language as GenerationLanguage)) {
             throw new Error(`Language '${language}' is not yet supported. Available languages: ${SUPPORTED_LANGUAGES.join(', ')}`);
         }
@@ -72,7 +78,7 @@ export const generateGameQuestionsFlow = ai.defineFlow(
         // Generate creative topic with AI if none provided or default
         // Phase 2 uses a specific prompt for topics that work well with homophones
         const topic = (!input.topic || input.topic === 'General Knowledge')
-            ? await generateCreativeTopic(phase, difficulty)
+            ? await generateCreativeTopic(phase, difficulty, lang)
             : input.topic;
 
         console.log(`🎲 Generating ${phase} content on topic: "${topic}" (${difficulty}, lang: ${language})`);
@@ -90,6 +96,7 @@ export const generateGameQuestionsFlow = ai.defineFlow(
             const result = await generatePhase1WithDialogue(
                 topic,
                 difficulty,
+                lang,
                 isCompletionMode ? completeCount : undefined,
                 isCompletionMode ? existingQuestions as Phase1Question[] : undefined
             );
@@ -102,6 +109,7 @@ export const generateGameQuestionsFlow = ai.defineFlow(
             const result = await generatePhase2WithDialogue(
                 topic,
                 difficulty,
+                lang,
                 isCompletionMode ? completeCount : undefined,
                 isCompletionMode ? existingQuestions : undefined
             );
@@ -111,7 +119,7 @@ export const generateGameQuestionsFlow = ai.defineFlow(
         } else if (phase === 'phase3') {
             // Phase 3: Generator/Reviewer dialogue system for menus
             console.log('📋 Using dialogue system for Phase 3...');
-            const result = await generatePhase3WithDialogue(topic, difficulty);
+            const result = await generatePhase3WithDialogue(topic, difficulty, lang);
             jsonData = result.menus;
             embeddings = result.embeddings;
 
@@ -121,6 +129,7 @@ export const generateGameQuestionsFlow = ai.defineFlow(
             const result = await generatePhase4WithDialogue(
                 topic,
                 difficulty,
+                lang,
                 isCompletionMode ? completeCount : undefined,
                 isCompletionMode ? existingQuestions as Phase4Question[] : undefined
             );
@@ -130,7 +139,7 @@ export const generateGameQuestionsFlow = ai.defineFlow(
         } else if (phase === 'phase5') {
             // Phase 5: Generator/Reviewer dialogue system for memory sequence
             console.log('📋 Using dialogue system for Phase 5...');
-            const result = await generatePhase5WithDialogue(topic, difficulty);
+            const result = await generatePhase5WithDialogue(topic, difficulty, lang);
             jsonData = result.questions;
             embeddings = result.embeddings;
 

@@ -3,13 +3,8 @@
  * Generator/Reviewer iterative approach for homophone-based questions
  */
 
-import {
-    PHASE2_GENERATOR_PROMPT,
-    PHASE2_DIALOGUE_REVIEWER_PROMPT,
-    PHASE2_TARGETED_REGENERATION_PROMPT,
-    getFullDifficultyContext,
-    type DifficultyLevel
-} from '../../prompts';
+import { getPrompts, type SupportedLanguage } from '../../prompts';
+import { getFullDifficultyContext, type DifficultyLevel } from '../../prompts/fr/difficulty';
 import {
     findSemanticDuplicatesWithEmbeddings,
     findInternalDuplicates,
@@ -27,6 +22,15 @@ import {
     TARGETED_REGEN_MAX_PERCENTAGE,
 } from './types';
 
+/** Language names for AI prompts */
+const LANGUAGE_NAMES: Record<SupportedLanguage, string> = {
+    fr: 'French',
+    en: 'English',
+    es: 'Spanish',
+    de: 'German',
+    pt: 'Portuguese',
+};
+
 /**
  * Generate Phase 2 set using dialogue between Generator and Reviewer agents
  * The two agents iterate until the set passes quality criteria
@@ -34,15 +38,20 @@ import {
 export async function generatePhase2WithDialogue(
     topic: string,
     difficulty: string,
+    language: SupportedLanguage = 'fr',
     completeCount?: number,
     existingItems?: unknown[],
     maxIterations: number = 3
 ): Promise<{ set: Phase2Set; embeddings: number[][] }> {
+    // Get language-specific prompts
+    const prompts = getPrompts(language);
+    const languageName = LANGUAGE_NAMES[language];
+
     // Completion mode: generate fewer items
     const isCompletion = completeCount !== undefined && completeCount > 0;
     const targetCount = isCompletion ? completeCount : 12;
 
-    console.log(`🎭 Starting Generator/Reviewer dialogue for Phase 2...${isCompletion ? ` (COMPLETION: ${targetCount} items)` : ''}`);
+    console.log(`🎭 Starting Generator/Reviewer dialogue for Phase 2 (lang: ${language})...${isCompletion ? ` (COMPLETION: ${targetCount} items)` : ''}`);
 
     let previousFeedback = '';
     let lastSet: Phase2Set | null = null;
@@ -51,6 +60,11 @@ export async function generatePhase2WithDialogue(
     let bestSet: Phase2Set | null = null;
     let bestScore = 0;
 
+    // Language instruction for non-English languages
+    const languageInstruction = language !== 'en'
+        ? `\n\n🌍 LANGUAGE: Generate ALL content in ${languageName}. Options, items, and descriptions MUST be written in ${languageName}. Use ${languageName} homophones/wordplay.`
+        : '';
+
     // For completion mode, build context about existing items to avoid duplicates
     let existingContext = '';
     if (isCompletion && existingItems && existingItems.length > 0) {
@@ -58,7 +72,7 @@ export async function generatePhase2WithDialogue(
             const itemObj = item as { text?: string };
             return `${i + 1}. ${itemObj.text || 'unknown'}`;
         }).join('\n');
-        existingContext = `\n\n⚠️ ITEMS DÉJÀ EXISTANTS (NE PAS RÉPÉTER):\n${existingSummary}\n\nGénère ${targetCount} nouveaux items DIFFÉRENTS.`;
+        existingContext = `\n\n⚠️ EXISTING ITEMS (DO NOT REPEAT):\n${existingSummary}\n\nGenerate ${targetCount} NEW DIFFERENT items.`;
     }
 
     // Flag to skip generator and re-validate lastSet directly (after targeted regen)
@@ -93,10 +107,11 @@ export async function generatePhase2WithDialogue(
         } else {
             // 1. Generator proposes a complete set
             const difficultyContext = getFullDifficultyContext(difficulty as DifficultyLevel);
-            let generatorPrompt = PHASE2_GENERATOR_PROMPT
+            let generatorPrompt = prompts.PHASE2_GENERATOR_PROMPT
                 .replace('{TOPIC}', topic)
                 .replace('{DIFFICULTY}', difficultyContext)
-                .replace('{PREVIOUS_FEEDBACK}', previousFeedback);
+                .replace('{PREVIOUS_FEEDBACK}', previousFeedback)
+                + languageInstruction;
 
             // For completion mode, modify the prompt
             if (isCompletion) {
@@ -137,8 +152,9 @@ export async function generatePhase2WithDialogue(
         };
 
         // 2. Reviewer evaluates the complete set
-        const reviewerPrompt = PHASE2_DIALOGUE_REVIEWER_PROMPT
-            .replace('{SET}', JSON.stringify(proposal, null, 2));
+        const reviewerPrompt = prompts.PHASE2_DIALOGUE_REVIEWER_PROMPT
+            .replace('{SET}', JSON.stringify(proposal, null, 2))
+            + languageInstruction;
 
         console.log('👨‍⚖️ Reviewer evaluating set...');
         const reviewText = await callGeminiForReview(reviewerPrompt, 'creative');
@@ -242,7 +258,7 @@ Tu dois changer COMPLÈTEMENT de jeu de mots pour avoir un B CONCRET.
                     .map(item => `- "${item.text}": trop évident/prévisible`)
                     .join('\n');
 
-                const targetedPrompt = PHASE2_TARGETED_REGENERATION_PROMPT
+                const targetedPrompt = prompts.PHASE2_TARGETED_REGENERATION_PROMPT
                     .replace('{OPTION_A}', proposal.optionA)
                     .replace('{OPTION_B}', proposal.optionB)
                     .replace('{GOOD_ITEMS}', goodItemsText)
@@ -252,7 +268,8 @@ Tu dois changer COMPLÈTEMENT de jeu de mots pour avoir un B CONCRET.
                     .replace(/{COUNT}/g, String(obviousIndices.length))
                     .replace('{NEEDED_A}', String(neededA))
                     .replace('{NEEDED_B}', String(neededB))
-                    .replace('{NEEDED_BOTH}', String(neededBoth));
+                    .replace('{NEEDED_BOTH}', String(neededBoth))
+                    + languageInstruction;
 
                 try {
                     const regenText = await callGemini(targetedPrompt, 'creative');
@@ -367,7 +384,7 @@ Tu dois REMPLACER au moins 4-5 items par des PIÈGES contre-intuitifs.
                             .map(f => `- "${f.item.text}": ${f.reason}`)
                             .join('\n');
 
-                        const targetedPrompt = PHASE2_TARGETED_REGENERATION_PROMPT
+                        const targetedPrompt = prompts.PHASE2_TARGETED_REGENERATION_PROMPT
                             .replace('{OPTION_A}', validSet.optionA)
                             .replace('{OPTION_B}', validSet.optionB)
                             .replace('{GOOD_ITEMS}', goodItemsText)
@@ -377,7 +394,8 @@ Tu dois REMPLACER au moins 4-5 items par des PIÈGES contre-intuitifs.
                             .replace(/{COUNT}/g, String(failedIndices.length))
                             .replace('{NEEDED_A}', String(neededA))
                             .replace('{NEEDED_B}', String(neededB))
-                            .replace('{NEEDED_BOTH}', String(neededBoth));
+                            .replace('{NEEDED_BOTH}', String(neededBoth))
+                            + languageInstruction;
 
                         try {
                             const regenText = await callGemini(targetedPrompt, 'creative');
@@ -551,7 +569,7 @@ Vérifie que chaque item appartient VRAIMENT à la catégorie assignée (A, B, o
                 .map(item => `- "${item.text}": ${item.issue || 'trop évident'}`)
                 .join('\n');
 
-            const targetedPrompt = PHASE2_TARGETED_REGENERATION_PROMPT
+            const targetedPrompt = prompts.PHASE2_TARGETED_REGENERATION_PROMPT
                 .replace('{OPTION_A}', proposal.optionA)
                 .replace('{OPTION_B}', proposal.optionB)
                 .replace('{GOOD_ITEMS}', goodItemsText)
@@ -561,7 +579,8 @@ Vérifie que chaque item appartient VRAIMENT à la catégorie assignée (A, B, o
                 .replace(/{COUNT}/g, String(badItemIndices.length))
                 .replace('{NEEDED_A}', String(neededA))
                 .replace('{NEEDED_B}', String(neededB))
-                .replace('{NEEDED_BOTH}', String(neededBoth));
+                .replace('{NEEDED_BOTH}', String(neededBoth))
+                + languageInstruction;
 
             try {
                 const regenText = await callGemini(targetedPrompt, 'creative');

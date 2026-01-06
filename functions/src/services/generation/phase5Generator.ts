@@ -3,12 +3,8 @@
  * Generator/Reviewer iterative approach for linked question sequences
  */
 
-import {
-    PHASE5_GENERATOR_PROMPT,
-    PHASE5_DIALOGUE_REVIEWER_PROMPT,
-    getFullDifficultyContext,
-    type DifficultyLevel,
-} from '../../prompts';
+import { getPrompts, type SupportedLanguage } from '../../prompts';
+import { getFullDifficultyContext, type DifficultyLevel } from '../../prompts/fr/difficulty';
 import {
     findSemanticDuplicatesWithEmbeddings,
     findInternalDuplicates,
@@ -26,6 +22,15 @@ import {
     TARGETED_REGEN_MAX_PERCENTAGE,
 } from './types';
 
+/** Language names for AI prompts */
+const LANGUAGE_NAMES: Record<SupportedLanguage, string> = {
+    fr: 'French',
+    en: 'English',
+    es: 'Spanish',
+    de: 'German',
+    pt: 'Portuguese',
+};
+
 /**
  * Generate Phase 5 memory sequence using dialogue between Generator and Reviewer agents
  * Creates 10 linked questions with callbacks for memory challenge
@@ -33,9 +38,19 @@ import {
 export async function generatePhase5WithDialogue(
     topic: string,
     difficulty: string,
+    language: SupportedLanguage = 'fr',
     maxIterations: number = 4
 ): Promise<{ questions: Phase5Question[]; embeddings: number[][] }> {
-    console.log('🎭 Starting Generator/Reviewer dialogue for Phase 5...');
+    // Get language-specific prompts
+    const prompts = getPrompts(language);
+    const languageName = LANGUAGE_NAMES[language];
+
+    console.log(`🎭 Starting Generator/Reviewer dialogue for Phase 5 (lang: ${language})...`);
+
+    // Language instruction for non-English languages
+    const languageInstruction = language !== 'en'
+        ? `\n\n🌍 LANGUAGE: Generate ALL content in ${languageName}. Questions, answers, and anecdotes MUST be written in ${languageName}.`
+        : '';
 
     let previousFeedback = '';
     let lastQuestions: Phase5Question[] = [];
@@ -47,10 +62,11 @@ export async function generatePhase5WithDialogue(
 
         // 1. Generator proposes questions
         const difficultyContext = getFullDifficultyContext(difficulty as DifficultyLevel);
-        const generatorPrompt = PHASE5_GENERATOR_PROMPT
+        const generatorPrompt = prompts.PHASE5_GENERATOR_PROMPT
             .replace('{TOPIC}', topic)
             .replace('{DIFFICULTY}', difficultyContext)
-            .replace('{PREVIOUS_FEEDBACK}', previousFeedback);
+            .replace('{PREVIOUS_FEEDBACK}', previousFeedback)
+            + languageInstruction;
 
         console.log('🤖 Generator creating memory sequence...');
         const proposalText = await callGemini(generatorPrompt, 'creative');
@@ -84,8 +100,9 @@ export async function generatePhase5WithDialogue(
         lastQuestions = proposal;
 
         // 2. Reviewer evaluates the sequence
-        const reviewerPrompt = PHASE5_DIALOGUE_REVIEWER_PROMPT
-            .replace('{QUESTIONS}', JSON.stringify(proposal, null, 2));
+        const reviewerPrompt = prompts.PHASE5_DIALOGUE_REVIEWER_PROMPT
+            .replace('{QUESTIONS}', JSON.stringify(proposal, null, 2))
+            + languageInstruction;
 
         console.log('👨‍⚖️ Reviewer evaluating sequence...');
         const reviewText = await callGeminiForReview(reviewerPrompt, 'creative');

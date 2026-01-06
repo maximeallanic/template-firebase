@@ -1,10 +1,12 @@
 import { httpsCallable } from 'firebase/functions';
 import { functions } from './firebase';
+import type { GameLanguage } from '../types/languageTypes';
 
 export interface GameGenerationInput {
     phase: 'phase1' | 'phase2' | 'phase3' | 'phase4' | 'phase5';
     topic?: string;
     difficulty?: 'easy' | 'normal' | 'hard' | 'wtf';
+    language?: GameLanguage; // Language for AI-generated questions (defaults to 'fr')
     roomCode?: string; // For server-side idempotency check
     soloMode?: boolean; // Bypass premium check for solo practice mode
     // Completion mode: generate only missing questions
@@ -42,6 +44,7 @@ export const generateGameQuestions = async (input: GameGenerationInput): Promise
         phase: input.phase,
         topic: input.topic || '(auto)',
         difficulty: input.difficulty || 'normal',
+        language: input.language || 'fr',
         roomCode: input.roomCode || '(none)',
         completeCount: input.completeCount || '(full)',
         existingCount: input.existingQuestions?.length || 0,

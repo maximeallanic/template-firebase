@@ -1,3 +1,5 @@
+import type { GameLanguage } from './languageTypes';
+
 // === AVATARS ===
 
 export type Avatar =
@@ -53,6 +55,7 @@ export interface Player {
     joinedAt: number;
     isOnline: boolean;
     phase5Scored?: boolean; // Prevents duplicate scoring in Phase 5
+    language?: GameLanguage; // Player's preferred language for questions
 }
 
 // === GAME STATE ===
@@ -263,6 +266,7 @@ export interface Phase4Winner {
 
 export interface GameOptions {
     difficulty?: Difficulty;
+    forcedLanguage?: GameLanguage; // Host can force a specific language for questions
 }
 
 /**
