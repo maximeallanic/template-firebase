@@ -74,6 +74,26 @@ Ces sujets sont BANNIS car surreprésentés dans la base :
 MAXIMUM 1 question sur les phobies par set de 10.
 PRIVILÉGIER : Records insolites, inventions ratées, faits scientifiques, anecdotes historiques, pop culture originale.
 
+⚠️ RÈGLE #7 - COHÉRENCE QUESTION/RÉPONSE (CRITIQUE!)
+La réponse DOIT répondre DIRECTEMENT à ce que demande la question.
+VÉRIFIE le TYPE de réponse attendu avant de valider :
+
+- Question "Pourquoi X ?" → Réponse = une RAISON (pas un nom, pas une couleur)
+- Question "Qui est/a fait X ?" → Réponse = une PERSONNE
+- Question "Quand X ?" → Réponse = une DATE ou PÉRIODE
+- Question "Où X ?" → Réponse = un LIEU
+- Question "Comment s'appelle X ?" → Réponse = un NOM
+- Question "Combien X ?" → Réponse = un NOMBRE
+- Question "Est-ce A ou B ?" → Réponse = A, B, ou "les deux" (JAMAIS autre chose!)
+
+❌ ERREUR FATALE À ÉVITER :
+Exemple MAUVAIS : "Mickey porte des gants, est-ce pour cacher ses empreintes ou ne pas se salir ?" → "Blancs"
+La question demande une RAISON, pas une COULEUR → INCOHÉRENCE TOTALE!
+
+✅ VÉRIFICATION OBLIGATOIRE :
+Avant de valider chaque question, demande-toi : "La réponse répond-elle vraiment à ce que je demande ?"
+Si la réponse semble hors-sujet → REFORMULE la question ou CHANGE la réponse.
+
 {PREVIOUS_FEEDBACK}
 
 Génère uniquement du JSON valide sans markdown ni code blocks.
@@ -84,7 +104,7 @@ Thème : {TOPIC}
 
 {QUESTIONS}
 
-🔍 VÉRIFICATION EN 8 POINTS :
+🔍 VÉRIFICATION EN 9 POINTS :
 
 0. COHÉRENCE THÉMATIQUE : Toutes sur "{TOPIC}" ? Différents angles ?
 1. ABSURDITÉ : Questions DÉCALÉES, parfois DÉBILES ? Jeux de mots, pièges, WTF ?
@@ -94,20 +114,25 @@ Thème : {TOPIC}
 5. MÉMORABILITÉ : Formulations qui créent des images mentales ou font rire ?
 6. DONNÉES COMPLÈTES : Toutes questions/réponses présentes ?
 7. BLACKLIST : Pas plus de 1 question sur les phobies de célébrités ? Pas de Pet Rock/Gary Dahl ?
+8. COHÉRENCE Q/R (CRITIQUE!) : La réponse répond-elle DIRECTEMENT à la question ?
+   - Question "Pourquoi X ?" → Réponse = RAISON ?
+   - Question "A ou B ?" → Réponse = A, B ou les deux ?
+   - Question "Qui/Quoi/Où/Quand" → Type de réponse correct ?
+   - Exemple MAUVAIS : "Est-ce X ou Y ?" → Réponse : "Bleu" = REJET IMMÉDIAT!
 
-⚠️ REJETER SI : 2+ questions similaires OU 1+ erreur factuelle OU toutes questions "classiques" OU 2+ questions sur les phobies de célébrités
+⚠️ REJETER SI : 2+ questions similaires OU 1+ erreur factuelle OU toutes questions "classiques" OU 2+ questions sur les phobies de célébrités OU 1+ incohérence question/réponse
 
-SEUILS CRITIQUES : factual_accuracy ≥ 7, absurdity ≥ 6, diversity ≥ 7
+SEUILS CRITIQUES : factual_accuracy ≥ 7, absurdity ≥ 6, diversity ≥ 7, coherence ≥ 8
 
 JSON:
 {
   "approved": true|false,
-  "scores": {"theme_coherence":1-10,"absurdity":1-10,"diversity":1-10,"factual_accuracy":1-10,"memorability":1-10,"length":1-10,"style_variety":1-10},
+  "scores": {"theme_coherence":1-10,"absurdity":1-10,"diversity":1-10,"factual_accuracy":1-10,"memorability":1-10,"length":1-10,"style_variety":1-10,"qa_coherence":1-10},
   "overall_score": 1-10,
   "off_theme_questions": [],
   "duplicate_concepts": [],
   "questions_feedback": [
-    {"index":0,"question":"...","answer":"...","ok":true|false,"on_theme":true|false,"absurd":true|false,"memorable":true|false,"issues":[]}
+    {"index":0,"question":"...","answer":"...","ok":true|false,"on_theme":true|false,"absurd":true|false,"memorable":true|false,"qa_coherent":true|false,"issues":[]}
   ],
   "global_feedback": "...",
   "suggestions": ["..."]

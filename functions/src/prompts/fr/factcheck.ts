@@ -384,13 +384,31 @@ INSTRUCTIONS :
    - L'anecdote contient-elle des erreurs ?
    - Les faits sont-ils vérifiables et non contestés ?
 
+6. COHÉRENCE SÉMANTIQUE QUESTION/RÉPONSE (CRITIQUE!)
+   - La réponse répond-elle DIRECTEMENT à ce que la question demande ?
+   - Si question propose des choix (A ou B) → réponse parmi les choix ?
+   - Type de réponse attendu vs type de réponse donnée ?
+
+   ✅ Mappings à vérifier :
+   - "Pourquoi X ?" → Réponse = RAISON
+   - "Qui a fait X ?" → Réponse = PERSONNE
+   - "Quand X ?" → Réponse = DATE/PÉRIODE
+   - "Où X ?" → Réponse = LIEU
+   - "Combien X ?" → Réponse = NOMBRE
+   - "Est-ce A ou B ?" → Réponse = A, B ou "les deux"
+
+   ❌ Incohérences à rejeter :
+   - "Pourquoi X fait Y ?" → Réponse : "Bleu" (couleur au lieu de raison)
+   - "Est-ce A ou B ?" → Réponse : "C" (choix hors options)
+   - "Qui a inventé X ?" → Réponse : "En 1954" (date au lieu de nom)
+
 RÉPONDS en JSON (STRICTEMENT ce format) :
 {
   "hasIssues": true | false,
   "ambiguityScore": 0-10,
   "issues": [
     {
-      "type": "synonym" | "multiple_answers" | "wrong_option_correct" | "unclear_question" | "factual_error",
+      "type": "synonym" | "multiple_answers" | "wrong_option_correct" | "unclear_question" | "factual_error" | "qa_incoherence",
       "severity": "critical" | "major" | "minor",
       "description": "Description du problème",
       "evidence": "Source ou preuve du problème"
@@ -422,7 +440,7 @@ Pas de markdown. JSON uniquement.`;
  * Type definitions for ambiguity check results
  */
 export interface AmbiguityIssue {
-  type: 'synonym' | 'multiple_answers' | 'wrong_option_correct' | 'unclear_question' | 'factual_error';
+  type: 'synonym' | 'multiple_answers' | 'wrong_option_correct' | 'unclear_question' | 'factual_error' | 'qa_incoherence';
   severity: 'critical' | 'major' | 'minor';
   description: string;
   evidence: string;

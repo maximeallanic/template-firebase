@@ -384,13 +384,31 @@ INSTRUCTIONS:
    - Does the anecdote contain errors?
    - Are the facts verifiable and uncontested?
 
+6. QUESTION/ANSWER SEMANTIC COHERENCE (CRITICAL!)
+   - Does the answer DIRECTLY respond to what the question asks?
+   - If question offers choices (A or B) → answer among the choices?
+   - Expected answer type vs given answer type?
+
+   ✅ Mappings to verify:
+   - "Why X?" → Answer = REASON
+   - "Who did X?" → Answer = PERSON
+   - "When X?" → Answer = DATE/PERIOD
+   - "Where X?" → Answer = PLACE
+   - "How many X?" → Answer = NUMBER
+   - "Is it A or B?" → Answer = A, B, or "both"
+
+   ❌ Incoherences to reject:
+   - "Why does X do Y?" → Answer: "Blue" (color instead of reason)
+   - "Is it A or B?" → Answer: "C" (choice outside options)
+   - "Who invented X?" → Answer: "In 1954" (date instead of name)
+
 RESPOND in JSON (STRICTLY this format):
 {
   "hasIssues": true | false,
   "ambiguityScore": 0-10,
   "issues": [
     {
-      "type": "synonym" | "multiple_answers" | "wrong_option_correct" | "unclear_question" | "factual_error",
+      "type": "synonym" | "multiple_answers" | "wrong_option_correct" | "unclear_question" | "factual_error" | "qa_incoherence",
       "severity": "critical" | "major" | "minor",
       "description": "Problem description",
       "evidence": "Source or proof of the problem"
@@ -422,7 +440,7 @@ No markdown. JSON only.`;
  * Type definitions for ambiguity check results
  */
 export interface AmbiguityIssue {
-  type: 'synonym' | 'multiple_answers' | 'wrong_option_correct' | 'unclear_question' | 'factual_error';
+  type: 'synonym' | 'multiple_answers' | 'wrong_option_correct' | 'unclear_question' | 'factual_error' | 'qa_incoherence';
   severity: 'critical' | 'major' | 'minor';
   description: string;
   evidence: string;
