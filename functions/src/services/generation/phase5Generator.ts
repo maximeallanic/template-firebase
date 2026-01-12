@@ -117,8 +117,8 @@ export async function generatePhase5WithDialogue(
         }
 
         // Log scores
-        console.log(`📊 Scores: humor=${review.scores.humor || 0}, diversity=${review.scores.diversity || 0}, memorability=${review.scores.memorability || 0}`);
-        console.log(`          factual=${review.scores.factual_accuracy || 0}, length=${review.scores.length || 0}, accessibility=${review.scores.accessibility || 0}`);
+        console.log(`📊 Scores: absurdity=${review.scores.absurdity || review.scores.humor || 0}, diversity=${review.scores.diversity || 0}, memorability=${review.scores.memorability || 0}`);
+        console.log(`          factual=${review.scores.factual_accuracy || 0}, qa_coherence=${review.scores.qa_coherence || 'N/A'}, theme=${review.scores.theme_coherence || 'N/A'}`);
         console.log(`   Overall: ${review.overall_score}/10`);
         if (review.duplicate_concepts && review.duplicate_concepts.length > 0) {
             console.log(`   ⚠️ Duplicates: ${review.duplicate_concepts.join(', ')}`);
@@ -206,6 +206,31 @@ Questions incorrectes :
 ${wrongQuestionsText || '(Vérifier toutes les réponses)'}
 
 CRITIQUE : Utilise Google Search pour vérifier CHAQUE réponse.
+`;
+            continue;
+        }
+
+        // Check Q/A coherence (new - fixes issue #19)
+        if ((review.scores.qa_coherence || 10) < 8) {
+            console.log(`❌ Q/A coherence too low (${review.scores.qa_coherence}/10).`);
+
+            const incoherentQuestions = review.questions_feedback
+                .filter(q => q.qa_coherent === false)
+                .map(q => `- Q${q.index + 1}: "${q.question?.slice(0, 40) || '?'}..." → "${q.answer}" (${q.issues?.join(', ') || 'incohérent'})`)
+                .join('\n');
+
+            previousFeedback = `
+⚠️ INCOHÉRENCE QUESTION/RÉPONSE (score: ${review.scores.qa_coherence}/10)
+
+Questions incohérentes :
+${incoherentQuestions || '(Vérifier toutes les Q/R)'}
+
+CRITIQUE : La réponse doit correspondre au TYPE de question :
+- "Pourquoi X ?" → Réponse = RAISON
+- "Qui a fait X ?" → Réponse = PERSONNE
+- "Est-ce A ou B ?" → Réponse = A, B, ou "les deux"
+
+REFORMULE les questions ou CHANGE les réponses pour corriger.
 `;
             continue;
         }

@@ -122,7 +122,7 @@ Thème : {TOPIC}
 
 ⚠️ REJETER SI : 2+ questions similaires OU 1+ erreur factuelle OU toutes questions "classiques" OU 2+ questions sur les phobies de célébrités OU 1+ incohérence question/réponse
 
-SEUILS CRITIQUES : factual_accuracy ≥ 7, absurdity ≥ 6, diversity ≥ 7, coherence ≥ 8
+SEUILS CRITIQUES : factual_accuracy ≥ 7, absurdity ≥ 6, diversity ≥ 7, qa_coherence ≥ 8
 
 JSON:
 {

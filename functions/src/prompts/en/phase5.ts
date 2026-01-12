@@ -122,7 +122,7 @@ Theme: {TOPIC}
 
 ⚠️ REJECT IF: 2+ similar questions OR 1+ factual error OR all questions "classic" OR 2+ questions about celebrity phobias OR 1+ Q/A incoherence
 
-CRITICAL THRESHOLDS: factual_accuracy ≥ 7, absurdity ≥ 6, diversity ≥ 7, coherence ≥ 8
+CRITICAL THRESHOLDS: factual_accuracy ≥ 7, absurdity ≥ 6, diversity ≥ 7, qa_coherence ≥ 8
 
 JSON:
 {
