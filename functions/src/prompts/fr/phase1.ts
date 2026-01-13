@@ -7,21 +7,15 @@
 export const PHASE1_PROMPT = `BURGER QUIZ - 10 questions Tenders
 Thème: {TOPIC} | Difficulté: {DIFFICULTY}
 
-STYLE : Question DRÔLE et INATTENDUE, options SÉRIEUSES et CRÉDIBLES
+⚠️ RÈGLES STRICTES :
+1. 4 options CRÉDIBLES du même registre (le joueur HÉSITE vraiment)
+2. UNE SEULE réponse correcte vérifiable, 3 FAUSSES mais plausibles
+3. Questions claires et directes (15 mots max)
+4. Anecdote intéressante et VRAIE (20 mots max)
 
-RÈGLES IMPÉRATIVES :
-1. HUMOUR uniquement dans la FORMULATION de la question (ton décalé, absurde, irrévérencieux)
-2. 4 options ULTRA-CRÉDIBLES du même registre → le joueur doit HÉSITER vraiment
-3. UNE SEULE réponse correcte, les 3 autres sont FAUSSES mais plausibles
-4. Questions COURTES (15 mots max), percutantes
-5. Anecdote WTF VRAIE sur la bonne réponse (20 mots max)
-6. VÉRIFIE chaque réponse sur Google avant de l'écrire
-7. VARIÉTÉ : alterne sujets sérieux et légers, styles d'écriture différents
-8. Parfois une réponse WTF mais vraie pour surprendre
+❌ INTERDIT : jeux de mots dans les options, doublons
 
-❌ INTERDIT : jeux de mots dans les options, réponse devinable, doublons, questions similaires
-
-JSON: [{"text":"Question?","options":["A","B","C","D"],"correctIndex":0,"anecdote":"Fait insolite"}]`;
+JSON: [{"text":"Question décalée?","options":["A","B","C","D"],"correctIndex":0,"anecdote":"Fait WTF"}]`;
 
 export const PHASE1_GENERATOR_PROMPT = `Tu es un créateur de questions BURGER QUIZ pour la phase "Tenders" (Speed MCQ).
 
@@ -54,31 +48,21 @@ MYTHES COURANTS À NE JAMAIS UTILISER COMME FAITS :
 - Les vikings n'avaient PAS de casques à cornes
 - Newton et la pomme : anecdote NON PROUVÉE
 
-🎯 RÈGLE #2 - OPTIONS DRÔLES ET CRÉDIBLES
-Les 4 options doivent être DRÔLES DANS LEUR FORMULATION tout en restant crédibles.
-Le joueur doit DOUTER sincèrement entre les options ET sourire en les lisant.
+🎯 RÈGLE #2 - OPTIONS CRÉDIBLES
+Les 4 options doivent être CRÉDIBLES et du même registre.
+Le joueur doit DOUTER sincèrement entre les options.
 ❌ INTERDIT : jeux de mots évidents, 4 options trop similaires (ex: 4 mots en "-isme")
 ✅ OBLIGATOIRE : Variété de formats (noms, chiffres, dates, lieux, concepts)
-✅ INCLURE des formulations DÉCALÉES dans les options (pas juste "35", mais "35, et il s'en vante" si pertinent)
-✅ PIÈGE : 1-2 réponses WTF/absurdes qui SONNENT vraies
+✅ PIÈGE : 1-2 réponses surprenantes qui SONNENT vraies
 
-🎯 RÈGLE #3 - HUMOUR & STYLE
-Questions COURTES (max 15 mots) avec formulation DÉCALÉE, ABSURDE ou IRRÉVÉRENCIEUSE.
-VARIE absolument les styles d'écriture :
-- Questions directes : "Quel est X ?"
-- Affirmations interrogatives : "X est connu pour Y, mais combien Z ?"
-- Formulations provocantes : "Étonnamment, X..."
-- Tournures inattendues : "Si X était Y, combien Z ?"
-❌ Ne pas répéter la même structure de phrase entre questions.
-
-🎯 RÈGLE #4 - DIVERSITÉ DES SUJETS
+🎯 RÈGLE #3 - DIVERSITÉ DES SUJETS
 Alterne intelligemment entre :
 - Sujets SÉRIEUX (sciences, histoire, géographie)
 - Sujets LÉGERS (culture pop, insolite, records bizarres)
 - Faits contre-intuitifs ou surprenants
 ❌ Pas de questions similaires ou redondantes.
 
-🎯 RÈGLE #5 - ANECDOTES OBLIGATOIRES
+🎯 RÈGLE #4 - ANECDOTES OBLIGATOIRES
 Chaque question DOIT avoir une anecdote WTF/insolite de 20 mots max.
 L'anecdote enrichit la réponse correcte avec un détail surprenant VÉRIFIABLE.
 ❌ L'anecdote ne doit PAS être vide ou générique.

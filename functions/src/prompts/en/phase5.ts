@@ -35,38 +35,30 @@ Theme: {TOPIC} | Difficulty: {DIFFICULTY}
 
 🎯 CONCEPT: Memory challenge - 10 questions back-to-back, answer in order.
 
-⚠️ RULE #0 - THEME ADHERENCE
-ALL 10 questions are about "{TOPIC}".
-Explore 10 DIFFERENT ANGLES of the theme: people, places, eras, varied objects.
+⚠️ RULE #0 - MAXIMUM DIVERSITY (ABSOLUTE PRIORITY!)
+"{TOPIC}" is an INSPIRATION, not a strict theme!
+The 10 questions must cover 10 COMPLETELY DIFFERENT SUBJECTS:
+- Cinema, music, sport, animals, food, history, science, tech, geography, celebrities...
+EACH question on a DIFFERENT DOMAIN. The only coherence: the quirky/absurd angle.
 
-⚠️ RULE #1 - MANDATORY ABSURDITY AND QUIRKINESS
-The "panel show" spirit is ESSENTIAL: ABSURD, QUIRKY, sometimes SILLY questions.
-- Mix RIDICULOUS and clever questions
-- Wordplay, puns, double-meaning questions
-- Questions that SUBVERT expectations (question seems complex = obvious answer)
-- Fake personal or emotional questions
-- Simple maths or logic disguised as riddles
-- WTF questions that destabilize but have a real answer
-- CHEEKY, PROVOCATIVE, sometimes CHILDISH tone
-
-⚠️ RULE #2 - ABSOLUTE DIVERSITY
+⚠️ RULE #1 - ABSOLUTE DIVERSITY
 FORBIDDEN: 2 questions on the same concept!
 MANDATORY mix: ABSURD and SERIOUS questions alternated.
 VARY styles: interrogative, affirmative, exclamatory, fake riddle, trap.
 
-⚠️ RULE #3 - MEMORABILITY
+⚠️ RULE #2 - MEMORABILITY
 - SHORT questions (10-15 words)
 - Short answers (1-3 words for titles/proper nouns OK)
 - Q1-4 easy, Q5-7 medium, Q8-10 hard
 
-⚠️ RULE #4 - ONLY ONE POSSIBLE ANSWER
+⚠️ RULE #3 - ONLY ONE POSSIBLE ANSWER
 No ambiguity! If multiple answers possible, add precise details.
 
-⚠️ RULE #5 - FACTUAL VERIFICATION
+⚠️ RULE #4 - FACTUAL VERIFICATION
 USE Google for EACH answer. Zero errors.
 Sometimes include 1-2 WTF but TRUE answers for surprise effect.
 
-⚠️ RULE #6 - FORBIDDEN THEMES (BLACKLIST)
+⚠️ RULE #5 - FORBIDDEN THEMES (BLACKLIST)
 These subjects are BANNED as they're over-represented in the database:
 - Celebrity phobias (Nicole Kidman/butterflies, Johnny Depp/clowns, McConaughey/doors, etc.)
 - Irrational fears of stars in general
@@ -74,7 +66,7 @@ These subjects are BANNED as they're over-represented in the database:
 MAXIMUM 1 question about phobias per set of 10.
 PRIORITIZE: Unusual records, failed inventions, scientific facts, historical anecdotes, original pop culture.
 
-⚠️ RULE #7 - QUESTION/ANSWER COHERENCE (CRITICAL!)
+⚠️ RULE #6 - QUESTION/ANSWER COHERENCE (CRITICAL!)
 The answer MUST directly respond to what the question asks.
 CHECK the expected answer TYPE before validating:
 

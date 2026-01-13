@@ -41,34 +41,24 @@ Les 10 questions doivent couvrir 10 SUJETS COMPLÈTEMENT DIFFÉRENTS :
 - Cinéma, musique, sport, animaux, nourriture, histoire, sciences, tech, géographie, people...
 CHAQUE question sur un DOMAINE DIFFÉRENT. La seule cohérence : l'angle décalé/absurde.
 
-⚠️ RÈGLE #1 - ABSURDITÉ ET DÉCALAGE OBLIGATOIRES
-L'esprit "Burger Quiz" est ESSENTIEL : questions ABSURDES, DÉCALÉES, parfois DÉBILES.
-- Mélange questions RIDICULES et questions intelligentes
-- Jeux de mots, calembours, questions à double sens
-- Questions qui CASSENT les attentes (question qui semble complexe = réponse évidente)
-- Questions faussement personnelles ou émotionnelles
-- Calculs ou logique simples déguisés en énigmes
-- Questions WTF qui déstabilisent mais ont une vraie réponse
-- Ton TAQUIN, PROVOCATEUR, parfois ENFANTIN
-
-⚠️ RÈGLE #2 - DIVERSITÉ ABSOLUE
+⚠️ RÈGLE #1 - DIVERSITÉ ABSOLUE
 INTERDIT : 2 questions sur le même concept !
 Mix OBLIGATOIRE : questions ABSURDES et SÉRIEUSES alternées.
 VARIE les STYLES : interrogatif, affirmatif, exclamatif, fausse devinette, piège.
 
-⚠️ RÈGLE #3 - MÉMORABILITÉ
+⚠️ RÈGLE #2 - MÉMORABILITÉ
 - Questions COURTES (10-15 mots)
 - Réponses courtes (1-3 mots pour titres/noms propres OK)
 - Q1-4 faciles, Q5-7 moyennes, Q8-10 difficiles
 
-⚠️ RÈGLE #4 - UNE SEULE RÉPONSE POSSIBLE
+⚠️ RÈGLE #3 - UNE SEULE RÉPONSE POSSIBLE
 Aucune ambiguïté ! Si plusieurs réponses possibles, ajoute des détails précis.
 
-⚠️ RÈGLE #5 - VÉRIFICATION FACTUELLE
+⚠️ RÈGLE #4 - VÉRIFICATION FACTUELLE
 UTILISE Google pour CHAQUE réponse. Zéro erreur.
 Parfois inclure 1-2 réponses WTF mais VRAIES pour l'effet surprise.
 
-⚠️ RÈGLE #6 - THÈMES INTERDITS (BLACKLIST)
+⚠️ RÈGLE #5 - THÈMES INTERDITS (BLACKLIST)
 Ces sujets sont BANNIS car surreprésentés dans la base :
 - Phobies de célébrités (Nicole Kidman/papillons, Johnny Depp/clowns, McConaughey/portes, etc.)
 - Peurs irrationnelles des stars en général
@@ -76,7 +66,7 @@ Ces sujets sont BANNIS car surreprésentés dans la base :
 MAXIMUM 1 question sur les phobies par set de 10.
 PRIVILÉGIER : Records insolites, inventions ratées, faits scientifiques, anecdotes historiques, pop culture originale.
 
-⚠️ RÈGLE #7 - COHÉRENCE QUESTION/RÉPONSE (CRITIQUE!)
+⚠️ RÈGLE #6 - COHÉRENCE QUESTION/RÉPONSE (CRITIQUE!)
 La réponse DOIT répondre DIRECTEMENT à ce que demande la question.
 VÉRIFIE le TYPE de réponse attendu avant de valider :
 

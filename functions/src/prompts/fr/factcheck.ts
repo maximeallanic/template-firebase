@@ -67,6 +67,7 @@ export const COMMON_MYTHS = [
   { myth: "Mac ne peut pas avoir de virus", truth: "Ils sont juste moins ciblés", keywords: ["Mac", "Apple", "virus"] },
   { myth: "Les téléphones causent le cancer", truth: "Aucune preuve scientifique solide", keywords: ["téléphone", "cancer", "ondes"] },
   { myth: "Il faut vider complètement la batterie avant de recharger", truth: "Obsolète avec les batteries lithium-ion", keywords: ["batterie", "vider", "recharger"] },
+  { myth: "La NASA a dépensé des millions pour un stylo spatial", truth: "Paul Fisher a investi ses propres fonds, la NASA a juste acheté les stylos à 6$ pièce", keywords: ["NASA", "stylo", "Fisher", "millions", "crayon", "espace"] },
 
   // === MYTHES SUR LES PERSONNALITÉS ===
   { myth: "Walt Disney est cryogénisé", truth: "Il a été incinéré", keywords: ["Disney", "cryogénisé", "congelé"] },
@@ -119,13 +120,29 @@ Ta mission : vérifier si les réponses à plusieurs questions sont 100% CORRECT
 QUESTIONS À VÉRIFIER :
 {QUESTIONS_JSON}
 
-INSTRUCTIONS :
-1. Pour CHAQUE question, UTILISE l'outil webSearch pour vérifier la réponse
-2. Recherche des sources FIABLES (Wikipedia, sites officiels, encyclopédies)
-3. Ne te fie PAS à ta mémoire - VÉRIFIE avec une recherche pour chaque question
+⚠️ PROTOCOLE DE VÉRIFICATION MULTI-SOURCES (OBLIGATOIRE) :
+
+Pour CHAQUE fait, tu DOIS :
+1. Chercher sur Wikipedia EN PREMIER comme référence principale
+2. Croiser avec AU MOINS UNE source fiable supplémentaire :
+   - Sites officiels (.gov, .edu, institutionnels)
+   - Encyclopédies (Britannica, Larousse, Universalis, etc.)
+   - Médias réputés (AFP, Reuters, BBC, Le Monde, etc.)
+   - Bases spécialisées (IMDB pour le cinéma, Discogs pour la musique, etc.)
+
+3. Un fait est VALIDÉ uniquement si :
+   - Wikipedia ET une autre source sont d'accord
+   - OU 2+ sources fiables non-Wikipedia sont d'accord
+   - JAMAIS valider sur une seule source
+
+4. Seuils de confiance basés sur les sources :
+   - 95-100 : Wikipedia + 1 source officielle confirment
+   - 85-94 : Wikipedia seul confirme (sans contradiction trouvée)
+   - 70-84 : 1 seule source fiable confirme
+   - <70 : Sources en désaccord OU sources douteuses uniquement
 
 CRITÈRES DE VALIDATION (pour chaque question) :
-- La réponse est-elle FACTUELLEMENT CORRECTE ?
+- La réponse est-elle FACTUELLEMENT CORRECTE ? (vérifié multi-sources)
 - La réponse est-elle la SEULE réponse possible ?
 - Y a-t-il une AMBIGUÏTÉ ?
 
@@ -197,8 +214,10 @@ RÉPONDS en JSON (STRICTEMENT ce format) :
       "proposedAnswer": "La réponse proposée",
       "isCorrect": true | false,
       "confidence": 0-100,
-      "source": "Source de vérification",
-      "reasoning": "Explication courte",
+      "sources": ["Source 1 URL/nom", "Source 2 URL/nom"],
+      "sourceCount": 2,
+      "wikipediaVerified": true | false,
+      "reasoning": "Explication courte avec citations des sources",
       "correction": "Bonne réponse si incorrect (null si correct)",
       "ambiguity": "Pourquoi ambigu (null si pas d'ambiguïté)",
       "synonymIssue": "Si une autre option est synonyme/équivalent de la réponse (null sinon)",
@@ -213,7 +232,9 @@ RÉPONDS en JSON (STRICTEMENT ce format) :
     "ambiguous": 1,
     "synonymIssues": 0,
     "wrongOptionIssues": 0,
-    "mythsDetected": 0
+    "mythsDetected": 0,
+    "multiSourceVerified": 8,
+    "singleSourceOnly": 2
   }
 }
 
