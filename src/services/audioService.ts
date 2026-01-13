@@ -277,9 +277,6 @@ class AudioService {
   ): Promise<void> {
     if (!this.enabled) return;
 
-    // Clear cancelled state when starting a new play request
-    this.cancelledSounds.delete(soundId);
-
     await this.init();
     if (!this.ctx) return;
 
@@ -288,14 +285,20 @@ class AudioService {
       this.stop(soundId, 0);
     }
 
+    // Clear cancelled state AFTER stopping previous instance
+    // This ensures the new play request is not affected by the stop above
+    this.cancelledSounds.delete(soundId);
+
     const buffer = await this.loadSound(soundId);
     if (!buffer) return;
 
     // Check if sound was cancelled while loading
     if (this.cancelledSounds.has(soundId)) {
+      console.log(`[AudioService] play(${soundId}): cancelled while loading, not playing`);
       this.cancelledSounds.delete(soundId);
       return;
     }
+    console.log(`[AudioService] play(${soundId}): starting playback`);
 
     const config = SOUND_CONFIG[soundId];
     const source = this.ctx.createBufferSource();
@@ -330,7 +333,11 @@ class AudioService {
     this.cancelledSounds.add(soundId);
 
     const active = this.activeSounds.get(soundId);
-    if (!active || !this.ctx) return;
+    if (!active || !this.ctx) {
+      console.log(`[AudioService] stop(${soundId}): not found in activeSounds, marked as cancelled`);
+      return;
+    }
+    console.log(`[AudioService] stop(${soundId}): stopping with fade ${fadeOutMs ?? SOUND_CONFIG[soundId].fadeOutMs}ms`);
 
     const config = SOUND_CONFIG[soundId];
     const fadeDuration = fadeOutMs ?? config.fadeOutMs;
