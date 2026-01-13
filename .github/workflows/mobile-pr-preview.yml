@@ -1,0 +1,156 @@
+name: Mobile PR Preview
+
+on:
+  pull_request:
+    branches: [master]
+    types: [opened, synchronize, reopened]
+
+env:
+  NODE_VERSION: '22'
+
+jobs:
+  build-android:
+    name: Build Android APK
+    runs-on: ubuntu-latest
+    outputs:
+      apk_path: ${{ steps.build.outputs.apk_path }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Create production .env file
+        run: |
+          cat > .env << EOF
+          VITE_FIREBASE_API_KEY=${{ secrets.VITE_FIREBASE_API_KEY }}
+          VITE_FIREBASE_AUTH_DOMAIN=${{ secrets.VITE_FIREBASE_AUTH_DOMAIN }}
+          VITE_FIREBASE_PROJECT_ID=${{ secrets.VITE_FIREBASE_PROJECT_ID }}
+          VITE_FIREBASE_STORAGE_BUCKET=${{ secrets.VITE_FIREBASE_STORAGE_BUCKET }}
+          VITE_FIREBASE_MESSAGING_SENDER_ID=${{ secrets.VITE_FIREBASE_MESSAGING_SENDER_ID }}
+          VITE_FIREBASE_APP_ID=${{ secrets.VITE_FIREBASE_APP_ID }}
+          VITE_FIREBASE_MEASUREMENT_ID=${{ secrets.VITE_FIREBASE_MEASUREMENT_ID }}
+          VITE_FIREBASE_DATABASE_URL=${{ secrets.VITE_FIREBASE_DATABASE_URL }}
+          EOF
+
+      - name: Build web app
+        run: npm run build
+
+      - name: Sync Capacitor Android
+        run: npx cap sync android
+
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v3
+
+      - name: Build Android APK (Debug)
+        id: build
+        working-directory: android
+        run: |
+          ./gradlew assembleDebug
+          echo "apk_path=android/app/build/outputs/apk/debug/app-debug.apk" >> $GITHUB_OUTPUT
+
+      - name: Upload APK artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: android-apk-pr-${{ github.event.pull_request.number }}
+          path: android/app/build/outputs/apk/debug/app-debug.apk
+          retention-days: 14
+
+  distribute-firebase:
+    name: Distribute to Firebase App Distribution
+    needs: build-android
+    runs-on: ubuntu-latest
+    if: ${{ secrets.FIREBASE_APP_DISTRIBUTION_APP_ID != '' }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Download APK artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: android-apk-pr-${{ github.event.pull_request.number }}
+          path: ./apk
+
+      - name: Upload to Firebase App Distribution
+        uses: wzieba/Firebase-Distribution-Github-Action@v1
+        with:
+          appId: ${{ secrets.FIREBASE_APP_DISTRIBUTION_APP_ID }}
+          serviceCredentialsFileContent: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+          groups: testers
+          file: ./apk/app-debug.apk
+          releaseNotes: |
+            PR #${{ github.event.pull_request.number }}: ${{ github.event.pull_request.title }}
+
+            Branch: ${{ github.head_ref }}
+            Commit: ${{ github.sha }}
+
+            ${{ github.event.pull_request.body }}
+
+  comment-pr:
+    name: Comment on PR
+    needs: [build-android, distribute-firebase]
+    runs-on: ubuntu-latest
+    if: always() && needs.build-android.result == 'success'
+    permissions:
+      pull-requests: write
+    steps:
+      - name: Find existing comment
+        uses: peter-evans/find-comment@v3
+        id: find-comment
+        with:
+          issue-number: ${{ github.event.pull_request.number }}
+          comment-author: 'github-actions[bot]'
+          body-includes: '📱 Mobile Preview'
+
+      - name: Create or update comment
+        uses: peter-evans/create-or-update-comment@v4
+        with:
+          comment-id: ${{ steps.find-comment.outputs.comment-id }}
+          issue-number: ${{ github.event.pull_request.number }}
+          edit-mode: replace
+          body: |
+            ## 📱 Mobile Preview
+
+            ### Android APK
+
+            ✅ **Build successful!**
+
+            **Download APK:** [app-debug.apk](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }})
+
+            > Go to the workflow run → Artifacts → `android-apk-pr-${{ github.event.pull_request.number }}`
+
+            ${{ needs.distribute-firebase.result == 'success' && '### Firebase App Distribution\n\n✅ **Distributed to testers!**\n\nTesters in the `testers` group will receive a notification to install the app.' || '### Firebase App Distribution\n\n⚠️ **Not configured** - Set `FIREBASE_APP_DISTRIBUTION_APP_ID` secret to enable automatic distribution.' }}
+
+            ---
+
+            <details>
+            <summary>📋 How to install</summary>
+
+            1. Download the APK from the link above
+            2. Transfer to your Android device
+            3. Enable "Install from unknown sources" if prompted
+            4. Open the APK to install
+
+            </details>
+
+            <details>
+            <summary>🔧 Build info</summary>
+
+            - **Commit:** ${{ github.sha }}
+            - **Branch:** ${{ github.head_ref }}
+            - **Workflow:** [Run #${{ github.run_number }}](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }})
+
+            </details>
