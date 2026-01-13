@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useTranslation } from 'react-i18next';
-import { LogOut, ChevronDown, Settings, Power, Crown, Globe, Check } from 'lucide-react';
+import { LogOut, ChevronDown, Settings, Power, Crown, Globe, Check, Volume2, VolumeX } from 'lucide-react';
 import { ProfileEditModal } from './ProfileEditModal';
 import { AvatarIcon } from '../AvatarIcon';
 import { safeStorage } from '../../utils/storage';
@@ -10,6 +10,7 @@ import { leaveRoom, type Avatar } from '../../services/gameService';
 import { signOut, createCheckoutSession } from '../../services/firebase';
 import { useAuthUser } from '../../hooks/useAuthUser';
 import { useCurrentUserSubscription } from '../../hooks/useHostSubscription';
+import { useSoundSettings } from '../../hooks/useSoundSettings';
 import { SUPPORTED_LANGUAGES, type SupportedLanguage } from '../../i18n/types';
 
 interface UserBarProps {
@@ -40,6 +41,9 @@ export const UserBar: React.FC<UserBarProps> = ({
     // Get authenticated user and their subscription status
     const { user } = useAuthUser();
     const { isPremium, isLoading: isSubscriptionLoading } = useCurrentUserSubscription();
+
+    // Sound settings
+    const { soundEnabled, toggleSound } = useSoundSettings();
 
     // Read from localStorage cache if props not provided
     const localProfile = getLocalProfile();
@@ -269,6 +273,22 @@ export const UserBar: React.FC<UserBarProps> = ({
                                         )}
                                     </AnimatePresence>
                                 </div>
+                                {/* Sound toggle */}
+                                <button
+                                    onClick={toggleSound}
+                                    role="menuitem"
+                                    className="w-full px-4 py-2 text-left text-sm text-slate-300 hover:bg-slate-700/50 hover:text-white transition-colors flex items-center gap-2"
+                                >
+                                    {soundEnabled ? (
+                                        <Volume2 className="w-4 h-4" aria-hidden="true" />
+                                    ) : (
+                                        <VolumeX className="w-4 h-4" aria-hidden="true" />
+                                    )}
+                                    <span className="flex-1">{t('pwa.sound')}</span>
+                                    <span className={`text-xs px-2 py-0.5 rounded-full ${soundEnabled ? 'bg-green-500/20 text-green-400' : 'bg-slate-600/50 text-slate-400'}`}>
+                                        {soundEnabled ? t('pwa.soundOn') : t('pwa.soundOff')}
+                                    </span>
+                                </button>
                                 {roomCode && (
                                     <button
                                         onClick={handleLeaveGame}
