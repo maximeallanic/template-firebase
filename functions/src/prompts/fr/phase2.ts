@@ -101,6 +101,51 @@ MIX SÉRIEUX/LÉGER :
 
 📊 DISTRIBUTION STRICTE : 5 A + 5 B + 2 Both (EXACTEMENT)
 
+⚠️ RÈGLE #4 - JUSTIFICATIONS DÉTAILLÉES (ANTI-AMBIGUÏTÉ!)
+Chaque justification DOIT expliquer CLAIREMENT :
+
+Pour les réponses A ou B :
+1. POURQUOI cet item appartient à cette catégorie (lien explicite)
+2. POURQUOI PAS l'autre catégorie (exclusion claire)
+
+Pour les réponses "Both" :
+1. Raison A : pourquoi ça fonctionne pour la catégorie A
+2. Raison B : pourquoi ça fonctionne AUSSI pour la catégorie B
+3. Les 2 raisons doivent être INDÉPENDANTES et VALIDES
+
+FORMAT JUSTIFICATION - NATUREL ET FLUIDE :
+Utilise TOUJOURS les NOMS des catégories (jamais "A" ou "B") dans une phrase naturelle.
+
+💡 FORMULATIONS NATURELLES SUGGÉRÉES (varie!) :
+
+Pour réponse A ou B :
+- "C'est [catégorie] : [raison]. Rien à voir avec [autre catégorie] qui [exclusion]."
+- "[Catégorie] sans hésiter, [raison]. [Autre catégorie] ? Non, [exclusion]."
+- "Clairement [catégorie] puisque [raison], alors que [autre catégorie] [exclusion]."
+- "[Raison], donc [catégorie]. [Autre catégorie] ne colle pas car [exclusion]."
+
+Pour réponse Both :
+- "[Catégorie A] parce que [raison A], mais aussi [catégorie B] car [raison B]."
+- "Les deux ! [Catégorie A] pour [raison A], et [catégorie B] pour [raison B]."
+- "Double sens : [raison A] → [catégorie A], et [raison B] → [catégorie B]."
+
+⚠️ RÈGLES CRITIQUES :
+- ❌ INTERDIT : "A car..." / "Pas B car..." (trop robotique)
+- ❌ INTERDIT : Justifications sèches et répétitives
+- ✅ OBLIGATOIRE : Noms réels des catégories ("La Mer", "Les jean", etc.)
+- ✅ OBLIGATOIRE : Ton conversationnel et varié
+
+❌ JUSTIFICATIONS REJETÉES :
+- "C'est évident" / "Ça parle de X" (trop vague)
+- "Ça pourrait être les deux mais..." (indécis)
+- Format robotique répété 12 fois à l'identique
+- Sans explication de pourquoi PAS l'autre catégorie
+
+✅ EXEMPLES DE BONNES JUSTIFICATIONS :
+- "La Mer sans hésiter : les marées sont causées par la Lune. La Mère ? Elle dort la nuit, pas d'attraction lunaire."
+- "C'est Les jean : Jean-Pierre Foucault est bien un prénom. Les gens ne désigne pas une personne spécifique."
+- "Les deux ! La Mer car l'océan est source de vie primitive, et La Mère car elle donne littéralement la vie."
+
 🎭 DESCRIPTION : Une phrase courte et fun présentant les 2 options, style Burger Quiz
 
 {PREVIOUS_FEEDBACK}
@@ -114,7 +159,12 @@ JSON:
   "humorousDescription": "Phrase fun présentant les 2 options",
   "reasoning": "Explication rapide : pourquoi ces 2 catégories fonctionnent bien ensemble, comment tu as varié les styles d'items",
   "items": [
-    { "text": "Item (4 mots max)", "answer": "A|B|Both", "justification": "Pourquoi cet item va là (court)", "anecdote": "Fait fun/insolite sur le sujet (15-20 mots)" }
+    {
+      "text": "Item (4 mots max)",
+      "answer": "A|B|Both",
+      "justification": "Phrase NATURELLE avec noms des catégories. Ex: 'La Mer sans hésiter : [raison]. La Mère ? Non, [exclusion].' Varie le style!",
+      "anecdote": "Fait fun/insolite sur le sujet (15-20 mots)"
+    }
   ]
 }
 
@@ -122,7 +172,7 @@ RAPPELS FINAUX :
 - VARIER les formulations (pas 12 fois le même type d'item!)
 - Mix SÉRIEUX (fact-checkable) et DÉLIRANT (WTF mais vrai)
 - Items PIÈGES qui font hésiter
-- Justifications ULTRA-COURTES (10-15 mots MAX - va droit au but!)
+- Justifications DÉTAILLÉES (20-35 mots) : raison + exclusion de l'autre option!
 - Anecdotes FUN et SURPRENANTES (15-20 mots, faits insolites ou chiffres étonnants)
 - 12 items EXACTEMENT
 - Pas de ton encyclopédique ou professoral

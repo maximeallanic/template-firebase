@@ -34,13 +34,14 @@ export async function callGemini(prompt: string, configType: 'creative' | 'factu
 /**
  * Call Gemini 3 Flash for REVIEW tasks (no tools needed)
  * Fast model optimized for evaluation/scoring
+ * Uses LOW temperature for consistent, reliable reviews
  * @param prompt - The prompt to send to the model
- * @param configType - 'creative' for high temperature, 'factual' for lower temperature
+ * @param configType - 'review' for low temperature (default), 'creative' for generation-like tasks
  */
-export async function callGeminiForReview(prompt: string, configType: 'creative' | 'factual' = 'creative'): Promise<string> {
+export async function callGeminiForReview(prompt: string, configType: 'review' | 'creative' | 'factual' = 'review'): Promise<string> {
     const config = MODEL_CONFIG[configType];
 
-    console.log(`🔧 Reviewer: gemini-3-flash, config: ${configType}`);
+    console.log(`🔧 Reviewer: gemini-3-flash, config: ${configType}, temp: ${config.temperature}`);
 
     const response = await ai.generate({
         model: REVIEWER_MODEL,

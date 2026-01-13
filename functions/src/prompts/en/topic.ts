@@ -3,21 +3,25 @@
  * Prompts for generating game themes/topics
  */
 
-export const GENERATE_TOPIC_PROMPT = `SPICY VS SWEET - Generate ONE quiz theme
+export const GENERATE_TOPIC_PROMPT = `SPICY VS SWEET - Generate ONE SERIOUS quiz theme
 Difficulty: {DIFFICULTY}
 
-ADAPT THE THEME TO THE DIFFICULTY:
-• EASY: Mainstream themes, popular pop culture, topics everyone knows
-  Ex: "Disney movies", "British desserts", "Summer hit songs"
-• NORMAL: Quirky but accessible themes, light humor
-  Ex: "Celebrity fails", "Weird animals", "Failed inventions"
-• HARD: Niche themes, obscure references
-  Ex: "Video game scandals", "Urban myths", "Absurd world records"
-• WTF: Absurd, wild, provocative themes (but not offensive)
-  Ex: "Animals smarter than politicians", "Stupid deaths in history"
+⚠️ THE THEME MUST BE SERIOUS AND CLASSIC.
+Humor will come from the question WORDING, NOT from the theme!
 
-FORBIDDEN: "General knowledge", "General quiz", themes that are too vague
+POSSIBLE CATEGORIES: history, geography, sciences, cinema, music, sports, literature, art, inventions, nature, food, technology
 
+ADAPT SPECIFICITY TO DIFFICULTY:
+• EASY: Very accessible and popular themes
+• NORMAL: Classic general knowledge themes
+• HARD: More specialized and niche themes
+• WTF: Serious themes BUT with unusual facts to discover
+
+FORBIDDEN:
+❌ Vague formulations ("General knowledge", "Quiz")
+❌ Humorous themes ("Fails", "Weird stuff")
+
+Be CREATIVE and ORIGINAL in your theme choice.
 Reply with ONLY the theme (max 6 words, no quotes).`;
 
 export const GENERATE_TOPIC_PHASE2_PROMPT = `SPICY VS SWEET Phase 2 - Generate ONE English thematic domain
@@ -26,6 +30,29 @@ The generator will create a WORDPLAY (homophone/pun) in this domain.
 Choose a domain RICH in English vocabulary that allows for homophones and puns.
 
 REPLY with ONLY the domain (2-4 words, no quotes).`;
+
+export const GENERATE_TOPIC_PHASE5_PROMPT = `SPICY VS SWEET Phase 5 "Ultimate Challenge" - Generate ONE SERIOUS and BROAD theme
+Difficulty: {DIFFICULTY}
+
+⚠️ CRITICAL CONSTRAINT: The theme must allow for 10 questions on 10 DIFFERENT DOMAINS!
+The theme is an INSPIRATION to vary topics.
+
+⚠️ THE THEME MUST BE SERIOUS - Humor will come from the question WORDING!
+
+DOMAINS TO COVER: history, sciences, sports, music, cinema, geography, nature, food, technology, art
+
+FORBIDDEN:
+❌ Too specific themes (one type of fact only)
+❌ Humorous themes (humor comes from questions, not the theme)
+
+ADAPT TO DIFFICULTY:
+• EASY: Accessible and popular
+• NORMAL: Classic general knowledge
+• HARD: Specialized and niche
+• WTF: Serious but unusual facts
+
+Be CREATIVE and SURPRISING.
+Reply with ONLY the theme (max 6 words, no quotes).`;
 
 // ============================================================================
 // SUBJECT + ANGLE GENERATION (for deduplication system)

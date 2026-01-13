@@ -124,7 +124,7 @@ export async function generatePhase4WithDialogue(
             + languageInstruction;
 
         console.log('👨‍⚖️ Reviewer evaluating MCQ questions...');
-        const reviewText = await callGeminiForReview(reviewerPrompt, 'creative');
+        const reviewText = await callGeminiForReview(reviewerPrompt, 'review');
         let review: Phase4DialogueReview;
 
         try {

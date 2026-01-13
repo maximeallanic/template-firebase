@@ -3,21 +3,25 @@
  * Prompts for generating game themes/topics
  */
 
-export const GENERATE_TOPIC_PROMPT = `BURGER QUIZ - Génère UN thème de quiz
+export const GENERATE_TOPIC_PROMPT = `BURGER QUIZ - Génère UN thème SÉRIEUX de quiz
 Difficulté: {DIFFICULTY}
 
-ADAPTE LE THÈME À LA DIFFICULTÉ :
-• EASY: Thèmes grand public, culture pop mainstream, sujets que tout le monde connaît
-  Ex: "Les films Disney", "Les desserts français", "Les chansons de l'été"
-• NORMAL: Thèmes décalés mais accessibles, humour léger
-  Ex: "Les fails de célébrités", "Les animaux bizarres", "Les inventions ratées"
-• HARD: Thèmes pointus, niches, références obscures
-  Ex: "Les scandales du jeu vidéo", "Les mythes urbains", "Les records absurdes"
-• WTF: Thèmes absurdes, trash, provocants (mais pas offensants)
-  Ex: "Les animaux plus malins que nos ministres", "Les morts stupides de l'histoire"
+⚠️ LE THÈME DOIT ÊTRE SÉRIEUX ET CLASSIQUE.
+L'humour viendra de la FORMULATION des questions, PAS du thème !
 
-INTERDIT: "Culture générale", "Quiz général", thèmes trop vagues
+CATÉGORIES POSSIBLES : histoire, géographie, sciences, cinéma, musique, sport, littérature, art, inventions, nature, gastronomie, technologie
 
+ADAPTE LA SPÉCIFICITÉ À LA DIFFICULTÉ :
+• EASY: Thèmes très accessibles et populaires
+• NORMAL: Thèmes classiques de culture générale
+• HARD: Thèmes plus pointus et spécialisés
+• WTF: Thèmes sérieux MAIS avec des faits insolites à découvrir
+
+INTERDIT:
+❌ Formulations vagues ("Culture générale", "Quiz")
+❌ Thèmes humoristiques ("Les fails", "Les trucs bizarres")
+
+Sois CRÉATIF et ORIGINAL dans le choix du thème.
 Réponds UNIQUEMENT le thème (max 6 mots, pas de guillemets).`;
 
 export const GENERATE_TOPIC_PHASE2_PROMPT = `BURGER QUIZ Phase 2 - Génère UN domaine thématique français
@@ -26,6 +30,29 @@ Le générateur créera un JEU DE MOTS (homophone) dans ce domaine.
 Choisis un domaine RICHE en vocabulaire français permettant des homophones.
 
 RÉPONDS UNIQUEMENT le domaine (2-4 mots, pas de guillemets).`;
+
+export const GENERATE_TOPIC_PHASE5_PROMPT = `BURGER QUIZ Phase 5 "Burger Ultime" - Génère UN thème SÉRIEUX et LARGE
+Difficulté: {DIFFICULTY}
+
+⚠️ CONTRAINTE CRITIQUE : Le thème doit permettre 10 questions sur 10 DOMAINES DIFFÉRENTS !
+Le thème est une INSPIRATION pour varier les sujets.
+
+⚠️ LE THÈME DOIT ÊTRE SÉRIEUX - L'humour viendra de la FORMULATION des questions !
+
+DOMAINES À COUVRIR : histoire, sciences, sport, musique, cinéma, géographie, nature, gastronomie, technologie, art
+
+INTERDIT:
+❌ Thèmes trop spécifiques (un seul type de fait)
+❌ Thèmes humoristiques (l'humour vient des questions, pas du thème)
+
+ADAPTE À LA DIFFICULTÉ :
+• EASY: Accessible et populaire
+• NORMAL: Culture générale classique
+• HARD: Pointu et spécialisé
+• WTF: Sérieux mais faits insolites
+
+Sois CRÉATIF et SURPRENANT.
+Réponds UNIQUEMENT le thème (max 6 mots, pas de guillemets).`;
 
 // ============================================================================
 // SUBJECT + ANGLE GENERATION (for deduplication system)

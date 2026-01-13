@@ -67,6 +67,7 @@ export const COMMON_MYTHS = [
   { myth: "Macs can't get viruses", truth: "They're just less targeted", keywords: ["Mac", "Apple", "virus"] },
   { myth: "Phones cause cancer", truth: "No solid scientific evidence", keywords: ["phone", "cancer", "waves"] },
   { myth: "You must fully drain the battery before recharging", truth: "Obsolete with lithium-ion batteries", keywords: ["battery", "drain", "recharge"] },
+  { myth: "NASA spent millions on a space pen", truth: "Paul Fisher invested his own money, NASA just bought pens at $6 each", keywords: ["NASA", "space pen", "Fisher", "millions", "pencil"] },
 
   // === PERSONALITY MYTHS ===
   { myth: "Walt Disney is cryogenically frozen", truth: "He was cremated", keywords: ["Disney", "cryogenically", "frozen"] },
@@ -119,13 +120,29 @@ Your mission: verify if the answers to multiple questions are 100% CORRECT and U
 QUESTIONS TO VERIFY:
 {QUESTIONS_JSON}
 
-INSTRUCTIONS:
-1. For EACH question, USE the webSearch tool to verify the answer
-2. Search for RELIABLE sources (Wikipedia, official sites, encyclopedias)
-3. Do NOT rely on your memory - VERIFY with a search for each question
+⚠️ MULTI-SOURCE VERIFICATION PROTOCOL (MANDATORY):
+
+For EACH fact, you MUST:
+1. Search Wikipedia FIRST as primary reference
+2. Cross-reference with AT LEAST ONE additional reliable source:
+   - Official sites (.gov, .edu, institutional)
+   - Encyclopedias (Britannica, Larousse, etc.)
+   - Reputable media (BBC, Reuters, AP, AFP)
+   - Specialized databases (IMDB for cinema, Discogs for music, etc.)
+
+3. A fact is VALIDATED only if:
+   - Wikipedia AND another source agree
+   - OR 2+ non-Wikipedia reliable sources agree
+   - NEVER validate based on a single source alone
+
+4. Confidence thresholds based on sources:
+   - 95-100: Wikipedia + 1 official source confirm
+   - 85-94: Wikipedia alone confirms (but no contradiction found)
+   - 70-84: Only 1 reliable source confirms
+   - <70: Sources disagree OR only questionable sources found
 
 VALIDATION CRITERIA (for each question):
-- Is the answer FACTUALLY CORRECT?
+- Is the answer FACTUALLY CORRECT? (multi-source verified)
 - Is the answer the ONLY possible answer?
 - Is there any AMBIGUITY?
 
@@ -197,8 +214,10 @@ RESPOND in JSON (STRICTLY this format):
       "proposedAnswer": "The proposed answer",
       "isCorrect": true | false,
       "confidence": 0-100,
-      "source": "Verification source",
-      "reasoning": "Short explanation",
+      "sources": ["Source 1 URL/name", "Source 2 URL/name"],
+      "sourceCount": 2,
+      "wikipediaVerified": true | false,
+      "reasoning": "Short explanation with source citations",
       "correction": "Correct answer if incorrect (null if correct)",
       "ambiguity": "Why ambiguous (null if no ambiguity)",
       "synonymIssue": "If another option is synonym/equivalent of the answer (null otherwise)",
@@ -213,7 +232,9 @@ RESPOND in JSON (STRICTLY this format):
     "ambiguous": 1,
     "synonymIssues": 0,
     "wrongOptionIssues": 0,
-    "mythsDetected": 0
+    "mythsDetected": 0,
+    "multiSourceVerified": 8,
+    "singleSourceOnly": 2
   }
 }
 
@@ -384,13 +405,31 @@ INSTRUCTIONS:
    - Does the anecdote contain errors?
    - Are the facts verifiable and uncontested?
 
+6. QUESTION/ANSWER SEMANTIC COHERENCE (CRITICAL!)
+   - Does the answer DIRECTLY respond to what the question asks?
+   - If question offers choices (A or B) → answer among the choices?
+   - Expected answer type vs given answer type?
+
+   ✅ Mappings to verify:
+   - "Why X?" → Answer = REASON
+   - "Who did X?" → Answer = PERSON
+   - "When X?" → Answer = DATE/PERIOD
+   - "Where X?" → Answer = PLACE
+   - "How many X?" → Answer = NUMBER
+   - "Is it A or B?" → Answer = A, B, or "both"
+
+   ❌ Incoherences to reject:
+   - "Why does X do Y?" → Answer: "Blue" (color instead of reason)
+   - "Is it A or B?" → Answer: "C" (choice outside options)
+   - "Who invented X?" → Answer: "In 1954" (date instead of name)
+
 RESPOND in JSON (STRICTLY this format):
 {
   "hasIssues": true | false,
   "ambiguityScore": 0-10,
   "issues": [
     {
-      "type": "synonym" | "multiple_answers" | "wrong_option_correct" | "unclear_question" | "factual_error",
+      "type": "synonym" | "multiple_answers" | "wrong_option_correct" | "unclear_question" | "factual_error" | "qa_incoherence",
       "severity": "critical" | "major" | "minor",
       "description": "Problem description",
       "evidence": "Source or proof of the problem"
@@ -422,7 +461,7 @@ No markdown. JSON only.`;
  * Type definitions for ambiguity check results
  */
 export interface AmbiguityIssue {
-  type: 'synonym' | 'multiple_answers' | 'wrong_option_correct' | 'unclear_question' | 'factual_error';
+  type: 'synonym' | 'multiple_answers' | 'wrong_option_correct' | 'unclear_question' | 'factual_error' | 'qa_incoherence';
   severity: 'critical' | 'major' | 'minor';
   description: string;
   evidence: string;
