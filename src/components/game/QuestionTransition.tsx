@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { organicEase, durations, springConfig, snappySpring, bouncySpring } from '../../animations';
 import { useReducedMotion } from '../../hooks/useReducedMotion';
+import { audioService } from '../../services/audioService';
 import { Zap } from 'lucide-react';
 
 interface QuestionTransitionProps {
@@ -107,6 +108,9 @@ export const QuestionTransition: React.FC<QuestionTransitionProps> = ({
 
     useEffect(() => {
         if (isVisible) {
+            // Play next question jingle
+            audioService.play('nextQuestion');
+
             // Timing for when overlay is fully opaque (content can be swapped)
             const contentHiddenDelay = prefersReducedMotion ? 50 : 200;
 

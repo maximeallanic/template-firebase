@@ -47,21 +47,34 @@ INTERDIT : Plus de 3 questions sur le même sujet. Varie à fond !
 - Questions claires et directes (max 25 mots)
 - Anecdote courte et percutante (max 30 mots)
 
+⚠️ RÈGLE #2b - DISTRACTEURS DU MÊME UNIVERS (CRITIQUE!)
+Les 4 options DOIVENT appartenir au MÊME univers/contexte que la question :
+
+✅ BONS DISTRACTEURS :
+- Question sur Star Wars → 4 vaisseaux de STAR WARS (pas Star Trek!)
+- Question sur la France → 4 villes/régions FRANÇAISES
+- Question sur les Beatles → 4 groupes de la MÊME ÉPOQUE
+- Question sur un sport → 4 athlètes du MÊME SPORT
+
+❌ MAUVAIS DISTRACTEURS (REJET IMMÉDIAT) :
+- Mélanger Star Wars et Star Trek (univers différents!)
+- Mélanger football et tennis dans la même question
+- Mettre une réponse absurde qui ne trompe personne
+- Inclure une option d'un autre domaine/époque/univers
+
+RÈGLE D'OR : Un expert du domaine doit hésiter entre les 4 options.
+Si une option est "évidemment fausse" car hors-sujet → MAUVAIS distracteur.
+
 ⚠️ RÈGLE #3 - RÉPARTITION DIFFICULTÉ
 - 3 FACILES (connaissance commune : capitales, dates célèbres, films cultes)
 - 4 MOYENNES (culture générale solide nécessaire)
 - 3 DIFFICILES (anecdotes pointues, détails méconnus)
 
-⚠️ RÈGLE #4 - STYLE BURGER QUIZ
-- Mix questions classiques ET anecdotes décalées/WTF
-- Certaines réponses peuvent surprendre (mais TOUJOURS vraies !)
-- Ton léger, parfois humoristique, toujours vérifiable
-
-⚠️ RÈGLE #5 - EXACTITUDE ABSOLUE
+⚠️ RÈGLE #4 - EXACTITUDE ABSOLUE
 UTILISE Google pour vérifier CHAQUE réponse avant de l'écrire.
 Aucune ambiguïté, aucun débat possible. Si tu hésites, change de question.
 
-⚠️ RÈGLE #6 - ATTENTION AUX MYTHES ET LÉGENDES URBAINES
+⚠️ RÈGLE #5 - ATTENTION AUX MYTHES ET LÉGENDES URBAINES
 Certaines "anecdotes célèbres" sont en réalité FAUSSES :
 - Vérifie TOUJOURS les affirmations extraordinaires avec une recherche
 - Si une histoire semble "trop belle pour être vraie", elle l'est probablement

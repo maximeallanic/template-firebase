@@ -726,6 +726,14 @@ function VictoryScreen({ room, isHost }: { room: NonNullable<ReturnType<typeof u
     const sweetScore = players.filter(p => p.team === 'sweet').reduce((sum, p) => sum + (p.score || 0), 0);
     const winnerTeam = room.state.winnerTeam;
 
+    // Play applause sound on mount
+    useEffect(() => {
+        audioService.play('applause');
+        return () => {
+            audioService.stop('applause');
+        };
+    }, []);
+
     // Get confetti colors based on winner
     const confettiColors = winnerTeam === 'spicy'
         ? TEAM_CONFETTI_COLORS.spicy

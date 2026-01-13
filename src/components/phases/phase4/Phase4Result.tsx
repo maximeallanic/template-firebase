@@ -55,7 +55,7 @@ export function Phase4Result({
 
         // Winner celebration (if this player won)
         if (winner) {
-            audioService.playWinRound();
+            audioService.playSuccess();
         }
     }, [myAnswer, myAnswerCorrect, winner]);
 

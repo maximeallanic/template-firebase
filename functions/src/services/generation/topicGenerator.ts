@@ -38,37 +38,37 @@ const BANNED_TOPICS_BY_LANG: Record<SupportedLanguage, string[]> = {
     ],
 };
 
-/** Fallback topics by language when AI fails */
+/** Fallback topics by language when AI fails - SERIOUS themes */
 const FALLBACK_TOPICS_BY_LANG: Record<SupportedLanguage, string[]> = {
     fr: [
-        'Les ratés de l\'histoire', 'Les animaux qui font peur',
-        'Les inventions bizarres', 'Les dramas de célébrités',
-        'Les records inutiles', 'Les superstitions absurdes',
-        'Les scandales culinaires', 'Les légendes urbaines',
+        'Histoire de France', 'Géographie mondiale',
+        'Sciences et découvertes', 'Cinéma et acteurs',
+        'Musique classique et moderne', 'Sports olympiques',
+        'Littérature et auteurs', 'Art et artistes célèbres',
     ],
     en: [
-        'History\'s biggest fails', 'Terrifying animals',
-        'Bizarre inventions', 'Celebrity drama',
-        'Useless world records', 'Absurd superstitions',
-        'Food scandals', 'Urban legends',
+        'World History', 'Geography and Countries',
+        'Science and Discoveries', 'Cinema and Movies',
+        'Music and Composers', 'Olympic Sports',
+        'Literature and Authors', 'Art and Famous Artists',
     ],
     es: [
-        'Los fracasos de la historia', 'Animales aterradores',
-        'Inventos extraños', 'Dramas de celebridades',
-        'Records inútiles', 'Supersticiones absurdas',
-        'Escándalos culinarios', 'Leyendas urbanas',
+        'Historia mundial', 'Geografía y países',
+        'Ciencia y descubrimientos', 'Cine y películas',
+        'Música y compositores', 'Deportes olímpicos',
+        'Literatura y autores', 'Arte y artistas famosos',
     ],
     de: [
-        'Historische Fehlschläge', 'Furchterregende Tiere',
-        'Bizarre Erfindungen', 'Promi-Dramen',
-        'Nutzlose Rekorde', 'Absurder Aberglaube',
-        'Lebensmittelskandale', 'Urbane Legenden',
+        'Weltgeschichte', 'Geographie und Länder',
+        'Wissenschaft und Entdeckungen', 'Kino und Filme',
+        'Musik und Komponisten', 'Olympische Sportarten',
+        'Literatur und Autoren', 'Kunst und berühmte Künstler',
     ],
     pt: [
-        'Fracassos da história', 'Animais assustadores',
-        'Invenções bizarras', 'Dramas de celebridades',
-        'Records inúteis', 'Superstições absurdas',
-        'Escândalos culinários', 'Lendas urbanas',
+        'História mundial', 'Geografia e países',
+        'Ciência e descobertas', 'Cinema e filmes',
+        'Música e compositores', 'Esportes olímpicos',
+        'Literatura e autores', 'Arte e artistas famosos',
     ],
 };
 
@@ -110,7 +110,7 @@ function getLanguageName(language: SupportedLanguage): string {
 /**
  * Generate a creative topic using AI
  * Fast call to get a fun, original theme for the quiz
- * @param phase - The game phase (phase2 uses special prompt for homophones)
+ * @param phase - The game phase (phase2/phase5 use special prompts)
  * @param difficulty - The difficulty level (easy, normal, hard, wtf)
  * @param language - The target language for the topic (fr, en, es, de, pt)
  */
@@ -124,10 +124,16 @@ export async function generateCreativeTopic(
     // Get language-specific prompts
     const prompts = getPrompts(language);
 
-    // Use specific prompt for Phase 2 (homophones need specific topics)
-    const basePrompt = phase === 'phase2'
-        ? prompts.GENERATE_TOPIC_PHASE2_PROMPT
-        : prompts.GENERATE_TOPIC_PROMPT;
+    // Use specific prompts for Phase 2 (homophones) and Phase 5 (needs broad topics for diversity)
+    let basePrompt: string;
+    if (phase === 'phase2') {
+        basePrompt = prompts.GENERATE_TOPIC_PHASE2_PROMPT;
+    } else if (phase === 'phase5') {
+        // Phase 5 needs BROAD topics to allow for 10 diverse questions
+        basePrompt = prompts.GENERATE_TOPIC_PHASE5_PROMPT || prompts.GENERATE_TOPIC_PROMPT;
+    } else {
+        basePrompt = prompts.GENERATE_TOPIC_PROMPT;
+    }
     const difficultyContext = getFullDifficultyContext(difficulty as DifficultyLevel);
 
     // Add explicit language instruction to the prompt

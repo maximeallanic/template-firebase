@@ -49,7 +49,6 @@ export function Phase2Result({
 
         if (didWin) {
             audioService.playSuccess();
-            audioService.playWinRound();
         } else if (otherTeamWon) {
             audioService.playError();
         }
