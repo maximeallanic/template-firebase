@@ -59,8 +59,22 @@ export function Phase4Result({
         }
     }, [myAnswer, myAnswerCorrect, winner]);
 
+    // Determine background gradient based on player's answer
+    const getResultBackground = () => {
+        if (myAnswer === undefined) {
+            // Player didn't answer - neutral/amber background
+            return 'bg-gradient-to-b from-amber-900/30 via-transparent to-transparent';
+        }
+        if (myAnswerCorrect) {
+            // Correct answer - green background
+            return 'bg-gradient-to-b from-green-900/40 via-transparent to-transparent';
+        }
+        // Wrong answer - red background
+        return 'bg-gradient-to-b from-red-900/40 via-transparent to-transparent';
+    };
+
     return (
-        <div className="flex flex-col items-center justify-center p-6 space-y-6 max-h-screen overflow-y-auto w-full text-white">
+        <div className={`flex flex-col items-center justify-center p-6 space-y-6 max-h-screen overflow-y-auto w-full text-white ${getResultBackground()}`}>
             {/* Winner Display */}
             <AnimatePresence mode="wait">
                 {winner ? (
@@ -81,7 +95,7 @@ export function Phase4Result({
                             className="text-2xl font-bold text-yellow-400"
                             aria-live="polite"
                         >
-                            {t('phase4.firstCorrect')}
+                            {isSolo ? t('phase4.solo.correct') : t('phase4.firstCorrect')}
                         </div>
 
                         <motion.div
@@ -156,20 +170,26 @@ export function Phase4Result({
             )}
 
             {/* Player's Own Answer Feedback */}
-            {myAnswer !== undefined && (
-                <motion.div
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    transition={{ delay: 0.9, duration: durations.normal }}
-                    className="text-center text-gray-400"
-                    aria-live="polite"
-                >
-                    {t('phase4.youAnswered')}:{' '}
-                    <span className={myAnswerCorrect ? 'text-green-400 font-bold' : 'text-red-400'}>
-                        {question.options[myAnswer.answer]}
+            <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ delay: 0.9, duration: durations.normal }}
+                className="text-center text-gray-400"
+                aria-live="polite"
+            >
+                {myAnswer !== undefined ? (
+                    <>
+                        {t('phase4.youAnswered')}:{' '}
+                        <span className={myAnswerCorrect ? 'text-green-400 font-bold' : 'text-red-400'}>
+                            {question.options[myAnswer.answer] || t('phase5.noAnswer')}
+                        </span>
+                    </>
+                ) : (
+                    <span className="text-amber-400 italic">
+                        {t('phase4.didntAnswer')}
                     </span>
-                </motion.div>
-            )}
+                )}
+            </motion.div>
         </div>
     );
 }

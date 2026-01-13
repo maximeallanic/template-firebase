@@ -252,11 +252,13 @@
     ],
     "correctAnswerWas": "Era:",
     "youAnswered": "Tu disse",
+    "didntAnswer": "Não respondeste a tempo",
     "waitingForPlayers": "Juntando jogadores...",
     "everyoneAnswered": "Todos responderam!",
     "nextQuestionIn": "Próxima em {{seconds}}s",
     "prepareForQuestion": "Se prepara...",
     "solo": {
+      "correct": "Correto!",
       "noWinner": "Devagar demais!",
       "noWinner_variants": [
         "Devagar demais!",
