@@ -1,126 +1,410 @@
-// Simple Synthesizer for Game Sound Effects using Web Audio API
-// No external assets required!
+// Audio Service with custom sound files
+// Supports preloading, looping, fade-in/out, and volume control
 
-// Safari fallback for AudioContext
 declare global {
-    interface Window {
-        webkitAudioContext?: typeof AudioContext;
-    }
+  interface Window {
+    webkitAudioContext?: typeof AudioContext;
+  }
 }
 
+export type SoundId =
+  | 'background'
+  | 'correct'
+  | 'incorrect'
+  | 'slide'
+  | 'timer'
+  | 'buttonPop'
+  | 'cookingLoading'
+  | 'dishReady'
+  | 'dishOut'
+  | 'curtainsOpen'
+  | 'curtainsClose'
+  | 'nextQuestion'
+  | 'difficultyEasy'
+  | 'difficultyMid'
+  | 'difficultyHard'
+  | 'difficultyHell'
+  | 'applause';
+
+interface SoundConfig {
+  file: string;
+  loop: boolean;
+  fadeOutMs: number;
+  defaultVolume: number;
+}
+
+interface ActiveSound {
+  source: AudioBufferSourceNode;
+  gainNode: GainNode;
+  startTime: number;
+}
+
+const SOUND_CONFIG: Record<SoundId, SoundConfig> = {
+  background: {
+    file: '/sounds/SVS_background_v2_1.m4a',
+    loop: true,
+    fadeOutMs: 1000,
+    defaultVolume: 0.3,
+  },
+  correct: {
+    file: '/sounds/SVS_correct_chime.m4a',
+    loop: false,
+    fadeOutMs: 0,
+    defaultVolume: 0.5,
+  },
+  incorrect: {
+    file: '/sounds/SVS_incorrect_chime.m4a',
+    loop: false,
+    fadeOutMs: 0,
+    defaultVolume: 0.5,
+  },
+  slide: {
+    file: '/sounds/SVS_slide_v2.m4a',
+    loop: false,
+    fadeOutMs: 0,
+    defaultVolume: 0.4,
+  },
+  timer: {
+    file: '/sounds/SVS_timer.m4a',
+    loop: false,
+    fadeOutMs: 500,
+    defaultVolume: 0.4,
+  },
+  buttonPop: {
+    file: '/sounds/SVS_button_pop.m4a',
+    loop: false,
+    fadeOutMs: 0,
+    defaultVolume: 0.3,
+  },
+  cookingLoading: {
+    file: '/sounds/SVS_cooking_loading.m4a',
+    loop: true,
+    fadeOutMs: 1000,
+    defaultVolume: 0.4,
+  },
+  dishReady: {
+    file: '/sounds/SVS_dish_ready.m4a',
+    loop: false,
+    fadeOutMs: 0,
+    defaultVolume: 0.5,
+  },
+  dishOut: {
+    file: '/sounds/SVS_dish_out_v4.m4a',
+    loop: false,
+    fadeOutMs: 0,
+    defaultVolume: 0.5,
+  },
+  curtainsOpen: {
+    file: '/sounds/SVS_curtains_open_v2.m4a',
+    loop: false,
+    fadeOutMs: 0,
+    defaultVolume: 0.5,
+  },
+  curtainsClose: {
+    file: '/sounds/SVS_curtains_close_v2.m4a',
+    loop: false,
+    fadeOutMs: 0,
+    defaultVolume: 0.5,
+  },
+  nextQuestion: {
+    file: '/sounds/SVS_nextquestion_v2.m4a',
+    loop: false,
+    fadeOutMs: 0,
+    defaultVolume: 0.5,
+  },
+  difficultyEasy: {
+    file: '/sounds/SVS_difficulty_easy_button_v2.m4a',
+    loop: false,
+    fadeOutMs: 0,
+    defaultVolume: 0.5,
+  },
+  difficultyMid: {
+    file: '/sounds/SVS_difficulty_mid_button_v2.m4a',
+    loop: false,
+    fadeOutMs: 0,
+    defaultVolume: 0.5,
+  },
+  difficultyHard: {
+    file: '/sounds/SVS_difficulty_hard_button_v2.m4a',
+    loop: false,
+    fadeOutMs: 0,
+    defaultVolume: 0.5,
+  },
+  difficultyHell: {
+    file: '/sounds/SVS_difficulty_hell_button_v2.m4a',
+    loop: false,
+    fadeOutMs: 0,
+    defaultVolume: 0.5,
+  },
+  applause: {
+    file: '/sounds/SVS_audience_applause.m4a',
+    loop: false,
+    fadeOutMs: 2000,
+    defaultVolume: 0.6,
+  },
+};
+
+// Sounds to preload on first interaction
+const PRELOAD_SOUNDS: SoundId[] = [
+  'buttonPop',
+  'correct',
+  'incorrect',
+  'background',
+];
+
 class AudioService {
-    private ctx: AudioContext | null = null;
-    private enabled: boolean = false;
+  private ctx: AudioContext | null = null;
+  private enabled = false;
+  private masterVolume = 1.0;
+  private bufferCache: Map<SoundId, AudioBuffer> = new Map();
+  private activeSounds: Map<SoundId, ActiveSound> = new Map();
+  private loadingPromises: Map<SoundId, Promise<AudioBuffer | null>> = new Map();
+  private initialized = false;
 
-    constructor() {
+  constructor() {
+    if (typeof window !== 'undefined') {
+      window.addEventListener('click', () => this.init(), { once: true });
+      window.addEventListener('touchstart', () => this.init(), { once: true });
+    }
+  }
+
+  private async init(): Promise<void> {
+    if (this.initialized) return;
+
+    try {
+      const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+      if (AudioContextClass) {
+        this.ctx = new AudioContextClass();
+      }
+
+      if (this.ctx?.state === 'suspended') {
+        await this.ctx.resume();
+      }
+
+      this.initialized = true;
+
+      // Preload critical sounds
+      await this.preloadSounds(PRELOAD_SOUNDS);
+    } catch (e) {
+      console.warn('AudioContext initialization failed:', e);
+    }
+  }
+
+  private async loadSound(soundId: SoundId): Promise<AudioBuffer | null> {
+    // Return cached buffer if available
+    const cached = this.bufferCache.get(soundId);
+    if (cached) return cached;
+
+    // Return existing loading promise if in progress
+    const existingPromise = this.loadingPromises.get(soundId);
+    if (existingPromise) return existingPromise;
+
+    // Create new loading promise
+    const loadPromise = this.fetchAndDecodeSound(soundId);
+    this.loadingPromises.set(soundId, loadPromise);
+
+    try {
+      const buffer = await loadPromise;
+      if (buffer) {
+        this.bufferCache.set(soundId, buffer);
+      }
+      return buffer;
+    } finally {
+      this.loadingPromises.delete(soundId);
+    }
+  }
+
+  private async fetchAndDecodeSound(soundId: SoundId): Promise<AudioBuffer | null> {
+    if (!this.ctx) return null;
+
+    const config = SOUND_CONFIG[soundId];
+    try {
+      const response = await fetch(config.file);
+      if (!response.ok) {
+        console.warn(`Failed to fetch sound: ${config.file}`);
+        return null;
+      }
+      const arrayBuffer = await response.arrayBuffer();
+      return await this.ctx.decodeAudioData(arrayBuffer);
+    } catch (e) {
+      console.warn(`Failed to load sound ${soundId}:`, e);
+      return null;
+    }
+  }
+
+  public async preloadSounds(soundIds: SoundId[]): Promise<void> {
+    await Promise.all(soundIds.map(id => this.loadSound(id)));
+  }
+
+  public async preloadAll(): Promise<void> {
+    const allSounds = Object.keys(SOUND_CONFIG) as SoundId[];
+    await this.preloadSounds(allSounds);
+  }
+
+  public setEnabled(enabled: boolean): void {
+    this.enabled = enabled;
+    if (!enabled) {
+      this.stopAll();
+    }
+  }
+
+  public isEnabled(): boolean {
+    return this.enabled;
+  }
+
+  public setMasterVolume(volume: number): void {
+    this.masterVolume = Math.max(0, Math.min(1, volume));
+
+    // Update volume on all active sounds
+    this.activeSounds.forEach((active, soundId) => {
+      const config = SOUND_CONFIG[soundId];
+      active.gainNode.gain.setValueAtTime(
+        config.defaultVolume * this.masterVolume,
+        this.ctx?.currentTime || 0
+      );
+    });
+  }
+
+  public getMasterVolume(): number {
+    return this.masterVolume;
+  }
+
+  public async play(
+    soundId: SoundId,
+    options?: { loop?: boolean; volume?: number }
+  ): Promise<void> {
+    if (!this.enabled) return;
+
+    await this.init();
+    if (!this.ctx) return;
+
+    // Stop any currently playing instance of this sound
+    if (this.activeSounds.has(soundId)) {
+      this.stop(soundId, 0);
+    }
+
+    const buffer = await this.loadSound(soundId);
+    if (!buffer) return;
+
+    const config = SOUND_CONFIG[soundId];
+    const source = this.ctx.createBufferSource();
+    const gainNode = this.ctx.createGain();
+
+    source.buffer = buffer;
+    source.loop = options?.loop ?? config.loop;
+
+    const volume = (options?.volume ?? config.defaultVolume) * this.masterVolume;
+    gainNode.gain.setValueAtTime(volume, this.ctx.currentTime);
+
+    source.connect(gainNode);
+    gainNode.connect(this.ctx.destination);
+
+    const activeSound: ActiveSound = {
+      source,
+      gainNode,
+      startTime: this.ctx.currentTime,
+    };
+
+    this.activeSounds.set(soundId, activeSound);
+
+    source.onended = () => {
+      this.activeSounds.delete(soundId);
+    };
+
+    source.start(0);
+  }
+
+  public stop(soundId: SoundId, fadeOutMs?: number): void {
+    const active = this.activeSounds.get(soundId);
+    if (!active || !this.ctx) return;
+
+    const config = SOUND_CONFIG[soundId];
+    const fadeDuration = fadeOutMs ?? config.fadeOutMs;
+
+    if (fadeDuration > 0) {
+      // Fade out
+      const now = this.ctx.currentTime;
+      active.gainNode.gain.setValueAtTime(active.gainNode.gain.value, now);
+      active.gainNode.gain.linearRampToValueAtTime(0, now + fadeDuration / 1000);
+
+      // Stop after fade completes
+      setTimeout(() => {
         try {
-            // Lazy init to avoid auto-play policy issues until interaction
-            if (typeof window !== 'undefined') {
-                window.addEventListener('click', () => this.init(), { once: true });
-            }
-        } catch (e) {
-            console.warn("AudioContext not supported", e);
+          active.source.stop();
+        } catch {
+          // Source may have already stopped
         }
+        this.activeSounds.delete(soundId);
+      }, fadeDuration);
+    } else {
+      // Stop immediately
+      try {
+        active.source.stop();
+      } catch {
+        // Source may have already stopped
+      }
+      this.activeSounds.delete(soundId);
     }
+  }
 
-    private init() {
-        if (!this.ctx) {
-            const AudioContextClass = window.AudioContext || window.webkitAudioContext;
-            if (AudioContextClass) {
-                this.ctx = new AudioContextClass();
-            }
-        }
-        if (this.ctx?.state === 'suspended') {
-            this.ctx.resume();
-        }
-    }
+  public stopAll(fadeOutMs = 500): void {
+    this.activeSounds.forEach((_, soundId) => {
+      this.stop(soundId, fadeOutMs);
+    });
+  }
 
-    // Toggle mute
-    public setEnabled(enabled: boolean) {
-        this.enabled = enabled;
-    }
+  public isPlaying(soundId: SoundId): boolean {
+    return this.activeSounds.has(soundId);
+  }
 
-    private playTone(freq: number, type: OscillatorType, duration: number, startTime: number = 0, vol: number = 0.1) {
-        if (!this.ctx || !this.enabled) return;
-        const osc = this.ctx.createOscillator();
-        const gain = this.ctx.createGain();
+  // ==========================================
+  // Legacy methods for backward compatibility
+  // ==========================================
 
-        osc.type = type;
-        osc.frequency.setValueAtTime(freq, this.ctx.currentTime + startTime);
+  public playClick(): void {
+    this.play('buttonPop');
+  }
 
-        gain.gain.setValueAtTime(vol, this.ctx.currentTime + startTime);
-        gain.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + startTime + duration);
+  public playSuccess(): void {
+    this.play('correct');
+  }
 
-        osc.connect(gain);
-        gain.connect(this.ctx.destination);
+  public playError(): void {
+    this.play('incorrect');
+  }
 
-        osc.start(this.ctx.currentTime + startTime);
-        osc.stop(this.ctx.currentTime + startTime + duration);
-    }
+  public playJoin(): void {
+    this.play('dishReady');
+  }
 
-    // --- SOUND FX LIBRARY ---
+  public playTransition(): void {
+    this.play('slide');
+  }
 
-    public playClick() {
-        this.init();
-        // High crisp blip
-        this.playTone(800, 'sine', 0.1, 0, 0.05);
-    }
+  public playWinRound(): void {
+    this.play('applause');
+  }
 
-    public playTransition() {
-        this.init();
-        if (!this.ctx || !this.enabled) return;
-        // Whoosh effect (Noise buffer or sweep)
-        // Simulating with a swept sine for now
-        const osc = this.ctx.createOscillator();
-        const gain = this.ctx.createGain();
-        osc.connect(gain);
-        gain.connect(this.ctx.destination);
+  public playTimerTick(): void {
+    // For timer ticks, we use a simple synthesized beep
+    // to avoid loading the full timer sound for each tick
+    if (!this.ctx || !this.enabled) return;
 
-        osc.frequency.setValueAtTime(200, this.ctx.currentTime);
-        osc.frequency.exponentialRampToValueAtTime(800, this.ctx.currentTime + 0.5);
+    const osc = this.ctx.createOscillator();
+    const gain = this.ctx.createGain();
 
-        gain.gain.setValueAtTime(0, this.ctx.currentTime);
-        gain.gain.linearRampToValueAtTime(0.2, this.ctx.currentTime + 0.2);
-        gain.gain.linearRampToValueAtTime(0, this.ctx.currentTime + 0.5);
+    osc.type = 'square';
+    osc.frequency.setValueAtTime(800, this.ctx.currentTime);
 
-        osc.start();
-        osc.stop(this.ctx.currentTime + 0.5);
-    }
+    gain.gain.setValueAtTime(0.05 * this.masterVolume, this.ctx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + 0.05);
 
-    public playJoin() {
-        this.init();
-        this.playTone(440, 'sine', 0.1, 0);
-        this.playTone(554, 'sine', 0.1, 0.1); // C#
-        this.playTone(659, 'sine', 0.3, 0.2); // E
-    }
+    osc.connect(gain);
+    gain.connect(this.ctx.destination);
 
-    public playSuccess() {
-        this.init();
-        this.playTone(523.25, 'triangle', 0.1, 0);   // C
-        this.playTone(659.25, 'triangle', 0.1, 0.1); // E
-        this.playTone(783.99, 'triangle', 0.1, 0.2); // G
-        this.playTone(1046.50, 'triangle', 0.4, 0.3);// High C
-    }
-
-    public playError() {
-        this.init();
-        this.playTone(150, 'sawtooth', 0.3, 0);
-        this.playTone(140, 'sawtooth', 0.3, 0.1);
-    }
-
-    public playTimerTick() {
-        this.init();
-        this.playTone(800, 'square', 0.05, 0, 0.05);
-    }
-
-    public playWinRound() {
-        this.init();
-        const now = 0;
-        this.playTone(523, 'square', 0.2, now);
-        this.playTone(523, 'square', 0.2, now + 0.2);
-        this.playTone(523, 'square', 0.2, now + 0.4);
-        this.playTone(659, 'square', 0.6, now + 0.6);
-    }
+    osc.start(this.ctx.currentTime);
+    osc.stop(this.ctx.currentTime + 0.05);
+  }
 }
 
 export const audioService = new AudioService();
