@@ -527,7 +527,7 @@ export function Phase1Player({ room, playerId, isHost, mode = 'multiplayer', sol
             const didMyTeamWin = winnerTeam && winnerTeam === myTeam;
 
             if (state.roundWinner?.playerId === playerId) {
-                audioService.playWinRound();
+                audioService.playSuccess();
                 haptic.success();
             } else if (didMyTeamWin) {
                 audioService.playSuccess();
