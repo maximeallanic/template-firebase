@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
+import { isNative } from '../services/platformService';
 
 interface BeforeInstallPromptEvent extends Event {
   prompt: () => Promise<void>;
@@ -23,6 +24,8 @@ const DISMISS_KEY = 'spicy_install_dismissed';
 export function useAppInstall(): UseAppInstallResult {
   // Initialize synchronously to avoid flash of non-PWA content on navigation
   const [isInstalled, setIsInstalled] = useState(() => {
+    // Native apps are always considered "installed"
+    if (isNative()) return true;
     const standaloneQuery = window.matchMedia('(display-mode: standalone)');
     const fullscreenQuery = window.matchMedia('(display-mode: fullscreen)');
     const isIOSStandalone = (window.navigator as Navigator & { standalone?: boolean }).standalone === true;
@@ -38,6 +41,12 @@ export function useAppInstall(): UseAppInstallResult {
   });
 
   useEffect(() => {
+    // Native apps don't need PWA install logic
+    if (isNative()) {
+      setIsInstalled(true);
+      return;
+    }
+
     // Check if already running as installed PWA
     const checkInstalled = () => {
       // Check display-mode for Android/Desktop PWA

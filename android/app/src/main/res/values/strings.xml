@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">Spicy vs Sweet</string>
+    <string name="title_activity_main">Spicy vs Sweet</string>
+    <string name="package_name">com.spicyvssweet.app</string>
+    <string name="custom_url_scheme">com.spicyvssweet.app</string>
+</resources>
