@@ -41,103 +41,103 @@ interface ActiveSound {
 
 const SOUND_CONFIG: Record<SoundId, SoundConfig> = {
   background: {
-    file: '/sounds/SVS_background_v2_1.m4a',
+    file: '/sounds/background.mp3',
     loop: true,
     fadeOutMs: 1000,
     defaultVolume: 0.3,
   },
   correct: {
-    file: '/sounds/SVS_correct_chime.m4a',
+    file: '/sounds/correct.mp3',
     loop: false,
     fadeOutMs: 0,
     defaultVolume: 0.5,
   },
   incorrect: {
-    file: '/sounds/SVS_incorrect_chime.m4a',
+    file: '/sounds/incorrect.mp3',
     loop: false,
     fadeOutMs: 0,
     defaultVolume: 0.5,
   },
   slide: {
-    file: '/sounds/SVS_slide_v2.m4a',
+    file: '/sounds/slide.mp3',
     loop: false,
     fadeOutMs: 0,
     defaultVolume: 0.4,
   },
   timer: {
-    file: '/sounds/SVS_timer.m4a',
+    file: '/sounds/timer.mp3',
     loop: false,
     fadeOutMs: 500,
     defaultVolume: 0.4,
   },
   buttonPop: {
-    file: '/sounds/SVS_button_pop.m4a',
+    file: '/sounds/button-pop.mp3',
     loop: false,
     fadeOutMs: 0,
     defaultVolume: 0.3,
   },
   cookingLoading: {
-    file: '/sounds/SVS_cooking_loading.m4a',
+    file: '/sounds/cooking-loading.mp3',
     loop: true,
     fadeOutMs: 1000,
     defaultVolume: 0.4,
   },
   dishReady: {
-    file: '/sounds/SVS_dish_ready.m4a',
+    file: '/sounds/dish-ready.mp3',
     loop: false,
     fadeOutMs: 0,
     defaultVolume: 0.5,
   },
   dishOut: {
-    file: '/sounds/SVS_dish_out_v4.m4a',
+    file: '/sounds/dish-out.mp3',
     loop: false,
     fadeOutMs: 0,
     defaultVolume: 0.5,
   },
   curtainsOpen: {
-    file: '/sounds/SVS_curtains_open_v2.m4a',
+    file: '/sounds/curtains-open.mp3',
     loop: false,
     fadeOutMs: 0,
     defaultVolume: 0.5,
   },
   curtainsClose: {
-    file: '/sounds/SVS_curtains_close_v2.m4a',
+    file: '/sounds/curtains-close.mp3',
     loop: false,
     fadeOutMs: 0,
     defaultVolume: 0.5,
   },
   nextQuestion: {
-    file: '/sounds/SVS_nextquestion_v2.m4a',
+    file: '/sounds/next-question.mp3',
     loop: false,
     fadeOutMs: 0,
     defaultVolume: 0.5,
   },
   difficultyEasy: {
-    file: '/sounds/SVS_difficulty_easy_button_v2.m4a',
+    file: '/sounds/difficulty-easy.mp3',
     loop: false,
     fadeOutMs: 0,
     defaultVolume: 0.5,
   },
   difficultyMid: {
-    file: '/sounds/SVS_difficulty_mid_button_v2.m4a',
+    file: '/sounds/difficulty-mid.mp3',
     loop: false,
     fadeOutMs: 0,
     defaultVolume: 0.5,
   },
   difficultyHard: {
-    file: '/sounds/SVS_difficulty_hard_button_v2.m4a',
+    file: '/sounds/difficulty-hard.mp3',
     loop: false,
     fadeOutMs: 0,
     defaultVolume: 0.5,
   },
   difficultyHell: {
-    file: '/sounds/SVS_difficulty_hell_button_v2.m4a',
+    file: '/sounds/difficulty-hell.mp3',
     loop: false,
     fadeOutMs: 0,
     defaultVolume: 0.5,
   },
   applause: {
-    file: '/sounds/SVS_audience_applause.m4a',
+    file: '/sounds/applause.mp3',
     loop: false,
     fadeOutMs: 2000,
     defaultVolume: 0.6,
@@ -288,24 +288,16 @@ class AudioService {
     // Increment version for this sound - any older play requests will be stale
     const currentVersion = (this.playRequestVersion.get(soundId) || 0) + 1;
     this.playRequestVersion.set(soundId, currentVersion);
-    console.log(`[AudioService] play(${soundId}): loading (version ${currentVersion})`);
 
     const buffer = await this.loadSound(soundId);
     if (!buffer) return;
 
     // Check if this play request is still the latest one
     const latestVersion = this.playRequestVersion.get(soundId) || 0;
-    if (currentVersion !== latestVersion) {
-      console.log(`[AudioService] play(${soundId}): stale request (v${currentVersion} vs v${latestVersion}), not playing`);
+    if (currentVersion !== latestVersion || latestVersion === 0) {
+      // Sound was either replaced by a newer request or cancelled
       return;
     }
-
-    // Check if sound was stopped while loading (version set to 0)
-    if (latestVersion === 0) {
-      console.log(`[AudioService] play(${soundId}): cancelled while loading, not playing`);
-      return;
-    }
-    console.log(`[AudioService] play(${soundId}): starting playback (version ${currentVersion})`);
 
     const config = SOUND_CONFIG[soundId];
     const source = this.ctx.createBufferSource();
@@ -327,17 +319,13 @@ class AudioService {
     };
 
     this.activeSounds.set(soundId, activeSound);
-    console.log(`[AudioService] play(${soundId}): added to activeSounds, size=${this.activeSounds.size}`);
 
     source.onended = () => {
       // Only remove if this source is still the active one
       // (prevents old source's onended from removing a newer source)
       const current = this.activeSounds.get(soundId);
       if (current?.source === source) {
-        console.log(`[AudioService] onended(${soundId}): removing from activeSounds`);
         this.activeSounds.delete(soundId);
-      } else {
-        console.log(`[AudioService] onended(${soundId}): ignoring (source was replaced)`);
       }
     };
 
@@ -349,12 +337,7 @@ class AudioService {
     this.playRequestVersion.set(soundId, 0);
 
     const active = this.activeSounds.get(soundId);
-    console.log(`[AudioService] stop(${soundId}): activeSounds has ${this.activeSounds.size} entries, keys: [${[...this.activeSounds.keys()].join(', ')}]`);
-    if (!active || !this.ctx) {
-      console.log(`[AudioService] stop(${soundId}): not found in activeSounds, marked as cancelled`);
-      return;
-    }
-    console.log(`[AudioService] stop(${soundId}): stopping with fade ${fadeOutMs ?? SOUND_CONFIG[soundId].fadeOutMs}ms`);
+    if (!active || !this.ctx) return;
 
     const config = SOUND_CONFIG[soundId];
     const fadeDuration = fadeOutMs ?? config.fadeOutMs;
