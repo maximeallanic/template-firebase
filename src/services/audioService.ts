@@ -330,8 +330,15 @@ class AudioService {
     console.log(`[AudioService] play(${soundId}): added to activeSounds, size=${this.activeSounds.size}`);
 
     source.onended = () => {
-      console.log(`[AudioService] onended(${soundId}): removing from activeSounds`);
-      this.activeSounds.delete(soundId);
+      // Only remove if this source is still the active one
+      // (prevents old source's onended from removing a newer source)
+      const current = this.activeSounds.get(soundId);
+      if (current?.source === source) {
+        console.log(`[AudioService] onended(${soundId}): removing from activeSounds`);
+        this.activeSounds.delete(soundId);
+      } else {
+        console.log(`[AudioService] onended(${soundId}): ignoring (source was replaced)`);
+      }
     };
 
     source.start(0);
