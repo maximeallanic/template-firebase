@@ -69,33 +69,46 @@ const SAFETY_SETTINGS: Array<{
 /**
  * Model configuration presets with different temperature settings
  * Note: thinkingConfig removed for compatibility - gemini-3-pro-preview works without it
+ *
+ * TEMPERATURE STRATEGY:
+ * - HIGH (1.3-1.5): Creative tasks (topic generation, question writing)
+ * - MEDIUM (0.7): Question generation with some creativity
+ * - LOW (0.2): Review/evaluation (needs consistency)
+ * - VERY LOW (0.05): Fact-checking (needs accuracy)
  */
 export const MODEL_CONFIG = {
-  // Creative generation (Phase 2, 5) - high temperature
+  // Creative generation (Phase 2, 5) - HIGH temperature for creativity
   creative: {
-    temperature: 1,
+    temperature: 1.3,
     topP: 0.95,
     maxOutputTokens: 32768,
     safetySettings: SAFETY_SETTINGS,
   },
-  // Factual generation (Phase 1, 3, 4) - medium temperature
+  // Factual generation (Phase 1, 3, 4) - MEDIUM temperature
   factual: {
-    temperature: 0.5,
+    temperature: 0.7,
     topP: 0.95,
     maxOutputTokens: 32768,
     safetySettings: SAFETY_SETTINGS,
   },
-  // Fact-checking (post-generation verification) - low temperature
+  // Review/evaluation - LOW temperature for consistency
+  review: {
+    temperature: 0.2,
+    topP: 0.9,
+    maxOutputTokens: 8192,
+    safetySettings: SAFETY_SETTINGS,
+  },
+  // Fact-checking (post-generation verification) - VERY LOW temperature for accuracy
   factCheck: {
-    temperature: 0.1,
+    temperature: 0.05,
     topP: 0.9,
     maxOutputTokens: 4096,
     safetySettings: SAFETY_SETTINGS,
   },
-  // Topic generation (high creativity)
+  // Topic generation - VERY HIGH creativity for original themes
   topic: {
-    temperature: 1.2,
-    topP: 0.95,
+    temperature: 1.5,
+    topP: 0.98,
     maxOutputTokens: 512,
     safetySettings: SAFETY_SETTINGS,
   },

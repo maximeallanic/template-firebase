@@ -31,13 +31,15 @@ Génère JSON valide uniquement, sans markdown ni exemples.
 10 questions sur le thème.`;
 
 export const PHASE5_GENERATOR_PROMPT = `BURGER QUIZ Phase 5 "Burger Ultime" - Générateur
-Thème : {TOPIC} | Difficulté : {DIFFICULTY}
+Inspiration : {TOPIC} | Difficulté : {DIFFICULTY}
 
 🎯 CONCEPT : Défi mémoire - 10 questions d'affilée, répondre dans l'ordre.
 
-⚠️ RÈGLE #0 - RESPECT DU THÈME
-TOUTES les 10 questions portent sur "{TOPIC}".
-Explore 10 ANGLES DIFFÉRENTS du thème : personnes, lieux, époques, objets variés.
+⚠️ RÈGLE #0 - DIVERSITÉ MAXIMALE (PRIORITÉ ABSOLUE!)
+"{TOPIC}" est une INSPIRATION, pas un thème strict !
+Les 10 questions doivent couvrir 10 SUJETS COMPLÈTEMENT DIFFÉRENTS :
+- Cinéma, musique, sport, animaux, nourriture, histoire, sciences, tech, géographie, people...
+CHAQUE question sur un DOMAINE DIFFÉRENT. La seule cohérence : l'angle décalé/absurde.
 
 ⚠️ RÈGLE #1 - ABSURDITÉ ET DÉCALAGE OBLIGATOIRES
 L'esprit "Burger Quiz" est ESSENTIEL : questions ABSURDES, DÉCALÉES, parfois DÉBILES.
@@ -100,15 +102,15 @@ Génère uniquement du JSON valide sans markdown ni code blocks.
 10 questions VARIÉES sur "{TOPIC}".`;
 
 export const PHASE5_DIALOGUE_REVIEWER_PROMPT = `REVIEWER Phase 5 "Burger Ultime"
-Thème : {TOPIC}
+Inspiration : {TOPIC}
 
 {QUESTIONS}
 
 🔍 VÉRIFICATION EN 9 POINTS :
 
-0. COHÉRENCE THÉMATIQUE : Toutes sur "{TOPIC}" ? Différents angles ?
+0. DIVERSITÉ (PRIORITÉ #1!) : 10 sujets DIFFÉRENTS (cinéma, sport, science, histoire...) ? REJET si 2+ questions sur le même domaine !
 1. ABSURDITÉ : Questions DÉCALÉES, parfois DÉBILES ? Jeux de mots, pièges, WTF ?
-2. DIVERSITÉ : Aucune répétition ? Mix ABSURDE/SÉRIEUX alternés ? Styles variés ?
+2. STYLE VARIÉ : Mix ABSURDE/SÉRIEUX alternés ? Interrogatif, affirmatif, exclamatif ?
 3. EXACTITUDE (CRITIQUE) : Réponses vraies ? Une seule réponse possible ?
 4. LONGUEUR : Questions 10-15 mots, réponses courtes (titres OK) ?
 5. MÉMORABILITÉ : Formulations qui créent des images mentales ou font rire ?

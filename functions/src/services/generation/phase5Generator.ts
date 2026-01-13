@@ -105,7 +105,7 @@ export async function generatePhase5WithDialogue(
             + languageInstruction;
 
         console.log('👨‍⚖️ Reviewer evaluating sequence...');
-        const reviewText = await callGeminiForReview(reviewerPrompt, 'creative');
+        const reviewText = await callGeminiForReview(reviewerPrompt, 'review');
         let review: Phase5DialogueReview;
 
         try {
@@ -126,17 +126,18 @@ export async function generatePhase5WithDialogue(
 
         // 3. Check critical criteria
 
-        // Check humor
-        if ((review.scores.humor || 0) < 6) {
-            console.log(`❌ Not funny enough (${review.scores.humor}/10).`);
+        // Check absurdity/humor (absurdity is the primary field, humor is fallback for backwards compatibility)
+        const absurdityScore = review.scores.absurdity || review.scores.humor || 0;
+        if (absurdityScore < 6) {
+            console.log(`❌ Not absurd/funny enough (${absurdityScore}/10).`);
 
             const boringQuestions = review.questions_feedback
-                .filter(q => !q.funny)
+                .filter(q => !q.absurd && !q.funny)
                 .map(q => `- Q${q.index + 1}: "${q.question?.slice(0, 40) || '?'}..."`)
                 .join('\n');
 
             previousFeedback = `
-⚠️ QUESTIONS PAS ASSEZ DRÔLES (score: ${review.scores.humor}/10)
+⚠️ QUESTIONS PAS ASSEZ DÉCALÉES (score: ${absurdityScore}/10)
 
 Questions ennuyeuses :
 ${boringQuestions || '(Toutes)'}

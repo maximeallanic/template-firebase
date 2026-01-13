@@ -287,19 +287,26 @@ export function validatePhase5Question(q: unknown, index: number = 0): Validatio
 
 /**
  * Validate and normalize an array of Phase 5 questions
- * Handles wrapper objects like { theme, questions: [...] }
+ * Handles wrapper objects like { theme, questions: [...] } or { burger_ultime: [...] }
  */
 export function normalizePhase5Questions(questions: unknown[]): Phase5Question[] {
     const normalized: Phase5Question[] = [];
 
     // Check if we received a wrapper object instead of questions array
-    // AI sometimes returns { theme: "...", questions: [...] } or { questions: [...] }
+    // AI sometimes returns { theme: "...", questions: [...] } or { burger_ultime: [...] }
     let actualQuestions = questions;
     if (questions.length === 1 && questions[0] && typeof questions[0] === 'object') {
         const wrapper = questions[0] as Record<string, unknown>;
+        // Handle various wrapper formats AI might return
         if (Array.isArray(wrapper.questions)) {
-            console.log('📦 Unwrapping Phase 5 questions from wrapper object');
+            console.log('📦 Unwrapping Phase 5 questions from {questions: [...]} wrapper');
             actualQuestions = wrapper.questions;
+        } else if (Array.isArray(wrapper.burger_ultime)) {
+            console.log('📦 Unwrapping Phase 5 questions from {burger_ultime: [...]} wrapper');
+            actualQuestions = wrapper.burger_ultime;
+        } else if (Array.isArray(wrapper.data)) {
+            console.log('📦 Unwrapping Phase 5 questions from {data: [...]} wrapper');
+            actualQuestions = wrapper.data;
         }
     }
 

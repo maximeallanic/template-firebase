@@ -54,12 +54,13 @@ MYTHES COURANTS À NE JAMAIS UTILISER COMME FAITS :
 - Les vikings n'avaient PAS de casques à cornes
 - Newton et la pomme : anecdote NON PROUVÉE
 
-🎯 RÈGLE #2 - OPTIONS ULTRA CRÉDIBLES
-Les 4 options sont du MÊME registre sémantique - toutes semblent vraies.
-Le joueur doit DOUTER sincèrement entre les options.
-❌ INTERDIT : jeux de mots évidents, options ridicules, 4 options trop similaires (ex: 4 mots en "-isme")
+🎯 RÈGLE #2 - OPTIONS DRÔLES ET CRÉDIBLES
+Les 4 options doivent être DRÔLES DANS LEUR FORMULATION tout en restant crédibles.
+Le joueur doit DOUTER sincèrement entre les options ET sourire en les lisant.
+❌ INTERDIT : jeux de mots évidents, 4 options trop similaires (ex: 4 mots en "-isme")
 ✅ OBLIGATOIRE : Variété de formats (noms, chiffres, dates, lieux, concepts)
-✅ INCLURE 1-2 réponses WTF/absurdes qui SONNENT vraies (piège pour le joueur)
+✅ INCLURE des formulations DÉCALÉES dans les options (pas juste "35", mais "35, et il s'en vante" si pertinent)
+✅ PIÈGE : 1-2 réponses WTF/absurdes qui SONNENT vraies
 
 🎯 RÈGLE #3 - HUMOUR & STYLE
 Questions COURTES (max 15 mots) avec formulation DÉCALÉE, ABSURDE ou IRRÉVÉRENCIEUSE.

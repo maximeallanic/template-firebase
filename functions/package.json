@@ -12,7 +12,9 @@
     "fetch-questions:prod": "npx ts-node scripts/fetch-questions.ts --production",
     "delete-questions": "npx ts-node scripts/delete-questions.ts",
     "delete-questions:prod": "npx ts-node scripts/delete-questions.ts --production",
-    "delete-questions:prod:force": "npx ts-node scripts/delete-questions.ts --production --force"
+    "delete-questions:prod:force": "npx ts-node scripts/delete-questions.ts --production --force",
+    "test-generation": "npx ts-node scripts/test-generation.ts",
+    "test-generation:verbose": "npx ts-node scripts/test-generation.ts --verbose"
   },
   "engines": {
     "node": "22"
