@@ -327,8 +327,10 @@ class AudioService {
     };
 
     this.activeSounds.set(soundId, activeSound);
+    console.log(`[AudioService] play(${soundId}): added to activeSounds, size=${this.activeSounds.size}`);
 
     source.onended = () => {
+      console.log(`[AudioService] onended(${soundId}): removing from activeSounds`);
       this.activeSounds.delete(soundId);
     };
 
@@ -340,6 +342,7 @@ class AudioService {
     this.playRequestVersion.set(soundId, 0);
 
     const active = this.activeSounds.get(soundId);
+    console.log(`[AudioService] stop(${soundId}): activeSounds has ${this.activeSounds.size} entries, keys: [${[...this.activeSounds.keys()].join(', ')}]`);
     if (!active || !this.ctx) {
       console.log(`[AudioService] stop(${soundId}): not found in activeSounds, marked as cancelled`);
       return;
