@@ -89,6 +89,8 @@ export {
     getPhase3VisibleThemes,
     checkPhase3Completion,
     getPhase3Results,
+    updatePhase3Typing,
+    clearPhase3Typing,
 } from './game/phases/phase3Service';
 
 // Phase 4 functions

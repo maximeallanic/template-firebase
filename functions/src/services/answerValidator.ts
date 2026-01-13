@@ -49,9 +49,35 @@ function sanitizeLLMInput(input: string, maxLength = 500): string {
         .replace(/[\x00-\x1f\x7f]/g, '')               // Remove control characters
         .replace(/[<>{}[\]]/g, '')                     // Remove brackets that could confuse parsing
         .replace(/```/g, '')                           // Remove code block markers
-        .replace(/\b(instruction|system|prompt|ignore|override)\b/gi, '') // Remove injection keywords
+        .replace(/\b(instruction|system|prompt|ignore|override|valide|accepte|refuse|validate|accept|reject|correct|bonne|response|answer|reponse|r[eé]ponse)\b/gi, '') // Remove injection keywords
         .substring(0, maxLength)                        // Limit length
         .trim();
+}
+
+/**
+ * SEC-002: Detects if an answer looks like a prompt injection attempt.
+ * Returns true if the answer appears to be trying to manipulate the LLM.
+ */
+function isLikelyInjection(answer: string): boolean {
+    if (!answer) return false;
+
+    const normalized = answer.toLowerCase().trim();
+
+    // Patterns that look like instructions rather than answers
+    const injectionPatterns = [
+        /^(valide|accepte|refuse|approve|reject)/i,
+        /la (question|r[eé]ponse)/i,
+        /(bonne|mauvaise) r[eé]ponse/i,
+        /^(oui|non|yes|no)$/i,
+        /isCorrect/i,
+        /confidence/i,
+        /json/i,
+        /true|false/i,
+        /\{.*\}/,  // JSON-like pattern
+        /^(correct|incorrect)$/i,
+    ];
+
+    return injectionPatterns.some(pattern => pattern.test(normalized));
 }
 
 /**
@@ -69,6 +95,76 @@ function matchesAlternative(playerAnswer: string, acceptableAnswers?: string[]):
 
     const normalizedPlayer = normalizeAnswer(playerAnswer);
     return acceptableAnswers.some(alt => normalizeAnswer(alt) === normalizedPlayer);
+}
+
+/**
+ * Calculate Levenshtein distance between two strings.
+ * Used for detecting typos.
+ */
+function levenshteinDistance(a: string, b: string): number {
+    const matrix: number[][] = [];
+
+    for (let i = 0; i <= b.length; i++) {
+        matrix[i] = [i];
+    }
+    for (let j = 0; j <= a.length; j++) {
+        matrix[0][j] = j;
+    }
+
+    for (let i = 1; i <= b.length; i++) {
+        for (let j = 1; j <= a.length; j++) {
+            if (b.charAt(i - 1) === a.charAt(j - 1)) {
+                matrix[i][j] = matrix[i - 1][j - 1];
+            } else {
+                matrix[i][j] = Math.min(
+                    matrix[i - 1][j - 1] + 1,
+                    matrix[i][j - 1] + 1,
+                    matrix[i - 1][j] + 1
+                );
+            }
+        }
+    }
+
+    return matrix[b.length][a.length];
+}
+
+/**
+ * Fast path similarity check to avoid LLM calls for common variations.
+ * Returns true if the answers are likely the same (typos, plurals, containment).
+ */
+function isFastPathSimilar(playerAnswer: string, correctAnswer: string): boolean {
+    const normalizedPlayer = normalizeAnswer(playerAnswer);
+    const normalizedCorrect = normalizeAnswer(correctAnswer);
+
+    // Empty check
+    if (!normalizedPlayer || !normalizedCorrect) return false;
+
+    // One contains the other (e.g., "Paris" vs "ville Paris")
+    if (normalizedPlayer.includes(normalizedCorrect) || normalizedCorrect.includes(normalizedPlayer)) {
+        return true;
+    }
+
+    // Check for small typos using Levenshtein distance
+    // Allow 1 error per 4 characters, minimum 1
+    const maxDistance = Math.max(1, Math.floor(normalizedCorrect.length / 4));
+    const distance = levenshteinDistance(normalizedPlayer, normalizedCorrect);
+    if (distance <= maxDistance) {
+        return true;
+    }
+
+    // Check for plural variations (French: +s, +x, +aux)
+    const pluralPatterns = [
+        { player: normalizedPlayer + 's', correct: normalizedCorrect },
+        { player: normalizedPlayer, correct: normalizedCorrect + 's' },
+        { player: normalizedPlayer + 'x', correct: normalizedCorrect },
+        { player: normalizedPlayer, correct: normalizedCorrect + 'x' },
+    ];
+
+    for (const pattern of pluralPatterns) {
+        if (pattern.player === pattern.correct) return true;
+    }
+
+    return false;
 }
 
 /**
@@ -160,6 +256,17 @@ export async function validateAnswer(
         };
     }
 
+    // SEC-002: Check for prompt injection attempts BEFORE any validation
+    if (isLikelyInjection(sanitizedPlayer)) {
+        console.warn('[AnswerValidator] Rejected likely injection attempt:', sanitizedPlayer);
+        return {
+            isCorrect: false,
+            confidence: 100,
+            matchType: 'rejected',
+            explanation: 'Invalid answer format',
+        };
+    }
+
     // Fast path 1: Exact match
     if (isExactMatch(sanitizedPlayer, sanitizedCorrect)) {
         return {
@@ -175,6 +282,16 @@ export async function validateAnswer(
             isCorrect: true,
             confidence: 100,
             matchType: 'alternative',
+        };
+    }
+
+    // Fast path 3: Similar enough (typos, plurals, containment)
+    if (isFastPathSimilar(sanitizedPlayer, sanitizedCorrect)) {
+        return {
+            isCorrect: true,
+            confidence: 90,
+            matchType: 'exact', // Mark as exact since it's a deterministic match
+            explanation: 'Similar enough (fast path)',
         };
     }
 
