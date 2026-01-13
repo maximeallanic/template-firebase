@@ -160,8 +160,8 @@ class AudioService {
   private activeSounds: Map<SoundId, ActiveSound> = new Map();
   private loadingPromises: Map<SoundId, Promise<AudioBuffer | null>> = new Map();
   private initialized = false;
-  // Track sounds that should be cancelled even if still loading
-  private cancelledSounds: Set<SoundId> = new Set();
+  // Track play request versions - incremented on each play, used to detect stale requests
+  private playRequestVersion: Map<SoundId, number> = new Map();
 
   constructor() {
     if (typeof window !== 'undefined') {
@@ -285,20 +285,27 @@ class AudioService {
       this.stop(soundId, 0);
     }
 
-    // Clear cancelled state AFTER stopping previous instance
-    // This ensures the new play request is not affected by the stop above
-    this.cancelledSounds.delete(soundId);
+    // Increment version for this sound - any older play requests will be stale
+    const currentVersion = (this.playRequestVersion.get(soundId) || 0) + 1;
+    this.playRequestVersion.set(soundId, currentVersion);
+    console.log(`[AudioService] play(${soundId}): loading (version ${currentVersion})`);
 
     const buffer = await this.loadSound(soundId);
     if (!buffer) return;
 
-    // Check if sound was cancelled while loading
-    if (this.cancelledSounds.has(soundId)) {
-      console.log(`[AudioService] play(${soundId}): cancelled while loading, not playing`);
-      this.cancelledSounds.delete(soundId);
+    // Check if this play request is still the latest one
+    const latestVersion = this.playRequestVersion.get(soundId) || 0;
+    if (currentVersion !== latestVersion) {
+      console.log(`[AudioService] play(${soundId}): stale request (v${currentVersion} vs v${latestVersion}), not playing`);
       return;
     }
-    console.log(`[AudioService] play(${soundId}): starting playback`);
+
+    // Check if sound was stopped while loading (version set to 0)
+    if (latestVersion === 0) {
+      console.log(`[AudioService] play(${soundId}): cancelled while loading, not playing`);
+      return;
+    }
+    console.log(`[AudioService] play(${soundId}): starting playback (version ${currentVersion})`);
 
     const config = SOUND_CONFIG[soundId];
     const source = this.ctx.createBufferSource();
@@ -329,8 +336,8 @@ class AudioService {
   }
 
   public stop(soundId: SoundId, fadeOutMs?: number): void {
-    // Mark as cancelled in case it's still loading
-    this.cancelledSounds.add(soundId);
+    // Set version to 0 to cancel any pending play requests
+    this.playRequestVersion.set(soundId, 0);
 
     const active = this.activeSounds.get(soundId);
     if (!active || !this.ctx) {
@@ -369,9 +376,9 @@ class AudioService {
   }
 
   public stopAll(fadeOutMs = 500): void {
-    // Mark all possible sounds as cancelled
+    // Set all versions to 0 to cancel any pending play requests
     (Object.keys(SOUND_CONFIG) as SoundId[]).forEach(soundId => {
-      this.cancelledSounds.add(soundId);
+      this.playRequestVersion.set(soundId, 0);
     });
 
     this.activeSounds.forEach((_, soundId) => {
