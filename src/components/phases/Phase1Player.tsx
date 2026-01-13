@@ -34,15 +34,15 @@ interface Phase1PlayerProps {
 const COLORS = [
     'bg-red-500',    // Option A
     'bg-blue-500',   // Option B
-    'bg-yellow-500', // Option C
+    'bg-amber-500',  // Option C (darker amber for white text contrast)
     'bg-green-500'   // Option D
 ];
 
-// Text colors for better contrast (black on yellow for accessibility)
+// Text colors - all white now that yellow is darker amber
 const TEXT_COLORS = [
     'text-white',    // Option A (red bg)
     'text-white',    // Option B (blue bg)
-    'text-slate-900', // Option C (yellow bg - needs dark text for contrast)
+    'text-white',    // Option C (amber bg - darker allows white text)
     'text-white'     // Option D (green bg)
 ];
 
