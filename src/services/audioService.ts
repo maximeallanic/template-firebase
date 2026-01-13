@@ -160,6 +160,8 @@ class AudioService {
   private activeSounds: Map<SoundId, ActiveSound> = new Map();
   private loadingPromises: Map<SoundId, Promise<AudioBuffer | null>> = new Map();
   private initialized = false;
+  // Track sounds that should be cancelled even if still loading
+  private cancelledSounds: Set<SoundId> = new Set();
 
   constructor() {
     if (typeof window !== 'undefined') {
@@ -275,6 +277,9 @@ class AudioService {
   ): Promise<void> {
     if (!this.enabled) return;
 
+    // Clear cancelled state when starting a new play request
+    this.cancelledSounds.delete(soundId);
+
     await this.init();
     if (!this.ctx) return;
 
@@ -285,6 +290,12 @@ class AudioService {
 
     const buffer = await this.loadSound(soundId);
     if (!buffer) return;
+
+    // Check if sound was cancelled while loading
+    if (this.cancelledSounds.has(soundId)) {
+      this.cancelledSounds.delete(soundId);
+      return;
+    }
 
     const config = SOUND_CONFIG[soundId];
     const source = this.ctx.createBufferSource();
@@ -315,6 +326,9 @@ class AudioService {
   }
 
   public stop(soundId: SoundId, fadeOutMs?: number): void {
+    // Mark as cancelled in case it's still loading
+    this.cancelledSounds.add(soundId);
+
     const active = this.activeSounds.get(soundId);
     if (!active || !this.ctx) return;
 
@@ -348,6 +362,11 @@ class AudioService {
   }
 
   public stopAll(fadeOutMs = 500): void {
+    // Mark all possible sounds as cancelled
+    (Object.keys(SOUND_CONFIG) as SoundId[]).forEach(soundId => {
+      this.cancelledSounds.add(soundId);
+    });
+
     this.activeSounds.forEach((_, soundId) => {
       this.stop(soundId, fadeOutMs);
     });
