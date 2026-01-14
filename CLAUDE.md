@@ -625,3 +625,22 @@ Before deploying to production:
 - Automatic preview deployment
 - Quality checks validation
 - Temporary preview URLs (expire after 7 days)
+
+### Mobile PR Preview (`.github/workflows/mobile-pr-preview.yml`)
+**Triggers:** Pull request to `master` branch
+- Builds Android APK and iOS IPA
+- Distributes to Firebase App Distribution (when configured)
+- Comments PR with download links
+
+**Required Secrets for Mobile Distribution:**
+
+| Secret | Description |
+|--------|-------------|
+| `FIREBASE_ANDROID_APP_ID` | Firebase Android App ID |
+| `FIREBASE_IOS_APP_ID` | Firebase iOS App ID |
+| `FIREBASE_SERVICE_ACCOUNT` | Service account JSON for Firebase |
+| `IOS_P12_BASE64` | Distribution certificate (.p12) in base64 |
+| `IOS_P12_PASSWORD` | Password for the .p12 certificate |
+| `IOS_PROVISIONING_PROFILE_BASE64` | Ad-Hoc provisioning profile in base64 |
+| `IOS_CODE_SIGN_IDENTITY` | e.g., "Apple Distribution: Your Name (TEAMID)" |
+| `IOS_TEAM_ID` | Apple Developer Team ID |
