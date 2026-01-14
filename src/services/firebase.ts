@@ -21,7 +21,6 @@ import {
   inMemoryPersistence,
   type User as FirebaseUser
 } from 'firebase/auth';
-import { FirebaseAuthentication } from '@capacitor-firebase/authentication';
 import { isNative } from './platformService';
 
 // Rate limiting configuration
@@ -246,6 +245,9 @@ export async function signInWithGoogle() {
   // Use native Google Sign-In on Capacitor apps
   if (isNative()) {
     try {
+      // Dynamic import to avoid initialization issues
+      const { FirebaseAuthentication } = await import('@capacitor-firebase/authentication');
+
       // Sign in with native Google on iOS/Android
       const result = await FirebaseAuthentication.signInWithGoogle();
 
@@ -301,6 +303,8 @@ export async function signOut() {
   try {
     // Sign out from native provider on Capacitor apps
     if (isNative()) {
+      // Dynamic import to avoid initialization issues
+      const { FirebaseAuthentication } = await import('@capacitor-firebase/authentication');
       await FirebaseAuthentication.signOut();
     }
     await firebaseSignOut(auth);
