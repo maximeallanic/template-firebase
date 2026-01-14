@@ -34,7 +34,7 @@
     "allAssigned": "Tout le monde est casé !"
   },
   "game": {
-    "startGame": "QUE LE MEILLEUR GAGNE !",
+    "startGame": "C'EST PARTI !",
     "waitingForHost": "Le chef se prépare mentalement...",
     "spectatorMode": "MODE POPCORN"
   }

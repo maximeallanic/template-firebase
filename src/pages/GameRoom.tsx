@@ -506,11 +506,16 @@ function TeamSide({ team, players }: { team: 'spicy' | 'sweet'; players: Player[
     const variants = prefersReducedMotion ? playerCardReducedVariants : playerCardVariants;
 
     return (
-        <div className={`flex-1 ${isSpicy ? 'bg-red-900/20 border-b-4 md:border-b-0 md:border-r-4 border-red-600/30' : 'bg-pink-900/20'} flex flex-col items-center justify-center p-8 relative overflow-hidden group`}>
+        <div className={`flex-1 ${isSpicy ? 'bg-red-900/20 border-b-4 md:border-b-0 md:border-r-4 border-red-600/30' : 'bg-pink-900/20'} flex flex-col items-center ${isSpicy ? 'md:items-start justify-start pt-16' : 'md:items-end justify-end pb-16'} md:justify-center md:pt-0 md:pb-0 p-8 relative overflow-hidden group`}>
             <div className={`absolute inset-0 bg-gradient-to-${isSpicy ? 'br' : 'tl'} from-${isSpicy ? 'red' : 'pink'}-900/0 via-${isSpicy ? 'red' : 'pink'}-600/5 to-${isSpicy ? 'red' : 'pink'}-500/10 pointer-events-none`} />
 
-            <h2 className={`text-3xl md:text-5xl font-black ${isSpicy ? 'text-red-500' : 'text-pink-500'} uppercase tracking-tighter mb-8 drop-shadow-xl z-0 opacity-80 flex items-center gap-3`}>
-                Team {t(`common:teams.${team}`)} {isSpicy ? <Flame className="w-10 h-10 md:w-16 md:h-16" /> : <Candy className="w-10 h-10 md:w-16 md:h-16" />}
+            <h2 className={`text-3xl md:text-5xl font-black ${isSpicy ? 'text-red-500' : 'text-pink-500'} uppercase tracking-tighter mb-8 drop-shadow-xl z-0 opacity-80 flex items-end gap-3`}>
+                <span className="pb-[15px]">Team</span>
+                <img
+                    src={isSpicy ? '/team_spicy.svg' : '/team_sweet.svg'}
+                    alt={`Team ${t(`common:teams.${team}`)}`}
+                    className="w-20 h-20 md:w-32 md:h-32"
+                />
             </h2>
 
             <div className="grid grid-cols-2 gap-4 w-full max-w-md z-10">
@@ -529,7 +534,7 @@ function TeamSide({ team, players }: { team: 'spicy' | 'sweet'; players: Player[
                     ))}
                 </AnimatePresence>
                 {players.length === 0 && (
-                    <p className={`col-span-2 text-center ${isSpicy ? 'text-red-300/50' : 'text-sweet-300/50'} font-medium italic`}>
+                    <p className={`col-span-2 text-center ${isSpicy ? 'md:text-left text-red-300/50' : 'md:text-right text-sweet-300/50'} font-medium italic`}>
                         {isSpicy ? t('lobby:teams.waitingSpicy') : t('lobby:teams.waitingSweet')}
                     </p>
                 )}
@@ -637,7 +642,7 @@ function UnassignedPlayersList({ players, roomCode, isHost }: { players: Player[
                         initial="hidden"
                         animate="visible"
                         exit="exit"
-                        className="text-gray-500 text-center text-sm py-4"
+                        className="hidden md:block text-gray-500 text-center text-sm py-4"
                     >
                         {t('teams.allAssigned')}
                     </motion.p>
