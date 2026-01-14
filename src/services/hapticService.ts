@@ -16,11 +16,23 @@ class HapticService {
   }
 
   /**
+   * Safe wrapper for native haptics - catches errors for unsupported platforms
+   */
+  private async safeHaptic(action: () => Promise<void>): Promise<void> {
+    try {
+      await action();
+    } catch (error) {
+      // Haptics may not be available on all devices/platforms
+      console.debug('Haptic feedback not available:', error);
+    }
+  }
+
+  /**
    * Short tap feedback - for button presses
    */
   public tap(): void {
     if (isNative()) {
-      Haptics.impact({ style: ImpactStyle.Light });
+      this.safeHaptic(() => Haptics.impact({ style: ImpactStyle.Light }));
     } else {
       this.webVibrate(10);
     }
@@ -31,7 +43,7 @@ class HapticService {
    */
   public success(): void {
     if (isNative()) {
-      Haptics.notification({ type: NotificationType.Success });
+      this.safeHaptic(() => Haptics.notification({ type: NotificationType.Success }));
     } else {
       this.webVibrate(100);
     }
@@ -42,7 +54,7 @@ class HapticService {
    */
   public error(): void {
     if (isNative()) {
-      Haptics.notification({ type: NotificationType.Error });
+      this.safeHaptic(() => Haptics.notification({ type: NotificationType.Error }));
     } else {
       this.webVibrate([50, 30, 50]);
     }
@@ -53,7 +65,7 @@ class HapticService {
    */
   public buzzer(): void {
     if (isNative()) {
-      Haptics.impact({ style: ImpactStyle.Medium });
+      this.safeHaptic(() => Haptics.impact({ style: ImpactStyle.Medium }));
     } else {
       this.webVibrate(20);
     }
@@ -64,7 +76,7 @@ class HapticService {
    */
   public vibrate(pattern: number | number[]): void {
     if (isNative()) {
-      Haptics.vibrate();
+      this.safeHaptic(() => Haptics.vibrate());
     } else {
       this.webVibrate(pattern);
     }

@@ -10,8 +10,7 @@ import {
   sendEmailVerification,
   GoogleAuthProvider,
   signInWithPopup,
-  signInWithRedirect,
-  getRedirectResult,
+  signInWithCredential,
   applyActionCode,
   sendPasswordResetEmail,
   verifyPasswordResetCode,
@@ -22,6 +21,8 @@ import {
   inMemoryPersistence,
   type User as FirebaseUser
 } from 'firebase/auth';
+import { FirebaseAuthentication } from '@capacitor-firebase/authentication';
+import { isNative } from './platformService';
 
 // Rate limiting configuration
 const RATE_LIMIT_WINDOW_MS = 60000; // 1 minute
@@ -242,21 +243,37 @@ export async function signUp(email: string, password: string) {
 export async function signInWithGoogle() {
   await initializeAuth(); // Lazy-load auth on first use
 
+  // Use native Google Sign-In on Capacitor apps
+  if (isNative()) {
+    try {
+      // Sign in with native Google on iOS/Android
+      const result = await FirebaseAuthentication.signInWithGoogle();
+
+      // Get the ID token and create Firebase credential
+      const credential = GoogleAuthProvider.credential(result.credential?.idToken);
+
+      // Sign in to Firebase with the credential
+      const userCredential = await signInWithCredential(auth, credential);
+      return userCredential.user;
+    } catch (error: unknown) {
+      console.error('Native Google sign in error:', error);
+
+      const errorMessage = error instanceof Error ? error.message : 'Failed to sign in with Google';
+
+      // Handle user cancellation
+      if (errorMessage.includes('cancel') || errorMessage.includes('Cancel')) {
+        throw new Error('Sign-in cancelled');
+      }
+
+      throw new Error(errorMessage);
+    }
+  }
+
+  // Web: Use popup-based sign-in
   const provider = new GoogleAuthProvider();
   provider.addScope('email');
   provider.addScope('profile');
 
-  // First, check for redirect result (in case we're coming back from a redirect)
-  try {
-    const redirectResult = await getRedirectResult(auth);
-    if (redirectResult) {
-      return redirectResult.user;
-    }
-  } catch (redirectError) {
-    console.warn('Redirect result check failed:', redirectError);
-  }
-
-  // Try popup first (better UX on desktop)
   try {
     const result = await signInWithPopup(auth, provider);
     // Note: result.user.emailVerified is automatically true for Google sign-in
@@ -268,19 +285,10 @@ export async function signInWithGoogle() {
     const errorCode = (error as { code?: string }).code;
     const errorMessage = error instanceof Error ? error.message : 'Failed to sign in with Google';
 
-    // If popup is blocked or fails, fallback to redirect
-    if (errorCode === 'auth/popup-blocked' || errorCode === 'auth/popup-closed-by-user') {
-      console.log('Popup blocked or closed, falling back to redirect...');
-      // Use redirect as fallback (works on all browsers/devices)
-      await signInWithRedirect(auth, provider);
-      // This will redirect away, so we won't reach this return
-      return null as unknown as FirebaseUser;
-    }
-
     if (errorCode === 'auth/account-exists-with-different-credential') {
       throw new Error('Un compte existe déjà avec cet email. Connectez-vous avec email/mot de passe.');
     }
-    if (errorCode === 'auth/cancelled-popup-request') {
+    if (errorCode === 'auth/cancelled-popup-request' || errorCode === 'auth/popup-closed-by-user') {
       // User closed popup, don't show error
       throw new Error('Sign-in cancelled');
     }
@@ -291,6 +299,10 @@ export async function signInWithGoogle() {
 
 export async function signOut() {
   try {
+    // Sign out from native provider on Capacitor apps
+    if (isNative()) {
+      await FirebaseAuthentication.signOut();
+    }
     await firebaseSignOut(auth);
   } catch (error: unknown) {
     console.error('Sign out error:', error);

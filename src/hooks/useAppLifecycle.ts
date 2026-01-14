@@ -27,18 +27,35 @@ export function useAppLifecycle(options: UseAppLifecycleOptions = {}): void {
   useEffect(() => {
     if (!isNative()) return;
 
+    let isMounted = true;
+
     // Set up the listener asynchronously
-    App.addListener('appStateChange', ({ isActive }) => {
-      if (isActive) {
-        handleResume();
-      } else {
-        handlePause();
+    const setupListener = async () => {
+      try {
+        const handle = await App.addListener('appStateChange', ({ isActive }) => {
+          if (isActive) {
+            handleResume();
+          } else {
+            handlePause();
+          }
+        });
+
+        // Only store handle if component is still mounted
+        if (isMounted) {
+          listenerRef.current = handle;
+        } else {
+          // Component unmounted while we were setting up - clean up immediately
+          handle.remove();
+        }
+      } catch (error) {
+        console.debug('Failed to add app state listener:', error);
       }
-    }).then((handle) => {
-      listenerRef.current = handle;
-    });
+    };
+
+    setupListener();
 
     return () => {
+      isMounted = false;
       // Clean up listener on unmount
       listenerRef.current?.remove();
     };

@@ -14,15 +14,16 @@ if (isNative()) {
   document.documentElement.classList.add('native-app');
 
   // Set dark status bar style for native apps
-  StatusBar.setStyle({ style: Style.Dark }).catch(() => {
-    // StatusBar not available on this platform
+  StatusBar.setStyle({ style: Style.Dark }).catch((err) => {
+    console.debug('StatusBar.setStyle not available:', err);
   });
-  StatusBar.setBackgroundColor({ color: '#0f172a' }).catch(() => {
-    // Android only
+  StatusBar.setBackgroundColor({ color: '#0f172a' }).catch((err) => {
+    // Android only - iOS doesn't support this
+    console.debug('StatusBar.setBackgroundColor not available:', err);
   });
   // Hide splash screen after app is ready
-  SplashScreen.hide().catch(() => {
-    // SplashScreen not available
+  SplashScreen.hide().catch((err) => {
+    console.debug('SplashScreen.hide not available:', err);
   });
 }
 

@@ -38,8 +38,12 @@ export const shareContent = async (options: ShareOptions): Promise<boolean> => {
 
     // No share API available
     return false;
-  } catch {
-    // User cancelled or error
+  } catch (error) {
+    // User cancelled share dialog or share failed
+    // Only log actual errors, not user cancellations
+    if (error instanceof Error && !error.message.includes('cancel')) {
+      console.warn('Share failed:', error.message);
+    }
     return false;
   }
 };
@@ -51,16 +55,28 @@ export const canShare = (): boolean => {
   return isNative() || 'share' in navigator;
 };
 
+interface ShareRoomInviteOptions {
+  /** Translated title for the share dialog */
+  title: string;
+  /** Translated message body (use {code} placeholder for room code) */
+  message: string;
+}
+
 /**
  * Share room code with invite message
+ * @param roomCode - The 4-character room code
+ * @param appUrl - The base URL of the app
+ * @param options - Translated strings for the share content
  */
 export const shareRoomInvite = async (
   roomCode: string,
-  appUrl: string
+  appUrl: string,
+  options: ShareRoomInviteOptions
 ): Promise<boolean> => {
+  const text = options.message.replace('{code}', roomCode);
   return shareContent({
-    title: 'Spicy vs Sweet - Rejoins ma partie !',
-    text: `🌶️ vs 🍬 Rejoins ma partie Spicy vs Sweet !\n\nCode de room : ${roomCode}`,
+    title: options.title,
+    text,
     url: `${appUrl}?code=${roomCode}`
   });
 };
