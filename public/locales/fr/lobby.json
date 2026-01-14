@@ -37,5 +37,9 @@
     "startGame": "C'EST PARTI !",
     "waitingForHost": "Le chef se prépare mentalement...",
     "spectatorMode": "MODE POPCORN"
+  },
+  "mobile": {
+    "gameOptions": "Options de partie",
+    "back": "Retour"
   }
 }

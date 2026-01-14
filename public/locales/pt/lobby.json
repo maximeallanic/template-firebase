@@ -37,5 +37,9 @@
     "startGame": "BORA!",
     "waitingForHost": "O chefe está meditando... Paciência.",
     "spectatorMode": "MODO PIPOCA"
+  },
+  "mobile": {
+    "gameOptions": "Opções da partida",
+    "back": "Voltar"
   }
 }

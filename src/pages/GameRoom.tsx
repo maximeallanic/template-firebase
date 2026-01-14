@@ -25,7 +25,8 @@ import { PhaseTransition } from '../components/game/PhaseTransition';
 import { DebugPanel } from '../components/game/DebugPanel';
 import { MockPlayerProvider } from '../contexts/MockPlayerContext';
 import {
-    Flame, Candy, Link, Eye, Clapperboard, Check, Share2, Users, Scale, Play
+    Flame, Candy, Link, Eye, Clapperboard, Check, Share2, Users, Scale, Play,
+    Settings, ChevronLeft
 } from 'lucide-react';
 import { AvatarIcon } from '../components/AvatarIcon';
 import { audioService } from '../services/audioService';
@@ -98,6 +99,8 @@ export default function GameRoom() {
     const [showLobbyOnboarding, setShowLobbyOnboarding] = useState(false);
     // Profile edit modal for PWA mode
     const [showProfileEdit, setShowProfileEdit] = useState(false);
+    // Mobile lobby: 2-step navigation (1 = players/teams, 2 = game options)
+    const [mobileStep, setMobileStep] = useState<1 | 2>(1);
 
     // Refs for tracking previous values
     const prevStatus = useRef<string>('');
@@ -369,23 +372,53 @@ export default function GameRoom() {
                                         animate={{ opacity: 1 }}
                                         exit={{ opacity: 0 }}
                                         transition={{ duration: durations.fast, ease: organicEase }}
-                                        className="flex flex-col items-center"
+                                        className="flex flex-col items-center w-full"
                                     >
+                                        {/* Header always visible */}
                                         <LobbyHeader roomCode={room.code} linkCopied={linkCopied} onCopyLink={handleCopyLink} />
-                                        <UnassignedPlayersList
-                                            players={unassigned}
-                                            roomCode={room.code}
-                                            isHost={isHost}
-                                        />
-                                        <StartGameButton
-                                            isHost={isHost}
-                                            canStart={players.length >= 2 && unassigned.length === 0}
-                                            onStart={handleStartGame}
-                                            difficulty={getRoomDifficulty(room)}
-                                            onDifficultyChange={(d) => updateRoomDifficulty(room.code, d)}
-                                            languageInfo={getRoomLanguageInfo(room)}
-                                            onLanguageChange={(lang) => updateRoomForcedLanguage(room.code, lang)}
-                                        />
+
+                                        {/* Mobile: 2-step navigation */}
+                                        <div className="md:hidden w-full">
+                                            {mobileStep === 1 ? (
+                                                <>
+                                                    <UnassignedPlayersList
+                                                        players={unassigned}
+                                                        roomCode={room.code}
+                                                        isHost={isHost}
+                                                    />
+                                                    <MobileNextStepButton onClick={() => setMobileStep(2)} />
+                                                </>
+                                            ) : (
+                                                <MobileGameOptions
+                                                    onBack={() => setMobileStep(1)}
+                                                    isHost={isHost}
+                                                    canStart={players.length >= 2 && unassigned.length === 0}
+                                                    onStart={handleStartGame}
+                                                    difficulty={getRoomDifficulty(room)}
+                                                    onDifficultyChange={(d) => updateRoomDifficulty(room.code, d)}
+                                                    languageInfo={getRoomLanguageInfo(room)}
+                                                    onLanguageChange={(lang) => updateRoomForcedLanguage(room.code, lang)}
+                                                />
+                                            )}
+                                        </div>
+
+                                        {/* Desktop: All in one view */}
+                                        <div className="hidden md:block w-full">
+                                            <UnassignedPlayersList
+                                                players={unassigned}
+                                                roomCode={room.code}
+                                                isHost={isHost}
+                                            />
+                                            <StartGameButton
+                                                isHost={isHost}
+                                                canStart={players.length >= 2 && unassigned.length === 0}
+                                                onStart={handleStartGame}
+                                                difficulty={getRoomDifficulty(room)}
+                                                onDifficultyChange={(d) => updateRoomDifficulty(room.code, d)}
+                                                languageInfo={getRoomLanguageInfo(room)}
+                                                onLanguageChange={(lang) => updateRoomForcedLanguage(room.code, lang)}
+                                            />
+                                        </div>
                                     </motion.div>
                                 )}
                             </AnimatePresence>
@@ -558,7 +591,7 @@ function PlayerCard({ player, theme }: { player: Player; theme: 'spicy' | 'sweet
 function LobbyHeader({ roomCode, linkCopied, onCopyLink }: { roomCode: string; linkCopied: boolean; onCopyLink: () => void }) {
     const { t } = useTranslation('lobby');
     return (
-        <header className="mb-6 text-center">
+        <header className="mb-3 md:mb-6 text-center">
             <span className="block text-xs font-bold text-gray-500 uppercase tracking-widest mb-1">{t('room.roomCode')}</span>
             <div className="flex items-center justify-center gap-2 mt-2">
                 <span className="text-5xl font-black tracking-widest text-transparent bg-clip-text bg-gradient-to-r from-red-400 to-pink-400" style={{ backgroundImage: 'linear-gradient(to right, #f87171, #f472b6)', WebkitBackgroundClip: 'text', color: 'transparent' }}>
@@ -597,7 +630,7 @@ function UnassignedPlayersList({ players, roomCode, isHost }: { players: Player[
     const variants = prefersReducedMotion ? playerCardReducedVariants : playerCardVariants;
 
     return (
-        <div className="w-full space-y-3 mb-6 max-h-64 overflow-y-auto custom-scrollbar" role="list" aria-label={t('teams.unassigned')}>
+        <div className="w-full space-y-2 md:space-y-3 mb-3 md:mb-6 max-h-64 overflow-y-auto custom-scrollbar" role="list" aria-label={t('teams.unassigned')}>
             <AnimatePresence mode="popLayout">
                 {players.length > 0 ? (
                     players.map(player => (
@@ -720,6 +753,97 @@ function StartGameButton({ isHost, canStart, onStart, difficulty, onDifficultyCh
             >
                 {t('game.startGame')} <Clapperboard className="w-6 h-6" />
             </button>
+        </div>
+    );
+}
+
+// Mobile-only: Button to navigate from step 1 (players) to step 2 (options)
+function MobileNextStepButton({ onClick }: { onClick: () => void }) {
+    const { t } = useTranslation('lobby');
+    return (
+        <button
+            onClick={onClick}
+            className="w-full bg-slate-800 hover:bg-slate-700 text-white font-bold py-3 px-4 rounded-xl flex items-center justify-center gap-2 transition-colors border border-slate-700"
+        >
+            <Settings className="w-5 h-5" />
+            {t('mobile.gameOptions')}
+        </button>
+    );
+}
+
+// Mobile-only: Game options panel (step 2)
+interface MobileGameOptionsProps {
+    onBack: () => void;
+    isHost: boolean;
+    canStart: boolean;
+    onStart: () => void;
+    difficulty: Difficulty;
+    onDifficultyChange: (difficulty: Difficulty) => void;
+    languageInfo: {
+        isUnanimous: boolean;
+        unanimousLanguage: GameLanguage | null;
+        forcedLanguage: GameLanguage | null;
+        effectiveLanguage: GameLanguage;
+    };
+    onLanguageChange: (language: GameLanguage | null) => void;
+}
+
+function MobileGameOptions({
+    onBack,
+    isHost,
+    canStart,
+    onStart,
+    difficulty,
+    onDifficultyChange,
+    languageInfo,
+    onLanguageChange
+}: MobileGameOptionsProps) {
+    const { t } = useTranslation('lobby');
+
+    return (
+        <div className="w-full space-y-4">
+            {/* Back button */}
+            <button
+                onClick={onBack}
+                className="flex items-center gap-1 text-slate-400 hover:text-white transition-colors font-medium"
+            >
+                <ChevronLeft className="w-5 h-5" />
+                {t('mobile.back')}
+            </button>
+
+            {/* Difficulty Selector */}
+            <DifficultySelector
+                value={difficulty}
+                onChange={isHost ? onDifficultyChange : () => {}}
+                disabled={!isHost}
+            />
+
+            {/* Language Selector */}
+            <RoomLanguageSelector
+                effectiveLanguage={languageInfo.effectiveLanguage}
+                forcedLanguage={languageInfo.forcedLanguage}
+                isUnanimous={languageInfo.isUnanimous}
+                unanimousLanguage={languageInfo.unanimousLanguage}
+                onChange={isHost ? onLanguageChange : () => {}}
+                disabled={!isHost}
+                compact={true}
+            />
+
+            {/* Start button (host) or waiting message (non-host) */}
+            {isHost ? (
+                <button
+                    onClick={onStart}
+                    disabled={!canStart}
+                    className="w-full bg-gradient-to-r from-yellow-400 to-orange-500 text-brand-darker text-xl font-black py-4 px-8 rounded-xl shadow-lg hover:shadow-yellow-500/20 hover:scale-105 active:scale-95 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                    aria-disabled={!canStart}
+                >
+                    {t('game.startGame')} <Clapperboard className="w-6 h-6" />
+                </button>
+            ) : (
+                <p className="text-gray-400 font-medium animate-pulse text-center py-4">
+                    {t('game.waitingForHost')}
+                </p>
+            )}
         </div>
     );
 }
