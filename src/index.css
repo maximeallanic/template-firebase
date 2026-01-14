@@ -147,15 +147,24 @@ body {
 html.native-app, html.native-app body {
   overscroll-behavior: none;
   -webkit-overflow-scrolling: touch;
-  /* Fixed height to prevent scroll */
+  /* Fixed dimensions to prevent scroll */
+  width: 100%;
   height: 100%;
   overflow: hidden;
 }
 
 html.native-app #root {
+  width: 100%;
   height: 100%;
   overflow: auto;
   -webkit-overflow-scrolling: touch;
+}
+
+/* Safe areas for native Capacitor apps */
+html.native-app body {
+  padding-top: env(safe-area-inset-top, 0px);
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+  /* Don't apply left/right padding - let content handle it */
 }
 
 /* PWA mode - standalone/fullscreen display mode */

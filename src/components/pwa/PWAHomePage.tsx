@@ -14,6 +14,7 @@ import { useAuthUser } from '../../hooks/useAuthUser';
 import { createRoom, joinRoom, AVATAR_LIST } from '../../services/gameService';
 import { saveProfile } from '../../services/profileService';
 import { safeStorage } from '../../utils/storage';
+import { isNative } from '../../services/platformService';
 
 /**
  * PWA-specific homepage with Candy Crush-style design.
@@ -195,8 +196,11 @@ export function PWAHomePage() {
 
       {/* Main content */}
       <div
-        className="pwa-main-content flex-1 flex flex-col relative z-20 overflow-hidden"
-        style={{
+        className="pwa-main-content flex-1 flex flex-col relative z-20 overflow-hidden w-full"
+        style={isNative() ? {
+          // Native apps: safe areas are handled by body CSS, avoid double padding
+        } : {
+          // PWA mode: apply safe area padding
           paddingTop: 'env(safe-area-inset-top, 0px)',
           paddingBottom: 'env(safe-area-inset-bottom, 0px)',
           paddingLeft: 'env(safe-area-inset-left, 0px)',

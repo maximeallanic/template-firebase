@@ -15,6 +15,14 @@
       },
       "oauth_client": [
         {
+          "client_id": "235167916448-v0rh6d7cvhael9nc79oftcg304tcpijn.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.spicyvssweet.app",
+            "certificate_hash": "93867033ae63d4475226f4386ebefd625b801489"
+          }
+        },
+        {
           "client_id": "235167916448-4vuo4v1js10scr2d2bbk6q1iribtgn6k.apps.googleusercontent.com",
           "client_type": 3
         }

@@ -248,8 +248,12 @@ export async function signInWithGoogle() {
       // Dynamic import to avoid initialization issues
       const { GoogleAuth } = await import('@southdevs/capacitor-google-auth');
 
-      // Initialize the plugin before sign-in
+      // Web Client ID (client_type: 3) - required for server-side token verification
+      const serverClientId = '235167916448-4vuo4v1js10scr2d2bbk6q1iribtgn6k.apps.googleusercontent.com';
+
+      // Initialize the plugin before sign-in with explicit clientId
       await GoogleAuth.initialize({
+        clientId: serverClientId,
         scopes: ['profile', 'email'],
         grantOfflineAccess: true
       });
