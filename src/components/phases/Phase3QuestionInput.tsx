@@ -207,7 +207,6 @@ export const Phase3QuestionInput: React.FC<Phase3QuestionInputProps> = ({
         if (feedback === 'correct') {
             hasPlayedFeedbackRef.current = true;
             audioService.playSuccess();
-            audioService.playWinRound();
         } else if (feedback === 'incorrect') {
             hasPlayedFeedbackRef.current = true;
             audioService.playError();

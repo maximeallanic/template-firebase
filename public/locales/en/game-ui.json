@@ -252,11 +252,13 @@
     ],
     "correctAnswerWas": "It was:",
     "youAnswered": "You said",
+    "didntAnswer": "You didn't answer in time",
     "waitingForPlayers": "Waiting for the slowpokes...",
     "everyoneAnswered": "Everyone has spoken!",
     "nextQuestionIn": "Next round in {{seconds}}s",
     "prepareForQuestion": "Focus...",
     "solo": {
+      "correct": "Correct!",
       "noWinner": "Too slow!",
       "noWinner_variants": [
         "Too slow!",

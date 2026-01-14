@@ -7,21 +7,15 @@
 export const PHASE1_PROMPT = `SPICY VS SWEET - 10 Tenders questions
 Theme: {TOPIC} | Difficulty: {DIFFICULTY}
 
-STYLE: FUNNY and UNEXPECTED question, SERIOUS and BELIEVABLE options
+⚠️ STRICT RULES:
+1. 4 BELIEVABLE options in the same register (genuine hesitation)
+2. ONE verifiable correct answer, 3 FALSE but plausible
+3. Clear and direct questions (15 words max)
+4. TRUE and interesting anecdote (20 words max)
 
-MANDATORY RULES:
-1. HUMOR only in the question WORDING (quirky tone, absurd, irreverent)
-2. 4 ULTRA-BELIEVABLE options in the same register → player must genuinely HESITATE
-3. ONE correct answer, the other 3 are FALSE but plausible
-4. SHORT questions (15 words max), punchy
-5. TRUE WTF anecdote about the correct answer (20 words max)
-6. VERIFY each answer on Google before writing it
-7. VARIETY: alternate serious and light topics, different writing styles
-8. Sometimes a WTF but true answer to surprise players
+❌ FORBIDDEN: puns in options, duplicates
 
-❌ FORBIDDEN: puns in options, guessable answer, duplicates, similar questions
-
-JSON: [{"text":"Question?","options":["A","B","C","D"],"correctIndex":0,"anecdote":"Fun fact"}]`;
+JSON: [{"text":"Quirky question?","options":["A","B","C","D"],"correctIndex":0,"anecdote":"WTF fact"}]`;
 
 export const PHASE1_GENERATOR_PROMPT = `You are a question creator for SPICY VS SWEET in the "Tenders" phase (Speed MCQ).
 
@@ -55,30 +49,21 @@ COMMON MYTHS TO NEVER USE AS FACTS:
 - Newton and the apple: UNPROVEN anecdote
 - "Let them eat cake": Marie Antoinette never said this
 
-🎯 RULE #2 - ULTRA-BELIEVABLE OPTIONS
-All 4 options are in the SAME semantic register - all seem true.
+🎯 RULE #2 - BELIEVABLE OPTIONS
+All 4 options must be BELIEVABLE and in the same register.
 The player must GENUINELY doubt between options.
 ❌ FORBIDDEN: obvious puns, ridiculous options, 4 too-similar options (e.g., 4 words ending in "-ism")
 ✅ REQUIRED: Variety of formats (names, numbers, dates, places, concepts)
-✅ INCLUDE 1-2 WTF/absurd answers that SOUND true (trap for the player)
+✅ INCLUDE 1-2 surprising answers that SOUND true (trap for the player)
 
-🎯 RULE #3 - HUMOR & STYLE
-SHORT questions (max 15 words) with QUIRKY, ABSURD or IRREVERENT wording.
-ABSOLUTELY VARY writing styles:
-- Direct questions: "What is X?"
-- Interrogative statements: "X is known for Y, but how much Z?"
-- Provocative phrasing: "Surprisingly, X..."
-- Unexpected turns: "If X were Y, how much Z?"
-❌ Don't repeat the same sentence structure between questions.
-
-🎯 RULE #4 - SUBJECT DIVERSITY
+🎯 RULE #3 - SUBJECT DIVERSITY
 Intelligently alternate between:
 - SERIOUS subjects (science, history, geography)
 - LIGHT subjects (pop culture, unusual facts, bizarre records)
 - Counter-intuitive or surprising facts
 ❌ No similar or redundant questions.
 
-🎯 RULE #5 - MANDATORY ANECDOTES
+🎯 RULE #4 - MANDATORY ANECDOTES
 Each question MUST have a WTF/unusual anecdote of 20 words max.
 The anecdote enriches the correct answer with a surprising VERIFIABLE detail.
 ❌ The anecdote must NOT be empty or generic.

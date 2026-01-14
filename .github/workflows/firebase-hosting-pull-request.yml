@@ -93,8 +93,8 @@ jobs:
         uses: FirebaseExtended/action-hosting-deploy@v0
         with:
           repoToken: ${{ secrets.GITHUB_TOKEN }}
-          firebaseServiceAccount: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
-          projectId: ${{ secrets.FIREBASE_PROJECT_ID }}
+          firebaseServiceAccount: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_SPICY_VS_SWEETY }}
+          projectId: spicy-vs-sweety
           expires: 7d
           channelId: pr-${{ github.event.pull_request.number }}
 
@@ -105,8 +105,10 @@ jobs:
             const prNumber = context.issue.number;
             const previewUrl = '${{ steps.deploy.outputs.details_url }}';
             const bundleSize = '${{ steps.bundle-size.outputs.size }}';
+            const marker = '<!-- firebase-preview-comment -->';
 
-            const body = `## 🔥 Firebase Preview Deployment
+            const body = `${marker}
+            ## 🔥 Firebase Preview Deployment
 
             ### ✅ Status: Ready for Testing
 
@@ -151,9 +153,29 @@ jobs:
             ---
             *Preview deployed from commit ${context.sha.substring(0, 7)}*`;
 
-            github.rest.issues.createComment({
+            // Find existing comment with marker
+            const { data: comments } = await github.rest.issues.listComments({
               issue_number: context.issue.number,
               owner: context.repo.owner,
-              repo: context.repo.repo,
-              body: body
-            })
+              repo: context.repo.repo
+            });
+
+            const existingComment = comments.find(c => c.body && c.body.includes(marker));
+
+            if (existingComment) {
+              // Update existing comment
+              await github.rest.issues.updateComment({
+                comment_id: existingComment.id,
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                body: body
+              });
+            } else {
+              // Create new comment
+              await github.rest.issues.createComment({
+                issue_number: context.issue.number,
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                body: body
+              });
+            }

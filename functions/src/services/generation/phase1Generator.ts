@@ -142,7 +142,7 @@ export async function generatePhase1WithDialogue(
             + languageInstruction;
 
         console.log('👨‍⚖️ Reviewer evaluating questions...');
-        const reviewText = await callGeminiForReview(reviewerPrompt, 'factual'); // Use factual config for Phase 1
+        const reviewText = await callGeminiForReview(reviewerPrompt, 'review'); // Use factual config for Phase 1
         let review: Phase1DialogueReview;
 
         try {

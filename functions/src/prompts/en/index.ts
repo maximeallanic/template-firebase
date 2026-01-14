@@ -16,6 +16,7 @@ export {
 export {
     GENERATE_TOPIC_PROMPT,
     GENERATE_TOPIC_PHASE2_PROMPT,
+    GENERATE_TOPIC_PHASE5_PROMPT,
     SUBJECT_ANGLE_PROMPT,
     buildSubjectAnglePrompt
 } from './topic';

@@ -1,8 +1,10 @@
+import { useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { ChefHat, AlertTriangle, RotateCcw } from 'lucide-react';
 import { LoadingMessages } from './LoadingMessages';
 import { useLoadingMessages } from '../../hooks/useGameTranslation';
 import { organicEase, loadingDurations } from '../../animations';
+import { audioService } from '../../services/audioService';
 
 interface GenerationLoadingCardProps {
     error?: string | null;
@@ -14,6 +16,16 @@ export function GenerationLoadingCard({
     onRetry,
 }: GenerationLoadingCardProps) {
     const { generationTitle, errorTitle, retryButton } = useLoadingMessages();
+
+    // Play cooking sounds while loading
+    useEffect(() => {
+        if (!error) {
+            audioService.play('cookingLoading');
+        }
+        return () => {
+            audioService.stop('cookingLoading');
+        };
+    }, [error]);
 
     if (error) {
         return (

@@ -206,9 +206,16 @@ function soloGameReducer(state: SoloGameState, action: SoloGameAction): SoloGame
         }
 
         case 'START_PHASE': {
-            const newState = { ...state, status: action.phase };
+            const newState: SoloGameState = { ...state, status: action.phase };
 
-            if (action.phase === 'phase1') {
+            if (action.phase === 'setup') {
+                // Reset to initial setup state
+                return createInitialSoloState(state.playerId, state.playerName, state.playerAvatar, state.difficulty);
+            } else if (action.phase === 'results') {
+                // Jump to results (end game)
+                newState.endedAt = Date.now();
+                newState.totalTimeMs = Date.now() - (state.startedAt || Date.now());
+            } else if (action.phase === 'phase1') {
                 newState.phase1State = {
                     currentQuestionIndex: 0,
                     answers: [],
@@ -478,6 +485,8 @@ interface SoloGameContextValue {
     endGame: () => void;
     // Background generation retry
     retryBackgroundGeneration: (phase: 'phase2' | 'phase4') => Promise<void>;
+    // Debug: Skip to phase (dev only)
+    skipToPhase: (phase: SoloPhaseStatus) => void;
 }
 
 const SoloGameContext = createContext<SoloGameContextValue | null>(null);
@@ -854,6 +863,11 @@ export function SoloGameProvider({
         dispatch({ type: 'END_GAME' });
     }, []);
 
+    // Debug: Skip directly to a phase (dev only)
+    const skipToPhase = useCallback((phase: SoloPhaseStatus) => {
+        dispatch({ type: 'START_PHASE', phase });
+    }, []);
+
     const value: SoloGameContextValue = {
         state,
         setPlayerInfo,
@@ -869,6 +883,7 @@ export function SoloGameProvider({
         advanceToNextPhase,
         endGame,
         retryBackgroundGeneration,
+        skipToPhase,
     };
 
     return (

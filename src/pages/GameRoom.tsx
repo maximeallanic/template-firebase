@@ -739,6 +739,14 @@ function VictoryScreen({ room, isHost }: { room: NonNullable<ReturnType<typeof u
         }
     }, [room.code, playersWithScores, winnerTeam]);
 
+    // Play applause sound on mount
+    useEffect(() => {
+        audioService.play('applause');
+        return () => {
+            audioService.stop('applause');
+        };
+    }, []);
+
     // Handle restart - clear stored scores before restarting
     const handleRestart = useCallback(() => {
         clearStoredScores();

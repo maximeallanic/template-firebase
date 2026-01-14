@@ -147,7 +147,7 @@ Recommence avec exactement 1 menu piège.
             + languageInstruction;
 
         console.log('👨‍⚖️ Reviewer evaluating menus...');
-        const reviewText = await callGeminiForReview(reviewerPrompt, 'creative');
+        const reviewText = await callGeminiForReview(reviewerPrompt, 'review');
         let review: Phase3DialogueReview;
 
         try {

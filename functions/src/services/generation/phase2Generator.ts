@@ -157,7 +157,7 @@ export async function generatePhase2WithDialogue(
             + languageInstruction;
 
         console.log('👨‍⚖️ Reviewer evaluating set...');
-        const reviewText = await callGeminiForReview(reviewerPrompt, 'creative');
+        const reviewText = await callGeminiForReview(reviewerPrompt, 'review');
         let review: Phase2DialogueReview;
 
         try {

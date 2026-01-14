@@ -1,5 +1,14 @@
 import { useTranslation } from 'react-i18next';
 import { type Difficulty, DIFFICULTY_LIST } from '../../types/gameTypes';
+import { audioService, type SoundId } from '../../services/audioService';
+
+/** Map difficulty levels to their sound IDs */
+const DIFFICULTY_SOUNDS: Record<Difficulty, SoundId> = {
+    easy: 'difficultyEasy',
+    normal: 'difficultyMid',
+    hard: 'difficultyHard',
+    wtf: 'difficultyHell',
+};
 
 interface DifficultySelectorProps {
     value: Difficulty;
@@ -56,7 +65,12 @@ export function DifficultySelector({ value, onChange, disabled = false, compact 
                         <button
                             key={level}
                             type="button"
-                            onClick={() => !disabled && onChange(level)}
+                            onClick={() => {
+                                if (!disabled) {
+                                    audioService.play(DIFFICULTY_SOUNDS[level]);
+                                    onChange(level);
+                                }
+                            }}
                             disabled={disabled}
                             className={`
                                 ${compact ? 'px-2 py-1 text-xs' : 'px-2 sm:px-3 py-1.5 sm:py-2 text-xs sm:text-sm'}

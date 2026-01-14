@@ -50,3 +50,9 @@ firebase-export-*
 
 # Build artifacts
 dist
+
+# Claude Folder
+.claude
+
+tmpclaude-*
+functions/tmpclaude-*

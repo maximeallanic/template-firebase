@@ -90,7 +90,6 @@ export function Phase2Card({
 
         if (didWin) {
             audioService.playSuccess();
-            audioService.playWinRound();
         } else if (otherTeamWon) {
             audioService.playError();
         }

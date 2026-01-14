@@ -8,18 +8,22 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 **Core Features:**
 - **Real-time Multiplayer**: 2-20 players per room via Firebase Realtime Database
+- **Solo Mode**: Single-player practice mode with AI opponents
 - **Team-based Gameplay**: Spicy (red) vs Sweet (pink) teams
-- **5 Game Phases**: Tenders, Sucré Salé, La Carte, La Note, Burger Ultime
-- **AI-Generated Questions**: Custom content via Google Gemini (Genkit)
+- **5 Game Phases**: Tenders, Sucre Sale, La Carte, La Note, Burger Ultime
+- **AI-Generated Questions**: Custom content via Google Gemini (Genkit) with fact-checking
 - **Food Mascot Avatars**: 15 customizable food-themed avatars
+- **PWA Support**: Installable app with offline capabilities
+- **Leaderboard**: Global player rankings
 
 **Tech Stack:**
 - Frontend: React 19 + TypeScript + Vite + Tailwind CSS + Framer Motion
 - Backend: Firebase Functions (Node 22) with Firebase Functions v2 API
 - Database: Firebase Realtime Database (game state) + Firestore (user data)
-- AI: Google Gemini via Genkit (`@genkit-ai/googleai`)
+- AI: Google Gemini via Genkit (`@genkit-ai/googleai`) with multi-language prompts
 - Auth: Firebase Authentication (Google Sign-In)
 - Payments: Stripe (for premium features)
+- Email: Mailgun (transactional emails)
 - Analytics: Firebase Analytics (production only)
 - CI/CD: GitHub Actions with multi-stage pipeline
 
@@ -27,11 +31,17 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ### Local Development
 ```bash
+# Start dev server + emulators together (recommended)
+npm start
+
 # Start dev server (frontend only, port 5173)
 npm run dev
 
 # Start Firebase emulators (Auth:9099, Functions:5001, Database:9000, UI:4000)
 npm run emulators
+
+# Start clean emulators (no saved data)
+npm run emulators:clean
 
 # Type checking
 npm run type-check
@@ -55,6 +65,13 @@ npm run serve
 
 # View Functions logs (production)
 npm run logs
+
+# Question management scripts
+npm run fetch-questions        # Fetch questions from database
+npm run fetch-questions:stats  # Fetch with statistics
+npm run fetch-questions:prod   # Fetch from production
+npm run delete-questions       # Delete questions
+npm run delete-questions:prod  # Delete from production
 ```
 
 ### Deployment
@@ -93,12 +110,17 @@ npm run lint
 4. **Game Phases 1-5**: Teams compete through 5 different game modes
 5. **Victory**: Team with most points wins
 
+### Solo Mode Flow
+1. **Setup**: Player configures difficulty and options
+2. **Play**: Player competes against AI with timed questions
+3. **Results**: Score tracked and added to leaderboard
+
 ### Game Phases
 
 | Phase | Name | Mechanics |
 |-------|------|-----------|
 | 1 | **Tenders** | Speed MCQ - First correct answer wins point |
-| 2 | **Sucré Salé** | Binary choice (A/B/Both) - All players answer |
+| 2 | **Sucre Sale** | Binary choice (A/B/Both) - All players answer |
 | 3 | **La Carte** | Team selects menu, answers themed questions |
 | 4 | **La Note** | Buzzer round - Teams race to buzz and answer |
 | 5 | **Burger Ultime** | 10-question sequence - Answer all after hearing all |
@@ -109,6 +131,11 @@ npm run lint
 - All game state lives in `rooms/{roomId}` in Realtime Database
 - Frontend subscribes via `onValue()` for real-time updates
 - Disconnect handlers track player online status
+
+**Modular Phase Services:**
+- Phase logic is split into individual service files in `src/services/game/phases/`
+- Each phase has its own service (phase1Service.ts, phase2Service.ts, etc.)
+- Shared utilities in `src/services/game/sharedUtils.ts`
 
 **Data Access Priority:**
 - **Game state**: Direct Firebase RTDB calls from frontend
@@ -125,12 +152,22 @@ export const functionName = onCall(async ({ data, auth }) => {
 
 **Animations (Framer Motion):**
 - Use `src/animations/index.ts` for shared animation variants
+- Use `src/animations/phaseTransitions.ts` for phase-specific transitions
 - `useReducedMotion()` hook respects user's `prefers-reduced-motion` setting
 - Apply `shouldReduceMotion` flag to disable animations for accessibility
 
+**Context-based State:**
+- `SoloGameContext` - Solo game state management
+- `MockPlayerContext` - Debug mock player management
+- `ToastContext` - Toast notification system
+
 ### Data Model
 
-All TypeScript types are centralized in `src/types/gameTypes.ts`.
+All TypeScript types are centralized in `src/types/`:
+- `gameTypes.ts` - Core game types (Avatar, Player, Room, GameState, etc.)
+- `soloTypes.ts` - Solo game mode types
+- `cursorTypes.ts` - Multiplayer cursor types
+- `languageTypes.ts` - Language/i18n types
 
 **Firebase Realtime Database:**
 ```
@@ -167,16 +204,19 @@ userHistory/{playerId}
   - seenQuestions: string[] (hashes to avoid repeats)
 ```
 
-**Firestore (unchanged from template):**
+**Firestore:**
 ```
 users/{userId}
   - email, subscriptionStatus, stripeCustomerId, etc.
+
+leaderboard/{userId}
+  - score, gamesPlayed, etc.
 ```
 
 ### Cloud Functions
 
 **Exported Functions:**
-- `generateGameQuestions` - AI generation for phases 1, 2, 5 (requires auth, uses Genkit)
+- `generateGameQuestions` - AI generation for all phases (requires auth, uses Genkit)
 - `getUserSubscription` - Fetches user subscription data
 - `createCheckoutSession` - Creates Stripe checkout
 - `createPortalSession` - Opens Stripe billing portal
@@ -185,8 +225,10 @@ users/{userId}
 
 **AI Integration (Genkit + Gemini):**
 - Model: `gemini-2.0-flash` via Genkit
-- Prompts: See `functions/src/prompts.ts`
-- Flow: See `functions/src/services/gameGenerator.ts`
+- Multi-language prompts: `functions/src/prompts/{en,fr}/`
+- Generation services: `functions/src/services/generation/`
+- Answer validation: `functions/src/services/answerValidator.ts`
+- Fact-checking: `functions/src/services/generation/factChecker.ts`
 
 ## Project Structure
 
@@ -198,52 +240,151 @@ src/
 │   ├── auth/                 # Authentication & user
 │   │   ├── AuthModal.tsx, AuthRequired.tsx
 │   │   ├── UserBar.tsx, ProfileEditModal.tsx
+│   │   ├── MandatoryProfileSetupModal.tsx, ProfileGate.tsx
 │   │   └── EmailVerification.tsx, EmailActionHandler.tsx
 │   ├── game/                 # Core game components
 │   │   ├── PhaseRouter.tsx   # Routes to correct phase component
 │   │   ├── GameHeader.tsx    # In-game header with scores
 │   │   ├── TeamScores.tsx    # Team score display
 │   │   ├── PhaseTransition.tsx, QuestionTransition.tsx
+│   │   ├── PhaseResults.tsx, PhaseIcon.tsx
 │   │   ├── DebugPanel.tsx    # Debug panel (DEV ONLY)
-│   │   └── TeammateRoster.tsx
+│   │   ├── GameErrorBoundary.tsx
+│   │   ├── TeamIndicator.tsx, TeammateRoster.tsx
+│   │   ├── TeammateCursors.tsx, TeammatePointer.tsx
+│   │   └── victory/PlayerLeaderboard.tsx
+│   ├── layout/               # Layout components
+│   │   └── PersistentHeader.tsx
+│   ├── onboarding/           # Onboarding flow
+│   │   └── OnboardingIntro.tsx
 │   ├── phases/               # Phase-specific player views
 │   │   ├── Phase1Player.tsx  # Tenders (Speed MCQ)
-│   │   ├── Phase2Player.tsx  # Sucré Salé (Binary choice)
+│   │   ├── phase1/           # Phase 1 sub-components
+│   │   │   ├── Phase1Intro.tsx, Phase1BorderTimer.tsx
+│   │   ├── Phase2Player.tsx  # Sucre Sale (Binary choice)
+│   │   ├── phase2/           # Phase 2 sub-components
+│   │   │   ├── Phase2Intro.tsx, Phase2Transition.tsx
+│   │   │   ├── Phase2Timer.tsx, Phase2Zones.tsx
+│   │   │   └── Phase2KeyboardControls.tsx
 │   │   ├── Phase3Player.tsx  # La Carte (Menu selection)
+│   │   ├── Phase3Spectator.tsx, Phase3ThemeSelection.tsx
+│   │   ├── Phase3QuestionInput.tsx
+│   │   ├── phase3/Phase3Intro.tsx, Phase3Transition.tsx
 │   │   ├── Phase4Player.tsx  # La Note (Buzzer round)
-│   │   └── Phase5Player.tsx  # Burger Ultime (Final)
+│   │   ├── phase4/           # Phase 4 sub-components
+│   │   │   ├── Phase4Intro.tsx, Phase4Transition.tsx
+│   │   │   ├── Phase4Question.tsx, Phase4Options.tsx
+│   │   │   ├── Phase4Timer.tsx, Phase4Result.tsx
+│   │   ├── Phase5Player.tsx  # Burger Ultime (Final)
+│   │   └── phase5/           # Phase 5 sub-components
+│   │       ├── Phase5Intro.tsx, Phase5Memorizing.tsx
+│   │       ├── Phase5Answering.tsx, Phase5Validating.tsx
+│   │       ├── Phase5Voting.tsx, Phase5Results.tsx
+│   │       └── Phase5Spectator.tsx
+│   ├── pwa/                  # Progressive Web App components
+│   │   ├── PWAHomePage.tsx   # PWA-optimized home
+│   │   ├── PWABackground.tsx, PWABackButton.tsx
+│   │   ├── PWAActionButtons.tsx, PWAActionMenu.tsx
+│   │   ├── PWAPlayerProfile.tsx
+│   │   ├── PlayButton.tsx, FloatingMascots.tsx
+│   │   └── QuickSettings.tsx
+│   ├── solo/                 # Solo game components
+│   │   └── SoloGameHeader.tsx
 │   ├── subscription/         # Payment & subscription
-│   │   ├── Header.tsx, UsageBanner.tsx, FreeTrialBanner.tsx
+│   │   ├── Header.tsx, UsageBanner.tsx
+│   │   ├── FreeTrialBanner.tsx, UpgradeModal.tsx
 │   ├── ui/                   # Shared UI components
 │   │   ├── Logo.tsx, SharedBackground.tsx, PageTransition.tsx
 │   │   ├── SimpleConfetti.tsx, GenerationLoadingCard.tsx
+│   │   ├── FoodLoader.tsx, LoadingMessages.tsx
+│   │   ├── DifficultySelector.tsx, RoomLanguageSelector.tsx
+│   │   ├── LandscapeWarning.tsx
+│   │   ├── SkipLink.tsx, VisuallyHidden.tsx  # Accessibility
 │   │   └── avatars/          # Food mascot avatar SVGs (15 types)
 │   ├── AvatarIcon.tsx        # Avatar selector/display
 │   └── LanguageSelector.tsx  # i18n language picker
 ├── pages/
 │   ├── HomePage.tsx          # Landing + Create/Join
 │   ├── HostLobby.tsx         # Room creation + team management
-│   ├── JoinGame.tsx          # Join room with code
 │   ├── GameRoom.tsx          # Main game view (uses PhaseRouter)
-│   └── LoginPage.tsx         # Authentication
+│   ├── LoginPage.tsx         # Authentication
+│   ├── SoloSetup.tsx         # Solo game setup
+│   ├── SoloGame.tsx          # Solo game view
+│   ├── Leaderboard.tsx       # Global rankings
+│   ├── TermsOfService.tsx    # Legal
+│   ├── TermsAndConditions.tsx
+│   └── TestAvatars.tsx       # Avatar testing (dev)
 ├── services/
 │   ├── firebase.ts           # Firebase initialization + callable functions
 │   ├── gameService.ts        # Game state management (RTDB)
-│   ├── debugService.ts       # Debug utilities (DEV ONLY)
+│   ├── game/                 # Modular game services
+│   │   ├── index.ts          # Main exports
+│   │   ├── roomService.ts    # Room management
+│   │   ├── sharedUtils.ts    # Shared utilities
+│   │   └── phases/           # Phase-specific services
+│   │       ├── phase1Service.ts, phase2Service.ts
+│   │       ├── phase3Service.ts, phase4Service.ts
+│   │       └── phase5Service.ts
+│   ├── aiClient.ts           # AI question generation client
 │   ├── audioService.ts       # Sound effects
-│   └── historyService.ts     # Question deduplication
+│   ├── currencyService.ts    # Currency formatting
+│   ├── cursorService.ts      # Multiplayer cursor tracking
+│   ├── debugService.ts       # Debug utilities (DEV ONLY)
+│   ├── hapticService.ts      # Haptic feedback
+│   ├── historyService.ts     # Question deduplication
+│   ├── leaderboardService.ts # Leaderboard management
+│   ├── lockService.ts        # Screen orientation lock
+│   ├── mockAnswerService.ts  # Mock player answers
+│   ├── onboardingService.ts  # Onboarding flow
+│   ├── profileService.ts     # User profile management
+│   ├── questionStorageService.ts # Question caching
+│   └── data/phase3.ts        # Phase 3 data
 ├── hooks/
 │   ├── useAuthUser.ts        # Firebase auth state
 │   ├── useGameRoom.ts        # Room subscription & player state
 │   ├── useGameTranslation.ts # Game-specific i18n
 │   ├── useQuestionGeneration.ts # AI question generation flow
-│   ├── useReducedMotion.ts   # Accessibility (respects prefers-reduced-motion)
-│   └── useClipboard.ts       # Clipboard utilities
+│   ├── useReducedMotion.ts   # Accessibility (prefers-reduced-motion)
+│   ├── useClipboard.ts       # Clipboard utilities
+│   ├── useAppInstall.ts      # PWA install detection
+│   ├── useCurrency.ts        # Currency formatting
+│   ├── useHaptic.ts          # Haptic feedback
+│   ├── useHostSubscription.ts # Host subscription management
+│   ├── useMockPlayer.ts      # Mock player management
+│   ├── useOnboarding.ts      # Onboarding flow
+│   ├── useOrientationLock.ts # Screen orientation lock
+│   ├── usePhaseTransition.ts # Phase transition management
+│   ├── useProfileComplete.ts # Profile completion state
+│   ├── useSoloGame.ts        # Solo game state
+│   ├── useSoundSettings.ts   # Sound/audio settings
+│   ├── useTeammateCursors.ts # Multiplayer cursor tracking
+│   └── useToast.ts           # Toast notifications
+├── contexts/
+│   ├── SoloGameContext.tsx   # Solo game state
+│   ├── MockPlayerContext.tsx # Mock player management
+│   ├── mockPlayerContextDef.ts
+│   ├── ToastContext.tsx      # Toast notifications
+│   └── toastContextDef.ts
 ├── types/
-│   └── gameTypes.ts          # All game types (Avatar, Player, Room, etc.)
+│   ├── gameTypes.ts          # Core game types
+│   ├── soloTypes.ts          # Solo mode types
+│   ├── cursorTypes.ts        # Cursor types
+│   └── languageTypes.ts      # Language types
+├── animations/
+│   ├── index.ts              # Shared animation variants
+│   └── phaseTransitions.ts   # Phase transition animations
 ├── i18n/
 │   ├── config.ts             # i18next configuration
 │   └── types.ts              # Translation key types
+├── utils/
+│   ├── hash.ts               # Hashing utilities
+│   ├── questionCache.ts      # Question caching
+│   ├── retry.ts              # Retry logic
+│   ├── storage.ts            # Local storage utilities
+│   ├── teamColors.ts         # Team color constants
+│   └── textNormalization.ts  # Text normalization
+├── config/
+│   └── pricing.ts            # Subscription pricing
 ├── data/
 │   ├── questions.ts          # Default Phase 1 questions
 │   ├── phase2.ts             # Default Phase 2 sets
@@ -252,25 +393,56 @@ src/
 
 functions/src/
 ├── index.ts                  # Function exports
-├── prompts.ts                # AI prompts for game generation
+├── prompts.ts                # Legacy prompts (fallback)
+├── prompts/                  # Multi-language prompt system
+│   ├── index.ts              # Prompt exports
+│   ├── en/                   # English prompts
+│   │   ├── index.ts, system.ts, difficulty.ts
+│   │   ├── phase1.ts, phase2.ts, phase3.ts, phase4.ts, phase5.ts
+│   │   ├── topic.ts, factcheck.ts
+│   └── fr/                   # French prompts (same structure)
 ├── config/
 │   ├── firebase.ts           # Admin SDK setup
-│   └── genkit.ts             # Genkit + Gemini setup
+│   ├── genkit.ts             # Genkit + Gemini setup
+│   └── logger.ts             # Logging configuration
 ├── services/
-│   └── gameGenerator.ts      # Genkit flow for AI questions
-└── utils/
-    └── costCalculator.ts     # Token cost estimation
+│   ├── gameGenerator.ts      # Main generation orchestrator
+│   ├── answerValidator.ts    # Answer validation
+│   ├── subjectAngleService.ts # Subject angle generation
+│   └── generation/           # Modular generation services
+│       ├── index.ts, types.ts
+│       ├── geminiBridge.ts   # Gemini API bridge
+│       ├── jsonUtils.ts      # JSON extraction
+│       ├── phase1Generator.ts, phase2Generator.ts
+│       ├── phase3Generator.ts, phase4Generator.ts
+│       ├── phase5Generator.ts
+│       ├── topicGenerator.ts # Topic generation
+│       ├── factChecker.ts    # Fact-checking service
+│       ├── questionValidator.ts
+│       ├── subjectAngle.ts
+│       └── targetedRegen.ts  # Targeted regeneration
+├── tools/
+│   └── searchTool.ts         # AI search tool
+├── utils/
+│   ├── costCalculator.ts     # Token cost estimation
+│   ├── embeddingService.ts   # Embedding service
+│   └── textNormalization.ts
+└── scripts/
+    ├── fetch-questions.ts    # Fetch questions from DB
+    └── delete-questions.ts   # Delete questions from DB
 ```
 
 ## Common Tasks
 
 ### Adding a New Game Phase
 1. Create `Phase{N}Player.tsx` component in `src/components/phases/`
-2. Add phase data in `src/data/phase{n}.ts`
-3. Update types in `src/types/gameTypes.ts` (PhaseStatus, GameState, PHASE_NAMES)
-4. Add phase logic functions (start, submit, next) in `gameService.ts`
-5. Update `PhaseRouter.tsx` to route to new phase
-6. Update `setGameStatus()` to initialize phase state
+2. Create phase sub-components in `src/components/phases/phase{n}/`
+3. Add phase data in `src/data/phase{n}.ts`
+4. Update types in `src/types/gameTypes.ts` (PhaseStatus, GameState, PHASE_NAMES)
+5. Create phase service in `src/services/game/phases/phase{n}Service.ts`
+6. Update `PhaseRouter.tsx` to route to new phase
+7. Add prompts in `functions/src/prompts/{en,fr}/phase{n}.ts`
+8. Add generator in `functions/src/services/generation/phase{n}Generator.ts`
 
 ### Adding New Avatars
 1. Add avatar name to `Avatar` type in `src/types/gameTypes.ts`
@@ -279,11 +451,12 @@ functions/src/
 4. Register in `src/components/AvatarIcon.tsx`
 
 ### Modifying AI Prompts
-Edit `functions/src/prompts.ts`:
-- `GAME_GENERATION_SYSTEM_PROMPT` - Base persona
-- `PHASE1_PROMPT` - Tenders (Speed MCQ) format
-- `PHASE2_PROMPT` - Sucré Salé (Binary choice) format
-- `PHASE5_PROMPT` - Burger Ultime format
+Edit prompts in `functions/src/prompts/{lang}/`:
+- `system.ts` - Base persona and instructions
+- `difficulty.ts` - Difficulty level descriptions
+- `phase{1-5}.ts` - Phase-specific prompt formats
+- `topic.ts` - Topic generation prompts
+- `factcheck.ts` - Fact-checking prompts
 
 ### Adding a New Cloud Function
 1. Add function in `functions/src/index.ts` using v2 syntax
@@ -291,19 +464,43 @@ Edit `functions/src/prompts.ts`:
 3. Export in frontend: `src/services/firebase.ts`
 4. Call from frontend: `await myFunction({ param: value })`
 
+### Adding a New Hook
+1. Create hook in `src/hooks/use{Name}.ts`
+2. Follow existing patterns for Firebase subscriptions or state management
+3. Export from hook file
+
+### Adding a New Service
+1. Create service in `src/services/{name}Service.ts`
+2. For game-related services, add to `src/services/game/`
+3. Export functions for use in components/hooks
+
 ## Internationalization (i18n)
 
 The app uses i18next with 5 supported languages: EN, FR, ES, DE, PT.
 
+**Translation Namespaces:**
+- `translation.json` - Main translations
+- `common.json` - Common UI strings
+- `home.json` - Homepage content
+- `lobby.json` - Lobby content
+- `game-content.json` - Game content
+- `game-loading.json` - Loading messages
+- `game-phases.json` - Phase-specific strings
+- `game-ui.json` - Game UI elements
+- `onboarding.json` - Onboarding flow
+- `analysis.json` - Analysis content
+- `errors.json` - Error messages
+
 **Key Files:**
 - `src/i18n/config.ts` - i18next setup
-- `public/locales/{lang}/translation.json` - Translation files
+- `public/locales/{lang}/*.json` - Translation files
 - `src/hooks/useGameTranslation.ts` - Game-specific translation hook
 
 **Adding Translations:**
-1. Add keys to all `public/locales/{lang}/translation.json` files
-2. Use `useTranslation()` from react-i18next or `useGameTranslation()` for game-specific strings
-3. For phase names/descriptions, use `PHASE_NAMES` constants in `src/types/gameTypes.ts`
+1. Add keys to all namespace files in `public/locales/{lang}/`
+2. Use `useTranslation(namespace)` from react-i18next
+3. Use `useGameTranslation()` for game-specific strings
+4. For phase names/descriptions, use `PHASE_NAMES` constants in `src/types/gameTypes.ts`
 
 ## Debug Tools (Dev Mode Only)
 
@@ -329,14 +526,20 @@ skipToPhase(code: string, phase: 'lobby' | 'phase1' | ... | 'phase5'): Promise<v
 resetAllScores(code: string): Promise<void>
 ```
 
+### Mock Player Context
+The `MockPlayerContext` provides state management for mock players:
+```typescript
+const { addMockPlayer, clearMockPlayers, mockPlayerIds } = useMockPlayer();
+```
+
 ### Mock Player Convention
 - **ID prefix**: All mock players have IDs starting with `mock_` (e.g., `mock_001`)
 - **Passive**: Mock players don't auto-respond - they just fill team slots
-- **Excluded from completion checks**: Phase 2 round completion only counts real players
+- **Excluded from completion checks**: Phase completion only counts real players
 - **Food-themed names**: "Chef Pepper", "Princess Honey", etc.
 
 ### Usage Example
-1. Run `npm run dev`
+1. Run `npm start` (starts dev + emulators)
 2. Create a room and join as host
 3. Use Debug Panel to add mock players to both teams
 4. Skip to any phase to test it directly
@@ -362,7 +565,12 @@ const allPlayers = Object.values(players).filter(p => p.isOnline);
 - `firebase.json` - Defines hosting, functions, database rules, emulator ports
 - `database.rules.json` - Realtime Database security rules
 - `firestore.rules` - Firestore security rules
+- `firestore.indexes.json` - Firestore composite indexes
 - `.firebaserc` - Project configuration
+
+### PWA Configuration
+- `public/manifest.webmanifest` - PWA manifest
+- `public/icon-192.png`, `public/icon-512.png` - PWA icons
 
 ## Known Issues & Gotchas
 
@@ -373,17 +581,23 @@ const allPlayers = Object.values(players).filter(p => p.isOnline);
 
 ### Realtime Database vs Firestore
 - **RTDB**: Used for game state (rooms, players, phases) - optimized for real-time sync
-- **Firestore**: Used for user profiles, subscriptions - optimized for queries
+- **Firestore**: Used for user profiles, subscriptions, leaderboard - optimized for queries
 
 ### Genkit/Gemini
-- Use `ai.defineFlow()` for structured AI operations
-- JSON extraction from response: `text.match(/\{[\s\S]*\}|\[[\s\S]*\]/)`
+- Use modular generators in `functions/src/services/generation/`
+- JSON extraction via `jsonUtils.ts`
 - Model config in `functions/src/config/genkit.ts`
+- Multi-language support via `functions/src/prompts/{lang}/`
 
 ### Player Disconnect Handling
 - `onDisconnect()` sets `isOnline: false` when player disconnects
 - `markPlayerOnline()` for reconnection scenarios
 - UI should show offline players differently
+
+### PWA Considerations
+- Use `useAppInstall()` hook to detect install state
+- `useOrientationLock()` for screen orientation
+- `useHaptic()` for haptic feedback on supported devices
 
 ## Deployment Checklist
 
