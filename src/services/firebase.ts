@@ -246,13 +246,19 @@ export async function signInWithGoogle() {
   if (isNative()) {
     try {
       // Dynamic import to avoid initialization issues
-      const { FirebaseAuthentication } = await import('@capacitor-firebase/authentication');
+      const { GoogleAuth } = await import('@southdevs/capacitor-google-auth');
+
+      // Initialize the plugin before sign-in
+      await GoogleAuth.initialize({
+        scopes: ['profile', 'email'],
+        grantOfflineAccess: true
+      });
 
       // Sign in with native Google on iOS/Android
-      const result = await FirebaseAuthentication.signInWithGoogle();
+      const user = await GoogleAuth.signIn({ scopes: ['profile', 'email'] });
 
       // Get the ID token and create Firebase credential
-      const credential = GoogleAuthProvider.credential(result.credential?.idToken);
+      const credential = GoogleAuthProvider.credential(user.authentication.idToken);
 
       // Sign in to Firebase with the credential
       const userCredential = await signInWithCredential(auth, credential);
@@ -263,7 +269,7 @@ export async function signInWithGoogle() {
       const errorMessage = error instanceof Error ? error.message : 'Failed to sign in with Google';
 
       // Handle user cancellation
-      if (errorMessage.includes('cancel') || errorMessage.includes('Cancel')) {
+      if (errorMessage.includes('cancel') || errorMessage.includes('Cancel') || errorMessage.includes('popup_closed')) {
         throw new Error('Sign-in cancelled');
       }
 
@@ -304,8 +310,8 @@ export async function signOut() {
     // Sign out from native provider on Capacitor apps
     if (isNative()) {
       // Dynamic import to avoid initialization issues
-      const { FirebaseAuthentication } = await import('@capacitor-firebase/authentication');
-      await FirebaseAuthentication.signOut();
+      const { GoogleAuth } = await import('@southdevs/capacitor-google-auth');
+      await GoogleAuth.signOut();
     }
     await firebaseSignOut(auth);
   } catch (error: unknown) {

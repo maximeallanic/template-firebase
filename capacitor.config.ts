@@ -18,9 +18,10 @@ const config: CapacitorConfig = {
       style: 'dark',
       backgroundColor: '#0f172a'
     },
-    FirebaseAuthentication: {
-      skipNativeAuth: false,
-      providers: ['google.com']
+    GoogleAuth: {
+      scopes: ['profile', 'email'],
+      serverClientId: '933996160893-5oqbi0g9lq3g1eic07iuhj2rndblmpch.apps.googleusercontent.com',
+      forceCodeForRefreshToken: true
     }
   },
   ios: {
