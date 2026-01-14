@@ -38,13 +38,8 @@ const COLORS = [
     'bg-green-500'   // Option D
 ];
 
-// Text colors - all white now that yellow is darker amber
-const TEXT_COLORS = [
-    'text-white',    // Option A (red bg)
-    'text-white',    // Option B (blue bg)
-    'text-white',    // Option C (amber bg - darker allows white text)
-    'text-white'     // Option D (green bg)
-];
+// Text color - white on all options (amber-500 is dark enough for white text contrast)
+const TEXT_COLOR = 'text-white';
 
 const ICONS = [Triangle, Diamond, Circle, Square]; // Shapes corresponding to colors
 
@@ -793,7 +788,7 @@ export function Phase1Player({ room, playerId, isHost, mode = 'multiplayer', sol
                                             className="flex items-center gap-2"
                                         >
                                             <span aria-hidden="true">{resultIcon}</span>
-                                            <span className={`text-xl md:text-2xl font-black ${TEXT_COLORS[idx]}`}>{resultMessage}</span>
+                                            <span className={`text-xl md:text-2xl font-black ${TEXT_COLOR}`}>{resultMessage}</span>
                                         </motion.div>
 
                                         {/* Winner Name */}
@@ -802,7 +797,7 @@ export function Phase1Player({ room, playerId, isHost, mode = 'multiplayer', sol
                                                 initial={{ opacity: 0, y: 10 }}
                                                 animate={{ opacity: 1, y: 0 }}
                                                 transition={{ delay: 0.2, duration: durations.fast }}
-                                                className={`text-sm ${TEXT_COLORS[idx]} flex items-center gap-1`}
+                                                className={`text-sm ${TEXT_COLOR} flex items-center gap-1`}
                                             >
                                                 {t('results.winner')} <Trophy className="w-4 h-4 text-yellow-400" aria-hidden="true" />
                                                 <span className="text-yellow-400 font-bold">{state.roundWinner.name}</span>
@@ -891,11 +886,11 @@ export function Phase1Player({ room, playerId, isHost, mode = 'multiplayer', sol
                                     <div className="flex-1">
                                         {/* Option Text */}
                                         {displayedQuestion ? (
-                                            <span className={`${TEXT_COLORS[idx]} font-bold text-lg leading-tight block select-none`}>
+                                            <span className={`${TEXT_COLOR} font-bold text-lg leading-tight block select-none`}>
                                                 {displayedQuestion.options[idx]}
                                             </span>
                                         ) : (
-                                            <span className={`${TEXT_COLORS[idx]} opacity-60 font-bold text-lg select-none`}>Option {['A', 'B', 'C', 'D'][idx]}</span>
+                                            <span className={`${TEXT_COLOR} opacity-60 font-bold text-lg select-none`}>Option {['A', 'B', 'C', 'D'][idx]}</span>
                                         )}
                                     </div>
                                 </motion.button>
