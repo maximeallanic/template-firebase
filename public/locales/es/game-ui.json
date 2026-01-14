@@ -252,11 +252,13 @@
     ],
     "correctAnswerWas": "Era:",
     "youAnswered": "Dijiste",
+    "didntAnswer": "No respondiste a tiempo",
     "waitingForPlayers": "Esperando a los lentos...",
     "everyoneAnswered": "¡Todo el mundo ha hablado!",
     "nextQuestionIn": "Siguiente ronda en {{seconds}}s",
     "prepareForQuestion": "Concentración...",
     "solo": {
+      "correct": "¡Correcto!",
       "noWinner": "¡Muy lento!",
       "noWinner_variants": [
         "¡Muy lento!",

@@ -223,23 +223,34 @@ export interface Phase5Question {
 export interface Phase5DialogueReview {
     approved: boolean;
     scores: {
-        humor: number;
+        theme_coherence?: number;   // Thematic coherence score
+        absurdity?: number;         // Absurdity/quirkiness score
         diversity: number;
         factual_accuracy: number;
         memorability: number;
         length: number;
-        accessibility: number;
+        style_variety?: number;     // Writing style variety
+        qa_coherence?: number;      // Question/Answer semantic coherence (new)
+        // Legacy fields (kept for backwards compatibility)
+        humor?: number;
+        accessibility?: number;
     };
     overall_score: number;
+    off_theme_questions?: number[];  // Indices of off-theme questions
     duplicate_concepts?: string[];
     questions_feedback: Array<{
         index: number;
         question: string;
         answer: string;
         ok: boolean;
-        funny: boolean;
+        on_theme?: boolean;         // Is question on theme?
+        absurd?: boolean;           // Is question quirky/absurd?
+        memorable?: boolean;        // Is question memorable?
+        qa_coherent?: boolean;      // Does answer match question type? (new)
         issues: string[];
         correction?: string;
+        // Legacy field
+        funny?: boolean;
     }>;
     global_feedback: string;
     suggestions: string[];

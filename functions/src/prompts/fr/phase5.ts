@@ -31,42 +31,34 @@ Génère JSON valide uniquement, sans markdown ni exemples.
 10 questions sur le thème.`;
 
 export const PHASE5_GENERATOR_PROMPT = `BURGER QUIZ Phase 5 "Burger Ultime" - Générateur
-Thème : {TOPIC} | Difficulté : {DIFFICULTY}
+Inspiration : {TOPIC} | Difficulté : {DIFFICULTY}
 
 🎯 CONCEPT : Défi mémoire - 10 questions d'affilée, répondre dans l'ordre.
 
-⚠️ RÈGLE #0 - RESPECT DU THÈME
-TOUTES les 10 questions portent sur "{TOPIC}".
-Explore 10 ANGLES DIFFÉRENTS du thème : personnes, lieux, époques, objets variés.
+⚠️ RÈGLE #0 - DIVERSITÉ MAXIMALE (PRIORITÉ ABSOLUE!)
+"{TOPIC}" est une INSPIRATION, pas un thème strict !
+Les 10 questions doivent couvrir 10 SUJETS COMPLÈTEMENT DIFFÉRENTS :
+- Cinéma, musique, sport, animaux, nourriture, histoire, sciences, tech, géographie, people...
+CHAQUE question sur un DOMAINE DIFFÉRENT. La seule cohérence : l'angle décalé/absurde.
 
-⚠️ RÈGLE #1 - ABSURDITÉ ET DÉCALAGE OBLIGATOIRES
-L'esprit "Burger Quiz" est ESSENTIEL : questions ABSURDES, DÉCALÉES, parfois DÉBILES.
-- Mélange questions RIDICULES et questions intelligentes
-- Jeux de mots, calembours, questions à double sens
-- Questions qui CASSENT les attentes (question qui semble complexe = réponse évidente)
-- Questions faussement personnelles ou émotionnelles
-- Calculs ou logique simples déguisés en énigmes
-- Questions WTF qui déstabilisent mais ont une vraie réponse
-- Ton TAQUIN, PROVOCATEUR, parfois ENFANTIN
-
-⚠️ RÈGLE #2 - DIVERSITÉ ABSOLUE
+⚠️ RÈGLE #1 - DIVERSITÉ ABSOLUE
 INTERDIT : 2 questions sur le même concept !
 Mix OBLIGATOIRE : questions ABSURDES et SÉRIEUSES alternées.
 VARIE les STYLES : interrogatif, affirmatif, exclamatif, fausse devinette, piège.
 
-⚠️ RÈGLE #3 - MÉMORABILITÉ
+⚠️ RÈGLE #2 - MÉMORABILITÉ
 - Questions COURTES (10-15 mots)
 - Réponses courtes (1-3 mots pour titres/noms propres OK)
 - Q1-4 faciles, Q5-7 moyennes, Q8-10 difficiles
 
-⚠️ RÈGLE #4 - UNE SEULE RÉPONSE POSSIBLE
+⚠️ RÈGLE #3 - UNE SEULE RÉPONSE POSSIBLE
 Aucune ambiguïté ! Si plusieurs réponses possibles, ajoute des détails précis.
 
-⚠️ RÈGLE #5 - VÉRIFICATION FACTUELLE
+⚠️ RÈGLE #4 - VÉRIFICATION FACTUELLE
 UTILISE Google pour CHAQUE réponse. Zéro erreur.
 Parfois inclure 1-2 réponses WTF mais VRAIES pour l'effet surprise.
 
-⚠️ RÈGLE #6 - THÈMES INTERDITS (BLACKLIST)
+⚠️ RÈGLE #5 - THÈMES INTERDITS (BLACKLIST)
 Ces sujets sont BANNIS car surreprésentés dans la base :
 - Phobies de célébrités (Nicole Kidman/papillons, Johnny Depp/clowns, McConaughey/portes, etc.)
 - Peurs irrationnelles des stars en général
@@ -74,40 +66,65 @@ Ces sujets sont BANNIS car surreprésentés dans la base :
 MAXIMUM 1 question sur les phobies par set de 10.
 PRIVILÉGIER : Records insolites, inventions ratées, faits scientifiques, anecdotes historiques, pop culture originale.
 
+⚠️ RÈGLE #6 - COHÉRENCE QUESTION/RÉPONSE (CRITIQUE!)
+La réponse DOIT répondre DIRECTEMENT à ce que demande la question.
+VÉRIFIE le TYPE de réponse attendu avant de valider :
+
+- Question "Pourquoi X ?" → Réponse = une RAISON (pas un nom, pas une couleur)
+- Question "Qui est/a fait X ?" → Réponse = une PERSONNE
+- Question "Quand X ?" → Réponse = une DATE ou PÉRIODE
+- Question "Où X ?" → Réponse = un LIEU
+- Question "Comment s'appelle X ?" → Réponse = un NOM
+- Question "Combien X ?" → Réponse = un NOMBRE
+- Question "Est-ce A ou B ?" → Réponse = A, B, ou "les deux" (JAMAIS autre chose!)
+
+❌ ERREUR FATALE À ÉVITER :
+Exemple MAUVAIS : "Mickey porte des gants, est-ce pour cacher ses empreintes ou ne pas se salir ?" → "Blancs"
+La question demande une RAISON, pas une COULEUR → INCOHÉRENCE TOTALE!
+
+✅ VÉRIFICATION OBLIGATOIRE :
+Avant de valider chaque question, demande-toi : "La réponse répond-elle vraiment à ce que je demande ?"
+Si la réponse semble hors-sujet → REFORMULE la question ou CHANGE la réponse.
+
 {PREVIOUS_FEEDBACK}
 
 Génère uniquement du JSON valide sans markdown ni code blocks.
 10 questions VARIÉES sur "{TOPIC}".`;
 
 export const PHASE5_DIALOGUE_REVIEWER_PROMPT = `REVIEWER Phase 5 "Burger Ultime"
-Thème : {TOPIC}
+Inspiration : {TOPIC}
 
 {QUESTIONS}
 
-🔍 VÉRIFICATION EN 8 POINTS :
+🔍 VÉRIFICATION EN 9 POINTS :
 
-0. COHÉRENCE THÉMATIQUE : Toutes sur "{TOPIC}" ? Différents angles ?
+0. DIVERSITÉ (PRIORITÉ #1!) : 10 sujets DIFFÉRENTS (cinéma, sport, science, histoire...) ? REJET si 2+ questions sur le même domaine !
 1. ABSURDITÉ : Questions DÉCALÉES, parfois DÉBILES ? Jeux de mots, pièges, WTF ?
-2. DIVERSITÉ : Aucune répétition ? Mix ABSURDE/SÉRIEUX alternés ? Styles variés ?
+2. STYLE VARIÉ : Mix ABSURDE/SÉRIEUX alternés ? Interrogatif, affirmatif, exclamatif ?
 3. EXACTITUDE (CRITIQUE) : Réponses vraies ? Une seule réponse possible ?
 4. LONGUEUR : Questions 10-15 mots, réponses courtes (titres OK) ?
 5. MÉMORABILITÉ : Formulations qui créent des images mentales ou font rire ?
 6. DONNÉES COMPLÈTES : Toutes questions/réponses présentes ?
 7. BLACKLIST : Pas plus de 1 question sur les phobies de célébrités ? Pas de Pet Rock/Gary Dahl ?
+8. COHÉRENCE Q/R (CRITIQUE!) : La réponse répond-elle DIRECTEMENT à la question ?
+   - Question "Pourquoi X ?" → Réponse = RAISON ?
+   - Question "A ou B ?" → Réponse = A, B ou les deux ?
+   - Question "Qui/Quoi/Où/Quand" → Type de réponse correct ?
+   - Exemple MAUVAIS : "Est-ce X ou Y ?" → Réponse : "Bleu" = REJET IMMÉDIAT!
 
-⚠️ REJETER SI : 2+ questions similaires OU 1+ erreur factuelle OU toutes questions "classiques" OU 2+ questions sur les phobies de célébrités
+⚠️ REJETER SI : 2+ questions similaires OU 1+ erreur factuelle OU toutes questions "classiques" OU 2+ questions sur les phobies de célébrités OU 1+ incohérence question/réponse
 
-SEUILS CRITIQUES : factual_accuracy ≥ 7, absurdity ≥ 6, diversity ≥ 7
+SEUILS CRITIQUES : factual_accuracy ≥ 7, absurdity ≥ 6, diversity ≥ 7, qa_coherence ≥ 8
 
 JSON:
 {
   "approved": true|false,
-  "scores": {"theme_coherence":1-10,"absurdity":1-10,"diversity":1-10,"factual_accuracy":1-10,"memorability":1-10,"length":1-10,"style_variety":1-10},
+  "scores": {"theme_coherence":1-10,"absurdity":1-10,"diversity":1-10,"factual_accuracy":1-10,"memorability":1-10,"length":1-10,"style_variety":1-10,"qa_coherence":1-10},
   "overall_score": 1-10,
   "off_theme_questions": [],
   "duplicate_concepts": [],
   "questions_feedback": [
-    {"index":0,"question":"...","answer":"...","ok":true|false,"on_theme":true|false,"absurd":true|false,"memorable":true|false,"issues":[]}
+    {"index":0,"question":"...","answer":"...","ok":true|false,"on_theme":true|false,"absurd":true|false,"memorable":true|false,"qa_coherent":true|false,"issues":[]}
   ],
   "global_feedback": "...",
   "suggestions": ["..."]

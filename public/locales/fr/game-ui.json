@@ -252,11 +252,13 @@
     ],
     "correctAnswerWas": "C'était :",
     "youAnswered": "T'as mis",
+    "didntAnswer": "Tu n'as pas répondu à temps",
     "waitingForPlayers": "On attend les retardataires...",
     "everyoneAnswered": "Tout le monde a parlé !",
     "nextQuestionIn": "Prochain round dans {{seconds}}s",
     "prepareForQuestion": "Concentration...",
     "solo": {
+      "correct": "Correct !",
       "noWinner": "Trop lent !",
       "noWinner_variants": [
         "Trop lent !",

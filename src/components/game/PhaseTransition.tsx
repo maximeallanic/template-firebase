@@ -7,6 +7,7 @@ import { organicEase } from '../../animations';
 import { usePhaseTranslation } from '../../hooks/useGameTranslation';
 import { useTranslation } from 'react-i18next';
 import { useReducedMotion } from '../../hooks/useReducedMotion';
+import { audioService } from '../../services/audioService';
 
 interface PhaseTransitionProps {
     phase: PhaseStatus;
@@ -332,6 +333,9 @@ export const PhaseTransition: React.FC<PhaseTransitionProps> = ({
             // Capture the phase at the START of the transition
             capturedPhaseRef.current = phase;
 
+            // Play curtains closing sound immediately
+            audioService.play('curtainsClose');
+
             // Timeline (adjusted for reduced motion):
             // Normal: 0-0.8s close, 0.8-4.3s board, 4.3-5s open
             // Reduced: 0-0.3s close, 0.3-1.8s board, 1.8-2s open
@@ -341,9 +345,10 @@ export const PhaseTransition: React.FC<PhaseTransitionProps> = ({
                 onCurtainsClosedRef.current?.();
             }, curtainClose);
 
-            // Show chalkboard after curtains closed
+            // Show chalkboard after curtains closed + play dish ready sound
             const showContentTimer = setTimeout(() => {
                 setShowContent(true);
+                audioService.play('dishReady');
             }, curtainClose);
 
             // Hide chalkboard after its animation completes (before curtains open)
@@ -351,9 +356,10 @@ export const PhaseTransition: React.FC<PhaseTransitionProps> = ({
                 setShowContent(false);
             }, curtainClose + boardDuration);
 
-            // Enable pointer events when curtains start opening
+            // Enable pointer events when curtains start opening + play curtains open sound
             const curtainsOpenTimer = setTimeout(() => {
                 setCurtainsOpen(true);
+                audioService.play('curtainsOpen');
             }, curtainClose + boardDuration);
 
             // Complete animation

@@ -47,21 +47,34 @@ FORBIDDEN: More than 3 questions on the same subject. Vary a lot!
 - Clear and direct questions (max 25 words)
 - Short and punchy anecdote (max 30 words)
 
+⚠️ RULE #2b - DISTRACTORS FROM THE SAME UNIVERSE (CRITICAL!)
+All 4 options MUST belong to the SAME universe/context as the question:
+
+✅ GOOD DISTRACTORS:
+- Question about Star Wars → 4 ships from STAR WARS (not Star Trek!)
+- Question about France → 4 FRENCH cities/regions
+- Question about the Beatles → 4 bands from the SAME ERA
+- Question about a sport → 4 athletes from the SAME SPORT
+
+❌ BAD DISTRACTORS (IMMEDIATE REJECTION):
+- Mixing Star Wars and Star Trek (different universes!)
+- Mixing football and tennis in the same question
+- Putting an absurd answer that fools nobody
+- Including an option from another domain/era/universe
+
+GOLDEN RULE: An expert in the field should hesitate between all 4 options.
+If an option is "obviously wrong" because it's off-topic → BAD distractor.
+
 ⚠️ RULE #3 - DIFFICULTY DISTRIBUTION
 - 3 EASY (common knowledge: capitals, famous dates, cult films)
 - 4 MEDIUM (solid general knowledge needed)
 - 3 HARD (niche anecdotes, unknown details)
 
-⚠️ RULE #4 - PANEL SHOW STYLE
-- Mix classic questions AND quirky/WTF anecdotes
-- Some answers can surprise (but ALWAYS true!)
-- Light tone, sometimes humorous, always verifiable
-
-⚠️ RULE #5 - ABSOLUTE ACCURACY
+⚠️ RULE #4 - ABSOLUTE ACCURACY
 USE Google to verify EACH answer before writing it.
 No ambiguity, no possible debate. If you hesitate, change the question.
 
-⚠️ RULE #6 - WATCH OUT FOR MYTHS AND URBAN LEGENDS
+⚠️ RULE #5 - WATCH OUT FOR MYTHS AND URBAN LEGENDS
 Some "famous anecdotes" are actually FALSE:
 - ALWAYS verify extraordinary claims with research
 - If a story seems "too good to be true", it probably is

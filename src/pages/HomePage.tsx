@@ -14,6 +14,8 @@ import { saveProfile } from '../services/profileService';
 import { useAuthUser } from '../hooks/useAuthUser';
 import { useAppInstall } from '../hooks/useAppInstall';
 import { useHaptic } from '../hooks/useHaptic';
+import { useSoundSettings } from '../hooks/useSoundSettings';
+import { audioService } from '../services/audioService';
 import { Users, Zap, Trophy, ChefHat, Flame, Candy, X, Crown, Star, Lock, Download, Smartphone } from 'lucide-react';
 import { createCheckoutSession } from '../services/firebase';
 import { useCurrentUserSubscription } from '../hooks/useHostSubscription';
@@ -51,6 +53,19 @@ export default function HomePage() {
 
   // Haptic feedback
   const haptic = useHaptic();
+
+  // Sound settings - for background music
+  const { soundEnabled } = useSoundSettings();
+
+  // Background music effect
+  useEffect(() => {
+    if (soundEnabled) {
+      audioService.play('background');
+    }
+    return () => {
+      audioService.stop('background');
+    };
+  }, [soundEnabled]);
 
   // Handle Firebase email action links (verification, password reset)
   const mode = searchParams.get('mode');

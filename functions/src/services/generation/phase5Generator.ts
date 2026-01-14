@@ -105,7 +105,7 @@ export async function generatePhase5WithDialogue(
             + languageInstruction;
 
         console.log('👨‍⚖️ Reviewer evaluating sequence...');
-        const reviewText = await callGeminiForReview(reviewerPrompt, 'creative');
+        const reviewText = await callGeminiForReview(reviewerPrompt, 'review');
         let review: Phase5DialogueReview;
 
         try {
@@ -117,8 +117,8 @@ export async function generatePhase5WithDialogue(
         }
 
         // Log scores
-        console.log(`📊 Scores: humor=${review.scores.humor || 0}, diversity=${review.scores.diversity || 0}, memorability=${review.scores.memorability || 0}`);
-        console.log(`          factual=${review.scores.factual_accuracy || 0}, length=${review.scores.length || 0}, accessibility=${review.scores.accessibility || 0}`);
+        console.log(`📊 Scores: absurdity=${review.scores.absurdity || review.scores.humor || 0}, diversity=${review.scores.diversity || 0}, memorability=${review.scores.memorability || 0}`);
+        console.log(`          factual=${review.scores.factual_accuracy || 0}, qa_coherence=${review.scores.qa_coherence || 'N/A'}, theme=${review.scores.theme_coherence || 'N/A'}`);
         console.log(`   Overall: ${review.overall_score}/10`);
         if (review.duplicate_concepts && review.duplicate_concepts.length > 0) {
             console.log(`   ⚠️ Duplicates: ${review.duplicate_concepts.join(', ')}`);
@@ -126,17 +126,18 @@ export async function generatePhase5WithDialogue(
 
         // 3. Check critical criteria
 
-        // Check humor
-        if ((review.scores.humor || 0) < 6) {
-            console.log(`❌ Not funny enough (${review.scores.humor}/10).`);
+        // Check absurdity/humor (absurdity is the primary field, humor is fallback for backwards compatibility)
+        const absurdityScore = review.scores.absurdity || review.scores.humor || 0;
+        if (absurdityScore < 6) {
+            console.log(`❌ Not absurd/funny enough (${absurdityScore}/10).`);
 
             const boringQuestions = review.questions_feedback
-                .filter(q => !q.funny)
+                .filter(q => !q.absurd && !q.funny)
                 .map(q => `- Q${q.index + 1}: "${q.question?.slice(0, 40) || '?'}..."`)
                 .join('\n');
 
             previousFeedback = `
-⚠️ QUESTIONS PAS ASSEZ DRÔLES (score: ${review.scores.humor}/10)
+⚠️ QUESTIONS PAS ASSEZ DÉCALÉES (score: ${absurdityScore}/10)
 
 Questions ennuyeuses :
 ${boringQuestions || '(Toutes)'}
@@ -206,6 +207,31 @@ Questions incorrectes :
 ${wrongQuestionsText || '(Vérifier toutes les réponses)'}
 
 CRITIQUE : Utilise Google Search pour vérifier CHAQUE réponse.
+`;
+            continue;
+        }
+
+        // Check Q/A coherence (new - fixes issue #19)
+        if ((review.scores.qa_coherence || 10) < 8) {
+            console.log(`❌ Q/A coherence too low (${review.scores.qa_coherence}/10).`);
+
+            const incoherentQuestions = review.questions_feedback
+                .filter(q => q.qa_coherent === false)
+                .map(q => `- Q${q.index + 1}: "${q.question?.slice(0, 40) || '?'}..." → "${q.answer}" (${q.issues?.join(', ') || 'incohérent'})`)
+                .join('\n');
+
+            previousFeedback = `
+⚠️ INCOHÉRENCE QUESTION/RÉPONSE (score: ${review.scores.qa_coherence}/10)
+
+Questions incohérentes :
+${incoherentQuestions || '(Vérifier toutes les Q/R)'}
+
+CRITIQUE : La réponse doit correspondre au TYPE de question :
+- "Pourquoi X ?" → Réponse = RAISON
+- "Qui a fait X ?" → Réponse = PERSONNE
+- "Est-ce A ou B ?" → Réponse = A, B, ou "les deux"
+
+REFORMULE les questions ou CHANGE les réponses pour corriger.
 `;
             continue;
         }

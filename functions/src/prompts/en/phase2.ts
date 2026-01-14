@@ -109,6 +109,51 @@ SERIOUS/LIGHT MIX:
 
 📊 STRICT DISTRIBUTION: 5 A + 5 B + 2 Both (EXACTLY)
 
+⚠️ RULE #4 - DETAILED JUSTIFICATIONS (ANTI-AMBIGUITY!)
+Each justification MUST explain CLEARLY:
+
+For A or B answers:
+1. WHY this item belongs to that category (explicit connection)
+2. WHY NOT the other category (clear exclusion)
+
+For "Both" answers:
+1. Reason A: why it works for category A
+2. Reason B: why it ALSO works for category B
+3. Both reasons must be INDEPENDENT and VALID
+
+JUSTIFICATION FORMAT - NATURAL AND FLOWING:
+ALWAYS use CATEGORY NAMES (never "A" or "B") in a natural sentence.
+
+💡 SUGGESTED NATURAL PHRASINGS (vary them!):
+
+For A or B answers:
+- "It's [category]: [reason]. Nothing to do with [other category] which [exclusion]."
+- "[Category] for sure, [reason]. [Other category]? Nope, [exclusion]."
+- "Clearly [category] since [reason], whereas [other category] [exclusion]."
+- "[Reason], so [category]. [Other category] doesn't fit because [exclusion]."
+
+For Both answers:
+- "[Category A] because [reason A], but also [category B] since [reason B]."
+- "Both! [Category A] for [reason A], and [category B] for [reason B]."
+- "Double meaning: [reason A] → [category A], and [reason B] → [category B]."
+
+⚠️ CRITICAL RULES:
+- ❌ FORBIDDEN: "A because..." / "Not B because..." (too robotic)
+- ❌ FORBIDDEN: Dry, repetitive justifications
+- ✅ REQUIRED: Actual category names ("The Bear", "The Bare", etc.)
+- ✅ REQUIRED: Conversational, varied tone
+
+❌ REJECTED JUSTIFICATIONS:
+- "It's obvious" / "It's about X" (too vague)
+- "It could be both but..." (indecisive)
+- Robotic format repeated 12 times identically
+- Without explaining why NOT the other category
+
+✅ GOOD JUSTIFICATION EXAMPLES:
+- "The Bear for sure: grizzlies are mammals with fur. The Bare? Nope, they're definitely not naked."
+- "It's The Bare: exposed skin with nothing on it. The Bear has fur, so that's out."
+- "Both! The Bear since it's about wildlife, and The Bare because 'bear all' means reveal everything."
+
 🎭 DESCRIPTION: A short, fun sentence presenting the 2 options, panel show style
 
 {PREVIOUS_FEEDBACK}
@@ -122,7 +167,12 @@ JSON:
   "humorousDescription": "Fun sentence presenting the 2 options",
   "reasoning": "Quick explanation: why these 2 categories work well together, how you varied item styles",
   "items": [
-    { "text": "Item (4 words max)", "answer": "A|B|Both", "justification": "Why this item goes there (short)", "anecdote": "Fun/unusual fact about the subject (15-20 words)" }
+    {
+      "text": "Item (4 words max)",
+      "answer": "A|B|Both",
+      "justification": "NATURAL sentence with category names. Ex: 'The Bear for sure: [reason]. The Bare? Nope, [exclusion].' Vary the style!",
+      "anecdote": "Fun/unusual fact about the subject (15-20 words)"
+    }
   ]
 }
 
@@ -130,7 +180,7 @@ FINAL REMINDERS:
 - VARY the phrasing (not 12 times the same type of item!)
 - Mix SERIOUS (fact-checkable) and WACKY (WTF but true)
 - TRAP items that make you hesitate
-- ULTRA-SHORT justifications (10-15 words MAX - get to the point!)
+- DETAILED justifications (20-35 words): reason + exclusion of the other option!
 - FUN and SURPRISING anecdotes (15-20 words, unusual facts or surprising numbers)
 - 12 items EXACTLY
 - No encyclopedic or professorial tone
