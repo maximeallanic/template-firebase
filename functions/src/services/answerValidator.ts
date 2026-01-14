@@ -37,8 +37,12 @@ export function normalizeAnswer(answer: string): string {
 
 /**
  * SEC-002: Sanitizes input to prevent LLM prompt injection attacks.
- * Removes newlines, control characters, and potential injection patterns.
+ * Removes newlines, control characters, and structural patterns.
  * Limits length to prevent token exhaustion.
+ *
+ * Note: Keyword removal is NOT done here because:
+ * 1. isLikelyInjection() already rejects obvious injection attempts
+ * 2. Removing keywords could corrupt legitimate answers containing common words
  */
 function sanitizeLLMInput(input: string, maxLength = 500): string {
     if (!input) return '';
@@ -49,7 +53,6 @@ function sanitizeLLMInput(input: string, maxLength = 500): string {
         .replace(/[\x00-\x1f\x7f]/g, '')               // Remove control characters
         .replace(/[<>{}[\]]/g, '')                     // Remove brackets that could confuse parsing
         .replace(/```/g, '')                           // Remove code block markers
-        .replace(/\b(instruction|system|prompt|ignore|override|valide|accepte|refuse|validate|accept|reject|correct|bonne|response|answer|reponse|r[eé]ponse)\b/gi, '') // Remove injection keywords
         .substring(0, maxLength)                        // Limit length
         .trim();
 }
@@ -64,15 +67,15 @@ function isLikelyInjection(answer: string): boolean {
     const normalized = answer.toLowerCase().trim();
 
     // Patterns that look like instructions rather than answers
+    // Note: Removed /^(oui|non|yes|no)$/i - these can be valid answers to quiz questions
     const injectionPatterns = [
         /^(valide|accepte|refuse|approve|reject)/i,
         /la (question|r[eé]ponse)/i,
         /(bonne|mauvaise) r[eé]ponse/i,
-        /^(oui|non|yes|no)$/i,
         /isCorrect/i,
         /confidence/i,
         /json/i,
-        /true|false/i,
+        /\b(true|false)\b/i,  // Word boundaries to avoid matching "Trueblood", "falsehood", etc.
         /\{.*\}/,  // JSON-like pattern
         /^(correct|incorrect)$/i,
     ];
