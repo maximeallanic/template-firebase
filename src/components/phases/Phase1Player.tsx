@@ -34,9 +34,12 @@ interface Phase1PlayerProps {
 const COLORS = [
     'bg-red-500',    // Option A
     'bg-blue-500',   // Option B
-    'bg-yellow-500', // Option C
+    'bg-amber-500',  // Option C (darker amber for white text contrast)
     'bg-green-500'   // Option D
 ];
+
+// Text color - white on all options (amber-500 is dark enough for white text contrast)
+const TEXT_COLOR = 'text-white';
 
 const ICONS = [Triangle, Diamond, Circle, Square]; // Shapes corresponding to colors
 
@@ -785,7 +788,7 @@ export function Phase1Player({ room, playerId, isHost, mode = 'multiplayer', sol
                                             className="flex items-center gap-2"
                                         >
                                             <span aria-hidden="true">{resultIcon}</span>
-                                            <span className="text-xl md:text-2xl font-black text-white">{resultMessage}</span>
+                                            <span className={`text-xl md:text-2xl font-black ${TEXT_COLOR}`}>{resultMessage}</span>
                                         </motion.div>
 
                                         {/* Winner Name */}
@@ -794,7 +797,7 @@ export function Phase1Player({ room, playerId, isHost, mode = 'multiplayer', sol
                                                 initial={{ opacity: 0, y: 10 }}
                                                 animate={{ opacity: 1, y: 0 }}
                                                 transition={{ delay: 0.2, duration: durations.fast }}
-                                                className="text-sm text-white flex items-center gap-1"
+                                                className={`text-sm ${TEXT_COLOR} flex items-center gap-1`}
                                             >
                                                 {t('results.winner')} <Trophy className="w-4 h-4 text-yellow-400" aria-hidden="true" />
                                                 <span className="text-yellow-400 font-bold">{state.roundWinner.name}</span>
@@ -883,11 +886,11 @@ export function Phase1Player({ room, playerId, isHost, mode = 'multiplayer', sol
                                     <div className="flex-1">
                                         {/* Option Text */}
                                         {displayedQuestion ? (
-                                            <span className="text-white font-bold text-lg leading-tight block select-none">
+                                            <span className={`${TEXT_COLOR} font-bold text-lg leading-tight block select-none`}>
                                                 {displayedQuestion.options[idx]}
                                             </span>
                                         ) : (
-                                            <span className="text-white/60 font-bold text-lg select-none">Option {['A', 'B', 'C', 'D'][idx]}</span>
+                                            <span className={`${TEXT_COLOR} opacity-60 font-bold text-lg select-none`}>Option {['A', 'B', 'C', 'D'][idx]}</span>
                                         )}
                                     </div>
                                 </motion.button>

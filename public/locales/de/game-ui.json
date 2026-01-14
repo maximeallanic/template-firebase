@@ -252,11 +252,13 @@
     ],
     "correctAnswerWas": "Es war:",
     "youAnswered": "Du sagtest",
+    "didntAnswer": "Du hast nicht rechtzeitig geantwortet",
     "waitingForPlayers": "Spieler sammeln...",
     "everyoneAnswered": "Alle haben geantwortet!",
     "nextQuestionIn": "Nächste in {{seconds}}s",
     "prepareForQuestion": "Bereit machen...",
     "solo": {
+      "correct": "Richtig!",
       "noWinner": "Zu langsam!",
       "noWinner_variants": [
         "Zu langsam!",

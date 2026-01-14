@@ -62,3 +62,8 @@ android/.gradle/
 *.xcuserstate
 *.xcuserdatad/
 DerivedData/
+# Claude Folder
+.claude
+
+tmpclaude-*
+functions/tmpclaude-*
