@@ -33,12 +33,24 @@ export function GameHeader({
         .filter(p => p.team === 'sweet')
         .reduce((sum, p) => sum + p.score, 0);
 
+    // Determine if current player is on spicy or sweet team
+    const playerTeam = currentPlayer?.team;
+    const isSpicy = playerTeam === 'spicy';
+    const isSweet = playerTeam === 'sweet';
+
+    // Player's own team score (highlighted)
+    const myTeamScore = isSpicy ? spicyScore : isSweet ? sweetScore : null;
+
     return (
         <div className="absolute top-4 left-4 right-4 z-[100] flex items-center justify-between gap-2">
-            {/* Left: Spicy Score */}
-            <div className="flex items-center gap-1.5 bg-slate-800/80 backdrop-blur-sm px-3 py-2 rounded-full border border-spicy-500/30">
+            {/* Left: Spicy Score - highlighted if player's team */}
+            <div className={`flex items-center gap-1.5 bg-slate-800/80 backdrop-blur-sm px-3 py-2 rounded-full border ${
+                isSpicy ? 'border-spicy-500 ring-2 ring-spicy-500/50' : 'border-spicy-500/30'
+            }`}>
                 <Flame className="w-4 h-4 text-spicy-400" />
-                <span className="text-lg font-black text-white min-w-[1.5rem] text-center">
+                <span className={`text-lg font-black min-w-[1.5rem] text-center ${
+                    isSpicy ? 'text-spicy-300' : 'text-white'
+                }`}>
                     {spicyScore}
                 </span>
             </div>
@@ -50,15 +62,31 @@ export function GameHeader({
                 </span>
             </div>
 
-            {/* Right: Sweet Score + User */}
+            {/* Right: Sweet Score + Team indicator + User */}
             <div className="flex items-center gap-2">
-                {/* Sweet Score */}
-                <div className="flex items-center gap-1.5 bg-slate-800/80 backdrop-blur-sm px-3 py-2 rounded-full border border-sweet-500/30">
-                    <span className="text-lg font-black text-white min-w-[1.5rem] text-center">
+                {/* Sweet Score - highlighted if player's team */}
+                <div className={`flex items-center gap-1.5 bg-slate-800/80 backdrop-blur-sm px-3 py-2 rounded-full border ${
+                    isSweet ? 'border-sweet-500 ring-2 ring-sweet-500/50' : 'border-sweet-500/30'
+                }`}>
+                    <span className={`text-lg font-black min-w-[1.5rem] text-center ${
+                        isSweet ? 'text-sweet-300' : 'text-white'
+                    }`}>
                         {sweetScore}
                     </span>
                     <Candy className="w-4 h-4 text-sweet-400" />
                 </div>
+
+                {/* Player's team indicator - shows which score is theirs */}
+                {playerTeam && (
+                    <div className={`flex items-center gap-1 px-2 py-1 rounded-full text-xs font-bold ${
+                        isSpicy
+                            ? 'bg-spicy-500/20 text-spicy-400 border border-spicy-500/30'
+                            : 'bg-sweet-500/20 text-sweet-400 border border-sweet-500/30'
+                    }`}>
+                        {isSpicy ? <Flame className="w-3 h-3" /> : <Candy className="w-3 h-3" />}
+                        <span>{myTeamScore}</span>
+                    </div>
+                )}
 
                 {/* User Bar / Quick Settings (PWA) */}
                 {currentPlayer && (

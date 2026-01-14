@@ -36,6 +36,7 @@ import { RoomLanguageSelector } from '../components/ui/RoomLanguageSelector';
 import { TEAM_CONFETTI_COLORS } from '../components/ui/confettiColors';
 import { PlayerLeaderboard } from '../components/game/victory/PlayerLeaderboard';
 import { hasSeenIntro, markIntroSeen } from '../services/onboardingService';
+import { saveFinalScores, getPlayersWithFallbackScores, clearStoredScores } from '../services/scoreStorageService';
 
 type GameStatus = 'lobby' | 'phase1' | 'phase2' | 'phase3' | 'phase4' | 'phase5' | 'victory';
 
@@ -721,10 +722,28 @@ function StartGameButton({ isHost, canStart, onStart, difficulty, onDifficultyCh
 
 function VictoryScreen({ room, isHost }: { room: NonNullable<ReturnType<typeof useGameRoom>['room']>; isHost: boolean }) {
     const { t } = useTranslation(['game-ui', 'common']);
-    const players = Object.values(room.players);
+    const hasSavedScores = useRef(false);
+
+    // Use fallback scores from localStorage if Firebase scores are all 0 (refresh scenario)
+    const playersWithScores = getPlayersWithFallbackScores(room.code, room.players);
+    const players = Object.values(playersWithScores);
     const spicyScore = players.filter(p => p.team === 'spicy').reduce((sum, p) => sum + (p.score || 0), 0);
     const sweetScore = players.filter(p => p.team === 'sweet').reduce((sum, p) => sum + (p.score || 0), 0);
     const winnerTeam = room.state.winnerTeam;
+
+    // Save scores to localStorage on first render (for refresh persistence)
+    useEffect(() => {
+        if (!hasSavedScores.current && winnerTeam) {
+            saveFinalScores(room.code, playersWithScores, winnerTeam);
+            hasSavedScores.current = true;
+        }
+    }, [room.code, playersWithScores, winnerTeam]);
+
+    // Handle restart - clear stored scores before restarting
+    const handleRestart = useCallback(() => {
+        clearStoredScores();
+        restartGame(room.code);
+    }, [room.code]);
 
     // Get confetti colors based on winner
     const confettiColors = winnerTeam === 'spicy'
@@ -790,8 +809,8 @@ function VictoryScreen({ room, isHost }: { room: NonNullable<ReturnType<typeof u
                     <ScoreCard team="sweet" score={sweetScore} isWinner={winnerTeam === 'sweet'} />
                 </motion.div>
 
-                {/* Player Leaderboard */}
-                <PlayerLeaderboard players={room.players} topN={3} />
+                {/* Team Contributors - shows top 2 contributors per team */}
+                <PlayerLeaderboard players={playersWithScores} topNPerTeam={2} />
 
                 {/* Play Again Button */}
                 {isHost && (
@@ -801,7 +820,7 @@ function VictoryScreen({ room, isHost }: { room: NonNullable<ReturnType<typeof u
                         transition={{ delay: 1.2 }}
                         whileHover={{ scale: 1.05 }}
                         whileTap={{ scale: 0.95 }}
-                        onClick={() => restartGame(room.code)}
+                        onClick={handleRestart}
                         className="mt-8 bg-gradient-to-r from-yellow-400 to-orange-500 text-black px-12 py-4 rounded-xl text-xl font-black shadow-lg hover:shadow-yellow-500/30"
                     >
                         {t('common:buttons.playAgain')}
