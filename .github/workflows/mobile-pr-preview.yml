@@ -73,18 +73,34 @@ jobs:
     name: Distribute to Firebase App Distribution
     needs: build-android
     runs-on: ubuntu-latest
-    if: ${{ secrets.FIREBASE_APP_DISTRIBUTION_APP_ID != '' }}
+    outputs:
+      distributed: ${{ steps.set-output.outputs.distributed }}
     steps:
+      - name: Check if Firebase App Distribution is configured
+        id: check-config
+        run: |
+          if [ -z "${{ secrets.FIREBASE_APP_DISTRIBUTION_APP_ID }}" ]; then
+            echo "configured=false" >> $GITHUB_OUTPUT
+            echo "⚠️ Firebase App Distribution is not configured. Skipping distribution."
+          else
+            echo "configured=true" >> $GITHUB_OUTPUT
+            echo "✅ Firebase App Distribution is configured."
+          fi
+
       - name: Checkout code
+        if: steps.check-config.outputs.configured == 'true'
         uses: actions/checkout@v4
 
       - name: Download APK artifact
+        if: steps.check-config.outputs.configured == 'true'
         uses: actions/download-artifact@v4
         with:
           name: android-apk-pr-${{ github.event.pull_request.number }}
           path: ./apk
 
       - name: Upload to Firebase App Distribution
+        id: upload
+        if: steps.check-config.outputs.configured == 'true'
         uses: wzieba/Firebase-Distribution-Github-Action@v1
         with:
           appId: ${{ secrets.FIREBASE_APP_DISTRIBUTION_APP_ID }}
@@ -98,6 +114,15 @@ jobs:
             Commit: ${{ github.sha }}
 
             ${{ github.event.pull_request.body }}
+
+      - name: Set output
+        id: set-output
+        run: |
+          if [ "${{ steps.check-config.outputs.configured }}" == "true" ]; then
+            echo "distributed=true" >> $GITHUB_OUTPUT
+          else
+            echo "distributed=false" >> $GITHUB_OUTPUT
+          fi
 
   comment-pr:
     name: Comment on PR
@@ -132,7 +157,7 @@ jobs:
 
             > Go to the workflow run → Artifacts → `android-apk-pr-${{ github.event.pull_request.number }}`
 
-            ${{ needs.distribute-firebase.result == 'success' && '### Firebase App Distribution\n\n✅ **Distributed to testers!**\n\nTesters in the `testers` group will receive a notification to install the app.' || '### Firebase App Distribution\n\n⚠️ **Not configured** - Set `FIREBASE_APP_DISTRIBUTION_APP_ID` secret to enable automatic distribution.' }}
+            ${{ needs.distribute-firebase.outputs.distributed == 'true' && '### Firebase App Distribution\n\n✅ **Distributed to testers!**\n\nTesters in the `testers` group will receive a notification to install the app.' || '### Firebase App Distribution\n\n⚠️ **Not configured** - Set `FIREBASE_APP_DISTRIBUTION_APP_ID` secret to enable automatic distribution.' }}
 
             ---
 
