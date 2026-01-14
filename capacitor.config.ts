@@ -24,6 +24,8 @@ const config: CapacitorConfig = {
       serverClientId: '235167916448-4vuo4v1js10scr2d2bbk6q1iribtgn6k.apps.googleusercontent.com',
       // Android Client ID (client_type: 1) - for native Android sign-in
       androidClientId: '235167916448-v0rh6d7cvhael9nc79oftcg304tcpijn.apps.googleusercontent.com',
+      // iOS Client ID (client_type: 2) - for native iOS sign-in
+      iosClientId: '235167916448-2c8b9s69hqncfg25fqfpmlerhnsgr6rc.apps.googleusercontent.com',
       forceCodeForRefreshToken: true
     }
   },
