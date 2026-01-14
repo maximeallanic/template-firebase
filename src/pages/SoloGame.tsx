@@ -21,6 +21,7 @@ import { Phase2Player } from '../components/phases/Phase2Player';
 import { Phase4Player } from '../components/phases/Phase4Player';
 import { SoloGameHeader } from '../components/solo/SoloGameHeader';
 import { PhaseTransition } from '../components/game/PhaseTransition';
+import { DebugPanel } from '../components/game/DebugPanel';
 import { useReducedMotion } from '../hooks/useReducedMotion';
 import type { PhaseStatus } from '../services/gameService';
 
@@ -413,6 +414,11 @@ function SoloGameInner() {
                     </div>
                 )}
             </div>
+
+            {/* Debug Panel - Solo mode */}
+            {import.meta.env.DEV && (
+                <DebugPanel soloContext={context} />
+            )}
         </div>
     );
 }

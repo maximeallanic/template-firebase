@@ -1,5 +1,6 @@
 /**
  * Debug Panel for single-window game testing
+ * Works in both multiplayer and solo modes
  * Only visible in development mode
  */
 
@@ -9,19 +10,24 @@ import {
     addMockPlayer,
     clearMockPlayers,
     countMockPlayers,
-    skipToPhase,
+    skipToPhase as multiplayerSkipToPhase,
     resetAllScores
 } from '../../services/debugService';
 import { FoodLoader } from '../ui/FoodLoader';
 import { PHASE_NAMES, type Room, type PhaseStatus } from '../../services/gameService';
 import { useMockPlayerOptional } from '../../hooks/useMockPlayer';
 import { formatAnswerForDisplay } from '../../services/mockAnswerService';
+import type { SoloGameContextValue } from '../../contexts/SoloGameContext';
+import type { SoloPhaseStatus } from '../../types/soloTypes';
 
 interface DebugPanelProps {
-    room: Room;
+    // Multiplayer mode
+    room?: Room;
+    // Solo mode
+    soloContext?: SoloGameContextValue;
 }
 
-// Generate debug labels from canonical PHASE_NAMES
+// Generate debug labels from canonical PHASE_NAMES (multiplayer)
 const getPhaseLabel = (phase: PhaseStatus): string => {
     const info = PHASE_NAMES[phase];
     if (phase === 'lobby') return info.shortName;
@@ -29,26 +35,43 @@ const getPhaseLabel = (phase: PhaseStatus): string => {
     return `${num}: ${info.shortName}`;
 };
 
-export function DebugPanel({ room }: DebugPanelProps) {
+// Generate debug labels for solo phases
+const getSoloPhaseLabel = (phase: SoloPhaseStatus): string => {
+    switch (phase) {
+        case 'setup': return 'Setup';
+        case 'generating': return 'Generating';
+        case 'phase1': return 'P1: Tenders';
+        case 'phase2': return 'P2: Sucré Salé';
+        case 'phase4': return 'P4: La Note';
+        case 'waiting_for_phase': return 'Waiting...';
+        case 'results': return 'Results';
+        default: return phase;
+    }
+};
+
+export function DebugPanel({ room, soloContext }: DebugPanelProps) {
     const [isCollapsed, setIsCollapsed] = useState(false);
     const [isLoading, setIsLoading] = useState(false);
+
+    // Detect mode
+    const mode = room ? 'multiplayer' : soloContext ? 'solo' : null;
 
     // Mock player context (may be null if not wrapped in provider)
     const mockPlayer = useMockPlayerOptional();
 
-    // Only render in dev mode
-    if (!import.meta.env.DEV) return null;
+    // Only render in dev mode and if a mode is detected
+    if (!import.meta.env.DEV || !mode) return null;
 
-    const mockCounts = countMockPlayers(room);
-    const currentPhase = room.state.status;
-
-    // Check if we're in a phase that supports mock answers
-    const supportsMockAnswers = ['phase1', 'phase2', 'phase4'].includes(currentPhase);
+    // === MULTIPLAYER MODE HELPERS ===
+    const mockCounts = mode === 'multiplayer' ? countMockPlayers(room!) : { total: 0, spicy: 0, sweet: 0 };
+    const multiplayerPhase = mode === 'multiplayer' ? room!.state.status : null;
+    const supportsMockAnswers = multiplayerPhase ? ['phase1', 'phase2', 'phase4'].includes(multiplayerPhase) : false;
 
     const handleAddBot = async (team: 'spicy' | 'sweet') => {
+        if (mode !== 'multiplayer') return;
         setIsLoading(true);
         try {
-            await addMockPlayer(room.code, team);
+            await addMockPlayer(room!.code, team);
         } catch (error) {
             console.error('Failed to add mock player:', error);
         }
@@ -56,19 +79,21 @@ export function DebugPanel({ room }: DebugPanelProps) {
     };
 
     const handleClearBots = async () => {
+        if (mode !== 'multiplayer') return;
         setIsLoading(true);
         try {
-            await clearMockPlayers(room.code);
+            await clearMockPlayers(room!.code);
         } catch (error) {
             console.error('Failed to clear mock players:', error);
         }
         setIsLoading(false);
     };
 
-    const handleSkipToPhase = async (phase: PhaseStatus) => {
+    const handleMultiplayerSkipToPhase = async (phase: PhaseStatus) => {
+        if (mode !== 'multiplayer') return;
         setIsLoading(true);
         try {
-            await skipToPhase(room.code, phase);
+            await multiplayerSkipToPhase(room!.code, phase);
         } catch (error) {
             console.error('Failed to skip to phase:', error);
         }
@@ -76,14 +101,63 @@ export function DebugPanel({ room }: DebugPanelProps) {
     };
 
     const handleResetScores = async () => {
+        if (mode !== 'multiplayer') return;
         setIsLoading(true);
         try {
-            await resetAllScores(room.code);
+            await resetAllScores(room!.code);
         } catch (error) {
             console.error('Failed to reset scores:', error);
         }
         setIsLoading(false);
     };
+
+    // === SOLO MODE HELPERS ===
+    const soloState = mode === 'solo' ? soloContext!.state : null;
+    const soloPhase = soloState?.status ?? null;
+    const soloSupportsAutoAnswer = soloPhase ? ['phase1', 'phase2', 'phase4'].includes(soloPhase) : false;
+
+    // Check if questions are available for each solo phase
+    const isSoloPhaseReady = (phase: SoloPhaseStatus): boolean => {
+        if (!soloState) return false;
+        if (phase === 'setup' || phase === 'results') return true;
+        if (phase === 'phase1') return (soloState.customQuestions.phase1?.length ?? 0) > 0;
+        if (phase === 'phase2') return (soloState.customQuestions.phase2?.items?.length ?? 0) > 0;
+        if (phase === 'phase4') return (soloState.customQuestions.phase4?.length ?? 0) > 0;
+        return false;
+    };
+
+    const handleSoloSkipToPhase = (phase: SoloPhaseStatus) => {
+        if (mode !== 'solo') return;
+        soloContext!.skipToPhase(phase);
+    };
+
+    const handleSoloReset = () => {
+        if (mode !== 'solo') return;
+        soloContext!.resetGame();
+    };
+
+    // Auto-answer with random choice for solo mode
+    const handleSoloRandomAnswer = () => {
+        if (mode !== 'solo' || !soloPhase) return;
+
+        if (soloPhase === 'phase1') {
+            const randomIndex = Math.floor(Math.random() * 4);
+            soloContext!.submitPhase1Answer(randomIndex);
+        } else if (soloPhase === 'phase2') {
+            const choices: ('A' | 'B' | 'Both')[] = ['A', 'B', 'Both'];
+            const randomChoice = choices[Math.floor(Math.random() * 3)];
+            soloContext!.submitPhase2Answer(randomChoice);
+        } else if (soloPhase === 'phase4') {
+            const randomIndex = Math.floor(Math.random() * 4);
+            soloContext!.submitPhase4Answer(randomIndex);
+        }
+    };
+
+    // === RENDER ===
+    const headerLabel = mode === 'multiplayer' ? room!.code : 'SOLO';
+    const currentPhaseDisplay = mode === 'multiplayer'
+        ? getPhaseLabel(multiplayerPhase!)
+        : getSoloPhaseLabel(soloPhase!);
 
     return (
         <motion.div
@@ -100,7 +174,9 @@ export function DebugPanel({ room }: DebugPanelProps) {
                     <div className="flex items-center gap-2">
                         <span className="text-yellow-400">DEBUG</span>
                         <span className="text-gray-500">|</span>
-                        <span className="text-gray-400">{room.code}</span>
+                        <span className={mode === 'solo' ? 'text-orange-400' : 'text-gray-400'}>
+                            {headerLabel}
+                        </span>
                     </div>
                     <button className="text-gray-400 hover:text-white transition-colors">
                         {isCollapsed ? '+' : '-'}
@@ -115,49 +191,51 @@ export function DebugPanel({ room }: DebugPanelProps) {
                             exit={{ height: 0, opacity: 0 }}
                             transition={{ duration: 0.2 }}
                         >
-                            {/* Mock Players Section */}
-                            <div className="p-3 border-b border-gray-700">
-                                <div className="text-gray-400 mb-2 flex items-center gap-1">
-                                    <span>Joueurs fictifs</span>
-                                </div>
+                            {/* Mock Players Section - Multiplayer only */}
+                            {mode === 'multiplayer' && (
+                                <div className="p-3 border-b border-gray-700">
+                                    <div className="text-gray-400 mb-2 flex items-center gap-1">
+                                        <span>Joueurs fictifs</span>
+                                    </div>
 
-                                <div className="flex gap-2 mb-2">
-                                    <button
-                                        onClick={() => handleAddBot('spicy')}
-                                        disabled={isLoading}
-                                        className="flex-1 px-2 py-1.5 bg-red-600/80 hover:bg-red-600 disabled:opacity-50 rounded text-white transition-colors"
-                                    >
-                                        + Spicy
-                                    </button>
-                                    <button
-                                        onClick={() => handleAddBot('sweet')}
-                                        disabled={isLoading}
-                                        className="flex-1 px-2 py-1.5 bg-pink-500/80 hover:bg-pink-500 disabled:opacity-50 rounded text-white transition-colors"
-                                    >
-                                        + Sweet
-                                    </button>
-                                </div>
-
-                                <div className="flex items-center justify-between">
-                                    <span className="text-gray-500">
-                                        Bots: {mockCounts.total}
-                                        <span className="text-red-400 ml-1">({mockCounts.spicy})</span>
-                                        <span className="text-pink-400 ml-1">({mockCounts.sweet})</span>
-                                    </span>
-                                    {mockCounts.total > 0 && (
+                                    <div className="flex gap-2 mb-2">
                                         <button
-                                            onClick={handleClearBots}
+                                            onClick={() => handleAddBot('spicy')}
                                             disabled={isLoading}
-                                            className="px-2 py-1 text-gray-400 hover:text-red-400 hover:bg-red-400/10 rounded transition-colors"
+                                            className="flex-1 px-2 py-1.5 bg-red-600/80 hover:bg-red-600 disabled:opacity-50 rounded text-white transition-colors"
                                         >
-                                            Clear
+                                            + Spicy
                                         </button>
-                                    )}
-                                </div>
-                            </div>
+                                        <button
+                                            onClick={() => handleAddBot('sweet')}
+                                            disabled={isLoading}
+                                            className="flex-1 px-2 py-1.5 bg-pink-500/80 hover:bg-pink-500 disabled:opacity-50 rounded text-white transition-colors"
+                                        >
+                                            + Sweet
+                                        </button>
+                                    </div>
 
-                            {/* Mock Answers Section - Only show when context is available and in supported phase */}
-                            {mockPlayer && supportsMockAnswers && mockCounts.total > 0 && (
+                                    <div className="flex items-center justify-between">
+                                        <span className="text-gray-500">
+                                            Bots: {mockCounts.total}
+                                            <span className="text-red-400 ml-1">({mockCounts.spicy})</span>
+                                            <span className="text-pink-400 ml-1">({mockCounts.sweet})</span>
+                                        </span>
+                                        {mockCounts.total > 0 && (
+                                            <button
+                                                onClick={handleClearBots}
+                                                disabled={isLoading}
+                                                className="px-2 py-1 text-gray-400 hover:text-red-400 hover:bg-red-400/10 rounded transition-colors"
+                                            >
+                                                Clear
+                                            </button>
+                                        )}
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* Mock Answers Section - Multiplayer only (when context is available and in supported phase) */}
+                            {mode === 'multiplayer' && mockPlayer && supportsMockAnswers && mockCounts.total > 0 && (
                                 <div className="p-3 border-b border-gray-700">
                                     <div className="text-gray-400 mb-2 flex items-center justify-between">
                                         <span>Réponses Mock</span>
@@ -214,47 +292,108 @@ export function DebugPanel({ room }: DebugPanelProps) {
                                 </div>
                             )}
 
-                            {/* Phase Skip Section */}
-                            <div className="p-3 border-b border-gray-700">
-                                <div className="text-gray-400 mb-2">
-                                    Phase actuelle: <span className="text-white">{getPhaseLabel(currentPhase)}</span>
+                            {/* Auto-answer Section - Solo only */}
+                            {mode === 'solo' && soloSupportsAutoAnswer && (
+                                <div className="p-3 border-b border-gray-700">
+                                    <div className="text-gray-400 mb-2">Auto-réponse</div>
+                                    <button
+                                        onClick={handleSoloRandomAnswer}
+                                        className="w-full px-2 py-1.5 bg-purple-600/80 hover:bg-purple-600 rounded text-white transition-colors"
+                                    >
+                                        🎲 Réponse aléatoire
+                                    </button>
                                 </div>
+                            )}
 
-                                <div className="grid grid-cols-3 gap-1">
-                                    {(['lobby', 'phase1', 'phase2', 'phase3', 'phase4', 'phase5'] as PhaseStatus[]).map((phase) => (
-                                        <button
-                                            key={phase}
-                                            onClick={() => handleSkipToPhase(phase)}
-                                            disabled={isLoading || phase === currentPhase}
-                                            className={`px-2 py-1.5 rounded text-center transition-colors ${
-                                                phase === currentPhase
-                                                    ? 'bg-green-600/50 text-green-300 cursor-default'
-                                                    : 'bg-gray-700 hover:bg-gray-600 text-gray-300 disabled:opacity-50'
-                                            }`}
-                                        >
-                                            {phase === 'lobby' ? 'Lobby' : phase.replace('phase', 'P')}
-                                        </button>
-                                    ))}
+                            {/* Phase Skip Section - Multiplayer */}
+                            {mode === 'multiplayer' && (
+                                <div className="p-3 border-b border-gray-700">
+                                    <div className="text-gray-400 mb-2">
+                                        Phase actuelle: <span className="text-white">{currentPhaseDisplay}</span>
+                                    </div>
+
+                                    <div className="grid grid-cols-3 gap-1">
+                                        {(['lobby', 'phase1', 'phase2', 'phase3', 'phase4', 'phase5'] as PhaseStatus[]).map((phase) => (
+                                            <button
+                                                key={phase}
+                                                onClick={() => handleMultiplayerSkipToPhase(phase)}
+                                                disabled={isLoading || phase === multiplayerPhase}
+                                                className={`px-2 py-1.5 rounded text-center transition-colors ${
+                                                    phase === multiplayerPhase
+                                                        ? 'bg-green-600/50 text-green-300 cursor-default'
+                                                        : 'bg-gray-700 hover:bg-gray-600 text-gray-300 disabled:opacity-50'
+                                                }`}
+                                            >
+                                                {phase === 'lobby' ? 'Lobby' : phase.replace('phase', 'P')}
+                                            </button>
+                                        ))}
+                                    </div>
                                 </div>
-                            </div>
+                            )}
+
+                            {/* Phase Skip Section - Solo */}
+                            {mode === 'solo' && (
+                                <div className="p-3 border-b border-gray-700">
+                                    <div className="text-gray-400 mb-2">
+                                        Phase actuelle: <span className="text-white">{currentPhaseDisplay}</span>
+                                    </div>
+
+                                    <div className="grid grid-cols-3 gap-1">
+                                        {(['setup', 'phase1', 'phase2', 'phase4', 'results'] as SoloPhaseStatus[]).map((phase) => {
+                                            const isReady = isSoloPhaseReady(phase);
+                                            const isCurrent = phase === soloPhase;
+                                            const isDisabled = !isReady || isCurrent;
+
+                                            return (
+                                                <button
+                                                    key={phase}
+                                                    onClick={() => handleSoloSkipToPhase(phase)}
+                                                    disabled={isDisabled}
+                                                    title={!isReady ? 'Questions non générées' : undefined}
+                                                    className={`px-2 py-1.5 rounded text-center transition-colors ${
+                                                        isCurrent
+                                                            ? 'bg-green-600/50 text-green-300 cursor-default'
+                                                            : isReady
+                                                                ? 'bg-gray-700 hover:bg-gray-600 text-gray-300'
+                                                                : 'bg-gray-800 text-gray-600 cursor-not-allowed'
+                                                    }`}
+                                                >
+                                                    {phase === 'setup' ? 'Setup' :
+                                                     phase === 'results' ? 'End' :
+                                                     phase.replace('phase', 'P')}
+                                                </button>
+                                            );
+                                        })}
+                                    </div>
+                                </div>
+                            )}
 
                             {/* Actions Section */}
                             <div className="p-3">
-                                <button
-                                    onClick={handleResetScores}
-                                    disabled={isLoading}
-                                    className="w-full px-2 py-1.5 bg-gray-700 hover:bg-gray-600 disabled:opacity-50 rounded text-gray-300 transition-colors"
-                                >
-                                    Reset scores
-                                </button>
+                                {mode === 'multiplayer' ? (
+                                    <button
+                                        onClick={handleResetScores}
+                                        disabled={isLoading}
+                                        className="w-full px-2 py-1.5 bg-gray-700 hover:bg-gray-600 disabled:opacity-50 rounded text-gray-300 transition-colors"
+                                    >
+                                        Reset scores
+                                    </button>
+                                ) : (
+                                    <button
+                                        onClick={handleSoloReset}
+                                        className="w-full px-2 py-1.5 bg-gray-700 hover:bg-gray-600 rounded text-gray-300 transition-colors"
+                                    >
+                                        Recommencer
+                                    </button>
+                                )}
                             </div>
                         </motion.div>
                     )}
                 </AnimatePresence>
             </div>
 
-            {/* Loading indicator */}
-            {isLoading && (
+            {/* Loading indicator - Multiplayer only (solo is sync) */}
+            {mode === 'multiplayer' && isLoading && (
                 <div className="absolute inset-0 bg-gray-900/50 rounded-lg flex items-center justify-center">
                     <FoodLoader size="sm" />
                 </div>
