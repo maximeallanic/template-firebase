@@ -21,12 +21,27 @@ export function AuthRequired({ children, requireEmailVerified = true }: AuthRequ
     const [resendSuccess, setResendSuccess] = useState(false);
 
     useEffect(() => {
+        let callbackReceived = false;
+
         const unsubscribe = onAuthChange((authUser) => {
+            callbackReceived = true;
             setUser(authUser);
             setLoading(false);
         });
 
-        return () => unsubscribe();
+        // Safety timeout: if onAuthStateChanged doesn't call back within 3s, assume no user
+        const timeout = setTimeout(() => {
+            if (!callbackReceived) {
+                console.warn('⚠️ Auth callback timeout - assuming no user');
+                setUser(null);
+                setLoading(false);
+            }
+        }, 3000);
+
+        return () => {
+            unsubscribe();
+            clearTimeout(timeout);
+        };
     }, []);
 
     const handleResendEmail = async () => {

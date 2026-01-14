@@ -5,7 +5,8 @@ const config: CapacitorConfig = {
   appName: 'Spicy vs Sweet',
   webDir: 'dist',
   server: {
-    androidScheme: 'https'
+    androidScheme: 'https',
+    iosScheme: 'https'
   },
   plugins: {
     SplashScreen: {
@@ -30,7 +31,9 @@ const config: CapacitorConfig = {
     }
   },
   ios: {
-    contentInset: 'automatic'
+    contentInset: 'always',
+    backgroundColor: '#0f172a',
+    scrollEnabled: false
   },
   android: {
     backgroundColor: '#0f172a'

@@ -23,6 +23,73 @@ import {
 } from 'firebase/auth';
 import { isNative } from './platformService';
 
+// Native auth state management (for iOS/Android where SDK doesn't work)
+let nativeAuthCallback: ((user: FirebaseUser | null) => void) | null = null;
+
+interface NativeUserData {
+  uid: string;
+  email: string;
+  emailVerified: boolean;
+  displayName: string;
+  photoURL: string;
+  providerData: Array<{
+    providerId: string;
+    uid: string;
+    email: string;
+    displayName: string;
+    photoURL: string;
+  }>;
+  idToken: string;
+  refreshToken: string;
+}
+
+function createNativeUserObject(data: NativeUserData): FirebaseUser {
+  return {
+    uid: data.uid,
+    email: data.email,
+    emailVerified: data.emailVerified,
+    displayName: data.displayName,
+    photoURL: data.photoURL,
+    providerData: data.providerData,
+    isAnonymous: false,
+    metadata: {},
+    phoneNumber: null,
+    tenantId: null,
+    refreshToken: data.refreshToken,
+    providerId: 'firebase',
+    getIdToken: async () => data.idToken,
+    getIdTokenResult: async () => ({
+      token: data.idToken,
+      claims: {},
+      expirationTime: '',
+      issuedAtTime: '',
+      signInProvider: 'google.com',
+      authTime: '',
+      signInSecondFactor: null,
+    }),
+    reload: async () => {},
+    toJSON: () => ({ uid: data.uid, email: data.email }),
+    delete: async () => {},
+  } as unknown as FirebaseUser;
+}
+
+function getNativeUser(): FirebaseUser | null {
+  try {
+    const stored = localStorage.getItem('nativeAuthUser');
+    if (stored) {
+      const data = JSON.parse(stored) as NativeUserData;
+      return createNativeUserObject(data);
+    }
+  } catch (e) {
+    console.warn('Failed to get native user:', e);
+  }
+  return null;
+}
+
+function clearNativeUser(): void {
+  localStorage.removeItem('nativeAuthUser');
+}
+
 // Rate limiting configuration
 const RATE_LIMIT_WINDOW_MS = 60000; // 1 minute
 const MAX_AUTH_ATTEMPTS = 5;
@@ -108,6 +175,22 @@ export const functions = getFunctions(app, 'us-central1');
 export const db = getFirestore(app);
 export const rtdb = getDatabase(app);
 
+/**
+ * Get the current user from Firebase Auth SDK or native storage
+ * Use this instead of auth.currentUser for native app compatibility
+ */
+export function getCurrentUser(): FirebaseUser | null {
+  // First check Firebase Auth SDK
+  if (auth.currentUser) {
+    return auth.currentUser;
+  }
+  // Fallback to native user for Capacitor apps
+  if (isNative()) {
+    return getNativeUser();
+  }
+  return null;
+}
+
 // DEBUG: Log RTDB initialization
 console.log('🔥 RTDB initialized - app options:', JSON.stringify({
   projectId: rtdb.app.options.projectId,
@@ -130,20 +213,25 @@ export async function initializeAuth(): Promise<void> {
   // Note: In DEV mode, emulator is already connected synchronously at module load
   // to avoid race condition with persisted sessions
 
+  // On native apps (Capacitor), use in-memory persistence to avoid WKWebView issues
+  // On web, use local persistence for better UX
+  const preferredPersistence = isNative() ? inMemoryPersistence : browserLocalPersistence;
+  const fallbackPersistence = isNative() ? inMemoryPersistence : browserSessionPersistence;
+
   // Set Persistence safely
   try {
-    await setPersistence(auth, browserLocalPersistence);
-    console.log('✅ Auth persistence set to LOCAL');
+    await setPersistence(auth, preferredPersistence);
+    console.log(`✅ Auth persistence set to ${isNative() ? 'MEMORY (native app)' : 'LOCAL'}`);
   } catch (err) {
-    console.warn('⚠️ Failed to set local persistence, trying session...', err);
+    console.warn('⚠️ Failed to set preferred persistence, trying fallback...', err);
     try {
-      await setPersistence(auth, browserSessionPersistence);
-      console.log('✅ Auth persistence set to SESSION');
+      await setPersistence(auth, fallbackPersistence);
+      console.log('✅ Auth persistence set to fallback');
     } catch (err2) {
-      console.warn('⚠️ Failed to set session persistence, falling back to NONE (memory)...', err2);
+      console.warn('⚠️ Failed to set fallback persistence, trying memory...', err2);
       try {
         await setPersistence(auth, inMemoryPersistence);
-        console.log('✅ Auth persistence set to MEMORY (Top Secret Spy Mode 🕵️)');
+        console.log('✅ Auth persistence set to MEMORY');
       } catch (err3) {
         console.error('❌ Failed to set ANY auth persistence. Auth might not work.', err3);
       }
@@ -249,28 +337,112 @@ export async function signInWithGoogle() {
       const { GoogleAuth } = await import('@southdevs/capacitor-google-auth');
 
       // Web Client ID (client_type: 3) - required for server-side token verification
-      const serverClientId = '235167916448-4vuo4v1js10scr2d2bbk6q1iribtgn6k.apps.googleusercontent.com';
+      const webClientId = '235167916448-4vuo4v1js10scr2d2bbk6q1iribtgn6k.apps.googleusercontent.com';
+      // iOS Client ID (client_type: 2)
+      const iosClientId = '235167916448-2c8b9s69hqncfg25fqfpmlerhnsgr6rc.apps.googleusercontent.com';
 
-      // Initialize the plugin before sign-in with explicit clientId
+      // Initialize the plugin before sign-in
       await GoogleAuth.initialize({
-        clientId: serverClientId,
+        clientId: iosClientId,
         scopes: ['profile', 'email'],
-        grantOfflineAccess: true
       });
 
       // Sign in with native Google on iOS/Android
-      const user = await GoogleAuth.signIn({ scopes: ['profile', 'email'] });
+      // serverClientId is required for server-side token verification (Firebase Auth)
+      console.log('🔐 Starting native Google Sign-In...');
+      const user = await GoogleAuth.signIn({
+        scopes: ['profile', 'email'],
+        serverClientId: webClientId,
+        grantOfflineAccess: true
+      });
+      console.log('✅ Google Sign-In successful, got idToken');
 
-      // Get the ID token and create Firebase credential
-      const credential = GoogleAuthProvider.credential(user.authentication.idToken);
+      // Get the ID token
+      const idToken = user.authentication.idToken;
+      console.log('🔑 Got idToken from Google Sign-In');
 
-      // Sign in to Firebase with the credential
-      const userCredential = await signInWithCredential(auth, credential);
-      return userCredential.user;
+      // Sign in to Firebase with the credential using REST API
+      // This avoids WKWebView issues with the Firebase Auth SDK
+      console.log('🔥 Signing in to Firebase via REST API...');
+
+      const apiKey = import.meta.env.VITE_FIREBASE_API_KEY;
+      const response = await fetch(
+        `https://identitytoolkit.googleapis.com/v1/accounts:signInWithIdp?key=${apiKey}`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            postBody: `id_token=${idToken}&providerId=google.com`,
+            requestUri: 'https://localhost',
+            returnIdpCredential: true,
+            returnSecureToken: true,
+          }),
+        }
+      );
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        console.error('❌ Firebase REST API error:', errorData);
+        throw new Error(errorData.error?.message || 'Firebase authentication failed');
+      }
+
+      const data = await response.json();
+      console.log('✅ Firebase REST sign-in successful:', data.email);
+
+      // Now sign in with the custom token to get the Firebase user object
+      // Use the returned idToken to create a credential and sign in
+      const firebaseCredential = GoogleAuthProvider.credential(data.oauthIdToken);
+
+      // Try SDK sign-in with shorter timeout, fall back to manual state if it fails
+      try {
+        const timeoutPromise = new Promise<never>((_, reject) => {
+          setTimeout(() => reject(new Error('SDK timeout')), 5000);
+        });
+        const userCredential = await Promise.race([
+          signInWithCredential(auth, firebaseCredential),
+          timeoutPromise
+        ]);
+        console.log('✅ Firebase SDK sign-in successful');
+        return userCredential.user;
+      } catch (sdkError) {
+        console.warn('⚠️ SDK sign-in failed, using REST response directly');
+        // Store user data for native apps where SDK doesn't work
+        const nativeUser = {
+          uid: data.localId,
+          email: data.email,
+          emailVerified: data.emailVerified,
+          displayName: data.displayName,
+          photoURL: data.photoUrl,
+          providerData: [{
+            providerId: 'google.com',
+            uid: data.rawUserInfo ? JSON.parse(data.rawUserInfo).id : data.localId,
+            email: data.email,
+            displayName: data.displayName,
+            photoURL: data.photoUrl,
+          }],
+          idToken: data.idToken,
+          refreshToken: data.refreshToken,
+        };
+
+        // Store in localStorage for persistence
+        localStorage.setItem('nativeAuthUser', JSON.stringify(nativeUser));
+        console.log('💾 Stored native user in localStorage');
+
+        // Trigger auth state change manually
+        if (nativeAuthCallback) {
+          const userObj = createNativeUserObject(nativeUser);
+          nativeAuthCallback(userObj);
+        }
+
+        return createNativeUserObject(nativeUser);
+      }
     } catch (error: unknown) {
-      console.error('Native Google sign in error:', error);
+      console.error('❌ Native Google sign in error:', error);
+      console.error('Error details:', JSON.stringify(error, Object.getOwnPropertyNames(error as object)));
 
       const errorMessage = error instanceof Error ? error.message : 'Failed to sign in with Google';
+      const errorCode = (error as { code?: string }).code;
+      console.error('Error code:', errorCode, 'Message:', errorMessage);
 
       // Handle user cancellation
       if (errorMessage.includes('cancel') || errorMessage.includes('Cancel') || errorMessage.includes('popup_closed')) {
@@ -311,11 +483,19 @@ export async function signInWithGoogle() {
 
 export async function signOut() {
   try {
+    // Clear native user storage
+    clearNativeUser();
+
     // Sign out from native provider on Capacitor apps
     if (isNative()) {
       // Dynamic import to avoid initialization issues
       const { GoogleAuth } = await import('@southdevs/capacitor-google-auth');
       await GoogleAuth.signOut();
+
+      // Trigger auth state change for native
+      if (nativeAuthCallback) {
+        nativeAuthCallback(null);
+      }
     }
     await firebaseSignOut(auth);
   } catch (error: unknown) {
@@ -326,19 +506,53 @@ export async function signOut() {
 }
 
 export function onAuthChange(callback: (user: User | null) => void) {
-  // Defer auth initialization to improve LCP (don't block initial render)
-  // Use requestIdleCallback to run during browser idle time
-  if ('requestIdleCallback' in window) {
+  // Store callback for native auth state changes
+  nativeAuthCallback = callback;
+
+  // On native apps, check for stored native user first
+  if (isNative()) {
+    const nativeUser = getNativeUser();
+    if (nativeUser) {
+      console.log('📱 Found stored native user:', nativeUser.email);
+      // Call callback immediately with native user
+      setTimeout(() => callback(nativeUser), 0);
+      // Return a no-op unsubscribe since we're using native auth
+      return () => {
+        nativeAuthCallback = null;
+      };
+    }
+    // Initialize immediately on native
+    initializeAuth().catch(err => console.error('Failed to initialize auth:', err));
+  } else if ('requestIdleCallback' in window) {
+    // Defer auth initialization to improve LCP (don't block initial render)
     requestIdleCallback(() => {
       initializeAuth().catch(err => console.error('Failed to initialize auth:', err));
-    }, { timeout: 2000 }); // Fallback to setTimeout after 2s
+    }, { timeout: 2000 });
   } else {
     // Fallback for browsers without requestIdleCallback (Safari)
     setTimeout(() => {
       initializeAuth().catch(err => console.error('Failed to initialize auth:', err));
     }, 100);
   }
-  return onAuthStateChanged(auth, callback);
+
+  // Wrap callback to also check native user
+  const wrappedCallback = (firebaseUser: User | null) => {
+    if (firebaseUser) {
+      callback(firebaseUser);
+    } else if (isNative()) {
+      // On native, check for stored native user as fallback
+      const nativeUser = getNativeUser();
+      callback(nativeUser);
+    } else {
+      callback(null);
+    }
+  };
+
+  const unsubscribe = onAuthStateChanged(auth, wrappedCallback);
+  return () => {
+    nativeAuthCallback = null;
+    unsubscribe();
+  };
 }
 
 export async function resendVerificationEmail() {

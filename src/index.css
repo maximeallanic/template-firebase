@@ -12,6 +12,12 @@
   }
 }
 
+/* iOS Safe Area Support */
+html {
+  /* Extend background to cover safe areas */
+  background-color: #0f172a;
+}
+
 body {
   margin: 0;
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
@@ -20,6 +26,20 @@ body {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   background-color: #0f172a;
+  /* Extend to full viewport including safe areas */
+  min-height: 100vh;
+  min-height: 100dvh;
+  /* Add padding for safe areas so content doesn't overlap notch/home indicator */
+  padding-top: env(safe-area-inset-top);
+  padding-bottom: env(safe-area-inset-bottom);
+  padding-left: env(safe-area-inset-left);
+  padding-right: env(safe-area-inset-right);
+}
+
+/* For Capacitor apps - ensure full screen coverage */
+#root {
+  min-height: 100vh;
+  min-height: 100dvh;
 }
 
 /* Design System - Reusable Component Classes */
