@@ -5,17 +5,16 @@
  * Supported languages:
  * - 'fr' (French) - Default
  * - 'en' (English)
- * - 'es' (Spanish) - Coming soon
- * - 'de' (German) - Coming soon
- * - 'pt' (Portuguese) - Coming soon
+ * - 'es' (Spanish)
+ * - 'de' (German)
+ * - 'pt' (Portuguese)
  */
 
 import * as frPrompts from './fr';
 import * as enPrompts from './en';
-// Future language imports (uncomment when ready):
-// import * as esPrompts from './es';
-// import * as dePrompts from './de';
-// import * as ptPrompts from './pt';
+import * as esPrompts from './es';
+import * as dePrompts from './de';
+import * as ptPrompts from './pt';
 
 export type SupportedLanguage = 'fr' | 'en' | 'es' | 'de' | 'pt';
 
@@ -23,14 +22,12 @@ export type SupportedLanguage = 'fr' | 'en' | 'es' | 'de' | 'pt';
 export type PromptSet = typeof frPrompts;
 
 // Language to prompts map
-// Note: ES, DE, PT will fall back to EN until their prompts are created
 const promptsByLanguage: Record<SupportedLanguage, PromptSet> = {
     fr: frPrompts,
     en: enPrompts as unknown as PromptSet,
-    // Fallback to English for languages not yet implemented
-    es: enPrompts as unknown as PromptSet,  // TODO: Replace with esPrompts when ready
-    de: enPrompts as unknown as PromptSet,  // TODO: Replace with dePrompts when ready
-    pt: enPrompts as unknown as PromptSet   // TODO: Replace with ptPrompts when ready
+    es: esPrompts as unknown as PromptSet,
+    de: dePrompts as unknown as PromptSet,
+    pt: ptPrompts as unknown as PromptSet
 };
 
 /**
