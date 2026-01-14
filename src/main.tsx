@@ -10,6 +10,9 @@ import App from './App.tsx'
 
 // Configure native app settings
 if (isNative()) {
+  // Add native-app class to html element for CSS targeting
+  document.documentElement.classList.add('native-app');
+
   // Set dark status bar style for native apps
   StatusBar.setStyle({ style: Style.Dark }).catch(() => {
     // StatusBar not available on this platform

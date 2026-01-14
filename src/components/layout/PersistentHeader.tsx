@@ -46,7 +46,12 @@ export function PersistentHeader() {
 
     return (
         <>
-            <div className="fixed top-4 left-4 right-4 z-50 flex items-center justify-between">
+            <div
+                className="fixed left-4 right-4 z-50 flex items-center justify-between"
+                style={{
+                    top: 'calc(env(safe-area-inset-top, 0px) + 1rem)',
+                }}
+            >
                 {/* Back button (PWA only, on specific routes) */}
                 {showBackButton ? (
                     <button

@@ -166,7 +166,7 @@ export function PWAHomePage() {
   };
 
   return (
-    <div className="h-screen flex flex-col relative overflow-hidden">
+    <div className="fixed inset-0 flex flex-col overflow-hidden">
       {/* Background */}
       <PWABackground />
 
@@ -195,10 +195,12 @@ export function PWAHomePage() {
 
       {/* Main content */}
       <div
-        className="pwa-main-content flex-1 flex flex-col relative z-20"
+        className="pwa-main-content flex-1 flex flex-col relative z-20 overflow-hidden"
         style={{
-          paddingTop: 'env(safe-area-inset-top)',
-          paddingBottom: 'env(safe-area-inset-bottom)',
+          paddingTop: 'env(safe-area-inset-top, 0px)',
+          paddingBottom: 'env(safe-area-inset-bottom, 0px)',
+          paddingLeft: 'env(safe-area-inset-left, 0px)',
+          paddingRight: 'env(safe-area-inset-right, 0px)',
         }}
       >
         {/* Header with logo */}

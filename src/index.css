@@ -142,6 +142,22 @@ body {
   }
 }
 
+/* Native app mode - Capacitor iOS/Android */
+/* Applied via class set in main.tsx when running as native app */
+html.native-app, html.native-app body {
+  overscroll-behavior: none;
+  -webkit-overflow-scrolling: touch;
+  /* Fixed height to prevent scroll */
+  height: 100%;
+  overflow: hidden;
+}
+
+html.native-app #root {
+  height: 100%;
+  overflow: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
 /* PWA mode - standalone/fullscreen display mode */
 @media all and (display-mode: standalone), (display-mode: fullscreen) {
   /* Prevent bounce/overscroll on iOS */
