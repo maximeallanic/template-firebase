@@ -3,15 +3,57 @@ name: Mobile PR Preview
 on:
   pull_request:
     branches: [master]
-    types: [opened, synchronize, reopened]
+    types: [opened, synchronize, reopened, labeled]
 
 env:
   NODE_VERSION: '22'
 
 jobs:
+  # Check which platforms should be built based on labels
+  check-labels:
+    name: Check Platform Labels
+    runs-on: ubuntu-latest
+    outputs:
+      build_android: ${{ steps.check.outputs.build_android }}
+      build_ios: ${{ steps.check.outputs.build_ios }}
+      any_platform: ${{ steps.check.outputs.any_platform }}
+    steps:
+      - name: Check for platform labels
+        id: check
+        run: |
+          LABELS='${{ toJSON(github.event.pull_request.labels.*.name) }}'
+
+          # Check for Android label
+          if echo "$LABELS" | grep -q '"mobile:android"'; then
+            echo "build_android=true" >> $GITHUB_OUTPUT
+            echo "✅ Label 'mobile:android' found - Android build enabled"
+          else
+            echo "build_android=false" >> $GITHUB_OUTPUT
+            echo "⏭️ Label 'mobile:android' not found - Android build skipped"
+          fi
+
+          # Check for iOS label
+          if echo "$LABELS" | grep -q '"mobile:ios"'; then
+            echo "build_ios=true" >> $GITHUB_OUTPUT
+            echo "✅ Label 'mobile:ios' found - iOS build enabled"
+          else
+            echo "build_ios=false" >> $GITHUB_OUTPUT
+            echo "⏭️ Label 'mobile:ios' not found - iOS build skipped"
+          fi
+
+          # Check if any platform is enabled
+          if echo "$LABELS" | grep -q '"mobile:android"\|"mobile:ios"'; then
+            echo "any_platform=true" >> $GITHUB_OUTPUT
+          else
+            echo "any_platform=false" >> $GITHUB_OUTPUT
+            echo "ℹ️ No mobile platform labels found. Add 'mobile:android' and/or 'mobile:ios' labels to trigger builds."
+          fi
+
   # Build web assets (shared by both platforms)
   build-web:
     name: Build Web Assets
+    needs: check-labels
+    if: needs.check-labels.outputs.any_platform == 'true'
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
@@ -57,7 +99,8 @@ jobs:
 
   build-android:
     name: Build Android APK
-    needs: build-web
+    needs: [check-labels, build-web]
+    if: needs.check-labels.outputs.build_android == 'true'
     runs-on: ubuntu-latest
     outputs:
       apk_path: ${{ steps.build.outputs.apk_path }}
@@ -95,7 +138,8 @@ jobs:
 
   distribute-android:
     name: Distribute Android to Firebase
-    needs: build-android
+    needs: [check-labels, build-android]
+    if: needs.check-labels.outputs.build_android == 'true' && needs.build-android.result == 'success'
     runs-on: ubuntu-latest
     outputs:
       distributed: ${{ steps.set-output.outputs.distributed }}
@@ -152,7 +196,8 @@ jobs:
   # iOS Build
   build-ios:
     name: Build iOS IPA
-    needs: build-web
+    needs: [check-labels, build-web]
+    if: needs.check-labels.outputs.build_ios == 'true'
     runs-on: macos-latest
     outputs:
       ipa_built: ${{ steps.set-output.outputs.ipa_built }}
@@ -311,9 +356,9 @@ jobs:
   # iOS Distribution to Firebase
   distribute-ios:
     name: Distribute iOS to Firebase
-    needs: build-ios
+    needs: [check-labels, build-ios]
     runs-on: ubuntu-latest
-    if: needs.build-ios.outputs.ipa_built == 'true'
+    if: needs.check-labels.outputs.build_ios == 'true' && needs.build-ios.outputs.ipa_built == 'true'
     outputs:
       distributed: ${{ steps.set-output.outputs.distributed }}
     steps:
@@ -376,9 +421,9 @@ jobs:
 
   comment-pr:
     name: Comment on PR
-    needs: [build-android, build-ios, distribute-android, distribute-ios]
+    needs: [check-labels, build-android, build-ios, distribute-android, distribute-ios]
     runs-on: ubuntu-latest
-    if: always() && (needs.build-android.result == 'success' || needs.build-ios.result == 'success')
+    if: always()
     permissions:
       pull-requests: write
     steps:
@@ -399,14 +444,18 @@ jobs:
           body: |
             ## 📱 Mobile Preview
 
-            | Platform | Build | Firebase Distribution |
-            |----------|-------|----------------------|
-            | 🤖 Android | ${{ needs.build-android.result == 'success' && '✅ Success' || '❌ Failed' }} | ${{ needs.distribute-android.outputs.distributed == 'true' && '✅ Distributed' || '⚠️ Not configured' }} |
-            | 🍎 iOS | ${{ needs.build-ios.result == 'success' && '✅ Success' || needs.build-ios.result == 'skipped' && '⏭️ Skipped' || '❌ Failed' }} | ${{ needs.distribute-ios.outputs.distributed == 'true' && '✅ Distributed' || needs.build-ios.outputs.ipa_built == 'true' && '⚠️ Not configured' || '⏭️ No IPA' }} |
+            | Platform | Label | Build | Firebase Distribution |
+            |----------|-------|-------|----------------------|
+            | 🤖 Android | ${{ needs.check-labels.outputs.build_android == 'true' && '✅ `mobile:android`' || '❌ Missing' }} | ${{ needs.build-android.result == 'success' && '✅ Success' || needs.build-android.result == 'skipped' && '⏭️ Skipped' || needs.build-android.result == 'failure' && '❌ Failed' || '⏭️ Not triggered' }} | ${{ needs.distribute-android.outputs.distributed == 'true' && '✅ Distributed' || needs.build-android.result == 'success' && '⚠️ Not configured' || '⏭️ N/A' }} |
+            | 🍎 iOS | ${{ needs.check-labels.outputs.build_ios == 'true' && '✅ `mobile:ios`' || '❌ Missing' }} | ${{ needs.build-ios.result == 'success' && '✅ Success' || needs.build-ios.result == 'skipped' && '⏭️ Skipped' || needs.build-ios.result == 'failure' && '❌ Failed' || '⏭️ Not triggered' }} | ${{ needs.distribute-ios.outputs.distributed == 'true' && '✅ Distributed' || needs.build-ios.outputs.ipa_built == 'true' && '⚠️ Not configured' || '⏭️ N/A' }} |
+
+            ${{ needs.check-labels.outputs.any_platform != 'true' && '> ℹ️ **No mobile builds triggered.** Add `mobile:android` and/or `mobile:ios` labels to this PR to trigger mobile builds.' || '' }}
 
             ---
 
             ### 🤖 Android
+
+            ${{ needs.check-labels.outputs.build_android != 'true' && '⏭️ Add the `mobile:android` label to trigger Android builds.' || '' }}
 
             ${{ needs.build-android.result == 'success' && '**Download APK:** [app-debug.apk](https://github.com/' || '' }}${{ needs.build-android.result == 'success' && github.repository || '' }}${{ needs.build-android.result == 'success' && '/actions/runs/' || '' }}${{ needs.build-android.result == 'success' && github.run_id || '' }}${{ needs.build-android.result == 'success' && ')' || '' }}
 
@@ -416,13 +465,31 @@ jobs:
 
             ### 🍎 iOS
 
-            ${{ needs.build-ios.outputs.ipa_built == 'true' && '**Download IPA:** [App.ipa](https://github.com/' || needs.build-ios.result == 'success' && '**Download Build:** [ios-build](https://github.com/' || '⚠️ iOS signing not configured. Set up certificates to enable IPA builds.' }}${{ needs.build-ios.result == 'success' && github.repository || '' }}${{ needs.build-ios.result == 'success' && '/actions/runs/' || '' }}${{ needs.build-ios.result == 'success' && github.run_id || '' }}${{ needs.build-ios.result == 'success' && ')' || '' }}
+            ${{ needs.check-labels.outputs.build_ios != 'true' && '⏭️ Add the `mobile:ios` label to trigger iOS builds.' || '' }}
+
+            ${{ needs.build-ios.outputs.ipa_built == 'true' && '**Download IPA:** [App.ipa](https://github.com/' || needs.build-ios.result == 'success' && '**Download Build:** [ios-build](https://github.com/' || '' }}${{ needs.build-ios.result == 'success' && github.repository || '' }}${{ needs.build-ios.result == 'success' && '/actions/runs/' || '' }}${{ needs.build-ios.result == 'success' && github.run_id || '' }}${{ needs.build-ios.result == 'success' && ')' || '' }}
 
             ${{ needs.build-ios.outputs.ipa_built == 'true' && '> Artifacts → `ios-ipa-pr-' || needs.build-ios.result == 'success' && '> Artifacts → `ios-build-pr-' || '' }}${{ needs.build-ios.result == 'success' && github.event.pull_request.number || '' }}${{ needs.build-ios.result == 'success' && '`' || '' }}
 
             ${{ needs.distribute-ios.outputs.distributed == 'true' && '✅ **Distributed to testers!** Check Firebase App Distribution.' || '' }}
 
+            ${{ needs.check-labels.outputs.build_ios == 'true' && needs.build-ios.result == 'success' && needs.build-ios.outputs.ipa_built != 'true' && '⚠️ iOS signing not configured. Set up certificates to enable IPA builds.' || '' }}
+
             ---
+
+            <details>
+            <summary>🏷️ How to trigger builds</summary>
+
+            Add the following labels to this PR to trigger mobile builds:
+
+            | Label | Effect |
+            |-------|--------|
+            | `mobile:android` | Build Android APK and distribute to Firebase |
+            | `mobile:ios` | Build iOS IPA and distribute to Firebase |
+
+            You can add both labels to build for both platforms.
+
+            </details>
 
             <details>
             <summary>📋 How to install</summary>

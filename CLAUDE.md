@@ -627,10 +627,18 @@ Before deploying to production:
 - Temporary preview URLs (expire after 7 days)
 
 ### Mobile PR Preview (`.github/workflows/mobile-pr-preview.yml`)
-**Triggers:** Pull request to `master` branch
-- Builds Android APK and iOS IPA
+**Triggers:** Pull request to `master` branch with platform labels
+
+**Label-based Build Triggering:**
+| Label | Effect |
+|-------|--------|
+| `mobile:android` | Build Android APK and distribute to Firebase |
+| `mobile:ios` | Build iOS IPA and distribute to Firebase |
+
+- Builds only run when corresponding labels are present
+- Add both labels to build for both platforms
 - Distributes to Firebase App Distribution (when configured)
-- Comments PR with download links
+- Comments PR with download links and build status
 
 **Required Secrets for Mobile Distribution:**
 
