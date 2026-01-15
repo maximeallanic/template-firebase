@@ -38,9 +38,6 @@ export function GameHeader({
     const isSpicy = playerTeam === 'spicy';
     const isSweet = playerTeam === 'sweet';
 
-    // Player's own team score (highlighted)
-    const myTeamScore = isSpicy ? spicyScore : isSweet ? sweetScore : null;
-
     return (
         <div className="absolute top-4 left-4 right-4 z-[100] flex items-center justify-between gap-2">
             {/* Left: Spicy Score - highlighted if player's team */}
@@ -62,7 +59,7 @@ export function GameHeader({
                 </span>
             </div>
 
-            {/* Right: Sweet Score + Team indicator + User */}
+            {/* Right: Sweet Score + User */}
             <div className="flex items-center gap-2">
                 {/* Sweet Score - highlighted if player's team */}
                 <div className={`flex items-center gap-1.5 bg-slate-800/80 backdrop-blur-sm px-3 py-2 rounded-full border ${
@@ -75,18 +72,6 @@ export function GameHeader({
                     </span>
                     <Candy className="w-4 h-4 text-sweet-400" />
                 </div>
-
-                {/* Player's team indicator - shows which score is theirs */}
-                {playerTeam && (
-                    <div className={`flex items-center gap-1 px-2 py-1 rounded-full text-xs font-bold ${
-                        isSpicy
-                            ? 'bg-spicy-500/20 text-spicy-400 border border-spicy-500/30'
-                            : 'bg-sweet-500/20 text-sweet-400 border border-sweet-500/30'
-                    }`}>
-                        {isSpicy ? <Flame className="w-3 h-3" /> : <Candy className="w-3 h-3" />}
-                        <span>{myTeamScore}</span>
-                    </div>
-                )}
 
                 {/* User Bar / Quick Settings (PWA) */}
                 {currentPlayer && (
