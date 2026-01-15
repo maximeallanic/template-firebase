@@ -36,21 +36,31 @@ export function GameHeader({
     // Determine if current player is on spicy or sweet team
     const playerTeam = currentPlayer?.team;
     const isSpicy = playerTeam === 'spicy';
-    const isSweet = playerTeam === 'sweet';
+
+    // Swap scores based on player's team: YOUR team score is always on the RIGHT (near your pseudo)
+    // If player is Spicy: Left = Sweet (opponent), Right = Spicy (yours)
+    // If player is Sweet: Left = Spicy (opponent), Right = Sweet (yours) - default layout
 
     return (
         <div className="absolute top-4 left-4 right-4 z-[100] flex items-center justify-between gap-2">
-            {/* Left: Spicy Score - highlighted if player's team */}
-            <div className={`flex items-center gap-1.5 bg-slate-800/80 backdrop-blur-sm px-3 py-2 rounded-full border ${
-                isSpicy ? 'border-spicy-500 ring-2 ring-spicy-500/50' : 'border-spicy-500/30'
-            }`}>
-                <Flame className="w-4 h-4 text-spicy-400" />
-                <span className={`text-lg font-black min-w-[1.5rem] text-center ${
-                    isSpicy ? 'text-spicy-300' : 'text-white'
-                }`}>
-                    {spicyScore}
-                </span>
-            </div>
+            {/* Left: Opponent's Score */}
+            {isSpicy ? (
+                // Player is Spicy -> Show Sweet (opponent) on left
+                <div className="flex items-center gap-1.5 bg-slate-800/80 backdrop-blur-sm px-3 py-2 rounded-full border border-sweet-500/30">
+                    <Candy className="w-4 h-4 text-sweet-400" />
+                    <span className="text-lg font-black min-w-[1.5rem] text-center text-white">
+                        {sweetScore}
+                    </span>
+                </div>
+            ) : (
+                // Player is Sweet -> Show Spicy (opponent) on left
+                <div className="flex items-center gap-1.5 bg-slate-800/80 backdrop-blur-sm px-3 py-2 rounded-full border border-spicy-500/30">
+                    <Flame className="w-4 h-4 text-spicy-400" />
+                    <span className="text-lg font-black min-w-[1.5rem] text-center text-white">
+                        {spicyScore}
+                    </span>
+                </div>
+            )}
 
             {/* Center: VS badge - hidden on very small screens */}
             <div className="hidden xs:flex items-center justify-center">
@@ -59,19 +69,26 @@ export function GameHeader({
                 </span>
             </div>
 
-            {/* Right: Sweet Score + User */}
+            {/* Right: Your Team Score + User */}
             <div className="flex items-center gap-2">
-                {/* Sweet Score - highlighted if player's team */}
-                <div className={`flex items-center gap-1.5 bg-slate-800/80 backdrop-blur-sm px-3 py-2 rounded-full border ${
-                    isSweet ? 'border-sweet-500 ring-2 ring-sweet-500/50' : 'border-sweet-500/30'
-                }`}>
-                    <span className={`text-lg font-black min-w-[1.5rem] text-center ${
-                        isSweet ? 'text-sweet-300' : 'text-white'
-                    }`}>
-                        {sweetScore}
-                    </span>
-                    <Candy className="w-4 h-4 text-sweet-400" />
-                </div>
+                {/* Your Team Score - highlighted */}
+                {isSpicy ? (
+                    // Player is Spicy -> Show Spicy (yours) on right, highlighted
+                    <div className="flex items-center gap-1.5 bg-slate-800/80 backdrop-blur-sm px-3 py-2 rounded-full border-2 border-spicy-500 ring-2 ring-spicy-500/50">
+                        <span className="text-lg font-black min-w-[1.5rem] text-center text-spicy-300">
+                            {spicyScore}
+                        </span>
+                        <Flame className="w-4 h-4 text-spicy-400" />
+                    </div>
+                ) : (
+                    // Player is Sweet -> Show Sweet (yours) on right, highlighted
+                    <div className="flex items-center gap-1.5 bg-slate-800/80 backdrop-blur-sm px-3 py-2 rounded-full border-2 border-sweet-500 ring-2 ring-sweet-500/50">
+                        <span className="text-lg font-black min-w-[1.5rem] text-center text-sweet-300">
+                            {sweetScore}
+                        </span>
+                        <Candy className="w-4 h-4 text-sweet-400" />
+                    </div>
+                )}
 
                 {/* User Bar / Quick Settings (PWA) */}
                 {currentPlayer && (
