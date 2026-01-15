@@ -63,11 +63,9 @@ export function DebugPanel({ room, soloContext }: DebugPanelProps) {
     // Konami code activation for localhost/preview environments
     const { isDevModeEnabled, isPreviewEnv, resetDevMode } = useKonamiCode();
 
-    // Only render if:
-    // 1. In dev mode (local development with Vite)
-    // 2. OR dev mode activated via Konami code (localhost or preview)
-    const shouldShow = import.meta.env.DEV || isDevModeEnabled;
-    if (!shouldShow || !mode) return null;
+    // Only render if dev mode activated via Konami code
+    // (removed import.meta.env.DEV bypass to require Konami code even in dev)
+    if (!isDevModeEnabled || !mode) return null;
 
     // === MULTIPLAYER MODE HELPERS ===
     const mockCounts = mode === 'multiplayer' ? countMockPlayers(room!) : { total: 0, spicy: 0, sweet: 0 };

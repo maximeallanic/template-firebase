@@ -104,11 +104,12 @@ export function useKonamiCode(): {
     }, []);
 
     useEffect(() => {
-        // Only listen on localhost or preview environments
-        if (typeof window === 'undefined' || !isKonamiCodeAllowed()) return;
-        // If already enabled, no need to listen
-        if (isDevModeEnabled) return;
+        // Always listen (for debugging, we want to know if keys are detected)
+        console.log('[Konami] Hook mounted, isDevModeEnabled:', isDevModeEnabled, 'isAllowed:', isKonamiCodeAllowed());
 
+        if (typeof window === 'undefined') return;
+
+        // Still listen even if enabled, just won't activate again
         const handleKeyDown = (event: KeyboardEvent) => {
             // Ignore if user is typing in an input
             if (
@@ -120,11 +121,16 @@ export function useKonamiCode(): {
 
             const key = event.key.length === 1 ? event.key.toLowerCase() : event.key;
 
+            // Only track arrow keys
+            if (!key.startsWith('Arrow')) return;
+
             // Add key to sequence
             inputSequenceRef.current = [...inputSequenceRef.current, key];
 
             // Keep only the last N keys (where N is the length of the Konami sequence)
             inputSequenceRef.current = inputSequenceRef.current.slice(-KONAMI_SEQUENCE.length);
+
+            console.log('[Konami] Sequence:', inputSequenceRef.current.map(k => k.replace('Arrow', '')).join(' '));
 
             // Check if sequence matches
             if (inputSequenceRef.current.length === KONAMI_SEQUENCE.length) {
@@ -132,7 +138,8 @@ export function useKonamiCode(): {
                     (k, i) => k.toLowerCase() === KONAMI_SEQUENCE[i].toLowerCase()
                 );
 
-                if (isMatch) {
+                if (isMatch && !isDevModeEnabled) {
+                    console.log('[Konami] MATCH! Activating dev mode');
                     // Activate dev mode
                     setIsDevModeEnabled(true);
                     localStorage.setItem(DEV_MODE_KEY, 'true');
