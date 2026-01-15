@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 
 /**
- * Custom Konami code sequence: ↑ ↑ ↓ ↓ ← → ← → A D D E U S
+ * Konami code sequence: ↑ ↑ ↓ ↓ ← → ← →
  * Works on localhost and Firebase preview URLs
  */
 
@@ -14,16 +14,50 @@ const KONAMI_SEQUENCE = [
     'ArrowRight',
     'ArrowLeft',
     'ArrowRight',
-    'a',
-    'd',
-    'd',
-    'e',
-    'u',
-    's',
 ];
 
 // Storage key for persisting dev mode
 const DEV_MODE_KEY = 'spicy-dev-mode';
+
+/**
+ * Show a brief visual feedback when dev mode is activated
+ */
+function showActivationFeedback() {
+    const el = document.createElement('div');
+    el.textContent = '🎮 Dev Mode ON';
+    el.style.cssText = `
+        position: fixed;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        background: linear-gradient(135deg, #f59e0b, #ef4444);
+        color: white;
+        font-weight: bold;
+        font-size: 24px;
+        padding: 20px 40px;
+        border-radius: 16px;
+        z-index: 99999;
+        animation: konamiFadeOut 1.5s ease-out forwards;
+        box-shadow: 0 10px 40px rgba(0,0,0,0.3);
+    `;
+
+    // Add keyframes if not already present
+    if (!document.getElementById('konami-styles')) {
+        const style = document.createElement('style');
+        style.id = 'konami-styles';
+        style.textContent = `
+            @keyframes konamiFadeOut {
+                0% { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+                70% { opacity: 1; transform: translate(-50%, -50%) scale(1.1); }
+                100% { opacity: 0; transform: translate(-50%, -50%) scale(0.8); }
+            }
+        `;
+        document.head.appendChild(style);
+    }
+
+    document.body.appendChild(el);
+    setTimeout(() => el.remove(), 1500);
+}
 
 /**
  * Check if current URL is a Firebase preview deployment
@@ -103,6 +137,7 @@ export function useKonamiCode(): {
                     setIsDevModeEnabled(true);
                     localStorage.setItem(DEV_MODE_KEY, 'true');
                     inputSequenceRef.current = [];
+                    showActivationFeedback();
                 }
             }
         };
