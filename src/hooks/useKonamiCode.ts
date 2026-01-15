@@ -1,176 +1,72 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useEffect } from 'react';
 
 /**
- * Konami code sequence: ↑ ↑ ↓ ↓ ← → ← →
- * Works on localhost and Firebase preview URLs
+ * Konami code: ↑ ↑ ↓ ↓ ← → ← →
+ * Sets window.__SPICY_DEV_MODE__ to true when activated
  */
 
-const KONAMI_SEQUENCE = [
-    'ArrowUp',
-    'ArrowUp',
-    'ArrowDown',
-    'ArrowDown',
-    'ArrowLeft',
-    'ArrowRight',
-    'ArrowLeft',
-    'ArrowRight',
-];
+const KONAMI_SEQUENCE = ['ArrowUp', 'ArrowUp', 'ArrowDown', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'ArrowLeft', 'ArrowRight'];
+const inputSequence: string[] = [];
 
-// Storage key for persisting dev mode
-const DEV_MODE_KEY = 'spicy-dev-mode';
-
-/**
- * Show a brief visual feedback when dev mode is activated
- */
-function showActivationFeedback() {
-    const el = document.createElement('div');
-    el.textContent = '🎮 Dev Mode ON';
-    el.style.cssText = `
-        position: fixed;
-        top: 50%;
-        left: 50%;
-        transform: translate(-50%, -50%);
-        background: linear-gradient(135deg, #f59e0b, #ef4444);
-        color: white;
-        font-weight: bold;
-        font-size: 24px;
-        padding: 20px 40px;
-        border-radius: 16px;
-        z-index: 99999;
-        animation: konamiFadeOut 1.5s ease-out forwards;
-        box-shadow: 0 10px 40px rgba(0,0,0,0.3);
-    `;
-
-    // Add keyframes if not already present
-    if (!document.getElementById('konami-styles')) {
-        const style = document.createElement('style');
-        style.id = 'konami-styles';
-        style.textContent = `
-            @keyframes konamiFadeOut {
-                0% { opacity: 1; transform: translate(-50%, -50%) scale(1); }
-                70% { opacity: 1; transform: translate(-50%, -50%) scale(1.1); }
-                100% { opacity: 0; transform: translate(-50%, -50%) scale(0.8); }
-            }
-        `;
-        document.head.appendChild(style);
+// Global flag - simple as that
+declare global {
+    interface Window {
+        __SPICY_DEV_MODE__?: boolean;
     }
-
-    document.body.appendChild(el);
-    setTimeout(() => el.remove(), 1500);
 }
 
-/**
- * Check if current URL is a Firebase preview deployment
- * Preview URLs look like: spicy-vs-sweety--pr-42-4buksjf1.web.app
- */
-export function isFirebasePreviewUrl(): boolean {
-    const hostname = window.location.hostname;
-    // Match pattern: spicy-vs-sweety--pr-{number}-{id}.web.app
-    const previewPattern = /^spicy-vs-sweety--pr-\d+-[a-z0-9]+\.web\.app$/i;
-    return previewPattern.test(hostname);
+// Init from localStorage
+if (typeof window !== 'undefined') {
+    window.__SPICY_DEV_MODE__ = localStorage.getItem('spicy-dev-mode') === 'true';
 }
 
-/**
- * Check if Konami code should be active (localhost or preview)
- */
-export function isKonamiCodeAllowed(): boolean {
-    const hostname = window.location.hostname;
-    return hostname === 'localhost' || hostname === '127.0.0.1' || isFirebasePreviewUrl();
-}
-
-/**
- * Hook to detect Konami code input and toggle dev mode
- * Works on localhost and Firebase preview URLs
- */
-// Custom event name for dev mode changes
-const DEV_MODE_EVENT = 'spicy-dev-mode-change';
-
-export function useKonamiCode(): {
-    isDevModeEnabled: boolean;
-    isPreviewEnv: boolean;
-    resetDevMode: () => void;
-} {
-    const [isDevModeEnabled, setIsDevModeEnabled] = useState(() => {
-        if (typeof window !== 'undefined') {
-            return localStorage.getItem(DEV_MODE_KEY) === 'true';
-        }
-        return false;
-    });
-
-    const isPreviewEnv = typeof window !== 'undefined' && isFirebasePreviewUrl();
-    const inputSequenceRef = useRef<string[]>([]);
-
-    // Listen for dev mode changes from other hook instances
+export function useKonamiCode() {
     useEffect(() => {
-        const handleDevModeChange = (e: CustomEvent<boolean>) => {
-            setIsDevModeEnabled(e.detail);
-        };
-        window.addEventListener(DEV_MODE_EVENT, handleDevModeChange as EventListener);
-        return () => window.removeEventListener(DEV_MODE_EVENT, handleDevModeChange as EventListener);
-    }, []);
-
-    const resetDevMode = useCallback(() => {
-        setIsDevModeEnabled(false);
-        localStorage.removeItem(DEV_MODE_KEY);
-        inputSequenceRef.current = [];
-        window.dispatchEvent(new CustomEvent(DEV_MODE_EVENT, { detail: false }));
-    }, []);
-
-    useEffect(() => {
-        // Always listen (for debugging, we want to know if keys are detected)
-        console.log('[Konami] Hook mounted, isDevModeEnabled:', isDevModeEnabled, 'isAllowed:', isKonamiCodeAllowed());
-
-        if (typeof window === 'undefined') return;
-
-        // Still listen even if enabled, just won't activate again
         const handleKeyDown = (event: KeyboardEvent) => {
-            // Ignore if user is typing in an input
-            if (
-                event.target instanceof HTMLInputElement ||
-                event.target instanceof HTMLTextAreaElement
-            ) {
+            if (event.target instanceof HTMLInputElement || event.target instanceof HTMLTextAreaElement) {
                 return;
             }
 
-            const key = event.key.length === 1 ? event.key.toLowerCase() : event.key;
+            if (!event.key.startsWith('Arrow')) return;
 
-            // Only track arrow keys
-            if (!key.startsWith('Arrow')) return;
+            inputSequence.push(event.key);
+            if (inputSequence.length > KONAMI_SEQUENCE.length) {
+                inputSequence.shift();
+            }
 
-            // Add key to sequence
-            inputSequenceRef.current = [...inputSequenceRef.current, key];
+            console.log('[Konami]', inputSequence.map(k => k.replace('Arrow', '')).join(' '));
 
-            // Keep only the last N keys (where N is the length of the Konami sequence)
-            inputSequenceRef.current = inputSequenceRef.current.slice(-KONAMI_SEQUENCE.length);
+            if (inputSequence.length === KONAMI_SEQUENCE.length) {
+                const isMatch = inputSequence.every((k, i) => k === KONAMI_SEQUENCE[i]);
+                if (isMatch && !window.__SPICY_DEV_MODE__) {
+                    console.log('[Konami] ACTIVATED!');
+                    window.__SPICY_DEV_MODE__ = true;
+                    localStorage.setItem('spicy-dev-mode', 'true');
 
-            console.log('[Konami] Sequence:', inputSequenceRef.current.map(k => k.replace('Arrow', '')).join(' '));
+                    // Force re-render by triggering a state update event
+                    window.dispatchEvent(new Event('devmode'));
 
-            // Check if sequence matches
-            if (inputSequenceRef.current.length === KONAMI_SEQUENCE.length) {
-                const isMatch = inputSequenceRef.current.every(
-                    (k, i) => k.toLowerCase() === KONAMI_SEQUENCE[i].toLowerCase()
-                );
-
-                if (isMatch && !isDevModeEnabled) {
-                    console.log('[Konami] MATCH! Activating dev mode');
-                    // Activate dev mode
-                    setIsDevModeEnabled(true);
-                    localStorage.setItem(DEV_MODE_KEY, 'true');
-                    inputSequenceRef.current = [];
-                    showActivationFeedback();
-                    // Notify other hook instances
-                    window.dispatchEvent(new CustomEvent(DEV_MODE_EVENT, { detail: true }));
+                    // Visual feedback
+                    const el = document.createElement('div');
+                    el.innerHTML = '🎮 Dev Mode ON';
+                    el.style.cssText = 'position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);background:linear-gradient(135deg,#f59e0b,#ef4444);color:white;font-weight:bold;font-size:24px;padding:20px 40px;border-radius:16px;z-index:99999;';
+                    document.body.appendChild(el);
+                    setTimeout(() => el.remove(), 1500);
                 }
             }
         };
 
         window.addEventListener('keydown', handleKeyDown);
         return () => window.removeEventListener('keydown', handleKeyDown);
-    }, [isDevModeEnabled]);
+    }, []);
+}
 
-    return {
-        isDevModeEnabled,
-        isPreviewEnv,
-        resetDevMode,
-    };
+export function isDevMode(): boolean {
+    return window.__SPICY_DEV_MODE__ === true;
+}
+
+export function resetDevMode() {
+    window.__SPICY_DEV_MODE__ = false;
+    localStorage.removeItem('spicy-dev-mode');
+    window.dispatchEvent(new Event('devmode'));
 }

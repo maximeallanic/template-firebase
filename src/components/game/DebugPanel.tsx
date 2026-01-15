@@ -4,9 +4,9 @@
  * Visible in development mode OR when activated via Konami code on preview environments
  */
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { useKonamiCode } from '../../hooks/useKonamiCode';
+import { isDevMode, resetDevMode } from '../../hooks/useKonamiCode';
 import {
     addMockPlayer,
     clearMockPlayers,
@@ -53,6 +53,14 @@ const getSoloPhaseLabel = (phase: SoloPhaseStatus): string => {
 export function DebugPanel({ room, soloContext }: DebugPanelProps) {
     const [isCollapsed, setIsCollapsed] = useState(false);
     const [isLoading, setIsLoading] = useState(false);
+    const [devModeActive, setDevModeActive] = useState(isDevMode());
+
+    // Listen for dev mode changes (from Konami code)
+    useEffect(() => {
+        const handleDevMode = () => setDevModeActive(isDevMode());
+        window.addEventListener('devmode', handleDevMode);
+        return () => window.removeEventListener('devmode', handleDevMode);
+    }, []);
 
     // Detect mode
     const mode = room ? 'multiplayer' : soloContext ? 'solo' : null;
@@ -60,12 +68,8 @@ export function DebugPanel({ room, soloContext }: DebugPanelProps) {
     // Mock player context (may be null if not wrapped in provider)
     const mockPlayer = useMockPlayerOptional();
 
-    // Konami code activation for localhost/preview environments
-    const { isDevModeEnabled, isPreviewEnv, resetDevMode } = useKonamiCode();
-
     // Only render if dev mode activated via Konami code
-    // (removed import.meta.env.DEV bypass to require Konami code even in dev)
-    if (!isDevModeEnabled || !mode) return null;
+    if (!devModeActive || !mode) return null;
 
     // === MULTIPLAYER MODE HELPERS ===
     const mockCounts = mode === 'multiplayer' ? countMockPlayers(room!) : { total: 0, spicy: 0, sweet: 0 };
@@ -178,29 +182,22 @@ export function DebugPanel({ room, soloContext }: DebugPanelProps) {
                 >
                     <div className="flex items-center gap-2">
                         <span className="text-yellow-400">DEBUG</span>
-                        {isPreviewEnv && (
-                            <span className="text-[10px] bg-orange-500/30 text-orange-300 px-1.5 py-0.5 rounded">
-                                PREVIEW
-                            </span>
-                        )}
                         <span className="text-gray-500">|</span>
                         <span className={mode === 'solo' ? 'text-orange-400' : 'text-gray-400'}>
                             {headerLabel}
                         </span>
                     </div>
                     <div className="flex items-center gap-2">
-                        {isDevModeEnabled && (
-                            <button
-                                onClick={(e) => {
-                                    e.stopPropagation();
-                                    resetDevMode();
-                                }}
-                                className="text-[10px] text-red-400 hover:text-red-300 transition-colors"
-                                title="Disable dev mode"
-                            >
-                                [X]
-                            </button>
-                        )}
+                        <button
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                resetDevMode();
+                            }}
+                            className="text-[10px] text-red-400 hover:text-red-300 transition-colors"
+                            title="Disable dev mode"
+                        >
+                            [X]
+                        </button>
                         <button className="text-gray-400 hover:text-white transition-colors">
                             {isCollapsed ? '+' : '-'}
                         </button>
