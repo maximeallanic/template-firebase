@@ -1,11 +1,12 @@
 /**
  * Debug Panel for single-window game testing
  * Works in both multiplayer and solo modes
- * Only visible in development mode
+ * Visible in development mode OR when activated via Konami code on preview environments
  */
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { isDevMode, resetDevMode } from '../../hooks/useKonamiCode';
 import {
     addMockPlayer,
     clearMockPlayers,
@@ -52,6 +53,14 @@ const getSoloPhaseLabel = (phase: SoloPhaseStatus): string => {
 export function DebugPanel({ room, soloContext }: DebugPanelProps) {
     const [isCollapsed, setIsCollapsed] = useState(false);
     const [isLoading, setIsLoading] = useState(false);
+    const [devModeActive, setDevModeActive] = useState(isDevMode());
+
+    // Listen for dev mode changes (from Konami code)
+    useEffect(() => {
+        const handleDevMode = () => setDevModeActive(isDevMode());
+        window.addEventListener('devmode', handleDevMode);
+        return () => window.removeEventListener('devmode', handleDevMode);
+    }, []);
 
     // Detect mode
     const mode = room ? 'multiplayer' : soloContext ? 'solo' : null;
@@ -59,8 +68,8 @@ export function DebugPanel({ room, soloContext }: DebugPanelProps) {
     // Mock player context (may be null if not wrapped in provider)
     const mockPlayer = useMockPlayerOptional();
 
-    // Only render in dev mode and if a mode is detected
-    if (!import.meta.env.DEV || !mode) return null;
+    // Only render if dev mode activated via Konami code
+    if (!devModeActive || !mode) return null;
 
     // === MULTIPLAYER MODE HELPERS ===
     const mockCounts = mode === 'multiplayer' ? countMockPlayers(room!) : { total: 0, spicy: 0, sweet: 0 };
@@ -178,9 +187,21 @@ export function DebugPanel({ room, soloContext }: DebugPanelProps) {
                             {headerLabel}
                         </span>
                     </div>
-                    <button className="text-gray-400 hover:text-white transition-colors">
-                        {isCollapsed ? '+' : '-'}
-                    </button>
+                    <div className="flex items-center gap-2">
+                        <button
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                resetDevMode();
+                            }}
+                            className="text-[10px] text-red-400 hover:text-red-300 transition-colors"
+                            title="Disable dev mode"
+                        >
+                            [X]
+                        </button>
+                        <button className="text-gray-400 hover:text-white transition-colors">
+                            {isCollapsed ? '+' : '-'}
+                        </button>
+                    </div>
                 </div>
 
                 <AnimatePresence>

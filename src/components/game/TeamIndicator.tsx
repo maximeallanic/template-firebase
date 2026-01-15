@@ -14,12 +14,12 @@ export function TeamIndicator({ team }: TeamIndicatorProps) {
 
     return (
         <motion.div
-            initial={{ opacity: 0, x: -20 }}
+            initial={{ opacity: 0, x: 20 }}
             animate={{ opacity: 1, x: 0 }}
-            exit={{ opacity: 0, x: -20 }}
+            exit={{ opacity: 0, x: 20 }}
             transition={{ duration: 0.3 }}
             className={`
-                fixed top-20 left-4 z-50
+                fixed top-20 right-4 z-50
                 px-4 py-2 rounded-full
                 font-bold text-white text-sm
                 ${isSpicy ? 'bg-spicy-500' : 'bg-sweet-500'}

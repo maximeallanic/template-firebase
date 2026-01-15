@@ -1,142 +1,185 @@
 import { useMemo } from 'react';
 import { motion } from 'framer-motion';
 import { useTranslation } from 'react-i18next';
-import { Trophy, Medal, Star, Flame, Candy } from 'lucide-react';
+import { Star, Flame, Candy, Users } from 'lucide-react';
 import { AvatarIcon } from '../../AvatarIcon';
-import type { Player } from '../../../types/gameTypes';
+import type { Player, Team } from '../../../types/gameTypes';
 import { organicEase, durations } from '../../../animations';
 
 interface PlayerLeaderboardProps {
     players: Record<string, Player>;
-    /** Show top N players (default: 3) */
-    topN?: number;
+    /** Show top N players per team (default: 2) */
+    topNPerTeam?: number;
 }
 
-// Medal colors for top 3 - labels are translation keys
-const MEDAL_STYLES = [
-    { bg: 'bg-yellow-500', text: 'text-yellow-900', icon: Trophy, labelKey: 'rankings.first' },
-    { bg: 'bg-slate-300', text: 'text-slate-800', icon: Medal, labelKey: 'rankings.second' },
-    { bg: 'bg-amber-600', text: 'text-amber-100', icon: Medal, labelKey: 'rankings.third' },
-];
-
-export function PlayerLeaderboard({ players, topN = 3 }: PlayerLeaderboardProps) {
+export function PlayerLeaderboard({ players, topNPerTeam = 2 }: PlayerLeaderboardProps) {
     const { t } = useTranslation(['game-ui', 'common']);
 
-    // Sort players by score and get top N
-    const rankedPlayers = useMemo(() => {
-        const playersWithTeam = Object.values(players).filter(p => p.team);
-        return playersWithTeam
+    // Get top contributors per team
+    const { spicyPlayers, sweetPlayers, mvpId } = useMemo(() => {
+        const allPlayers = Object.values(players).filter(p => p.team);
+
+        // Find MVP (highest scorer overall)
+        const sortedAll = [...allPlayers].sort((a, b) => (b.score || 0) - (a.score || 0));
+        const mvp = sortedAll[0];
+
+        // Get top players per team
+        const spicy = allPlayers
+            .filter(p => p.team === 'spicy')
             .sort((a, b) => (b.score || 0) - (a.score || 0))
-            .slice(0, topN);
-    }, [players, topN]);
+            .slice(0, topNPerTeam);
 
-    // Find MVP (highest scorer)
-    const mvpId = rankedPlayers[0]?.id;
+        const sweet = allPlayers
+            .filter(p => p.team === 'sweet')
+            .sort((a, b) => (b.score || 0) - (a.score || 0))
+            .slice(0, topNPerTeam);
 
-    if (rankedPlayers.length === 0) {
+        return {
+            spicyPlayers: spicy,
+            sweetPlayers: sweet,
+            mvpId: mvp?.id,
+        };
+    }, [players, topNPerTeam]);
+
+    // Don't render if no players
+    if (spicyPlayers.length === 0 && sweetPlayers.length === 0) {
         return null;
     }
 
     return (
         <motion.div
-            className="w-full max-w-md mx-auto"
+            className="w-full max-w-2xl mx-auto"
             initial={{ opacity: 0, y: 30 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.6, duration: durations.normal, ease: organicEase }}
         >
             {/* Header */}
-            <div className="flex items-center justify-center gap-2 mb-4">
-                <Star className="w-5 h-5 text-yellow-400" />
+            <div className="flex items-center justify-center gap-2 mb-6">
+                <Users className="w-5 h-5 text-slate-400" />
                 <h3 className="text-lg font-bold text-white uppercase tracking-wide">
-                    {t('victory.leaderboard', 'Classement')}
+                    {t('victory.topContributors', 'Meilleurs contributeurs')}
                 </h3>
-                <Star className="w-5 h-5 text-yellow-400" />
+                <Users className="w-5 h-5 text-slate-400" />
             </div>
 
-            {/* Leaderboard List */}
-            <div className="space-y-3">
-                {rankedPlayers.map((player, index) => {
-                    const medalStyle = MEDAL_STYLES[index] || null;
-                    const isMvp = player.id === mvpId;
-                    const MedalIcon = medalStyle?.icon || Medal;
+            {/* Team Columns */}
+            <div className="grid grid-cols-2 gap-4">
+                {/* Spicy Team */}
+                <TeamColumn
+                    team="spicy"
+                    players={spicyPlayers}
+                    mvpId={mvpId}
+                    baseDelay={0.7}
+                />
 
-                    return (
-                        <motion.div
-                            key={player.id}
-                            initial={{ opacity: 0, x: -30 }}
-                            animate={{ opacity: 1, x: 0 }}
-                            transition={{
-                                delay: 0.8 + index * 0.15,
-                                duration: durations.normal,
-                                ease: organicEase,
-                            }}
-                            className={`
-                                flex items-center gap-4 p-3 rounded-xl
-                                ${index === 0
-                                    ? 'bg-gradient-to-r from-yellow-500/20 to-orange-500/20 border border-yellow-500/30'
-                                    : 'bg-slate-800/60 border border-slate-700/50'
-                                }
-                            `}
-                        >
-                            {/* Rank Badge */}
-                            <div
-                                className={`
-                                    w-10 h-10 rounded-full flex items-center justify-center font-bold text-sm
-                                    ${medalStyle ? `${medalStyle.bg} ${medalStyle.text}` : 'bg-slate-700 text-slate-300'}
-                                `}
-                            >
-                                {medalStyle ? (
-                                    <MedalIcon className="w-5 h-5" />
-                                ) : (
-                                    index + 1
-                                )}
-                            </div>
-
-                            {/* Avatar */}
-                            <div className="relative">
-                                <AvatarIcon avatar={player.avatar} size={44} />
-                                {isMvp && (
-                                    <div className="absolute -top-1 -right-1 bg-yellow-500 rounded-full p-1">
-                                        <Star className="w-3 h-3 text-black" fill="currentColor" />
-                                    </div>
-                                )}
-                            </div>
-
-                            {/* Name & Team */}
-                            <div className="flex-1 min-w-0">
-                                <div className="flex items-center gap-2">
-                                    <span className={`font-bold truncate ${index === 0 ? 'text-yellow-300' : 'text-white'}`}>
-                                        {player.name}
-                                    </span>
-                                    {isMvp && (
-                                        <span className="text-xs bg-yellow-500/20 text-yellow-400 px-2 py-0.5 rounded-full font-semibold">
-                                            {t('common:labels.mvp')}
-                                        </span>
-                                    )}
-                                </div>
-                                <div className="flex items-center gap-1 text-sm text-slate-400">
-                                    {player.team === 'spicy' ? (
-                                        <>
-                                            <Flame className="w-3 h-3 text-spicy-400" />
-                                            <span className="text-spicy-400">{t('common:teams.spicy', 'Spicy')}</span>
-                                        </>
-                                    ) : (
-                                        <>
-                                            <Candy className="w-3 h-3 text-sweet-400" />
-                                            <span className="text-sweet-400">{t('common:teams.sweet', 'Sweet')}</span>
-                                        </>
-                                    )}
-                                </div>
-                            </div>
-
-                            {/* Score */}
-                            <div className={`text-2xl font-black ${index === 0 ? 'text-yellow-400' : 'text-white'}`}>
-                                {player.score || 0}
-                            </div>
-                        </motion.div>
-                    );
-                })}
+                {/* Sweet Team */}
+                <TeamColumn
+                    team="sweet"
+                    players={sweetPlayers}
+                    mvpId={mvpId}
+                    baseDelay={0.8}
+                />
             </div>
         </motion.div>
+    );
+}
+
+interface TeamColumnProps {
+    team: Team;
+    players: Player[];
+    mvpId: string | undefined;
+    baseDelay: number;
+}
+
+function TeamColumn({ team, players, mvpId, baseDelay }: TeamColumnProps) {
+    const { t } = useTranslation(['game-ui', 'common']);
+    const isSpicy = team === 'spicy';
+
+    return (
+        <div className={`rounded-2xl p-4 ${
+            isSpicy
+                ? 'bg-spicy-500/10 border border-spicy-500/30'
+                : 'bg-sweet-500/10 border border-sweet-500/30'
+        }`}>
+            {/* Team Header */}
+            <div className={`flex items-center justify-center gap-2 mb-4 pb-3 border-b ${
+                isSpicy ? 'border-spicy-500/30' : 'border-sweet-500/30'
+            }`}>
+                {isSpicy ? (
+                    <Flame className="w-5 h-5 text-spicy-400" />
+                ) : (
+                    <Candy className="w-5 h-5 text-sweet-400" />
+                )}
+                <span className={`font-bold uppercase tracking-wide text-sm ${
+                    isSpicy ? 'text-spicy-400' : 'text-sweet-400'
+                }`}>
+                    {t(`common:teams.${team}`)}
+                </span>
+            </div>
+
+            {/* Players */}
+            <div className="space-y-3">
+                {players.length > 0 ? (
+                    players.map((player, index) => {
+                        const isMvp = player.id === mvpId;
+
+                        return (
+                            <motion.div
+                                key={player.id}
+                                initial={{ opacity: 0, y: 10 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                transition={{
+                                    delay: baseDelay + index * 0.1,
+                                    duration: durations.fast,
+                                    ease: organicEase,
+                                }}
+                                className={`flex items-center gap-3 p-2 rounded-xl ${
+                                    isMvp
+                                        ? 'bg-yellow-500/20 border border-yellow-500/30'
+                                        : 'bg-slate-800/50'
+                                }`}
+                            >
+                                {/* Avatar */}
+                                <div className="relative flex-shrink-0">
+                                    <AvatarIcon avatar={player.avatar} size={36} />
+                                    {isMvp && (
+                                        <div className="absolute -top-1 -right-1 bg-yellow-500 rounded-full p-0.5">
+                                            <Star className="w-2.5 h-2.5 text-black" fill="currentColor" />
+                                        </div>
+                                    )}
+                                </div>
+
+                                {/* Name */}
+                                <div className="flex-1 min-w-0">
+                                    <div className="flex items-center gap-1.5">
+                                        <span className={`font-bold text-sm truncate ${
+                                            isMvp ? 'text-yellow-300' : 'text-white'
+                                        }`}>
+                                            {player.name}
+                                        </span>
+                                        {isMvp && (
+                                            <span className="text-[10px] bg-yellow-500/30 text-yellow-400 px-1.5 py-0.5 rounded-full font-bold flex-shrink-0">
+                                                MVP
+                                            </span>
+                                        )}
+                                    </div>
+                                </div>
+
+                                {/* Score */}
+                                <div className={`text-lg font-black flex-shrink-0 ${
+                                    isMvp ? 'text-yellow-400' : 'text-white'
+                                }`}>
+                                    {player.score || 0}
+                                </div>
+                            </motion.div>
+                        );
+                    })
+                ) : (
+                    <p className="text-sm text-slate-500 text-center py-2 italic">
+                        {t('victory.noPlayers', 'Aucun joueur')}
+                    </p>
+                )}
+            </div>
+        </div>
     );
 }
