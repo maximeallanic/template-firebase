@@ -402,11 +402,10 @@ export default function GameRoom() {
                         </div>
                     )}
 
-                    {import.meta.env.DEV && (
-                        <MockPlayerProvider room={room}>
-                            <DebugPanel room={room} />
-                        </MockPlayerProvider>
-                    )}
+                    {/* Debug Panel (activated via Konami code) */}
+                    <MockPlayerProvider room={room}>
+                        <DebugPanel room={room} />
+                    </MockPlayerProvider>
                 </div>
             );
         }
@@ -836,11 +835,10 @@ function VictoryScreen({ room, isHost }: { room: NonNullable<ReturnType<typeof u
                 )}
             </motion.div>
 
-            {import.meta.env.DEV && (
-                <MockPlayerProvider room={room}>
-                    <DebugPanel room={room} />
-                </MockPlayerProvider>
-            )}
+            {/* Debug Panel (activated via Konami code) */}
+            <MockPlayerProvider room={room}>
+                <DebugPanel room={room} />
+            </MockPlayerProvider>
         </div>
     );
 }

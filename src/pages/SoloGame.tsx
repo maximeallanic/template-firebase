@@ -415,10 +415,8 @@ function SoloGameInner() {
                 )}
             </div>
 
-            {/* Debug Panel - Solo mode */}
-            {import.meta.env.DEV && (
-                <DebugPanel soloContext={context} />
-            )}
+            {/* Debug Panel - Solo mode (activated via Konami code) */}
+            <DebugPanel soloContext={context} />
         </div>
     );
 }
