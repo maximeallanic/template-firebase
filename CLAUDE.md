@@ -430,6 +430,11 @@ functions/src/
 └── scripts/
     ├── fetch-questions.ts    # Fetch questions from DB
     └── delete-questions.ts   # Delete questions from DB
+
+scripts/                      # Root-level scripts
+├── deploy-all.sh             # Deploy all services
+├── bump-version.cjs          # Version bump utility (Node.js)
+└── bump-version.sh           # Version bump (bash alternative)
 ```
 
 ## Common Tasks
@@ -612,13 +617,47 @@ Before deploying to production:
 
 ## CI/CD Pipeline
 
+### Create Release (`.github/workflows/create-release.yml`)
+**Triggers:** Manual workflow dispatch only
+
+**Inputs:**
+| Input | Description | Options |
+|-------|-------------|---------|
+| `bump_type` | Version increment type | `patch`, `minor`, `major` |
+| `generate_ai_summary` | Generate AI changelog summary | `true` (default), `false` |
+| `prerelease` | Mark as pre-release | `true`, `false` (default) |
+
+**What it does:**
+1. Bumps version in `package.json`, Android, and iOS configs
+2. Generates categorized changelog from commits
+3. Creates AI summary of changes (via Gemini API)
+4. Updates `CHANGELOG.md`
+5. Commits changes and creates git tag
+6. Creates GitHub Release with full changelog
+
+**Usage:**
+1. Go to Actions → "Create Release"
+2. Click "Run workflow"
+3. Select bump type (patch/minor/major)
+4. Optionally disable AI summary or mark as pre-release
+5. Click "Run workflow"
+
+**Required Secrets:**
+| Secret | Description |
+|--------|-------------|
+| `GEMINI_API_KEY` | Google Gemini API key (optional, for AI summaries) |
+
 ### Production Deployment (`.github/workflows/firebase-hosting-merge.yml`)
-**Triggers:** Push to `master` branch
+**Triggers:**
+- Push of version tags (`v*`, e.g., `v1.0.0`, `v2.1.3`)
+- Manual workflow dispatch (requires typing "deploy" to confirm)
 
 **Stages:**
 1. Quality Checks - ESLint, TypeScript type-check
 2. Build - Frontend + Functions builds
 3. Deploy - Deploy to Firebase Hosting + Functions
+
+**Note:** Use the "Create Release" workflow to create tags, which will automatically trigger this deployment.
 
 ### PR Preview (`.github/workflows/firebase-hosting-pull-request.yml`)
 **Triggers:** Pull request creation or update

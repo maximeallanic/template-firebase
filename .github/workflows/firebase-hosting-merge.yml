@@ -1,9 +1,15 @@
-name: Deploy to Firebase on merge to master
+name: Deploy to Firebase Production
 
 on:
   push:
-    branches:
-      - master
+    tags:
+      - 'v*'
+  workflow_dispatch:
+    inputs:
+      confirm:
+        description: 'Type "deploy" to confirm manual deployment'
+        required: true
+        type: string
 
 env:
   NODE_VERSION: '22'
@@ -13,6 +19,8 @@ jobs:
   quality-checks:
     name: Quality Checks
     runs-on: ubuntu-latest
+    # Validate manual deployment confirmation
+    if: github.event_name == 'push' || github.event.inputs.confirm == 'deploy'
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -140,6 +148,11 @@ jobs:
       - name: Deployment summary
         run: |
           echo "✅ Deployment successful!"
+          if [[ "${{ github.ref_type }}" == "tag" ]]; then
+            echo "🏷️  Version: ${{ github.ref_name }}"
+          else
+            echo "🔧 Manual deployment from: ${{ github.ref_name }}"
+          fi
           echo "🌐 Hosting: https://${{ secrets.DOMAIN }}"
           echo "⚡ Functions: Deployed to us-central1"
           echo "🔥 Firestore: Rules and indexes updated"
