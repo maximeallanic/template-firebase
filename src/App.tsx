@@ -7,7 +7,6 @@ import { PageTransition } from './components/ui/PageTransition';
 import { SharedBackground, type BackgroundVariant } from './components/ui/SharedBackground';
 import { FoodLoader } from './components/ui/FoodLoader';
 import { PersistentHeader } from './components/layout/PersistentHeader';
-import { KonamiCodeListener } from './components/debug/KonamiCodeListener';
 
 // Game Modules
 const HomePage = lazy(() => import('./pages/HomePage'));
@@ -48,9 +47,6 @@ function App() {
     <LayoutGroup>
       {/* Shared background - outside AnimatePresence for smooth transitions */}
       <SharedBackground variant={bgVariant} />
-
-      {/* Konami code listener for debug mode on preview environments */}
-      <KonamiCodeListener />
 
       {/* Profile gate - shows mandatory setup modal for users without complete profile */}
       <ProfileGate>

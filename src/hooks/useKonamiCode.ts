@@ -92,10 +92,9 @@ export function useKonamiCode(): {
                 );
 
                 if (isMatch) {
-                    // Activate debug mode
+                    // Activate dev mode
                     setIsDebugEnabled(true);
                     localStorage.setItem(DEBUG_MODE_KEY, 'true');
-                    console.log('🎮 Debug mode activated via Konami code!');
                     inputSequenceRef.current = [];
                 }
             }
