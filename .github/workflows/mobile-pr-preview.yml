@@ -113,6 +113,18 @@ jobs:
         with:
           name: web-build
 
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Sync Capacitor Android
+        run: npx cap sync android
+
       - name: Setup Java
         uses: actions/setup-java@v4
         with:
@@ -220,6 +232,18 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: web-build
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Sync Capacitor iOS
+        run: npx cap sync ios
 
       - name: Install CocoaPods
         run: sudo gem install cocoapods
