@@ -45,6 +45,7 @@ export const Phase3Player: React.FC<Phase3PlayerProps> = ({ room, playerId, isHo
         phase3SelectionOrder,
         phase3ThemeSelection,
         phase3TeamProgress,
+        phase3CurrentTyping,
     } = room.state;
 
     // Use custom AI-generated themes if available, fallback to default PHASE3_DATA
@@ -166,6 +167,7 @@ export const Phase3Player: React.FC<Phase3PlayerProps> = ({ room, playerId, isHo
                     otherTeamProgress={otherProgress}
                     mode={mode}
                     soloHandlers={soloHandlers}
+                    currentTyping={phase3CurrentTyping}
                 />
             );
         }

@@ -5,7 +5,7 @@ import { Send, Check, X, Flame, Candy, Trophy, Users, Clock } from 'lucide-react
 import { FoodLoader } from '../ui/FoodLoader';
 import type { Team, Phase3Theme, Phase3TeamProgress, Player } from '../../types/gameTypes';
 import type { SoloPhaseHandlers } from '../../types/soloTypes';
-import { submitPhase3Answer, skipPhase3Question } from '../../services/gameService';
+import { submitPhase3Answer, skipPhase3Question, updatePhase3Typing, clearPhase3Typing } from '../../services/gameService';
 import { audioService } from '../../services/audioService';
 import { useReducedMotion } from '../../hooks/useReducedMotion';
 import { bouncySpring, durations } from '../../animations';
@@ -26,6 +26,7 @@ interface Phase3QuestionInputProps {
     otherTeamProgress?: Phase3TeamProgress;
     mode?: 'solo' | 'multiplayer';
     soloHandlers?: SoloPhaseHandlers;
+    currentTyping?: Record<string, string>;  // playerId -> current typing text
 }
 
 type AnswerFeedback = 'correct' | 'incorrect' | 'already_answered' | null;
@@ -40,6 +41,7 @@ export const Phase3QuestionInput: React.FC<Phase3QuestionInputProps> = ({
     otherTeamProgress,
     mode = 'multiplayer',
     soloHandlers,
+    currentTyping,
 }) => {
     const { t } = useTranslation(['game-ui', 'game-phases', 'common']);
     const prefersReducedMotion = useReducedMotion();
@@ -53,6 +55,7 @@ export const Phase3QuestionInput: React.FC<Phase3QuestionInputProps> = ({
     const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
     const skipTriggeredRef = useRef(false);
     const inputRef = useRef<HTMLInputElement>(null);
+    const typingDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
     const currentQuestionIndex = teamProgress.currentQuestionIndex;
     const currentQuestion = theme.questions[currentQuestionIndex];
@@ -65,6 +68,44 @@ export const Phase3QuestionInput: React.FC<Phase3QuestionInputProps> = ({
         return players[answeredById] || null;
     }, [teamProgress.questionAnsweredBy, players]);
 
+    // Get teammates (same team, not self)
+    const teammates = Object.values(players).filter(
+        p => p.team === playerTeam && p.id !== playerId && p.isOnline && !p.id.startsWith('mock_')
+    );
+
+    // Get teammates' current typing
+    const teammatesTyping = teammates
+        .map(teammate => ({
+            player: teammate,
+            text: currentTyping?.[teammate.id] || '',
+        }))
+        .filter(t => t.text.length > 0);
+
+    // Update typing to Firebase with debounce (300ms)
+    const updateTypingDebounced = useCallback((text: string) => {
+        if (isSolo) return; // No need in solo mode
+
+        if (typingDebounceRef.current) {
+            clearTimeout(typingDebounceRef.current);
+        }
+
+        typingDebounceRef.current = setTimeout(() => {
+            updatePhase3Typing(roomCode, playerId, text).catch(console.error);
+        }, 300);
+    }, [roomCode, playerId, isSolo]);
+
+    // Clear typing on unmount or when question changes
+    useEffect(() => {
+        return () => {
+            if (typingDebounceRef.current) {
+                clearTimeout(typingDebounceRef.current);
+            }
+            if (!isSolo) {
+                clearPhase3Typing(roomCode, playerId).catch(console.error);
+            }
+        };
+    }, [roomCode, playerId, isSolo]);
+
     // Reset state when question changes (someone else answered correctly)
     useEffect(() => {
         if (currentQuestionIndex !== lastQuestionIndex) {
@@ -75,10 +116,14 @@ export const Phase3QuestionInput: React.FC<Phase3QuestionInputProps> = ({
             setTimeLeft(QUESTION_TIME_LIMIT);
             hasPlayedFeedbackRef.current = false;
             skipTriggeredRef.current = false;
+            // Clear typing when question changes
+            if (!isSolo) {
+                clearPhase3Typing(roomCode, playerId).catch(console.error);
+            }
             // Re-focus the input for the next question
             setTimeout(() => inputRef.current?.focus(), 100);
         }
-    }, [currentQuestionIndex, lastQuestionIndex]);
+    }, [currentQuestionIndex, lastQuestionIndex, isSolo, roomCode, playerId]);
 
     // Timer countdown
     useEffect(() => {
@@ -134,8 +179,27 @@ export const Phase3QuestionInput: React.FC<Phase3QuestionInputProps> = ({
                 console.log('[Phase3] Skipping question now...');
                 const result = await skipPhase3Question(roomCode, playerTeam);
                 console.log('[Phase3] Skip result:', result);
+                if (!result.success) {
+                    console.warn('[Phase3] Skip failed, will retry...');
+                    // Retry once after 1 second
+                    setTimeout(async () => {
+                        try {
+                            await skipPhase3Question(roomCode, playerTeam);
+                        } catch (retryError) {
+                            console.error('[Phase3] Skip retry failed:', retryError);
+                        }
+                    }, 1000);
+                }
             } catch (error) {
                 console.error('[Phase3] Failed to skip question:', error);
+                // Retry once after 1 second
+                setTimeout(async () => {
+                    try {
+                        await skipPhase3Question(roomCode, playerTeam);
+                    } catch (retryError) {
+                        console.error('[Phase3] Skip retry failed:', retryError);
+                    }
+                }, 1000);
             }
         }, 2000);
 
@@ -159,13 +223,49 @@ export const Phase3QuestionInput: React.FC<Phase3QuestionInputProps> = ({
                 console.log('[Phase3] Skipping question now...');
                 const result = await skipPhase3Question(roomCode, playerTeam);
                 console.log('[Phase3] Skip result:', result);
+                if (!result.success) {
+                    console.warn('[Phase3] Skip failed, will retry...');
+                    // Retry once after 1 second
+                    setTimeout(async () => {
+                        try {
+                            await skipPhase3Question(roomCode, playerTeam);
+                        } catch (retryError) {
+                            console.error('[Phase3] Skip retry failed:', retryError);
+                        }
+                    }, 1000);
+                }
             } catch (error) {
                 console.error('[Phase3] Failed to skip question:', error);
+                // Retry once after 1 second
+                setTimeout(async () => {
+                    try {
+                        await skipPhase3Question(roomCode, playerTeam);
+                    } catch (retryError) {
+                        console.error('[Phase3] Skip retry failed:', retryError);
+                    }
+                }, 1000);
             }
         }, 2000);
 
         return () => clearTimeout(skipTimer);
     }, [timeLeft, isSolo, roomCode, playerTeam, isFinished, feedback]);
+
+    // Recovery mechanism: Reset state if stuck for too long (5 seconds after skip was triggered)
+    useEffect(() => {
+        if (!skipTriggeredRef.current) return;
+        if (feedback !== 'incorrect' && timeLeft !== 0) return;
+
+        // If we're stuck (skipTriggered but question hasn't changed after 5s), allow retry
+        const recoveryTimer = setTimeout(() => {
+            console.log('[Phase3] Recovery: resetting state after being stuck');
+            setFeedback(null);
+            setAnswer('');
+            skipTriggeredRef.current = false;
+            setTimeLeft(QUESTION_TIME_LIMIT);
+        }, 5000);
+
+        return () => clearTimeout(recoveryTimer);
+    }, [feedback, timeLeft, currentQuestionIndex]);
 
     // Auto-advance to next question in solo mode after correct answer
     useEffect(() => {
@@ -353,7 +453,11 @@ export const Phase3QuestionInput: React.FC<Phase3QuestionInputProps> = ({
                             data-cursor-target="phase3:input"
                             type="text"
                             value={answer}
-                            onChange={(e) => setAnswer(e.target.value.slice(0, MAX_ANSWER_LENGTH))}
+                            onChange={(e) => {
+                                const newValue = e.target.value.slice(0, MAX_ANSWER_LENGTH);
+                                setAnswer(newValue);
+                                updateTypingDebounced(newValue);
+                            }}
                             placeholder={t('phase3.typeAnswer')}
                             disabled={isSubmitting || feedback === 'correct' || feedback === 'incorrect' || feedback === 'already_answered' || timeLeft === 0}
                             autoFocus
@@ -403,6 +507,27 @@ export const Phase3QuestionInput: React.FC<Phase3QuestionInputProps> = ({
                         </span>
                     </div>
                 </form>
+
+                {/* Teammates typing indicator - only in multiplayer */}
+                {!isSolo && teammatesTyping.length > 0 && (
+                    <motion.div
+                        initial={{ opacity: 0, height: 0 }}
+                        animate={{ opacity: 1, height: 'auto' }}
+                        exit={{ opacity: 0, height: 0 }}
+                        className="mt-3 space-y-2"
+                    >
+                        {teammatesTyping.map(({ player, text }) => (
+                            <div
+                                key={player.id}
+                                className="flex items-center gap-2 px-3 py-2 bg-slate-100 rounded-lg text-sm"
+                            >
+                                <span className="font-medium text-slate-600">{player.name}:</span>
+                                <span className="text-slate-500 italic truncate flex-1">{text}</span>
+                                <span className="text-slate-400 text-xs">{t('phase3.typing', { defaultValue: '...' })}</span>
+                            </div>
+                        ))}
+                    </motion.div>
+                )}
 
                 {/* Feedback Messages */}
                 <AnimatePresence mode="wait">
