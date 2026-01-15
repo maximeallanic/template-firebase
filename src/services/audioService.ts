@@ -364,7 +364,7 @@ class AudioService {
 
       // Clean up after sound finishes
       setTimeout(() => ctx.close(), 100);
-    } catch (e) {
+    } catch {
       // Ignore errors for timer tick
     }
   }

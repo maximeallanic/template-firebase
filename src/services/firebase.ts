@@ -404,7 +404,7 @@ export async function signInWithGoogle() {
         ]);
         console.log('✅ Firebase SDK sign-in successful');
         return userCredential.user;
-      } catch (sdkError) {
+      } catch {
         console.warn('⚠️ SDK sign-in failed, using REST response directly');
         // Store user data for native apps where SDK doesn't work
         const nativeUser = {
