@@ -1,11 +1,12 @@
 /**
  * Debug Panel for single-window game testing
  * Works in both multiplayer and solo modes
- * Only visible in development mode
+ * Visible in development mode OR when activated via Konami code on preview environments
  */
 
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useKonamiCode } from '../../hooks/useKonamiCode';
 import {
     addMockPlayer,
     clearMockPlayers,
@@ -59,8 +60,14 @@ export function DebugPanel({ room, soloContext }: DebugPanelProps) {
     // Mock player context (may be null if not wrapped in provider)
     const mockPlayer = useMockPlayerOptional();
 
-    // Only render in dev mode and if a mode is detected
-    if (!import.meta.env.DEV || !mode) return null;
+    // Konami code activation for preview environments
+    const { isDebugEnabled, isPreviewEnv, resetDebugMode } = useKonamiCode();
+
+    // Only render if:
+    // 1. In dev mode (local development)
+    // 2. OR debug mode activated via Konami code on preview environment
+    const shouldShow = import.meta.env.DEV || (isPreviewEnv && isDebugEnabled);
+    if (!shouldShow || !mode) return null;
 
     // === MULTIPLAYER MODE HELPERS ===
     const mockCounts = mode === 'multiplayer' ? countMockPlayers(room!) : { total: 0, spicy: 0, sweet: 0 };
@@ -173,14 +180,33 @@ export function DebugPanel({ room, soloContext }: DebugPanelProps) {
                 >
                     <div className="flex items-center gap-2">
                         <span className="text-yellow-400">DEBUG</span>
+                        {isPreviewEnv && (
+                            <span className="text-[10px] bg-orange-500/30 text-orange-300 px-1.5 py-0.5 rounded">
+                                PREVIEW
+                            </span>
+                        )}
                         <span className="text-gray-500">|</span>
                         <span className={mode === 'solo' ? 'text-orange-400' : 'text-gray-400'}>
                             {headerLabel}
                         </span>
                     </div>
-                    <button className="text-gray-400 hover:text-white transition-colors">
-                        {isCollapsed ? '+' : '-'}
-                    </button>
+                    <div className="flex items-center gap-2">
+                        {isPreviewEnv && isDebugEnabled && (
+                            <button
+                                onClick={(e) => {
+                                    e.stopPropagation();
+                                    resetDebugMode();
+                                }}
+                                className="text-[10px] text-red-400 hover:text-red-300 transition-colors"
+                                title="Disable debug mode"
+                            >
+                                [X]
+                            </button>
+                        )}
+                        <button className="text-gray-400 hover:text-white transition-colors">
+                            {isCollapsed ? '+' : '-'}
+                        </button>
+                    </div>
                 </div>
 
                 <AnimatePresence>
