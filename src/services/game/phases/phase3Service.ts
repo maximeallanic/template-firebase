@@ -445,3 +445,36 @@ export const getPhase3Results = async (code: string): Promise<{
         },
     };
 };
+
+/**
+ * Update player's current typing text for real-time teammate visibility.
+ * Called with debounce from the input component.
+ * @param code - Room code
+ * @param playerId - Player typing
+ * @param text - Current text being typed
+ */
+export const updatePhase3Typing = async (
+    code: string,
+    playerId: string,
+    text: string
+): Promise<void> => {
+    const roomId = code.toUpperCase();
+    await update(ref(rtdb), {
+        [`rooms/${roomId}/state/phase3CurrentTyping/${playerId}`]: text,
+    });
+};
+
+/**
+ * Clear player's typing text (when they submit or question changes).
+ * @param code - Room code
+ * @param playerId - Player to clear
+ */
+export const clearPhase3Typing = async (
+    code: string,
+    playerId: string
+): Promise<void> => {
+    const roomId = code.toUpperCase();
+    await update(ref(rtdb), {
+        [`rooms/${roomId}/state/phase3CurrentTyping/${playerId}`]: null,
+    });
+};

@@ -85,6 +85,7 @@ export interface GameState {
     phase3SelectionOrder?: Team[]; // Order based on scores (lowest first)
     phase3ThemeSelection?: Record<Team, number>; // Which theme each team chose
     phase3TeamProgress?: Record<Team, Phase3TeamProgress>;
+    phase3CurrentTyping?: Record<string, string>; // playerId -> current typing text for real-time sync
     // Legacy Phase 3 fields (deprecated)
     currentMenuTeam?: Team;
     currentMenuQuestionIndex?: number;
