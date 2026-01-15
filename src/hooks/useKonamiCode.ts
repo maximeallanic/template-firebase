@@ -82,6 +82,9 @@ export function isKonamiCodeAllowed(): boolean {
  * Hook to detect Konami code input and toggle dev mode
  * Works on localhost and Firebase preview URLs
  */
+// Custom event name for dev mode changes
+const DEV_MODE_EVENT = 'spicy-dev-mode-change';
+
 export function useKonamiCode(): {
     isDevModeEnabled: boolean;
     isPreviewEnv: boolean;
@@ -97,10 +100,20 @@ export function useKonamiCode(): {
     const isPreviewEnv = typeof window !== 'undefined' && isFirebasePreviewUrl();
     const inputSequenceRef = useRef<string[]>([]);
 
+    // Listen for dev mode changes from other hook instances
+    useEffect(() => {
+        const handleDevModeChange = (e: CustomEvent<boolean>) => {
+            setIsDevModeEnabled(e.detail);
+        };
+        window.addEventListener(DEV_MODE_EVENT, handleDevModeChange as EventListener);
+        return () => window.removeEventListener(DEV_MODE_EVENT, handleDevModeChange as EventListener);
+    }, []);
+
     const resetDevMode = useCallback(() => {
         setIsDevModeEnabled(false);
         localStorage.removeItem(DEV_MODE_KEY);
         inputSequenceRef.current = [];
+        window.dispatchEvent(new CustomEvent(DEV_MODE_EVENT, { detail: false }));
     }, []);
 
     useEffect(() => {
@@ -145,6 +158,8 @@ export function useKonamiCode(): {
                     localStorage.setItem(DEV_MODE_KEY, 'true');
                     inputSequenceRef.current = [];
                     showActivationFeedback();
+                    // Notify other hook instances
+                    window.dispatchEvent(new CustomEvent(DEV_MODE_EVENT, { detail: true }));
                 }
             }
         };
