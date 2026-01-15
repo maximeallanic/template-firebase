@@ -60,13 +60,13 @@ export function DebugPanel({ room, soloContext }: DebugPanelProps) {
     // Mock player context (may be null if not wrapped in provider)
     const mockPlayer = useMockPlayerOptional();
 
-    // Konami code activation for preview environments
-    const { isDebugEnabled, isPreviewEnv, resetDebugMode } = useKonamiCode();
+    // Konami code activation for localhost/preview environments
+    const { isDevModeEnabled, isPreviewEnv, resetDevMode } = useKonamiCode();
 
     // Only render if:
-    // 1. In dev mode (local development)
-    // 2. OR debug mode activated via Konami code on preview environment
-    const shouldShow = import.meta.env.DEV || (isPreviewEnv && isDebugEnabled);
+    // 1. In dev mode (local development with Vite)
+    // 2. OR dev mode activated via Konami code (localhost or preview)
+    const shouldShow = import.meta.env.DEV || isDevModeEnabled;
     if (!shouldShow || !mode) return null;
 
     // === MULTIPLAYER MODE HELPERS ===
@@ -191,14 +191,14 @@ export function DebugPanel({ room, soloContext }: DebugPanelProps) {
                         </span>
                     </div>
                     <div className="flex items-center gap-2">
-                        {isPreviewEnv && isDebugEnabled && (
+                        {isDevModeEnabled && (
                             <button
                                 onClick={(e) => {
                                     e.stopPropagation();
-                                    resetDebugMode();
+                                    resetDevMode();
                                 }}
                                 className="text-[10px] text-red-400 hover:text-red-300 transition-colors"
-                                title="Disable debug mode"
+                                title="Disable dev mode"
                             >
                                 [X]
                             </button>

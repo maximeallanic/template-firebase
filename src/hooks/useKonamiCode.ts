@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 
 /**
  * Custom Konami code sequence: ↑ ↑ ↓ ↓ ← → ← → A D D E U S
- * Only works on Firebase preview URLs (spicy-vs-sweety--pr-XX-XXXX.web.app)
+ * Works on localhost and Firebase preview URLs
  */
 
 const KONAMI_SEQUENCE = [
@@ -22,8 +22,8 @@ const KONAMI_SEQUENCE = [
     's',
 ];
 
-// Storage key for persisting debug mode
-const DEBUG_MODE_KEY = 'spicy-debug-mode';
+// Storage key for persisting dev mode
+const DEV_MODE_KEY = 'spicy-dev-mode';
 
 /**
  * Check if current URL is a Firebase preview deployment
@@ -37,18 +37,25 @@ export function isFirebasePreviewUrl(): boolean {
 }
 
 /**
- * Hook to detect Konami code input and toggle debug mode
- * Only activates on Firebase preview URLs
+ * Check if Konami code should be active (localhost or preview)
+ */
+export function isKonamiCodeAllowed(): boolean {
+    const hostname = window.location.hostname;
+    return hostname === 'localhost' || hostname === '127.0.0.1' || isFirebasePreviewUrl();
+}
+
+/**
+ * Hook to detect Konami code input and toggle dev mode
+ * Works on localhost and Firebase preview URLs
  */
 export function useKonamiCode(): {
-    isDebugEnabled: boolean;
+    isDevModeEnabled: boolean;
     isPreviewEnv: boolean;
-    resetDebugMode: () => void;
+    resetDevMode: () => void;
 } {
-    const [isDebugEnabled, setIsDebugEnabled] = useState(() => {
-        // Check localStorage for persisted state
+    const [isDevModeEnabled, setIsDevModeEnabled] = useState(() => {
         if (typeof window !== 'undefined') {
-            return localStorage.getItem(DEBUG_MODE_KEY) === 'true';
+            return localStorage.getItem(DEV_MODE_KEY) === 'true';
         }
         return false;
     });
@@ -56,17 +63,17 @@ export function useKonamiCode(): {
     const isPreviewEnv = typeof window !== 'undefined' && isFirebasePreviewUrl();
     const inputSequenceRef = useRef<string[]>([]);
 
-    const resetDebugMode = useCallback(() => {
-        setIsDebugEnabled(false);
-        localStorage.removeItem(DEBUG_MODE_KEY);
+    const resetDevMode = useCallback(() => {
+        setIsDevModeEnabled(false);
+        localStorage.removeItem(DEV_MODE_KEY);
         inputSequenceRef.current = [];
     }, []);
 
     useEffect(() => {
-        // Only listen for Konami code on preview environments
-        if (!isPreviewEnv) return;
+        // Only listen on localhost or preview environments
+        if (typeof window === 'undefined' || !isKonamiCodeAllowed()) return;
         // If already enabled, no need to listen
-        if (isDebugEnabled) return;
+        if (isDevModeEnabled) return;
 
         const handleKeyDown = (event: KeyboardEvent) => {
             // Ignore if user is typing in an input
@@ -93,8 +100,8 @@ export function useKonamiCode(): {
 
                 if (isMatch) {
                     // Activate dev mode
-                    setIsDebugEnabled(true);
-                    localStorage.setItem(DEBUG_MODE_KEY, 'true');
+                    setIsDevModeEnabled(true);
+                    localStorage.setItem(DEV_MODE_KEY, 'true');
                     inputSequenceRef.current = [];
                 }
             }
@@ -102,11 +109,11 @@ export function useKonamiCode(): {
 
         window.addEventListener('keydown', handleKeyDown);
         return () => window.removeEventListener('keydown', handleKeyDown);
-    }, [isPreviewEnv, isDebugEnabled]);
+    }, [isDevModeEnabled]);
 
     return {
-        isDebugEnabled,
+        isDevModeEnabled,
         isPreviewEnv,
-        resetDebugMode,
+        resetDevMode,
     };
 }
