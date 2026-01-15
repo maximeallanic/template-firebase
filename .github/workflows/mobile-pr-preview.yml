@@ -340,8 +340,8 @@ jobs:
           xcodebuild -workspace App.xcworkspace \
             -scheme App \
             -configuration Debug \
-            -destination 'generic/platform=iOS Simulator' \
-            -archivePath build/App.xcarchive \
+            -sdk iphonesimulator \
+            -derivedDataPath build/DerivedData \
             clean build \
             CODE_SIGN_IDENTITY="" \
             CODE_SIGNING_REQUIRED=NO \
@@ -360,7 +360,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: ios-build-pr-${{ github.event.pull_request.number }}
-          path: ios/App/build/
+          path: ios/App/build/DerivedData/Build/Products/Debug-iphonesimulator/
           retention-days: 14
 
       - name: Set output
