@@ -33,10 +33,15 @@ export function useAppLifecycle(options: UseAppLifecycleOptions = {}): void {
     const setupListener = async () => {
       try {
         const handle = await App.addListener('appStateChange', ({ isActive }) => {
-          if (isActive) {
-            handleResume();
-          } else {
-            handlePause();
+          // Wrap callbacks in try-catch to prevent unhandled rejections
+          try {
+            if (isActive) {
+              handleResume();
+            } else {
+              handlePause();
+            }
+          } catch (callbackError) {
+            console.warn('App lifecycle callback error:', callbackError);
           }
         });
 

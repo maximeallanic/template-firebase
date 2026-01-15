@@ -23,6 +23,59 @@ import {
 } from 'firebase/auth';
 import { isNative } from './platformService';
 
+// OAuth Client IDs - centralized for easier maintenance
+// Note: OAuth client IDs are public credentials (not secrets) in OAuth 2.0 flows
+// They identify the app but don't grant access without user consent
+const OAUTH_CONFIG = {
+  // Web Client ID (client_type: 3) - required for server-side token verification
+  webClientId: import.meta.env.VITE_GOOGLE_WEB_CLIENT_ID || '235167916448-4vuo4v1js10scr2d2bbk6q1iribtgn6k.apps.googleusercontent.com',
+  // iOS Client ID (client_type: 2) - for native iOS sign-in
+  iosClientId: import.meta.env.VITE_GOOGLE_IOS_CLIENT_ID || '235167916448-2c8b9s69hqncfg25fqfpmlerhnsgr6rc.apps.googleusercontent.com',
+} as const;
+
+/**
+ * Error codes/patterns that indicate user cancellation across platforms
+ */
+const AUTH_CANCELLATION_PATTERNS = [
+  'cancel',
+  'popup_closed',
+  'user_cancelled',
+  'sign_in_cancelled',
+  'dismissed',
+] as const;
+
+/**
+ * Check if an auth error represents a user cancellation
+ * Uses error codes (preferred) with fallback to message patterns
+ */
+function isAuthCancelled(error: unknown): boolean {
+  if (!error) return false;
+
+  // Check for error code (preferred method)
+  const errorCode = (error as { code?: string }).code;
+  if (errorCode) {
+    const codeLower = errorCode.toLowerCase();
+    if (AUTH_CANCELLATION_PATTERNS.some(pattern => codeLower.includes(pattern))) {
+      return true;
+    }
+    // Firebase-specific cancellation codes
+    if (errorCode === 'auth/cancelled-popup-request' || errorCode === 'auth/popup-closed-by-user') {
+      return true;
+    }
+  }
+
+  // Fallback to message checking for backward compatibility
+  if (error instanceof Error) {
+    const message = error.message.toLowerCase();
+    return AUTH_CANCELLATION_PATTERNS.some(pattern => message.includes(pattern));
+  }
+
+  return false;
+}
+
+// Track GoogleAuth initialization state
+let googleAuthInitialized = false;
+
 // Native auth state management (for iOS/Android where SDK doesn't work)
 let nativeAuthCallback: ((user: FirebaseUser | null) => void) | null = null;
 
@@ -336,23 +389,22 @@ export async function signInWithGoogle() {
       // Dynamic import to avoid initialization issues
       const { GoogleAuth } = await import('@southdevs/capacitor-google-auth');
 
-      // Web Client ID (client_type: 3) - required for server-side token verification
-      const webClientId = '235167916448-4vuo4v1js10scr2d2bbk6q1iribtgn6k.apps.googleusercontent.com';
-      // iOS Client ID (client_type: 2)
-      const iosClientId = '235167916448-2c8b9s69hqncfg25fqfpmlerhnsgr6rc.apps.googleusercontent.com';
-
-      // Initialize the plugin before sign-in
-      await GoogleAuth.initialize({
-        clientId: iosClientId,
-        scopes: ['profile', 'email'],
-      });
+      // Initialize the plugin only once per app session
+      if (!googleAuthInitialized) {
+        await GoogleAuth.initialize({
+          clientId: OAUTH_CONFIG.iosClientId,
+          scopes: ['profile', 'email'],
+        });
+        googleAuthInitialized = true;
+        console.log('✅ GoogleAuth plugin initialized');
+      }
 
       // Sign in with native Google on iOS/Android
       // serverClientId is required for server-side token verification (Firebase Auth)
       console.log('🔐 Starting native Google Sign-In...');
       const user = await GoogleAuth.signIn({
         scopes: ['profile', 'email'],
-        serverClientId: webClientId,
+        serverClientId: OAUTH_CONFIG.webClientId,
         grantOfflineAccess: true
       });
       console.log('✅ Google Sign-In successful, got idToken');
@@ -438,17 +490,13 @@ export async function signInWithGoogle() {
       }
     } catch (error: unknown) {
       console.error('❌ Native Google sign in error:', error);
-      console.error('Error details:', JSON.stringify(error, Object.getOwnPropertyNames(error as object)));
 
-      const errorMessage = error instanceof Error ? error.message : 'Failed to sign in with Google';
-      const errorCode = (error as { code?: string }).code;
-      console.error('Error code:', errorCode, 'Message:', errorMessage);
-
-      // Handle user cancellation
-      if (errorMessage.includes('cancel') || errorMessage.includes('Cancel') || errorMessage.includes('popup_closed')) {
+      // Handle user cancellation using robust error detection
+      if (isAuthCancelled(error)) {
         throw new Error('Sign-in cancelled');
       }
 
+      const errorMessage = error instanceof Error ? error.message : 'Failed to sign in with Google';
       throw new Error(errorMessage);
     }
   }
@@ -465,16 +513,17 @@ export async function signInWithGoogle() {
   } catch (error: unknown) {
     console.error('Google sign in error:', error);
 
+    // Handle user cancellation using robust error detection
+    if (isAuthCancelled(error)) {
+      throw new Error('Sign-in cancelled');
+    }
+
     // Handle specific Google auth errors
     const errorCode = (error as { code?: string }).code;
     const errorMessage = error instanceof Error ? error.message : 'Failed to sign in with Google';
 
     if (errorCode === 'auth/account-exists-with-different-credential') {
       throw new Error('Un compte existe déjà avec cet email. Connectez-vous avec email/mot de passe.');
-    }
-    if (errorCode === 'auth/cancelled-popup-request' || errorCode === 'auth/popup-closed-by-user') {
-      // User closed popup, don't show error
-      throw new Error('Sign-in cancelled');
     }
 
     throw new Error(errorMessage);

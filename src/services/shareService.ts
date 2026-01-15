@@ -12,6 +12,41 @@ interface ShareOptions {
 }
 
 /**
+ * Error codes/patterns that indicate user cancellation across platforms
+ */
+const CANCELLATION_PATTERNS = [
+  'cancel',
+  'abort',
+  'dismiss',
+  'share was not completed',
+  'user did not share',
+] as const;
+
+/**
+ * Check if an error represents a user cancellation
+ * Uses multiple patterns to handle different platforms and SDK versions
+ */
+function isCancelledError(error: unknown): boolean {
+  if (!error) return false;
+
+  // Check for error code (preferred method)
+  const errorCode = (error as { code?: string }).code;
+  if (errorCode && CANCELLATION_PATTERNS.some(pattern =>
+    errorCode.toLowerCase().includes(pattern)
+  )) {
+    return true;
+  }
+
+  // Fallback to message checking for backward compatibility
+  if (error instanceof Error) {
+    const message = error.message.toLowerCase();
+    return CANCELLATION_PATTERNS.some(pattern => message.includes(pattern));
+  }
+
+  return false;
+}
+
+/**
  * Share content using native share sheet or Web Share API
  */
 export const shareContent = async (options: ShareOptions): Promise<boolean> => {
@@ -40,9 +75,10 @@ export const shareContent = async (options: ShareOptions): Promise<boolean> => {
     return false;
   } catch (error) {
     // User cancelled share dialog or share failed
-    // Only log actual errors, not user cancellations
-    if (error instanceof Error && !error.message.includes('cancel')) {
-      console.warn('Share failed:', error.message);
+    // Check for cancellation patterns across different platforms
+    const isCancellation = isCancelledError(error);
+    if (!isCancellation) {
+      console.warn('Share failed:', error instanceof Error ? error.message : error);
     }
     return false;
   }

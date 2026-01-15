@@ -3,7 +3,7 @@ import { createRoot } from 'react-dom/client'
 import { BrowserRouter } from 'react-router-dom'
 import { StatusBar, Style } from '@capacitor/status-bar'
 import { SplashScreen } from '@capacitor/splash-screen'
-import { isNative } from './services/platformService'
+import { isNative, isAndroid } from './services/platformService'
 import './index.css'
 import './i18n/config' // Initialize i18n
 import App from './App.tsx'
@@ -15,15 +15,19 @@ if (isNative()) {
 
   // Set dark status bar style for native apps
   StatusBar.setStyle({ style: Style.Dark }).catch((err) => {
-    console.debug('StatusBar.setStyle not available:', err);
+    console.warn('StatusBar.setStyle failed:', err);
   });
-  StatusBar.setBackgroundColor({ color: '#0f172a' }).catch((err) => {
-    // Android only - iOS doesn't support this
-    console.debug('StatusBar.setBackgroundColor not available:', err);
-  });
+
+  // Set status bar background color (Android only)
+  if (isAndroid()) {
+    StatusBar.setBackgroundColor({ color: '#0f172a' }).catch((err) => {
+      console.warn('StatusBar.setBackgroundColor failed:', err);
+    });
+  }
+
   // Hide splash screen after app is ready
   SplashScreen.hide().catch((err) => {
-    console.debug('SplashScreen.hide not available:', err);
+    console.warn('SplashScreen.hide failed:', err);
   });
 }
 

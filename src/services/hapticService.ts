@@ -18,13 +18,12 @@ class HapticService {
   /**
    * Safe wrapper for native haptics - catches errors for unsupported platforms
    */
-  private async safeHaptic(action: () => Promise<void>): Promise<void> {
-    try {
-      await action();
-    } catch (error) {
+  private safeHaptic(action: () => Promise<void>): void {
+    action().catch((error) => {
       // Haptics may not be available on all devices/platforms
-      console.debug('Haptic feedback not available:', error);
-    }
+      // Use console.warn for better visibility in production debugging
+      console.warn('Haptic feedback not available:', error);
+    });
   }
 
   /**
