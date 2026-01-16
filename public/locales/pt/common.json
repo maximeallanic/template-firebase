@@ -176,5 +176,34 @@
       "phase2Subtitle": "Classifica o negócio!",
       "phase4Subtitle": "Rápido = mais pontos!"
     }
+  },
+  "accountDelete": {
+    "title": "Excluir minha conta",
+    "subtitle": "Exclua permanentemente sua conta e todos os seus dados",
+    "backHome": "Voltar ao início",
+    "loginRequired": "Login necessário",
+    "loginRequiredDesc": "Você precisa estar logado para excluir sua conta.",
+    "loginButton": "Entrar",
+    "warningTitle": "Atenção! Ação irreversível",
+    "warningDesc": "A exclusão da sua conta é permanente. Todos os seus dados serão apagados e não poderão ser recuperados.",
+    "dataDeleted": "Dados que serão excluídos:",
+    "dataProfile": "Seu perfil e informações da conta",
+    "dataHistory": "Seu histórico de perguntas",
+    "dataLeaderboard": "Suas pontuações no ranking solo",
+    "dataAuth": "Sua conta de autenticação",
+    "connectedAs": "Conectado como:",
+    "confirmTitle": "Confirmação necessária",
+    "confirm1": "Eu entendo que esta ação é irreversível e todos os meus dados serão excluídos.",
+    "confirm2": "Eu confirmo que quero excluir permanentemente minha conta.",
+    "deleteButton": "Excluir minha conta",
+    "processing": "Excluindo conta...",
+    "processingDesc": "Estamos excluindo todos os seus dados. Por favor aguarde.",
+    "successTitle": "Conta excluída",
+    "successDesc": "Sua conta e todos os seus dados foram excluídos com sucesso. Vamos sentir sua falta!",
+    "goHome": "Voltar ao início",
+    "errorTitle": "Erro na exclusão",
+    "errorGeneric": "Ocorreu um erro durante a exclusão. Por favor, tente novamente.",
+    "gdprInfo": "De acordo com o RGPD (Artigo 17), você tem o direito ao apagamento dos seus dados.",
+    "privacyLink": "Ver nossa Política de Privacidade"
   }
 }

@@ -24,6 +24,9 @@ const Leaderboard = lazy(() => import('./pages/Leaderboard'));
 const TermsAndConditions = lazy(() => import('./pages/TermsAndConditions'));
 const TermsOfService = lazy(() => import('./pages/TermsOfService'));
 
+// Account Management
+const AccountDelete = lazy(() => import('./pages/AccountDelete'));
+
 function App() {
   const location = useLocation();
 
@@ -36,7 +39,7 @@ function App() {
     const path = location.pathname;
     if (path === '/') return 'home';
     if (path === '/host' || path === '/login' || path === '/solo' || path === '/leaderboard') return 'lobby';
-    if (path === '/terms' || path === '/privacy') return 'legal';
+    if (path === '/terms' || path === '/privacy' || path.startsWith('/account/')) return 'legal';
     if (path.startsWith('/room/') || path.startsWith('/solo/')) return 'game';
     return 'home';
   }, [location.pathname]);
@@ -120,6 +123,13 @@ function App() {
           <Route path="/privacy" element={
             <PageTransition>
               <TermsOfService />
+            </PageTransition>
+          } />
+
+          {/* Account Management */}
+          <Route path="/account/delete" element={
+            <PageTransition>
+              <AccountDelete />
             </PageTransition>
           } />
           </Routes>

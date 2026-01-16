@@ -576,3 +576,30 @@ export async function cancelSubscription() {
     throw new Error(message);
   }
 }
+
+// Account deletion callable function
+const deleteAccountFunction = httpsCallable<void, {
+  success: boolean;
+  message: string;
+  deletionResults: {
+    firebaseAuth: boolean;
+    firestoreUser: boolean;
+    firestoreLeaderboard: boolean;
+    rtdbHistory: boolean;
+  };
+}>(functions, 'deleteAccount');
+
+/**
+ * Delete the current user's account and all associated data
+ * Implements GDPR Article 17 (Right to Erasure)
+ */
+export async function deleteAccount() {
+  try {
+    const result = await deleteAccountFunction();
+    return result.data;
+  } catch (error: unknown) {
+    console.error('Error deleting account:', error);
+    const message = error instanceof Error ? error.message : 'Failed to delete account';
+    throw new Error(message);
+  }
+}
