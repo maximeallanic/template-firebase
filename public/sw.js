@@ -32,12 +32,12 @@ self.addEventListener('activate', (event) => {
   event.waitUntil(
     caches.keys().then((cacheNames) => {
       return Promise.all(
-        cacheNames.map((cacheName) => {
-          if (cacheName !== CACHE_NAME) {
+        cacheNames
+          .filter((cacheName) => cacheName !== CACHE_NAME)
+          .map((cacheName) => {
             console.log('[Service Worker] Deleting old cache:', cacheName);
             return caches.delete(cacheName);
-          }
-        })
+          })
       );
     }).then(() => {
       console.log('[Service Worker] Activated successfully');
@@ -46,18 +46,40 @@ self.addEventListener('activate', (event) => {
   );
 });
 
-// Fetch event - network first, fallback to cache
+// Fetch event - network first, fallback to cache for static assets only
 self.addEventListener('fetch', (event) => {
+  const url = new URL(event.request.url);
+  
+  // Skip caching for:
+  // - API calls (Firebase, Cloud Functions)
+  // - Non-GET requests
+  // - Chrome extension requests
+  if (
+    event.request.method !== 'GET' ||
+    url.origin.includes('googleapis.com') ||
+    url.origin.includes('cloudfunctions.net') ||
+    url.protocol === 'chrome-extension:' ||
+    url.pathname.startsWith('/api/')
+  ) {
+    event.respondWith(fetch(event.request));
+    return;
+  }
+  
   event.respondWith(
     fetch(event.request)
       .then((response) => {
-        // Clone the response before caching
-        const responseToCache = response.clone();
-        
-        caches.open(CACHE_NAME)
-          .then((cache) => {
-            cache.put(event.request, responseToCache);
-          });
+        // Only cache successful responses for static assets
+        if (response.status === 200) {
+          const responseToCache = response.clone();
+          
+          caches.open(CACHE_NAME)
+            .then((cache) => {
+              cache.put(event.request, responseToCache);
+            })
+            .catch((error) => {
+              console.warn('[Service Worker] Failed to cache response:', error);
+            });
+        }
         
         return response;
       })
