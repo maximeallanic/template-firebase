@@ -146,7 +146,8 @@
     "saving": "Salvando...",
     "cancel": "Cancelar",
     "errorNameRequired": "Precisa de nome!",
-    "errorSaveFailed": "Não salvou. Tenta de novo?"
+    "errorSaveFailed": "Não salvou. Tenta de novo?",
+    "deleteAccount": "Excluir minha conta"
   },
   "solo": {
     "mode": "Modo Solo",

@@ -146,7 +146,8 @@
     "saving": "Saving...",
     "cancel": "Cancel",
     "errorNameRequired": "Name cannot be empty",
-    "errorSaveFailed": "Failed to update profile. Please try again."
+    "errorSaveFailed": "Failed to update profile. Please try again.",
+    "deleteAccount": "Delete my account"
   },
   "solo": {
     "mode": "Solo Mode",

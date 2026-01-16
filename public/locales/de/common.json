@@ -146,7 +146,8 @@
     "saving": "Speichere...",
     "cancel": "Abbrechen",
     "errorNameRequired": "Name muss sein!",
-    "errorSaveFailed": "Speichern fehlgeschlagen. Nochmal?"
+    "errorSaveFailed": "Speichern fehlgeschlagen. Nochmal?",
+    "deleteAccount": "Mein Konto löschen"
   },
   "solo": {
     "mode": "Solo-Modus",

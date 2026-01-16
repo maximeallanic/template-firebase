@@ -146,7 +146,8 @@
     "saving": "Enregistrement...",
     "cancel": "Annuler",
     "errorNameRequired": "Faut un nom quand même !",
-    "errorSaveFailed": "Échec... Réessaie !"
+    "errorSaveFailed": "Échec... Réessaie !",
+    "deleteAccount": "Supprimer mon compte"
   },
   "solo": {
     "mode": "Mode Solo",

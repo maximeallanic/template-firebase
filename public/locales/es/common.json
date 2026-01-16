@@ -146,7 +146,8 @@
     "saving": "Guardando...",
     "cancel": "Cancelar",
     "errorNameRequired": "El nombre no puede estar vacío",
-    "errorSaveFailed": "Error al actualizar el perfil. Inténtalo de nuevo."
+    "errorSaveFailed": "Error al actualizar el perfil. Inténtalo de nuevo.",
+    "deleteAccount": "Eliminar mi cuenta"
   },
   "solo": {
     "mode": "Modo Solo",
