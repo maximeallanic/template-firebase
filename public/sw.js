@@ -74,7 +74,10 @@ self.addEventListener('fetch', (event) => {
     fetch(event.request)
       .then((response) => {
         // Only cache successful responses for static assets
-        if (response.status === 200) {
+        // Additional check: ensure we can cache this URL (skip chrome-extension, etc.)
+        const canCache = url.protocol === 'http:' || url.protocol === 'https:';
+        
+        if (response.status === 200 && canCache) {
           const responseToCache = response.clone();
           
           caches.open(CACHE_NAME)
