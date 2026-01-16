@@ -182,7 +182,16 @@ export interface Phase3QuestionServer {
   question: string;
   answer: string;
   acceptableAnswers?: string[];
-  theme?: string;
+}
+
+/**
+ * Phase 3 theme with questions
+ */
+export interface Phase3ThemeServer {
+  title: string;
+  description: string;
+  isTrap: boolean;
+  questions: Phase3QuestionServer[];
 }
 
 /**
@@ -210,7 +219,7 @@ export interface Phase5QuestionServer {
 export interface GameDataServer {
   phase1?: Phase1QuestionServer[];
   phase2?: Phase2SetServer;
-  phase3?: Phase3QuestionServer[];
+  phase3?: Phase3ThemeServer[];
   phase4?: Phase4QuestionServer[];
   phase5?: Phase5QuestionServer[];
 }

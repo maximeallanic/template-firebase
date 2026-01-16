@@ -496,8 +496,7 @@ import {
     Phase1QuestionClient,
     Phase2SetServer,
     Phase2QuestionClient,
-    Phase3QuestionServer,
-    Phase3QuestionClient,
+    Phase3ThemeServer,
     Phase4QuestionServer,
     Phase4QuestionClient,
     Phase5QuestionServer,
@@ -569,38 +568,45 @@ function separatePhase2Set(set: {
 
 /**
  * Separates Phase 3 menus into client (without answers) and server (with answers) versions
+ * Preserves the theme structure for proper game flow
  */
 function separatePhase3Menus(menus: Array<{
     title: string;
     description: string;
     isTrap?: boolean;
-    questions: Array<{ question: string; answer: string }>;
+    questions: Array<{ question: string; answer: string; acceptableAnswers?: string[] }>;
 }>): {
-    clientQuestions: Phase3QuestionClient[];
-    serverQuestions: Phase3QuestionServer[];
+    clientThemes: Array<{
+        title: string;
+        description: string;
+        isTrap: boolean;
+        questions: Array<{ question: string }>; // Without answers
+    }>;
+    serverThemes: Phase3ThemeServer[];
 } {
-    // Flatten all questions from all menus for server storage
-    const serverQuestions: Phase3QuestionServer[] = [];
-    const clientQuestions: Phase3QuestionClient[] = [];
+    // Preserve theme structure for both client and server
+    const clientThemes = menus.map(menu => ({
+        title: menu.title,
+        description: menu.description,
+        isTrap: menu.isTrap ?? false,
+        questions: menu.questions.map(q => ({
+            question: q.question,
+            // Note: answer is NOT included for client
+        })),
+    }));
 
-    let index = 0;
-    for (const menu of menus) {
-        for (const q of menu.questions) {
-            serverQuestions.push({
-                question: q.question,
-                answer: q.answer,
-                theme: menu.title,
-            });
-            clientQuestions.push({
-                text: q.question,
-                index,
-                theme: menu.title,
-            });
-            index++;
-        }
-    }
+    const serverThemes: Phase3ThemeServer[] = menus.map(menu => ({
+        title: menu.title,
+        description: menu.description,
+        isTrap: menu.isTrap ?? false,
+        questions: menu.questions.map(q => ({
+            question: q.question,
+            answer: q.answer,
+            acceptableAnswers: q.acceptableAnswers,
+        })),
+    }));
 
-    return { clientQuestions, serverQuestions };
+    return { clientThemes, serverThemes };
 }
 
 /**
@@ -854,16 +860,16 @@ export const generateGameQuestions = onCall(
             clientData = clientQuestions;
             serverData = serverSet;
           } else if (phase === 'phase3') {
-            const { clientQuestions, serverQuestions } = separatePhase3Menus(
+            const { clientThemes, serverThemes } = separatePhase3Menus(
               processedData as Array<{
                 title: string;
                 description: string;
                 isTrap?: boolean;
-                questions: Array<{ question: string; answer: string }>;
+                questions: Array<{ question: string; answer: string; acceptableAnswers?: string[] }>;
               }>
             );
-            clientData = clientQuestions;
-            serverData = serverQuestions;
+            clientData = clientThemes;
+            serverData = serverThemes;
           } else if (phase === 'phase4') {
             const { clientQuestions, serverQuestions } = separatePhase4Questions(
               processedData as Phase4QuestionServer[]

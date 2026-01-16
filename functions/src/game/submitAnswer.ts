@@ -25,6 +25,7 @@ import {
     GameDataServer,
     PendingAnswer,
     TeamType,
+    Phase3ThemeServer,
 } from './types';
 import { validateAnswer } from '../services/answerValidator';
 
@@ -137,7 +138,8 @@ async function recordPhase1Answer(
             return current;
         }
 
-        // Find the earliest correct answer by clientTimestamp
+        // Find the earliest correct answer
+        // SECURITY FIX: Sort by serverTimestamp first (can't be spoofed), then clientTimestamp as tiebreaker
         const pendingAnswers = current.pending || {};
         const correctAnswers = Object.values(pendingAnswers as Record<string, PendingAnswer>)
             .filter((a: PendingAnswer) => a.correct);
@@ -146,8 +148,10 @@ async function recordPhase1Answer(
             return current;
         }
 
-        // Sort by client timestamp
-        correctAnswers.sort((a, b) => a.clientTimestamp - b.clientTimestamp);
+        // Sort by server timestamp first, client timestamp as tiebreaker
+        correctAnswers.sort((a, b) =>
+            a.serverTimestamp - b.serverTimestamp || a.clientTimestamp - b.clientTimestamp
+        );
         const winner = correctAnswers[0];
 
         current.winner = {
@@ -269,13 +273,37 @@ async function handlePhase2(
 
     const item = phase2Data.items[questionIndex];
     const correct = answer === item.answer;
+    const serverTimestamp = Date.now();
 
-    // Check if team already answered
+    // SECURITY FIX: Use transaction for atomic winner determination
+    // This prevents race conditions when both teams submit simultaneously
     const db = getDatabase();
-    const teamAnswerRef = db.ref(`rooms/${roomId}/state/phase2Answers/${questionIndex}/${team}`);
-    const existingAnswer = await teamAnswerRef.get();
+    const answersRef = db.ref(`rooms/${roomId}/state/phase2Answers/${questionIndex}`);
 
-    if (existingAnswer.exists()) {
+    const result = await answersRef.transaction((current) => {
+        if (!current) {
+            current = {};
+        }
+
+        // Check if team already answered
+        if (current[team]) {
+            return; // Abort - team already answered
+        }
+
+        // Record this team's answer
+        current[team] = {
+            odId,
+            answer,
+            clientTimestamp,
+            correct,
+            serverTimestamp,
+        };
+
+        return current;
+    });
+
+    // Transaction aborted - team already answered
+    if (!result.committed) {
         return {
             success: true,
             correct,
@@ -284,35 +312,23 @@ async function handlePhase2(
         };
     }
 
-    // Record team answer
-    await teamAnswerRef.set({
-        odId,
-        answer,
-        clientTimestamp,
-        correct,
-        serverTimestamp: Date.now(),
-    });
-
-    // Check if this team wins the round (first correct)
+    // Determine winner from transaction result
+    const answers = result.snapshot.val() || {};
     const otherTeam = team === 'spicy' ? 'sweet' : 'spicy';
-    const otherTeamRef = db.ref(`rooms/${roomId}/state/phase2Answers/${questionIndex}/${otherTeam}`);
-    const otherTeamAnswer = await otherTeamRef.get();
+    const otherTeamAnswer = answers[otherTeam];
 
     let isWinner = false;
     if (correct) {
-        if (!otherTeamAnswer.exists()) {
+        if (!otherTeamAnswer) {
             // First correct answer
             isWinner = true;
+        } else if (!otherTeamAnswer.correct) {
+            // Other team was wrong, we win
+            isWinner = true;
         } else {
-            // Other team already answered
-            const otherData = otherTeamAnswer.val();
-            if (!otherData.correct) {
-                // Other team was wrong, we win
-                isWinner = true;
-            } else {
-                // Both correct - compare timestamps
-                isWinner = clientTimestamp < otherData.clientTimestamp;
-            }
+            // Both correct - compare serverTimestamp first (can't be spoofed), then clientTimestamp
+            isWinner = serverTimestamp < otherTeamAnswer.serverTimestamp ||
+                (serverTimestamp === otherTeamAnswer.serverTimestamp && clientTimestamp < otherTeamAnswer.clientTimestamp);
         }
     }
 
@@ -338,7 +354,7 @@ async function handlePhase3(
     team: TeamType,
     gameData: GameDataServer
 ): Promise<SubmitAnswerResponse> {
-    const { roomId, questionIndex, answer } = request;
+    const { roomId, answer } = request;
 
     if (typeof answer !== 'string') {
         return {
@@ -350,22 +366,65 @@ async function handlePhase3(
         };
     }
 
-    const questions = gameData.phase3;
-    if (!questions || !questions[questionIndex]) {
+    // Input sanitization for text answers
+    if (answer.length > 500) {
+        return {
+            success: false,
+            correct: false,
+            pointsAwarded: 0,
+            error: 'INVALID_PHASE',
+            message: 'Answer too long (max 500 characters)',
+        };
+    }
+
+    // FIX: Get actual questionIndex from team's progress in room state
+    // The client passes 0, but we need to look up the real index from team progress
+    const db = getDatabase();
+    const teamProgressRef = db.ref(`rooms/${roomId}/state/phase3TeamProgress/${team}`);
+    const progressSnapshot = await teamProgressRef.get();
+
+    if (!progressSnapshot.exists()) {
         return {
             success: false,
             correct: false,
             pointsAwarded: 0,
             error: 'INVALID_QUESTION',
-            message: 'Question not found',
+            message: 'Team progress not found',
         };
     }
 
-    const question = questions[questionIndex];
+    const teamProgress = progressSnapshot.val();
+    const actualQuestionIndex = teamProgress.currentQuestionIndex ?? 0;
+    const themeIndex = teamProgress.themeIndex ?? 0;
+
+    // Get questions for this team's selected theme
+    const themes = gameData.phase3 as Phase3ThemeServer[] | undefined;
+    if (!themes) {
+        return {
+            success: false,
+            correct: false,
+            pointsAwarded: 0,
+            error: 'INVALID_QUESTION',
+            message: 'Phase 3 questions not found',
+        };
+    }
+
+    // Phase 3 questions are organized by theme
+    const theme = themes[themeIndex];
+    if (!theme || !theme.questions || !theme.questions[actualQuestionIndex]) {
+        return {
+            success: false,
+            correct: false,
+            pointsAwarded: 0,
+            error: 'INVALID_QUESTION',
+            message: 'Question not found for this theme',
+        };
+    }
+
+    const question = theme.questions[actualQuestionIndex];
 
     // Check if team already answered this question
-    const db = getDatabase();
-    const teamAnswerRef = db.ref(`rooms/${roomId}/state/phase3Answers/${team}/${questionIndex}`);
+    const teamAnswerRef = db.ref(`rooms/${roomId}/state/phase3Answers/${team}/${actualQuestionIndex}`);
     const existingAnswer = await teamAnswerRef.get();
 
     if (existingAnswer.exists()) {
@@ -517,6 +576,17 @@ async function handlePhase5(
         };
     }
 
+    // Input sanitization for text answers
+    if (answer.length > 500) {
+        return {
+            success: false,
+            correct: false,
+            pointsAwarded: 0,
+            error: 'INVALID_PHASE',
+            message: 'Answer too long (max 500 characters)',
+        };
+    }
+
     const questions = gameData.phase5;
     if (!questions || !questions[questionIndex]) {
         return {
@@ -654,8 +724,21 @@ export const submitAnswer = onCall({
         };
     }
 
-    // Solo mode: simpler validation
-    if (isSolo) {
+    // SECURITY FIX: Verify solo mode server-side
+    // In solo mode, roomId === auth.uid (the player's own session)
+    const isActuallySolo = roomId === odId;
+    if (isSolo && !isActuallySolo) {
+        return {
+            success: false,
+            correct: false,
+            pointsAwarded: 0,
+            error: 'INVALID_PHASE',
+            message: 'Invalid solo mode request - roomId must match user ID',
+        };
+    }
+
+    // Solo mode: simpler validation (verified server-side)
+    if (isActuallySolo) {
         return handleSoloAnswer(request, odId, gameData);
     }
 
@@ -679,6 +762,22 @@ export const submitAnswer = onCall({
             pointsAwarded: 0,
             error: 'NOT_IN_ROOM',
             message: 'Player not assigned to a team',
+        };
+    }
+
+    // SECURITY FIX: Verify room is actually in the requested phase
+    const db = getDatabase();
+    const roomStatusRef = db.ref(`rooms/${roomId}/state/status`);
+    const statusSnapshot = await roomStatusRef.get();
+    const currentPhase = statusSnapshot.val();
+
+    if (currentPhase !== phase) {
+        return {
+            success: false,
+            correct: false,
+            pointsAwarded: 0,
+            error: 'INVALID_PHASE',
+            message: `Room is in ${currentPhase}, not ${phase}`,
         };
     }
 
