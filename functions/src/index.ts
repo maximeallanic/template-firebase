@@ -1094,12 +1094,10 @@ export const validateSoloScore = onCall(
  * - Firestore: soloLeaderboard entries where playerId == userId
  * - RTDB: userHistory/{userId}
  *
- * Protected by App Check.
+ * Protected by Firebase Authentication.
+ * TODO: Add App Check protection when configured.
  */
 export const deleteAccount = onCall(
-  {
-    consumeAppCheckToken: true,
-  },
   async ({ auth }) => {
     // 1. Auth Check - user must be authenticated
     if (!auth) {
