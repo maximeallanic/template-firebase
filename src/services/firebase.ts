@@ -104,7 +104,8 @@ let analyticsInitialized = false;
 
 // Export auth, functions, and db - auth will be lazy-initialized
 export const auth = getAuth(app);
-export const functions = getFunctions(app, 'us-central1');
+// All Cloud Functions are deployed to europe-west1 for low latency to EU users
+export const functions = getFunctions(app, 'europe-west1');
 export const db = getFirestore(app);
 export const rtdb = getDatabase(app);
 
@@ -588,6 +589,67 @@ const deleteAccountFunction = httpsCallable<void, {
     rtdbHistory: boolean;
   };
 }>(functions, 'deleteAccount');
+
+// ============================================================================
+// GAME ANSWER SUBMISSION
+// ============================================================================
+
+export type GamePhase = 'phase1' | 'phase2' | 'phase3' | 'phase4' | 'phase5';
+export type TeamType = 'spicy' | 'sweet';
+
+export interface SubmitAnswerRequest {
+  roomId: string;
+  phase: GamePhase;
+  questionIndex: number;
+  answer: number | string;
+  clientTimestamp: number;
+  isSolo?: boolean;
+}
+
+export interface SubmitAnswerResponse {
+  success: boolean;
+  correct: boolean;
+  pointsAwarded: number;
+  llmFeedback?: string;
+  confidence?: number;
+  alreadyAnswered?: boolean;
+  teamAlreadyAnswered?: boolean;
+  notBuzzer?: boolean;
+  phaseComplete?: boolean;
+  teamFinished?: boolean;
+  roundWinner?: {
+    odId: string;
+    name: string;
+    team: TeamType;
+  };
+  error?: string;
+  message?: string;
+}
+
+const submitAnswerFunction = httpsCallable<SubmitAnswerRequest, SubmitAnswerResponse>(
+  functions,
+  'submitAnswer'
+);
+
+/**
+ * Submit an answer for server-side validation
+ * Used for all game phases to validate answers without exposing correct answers to clients
+ */
+export async function submitAnswer(request: SubmitAnswerRequest): Promise<SubmitAnswerResponse> {
+  try {
+    const result = await submitAnswerFunction(request);
+    return result.data;
+  } catch (error: unknown) {
+    console.error('Error submitting answer:', error);
+    return {
+      success: false,
+      correct: false,
+      pointsAwarded: 0,
+      error: 'INTERNAL',
+      message: error instanceof Error ? error.message : 'Failed to submit answer',
+    };
+  }
+}
 
 /**
  * Delete the current user's account and all associated data

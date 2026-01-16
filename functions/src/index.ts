@@ -5,6 +5,9 @@ import { db, admin } from './config/firebase';
 import Stripe from 'stripe';
 import { z } from 'zod';
 
+// Re-export game functions
+export { submitAnswer } from './game/submitAnswer';
+
 // Define secrets for production (Secret Manager)
 const stripeSecretKey = defineSecret('STRIPE_SECRET_KEY');
 const stripeWebhookSecret = defineSecret('STRIPE_WEBHOOK_SECRET');
@@ -169,7 +172,7 @@ const ValidatePhase5Schema = z.object({
  * Get User Subscription
  * SEC-003: Verifies email before creating new user records
  */
-export const getUserSubscription = onCall(async ({ auth }) => {
+export const getUserSubscription = onCall({ region: 'europe-west1' }, async ({ auth }) => {
   if (!auth) {
     throw new HttpsError('unauthenticated', 'User must be authenticated');
   }
@@ -225,6 +228,7 @@ export const getUserSubscription = onCall(async ({ auth }) => {
  */
 export const createCheckoutSession = onCall(
   {
+    region: 'europe-west1',
     secrets: [stripeSecretKey],
     consumeAppCheckToken: true,
   },
@@ -306,6 +310,7 @@ export const createCheckoutSession = onCall(
  */
 export const createPortalSession = onCall(
   {
+    region: 'europe-west1',
     secrets: [stripeSecretKey],
     consumeAppCheckToken: true,
   },
@@ -349,6 +354,7 @@ export const createPortalSession = onCall(
  */
 export const cancelSubscription = onCall(
   {
+    region: 'europe-west1',
     secrets: [stripeSecretKey],
     consumeAppCheckToken: true,
   },
@@ -384,7 +390,7 @@ export const cancelSubscription = onCall(
  * SEC-010: Sanitized logging
  */
 export const stripeWebhook = onRequest(
-  { secrets: [stripeSecretKey, stripeWebhookSecret] },
+  { region: 'europe-west1', secrets: [stripeSecretKey, stripeWebhookSecret] },
   async (req, res) => {
     const sig = req.headers['stripe-signature'];
 
@@ -484,6 +490,150 @@ export const stripeWebhook = onRequest(
 import { generateGameQuestionsFlow } from './services/gameGenerator';
 import { validateAnswer } from './services/answerValidator';
 
+// Import server-side types for game data separation
+import {
+    Phase1QuestionServer,
+    Phase1QuestionClient,
+    Phase2SetServer,
+    Phase2QuestionClient,
+    Phase3QuestionServer,
+    Phase3QuestionClient,
+    Phase4QuestionServer,
+    Phase4QuestionClient,
+    Phase5QuestionServer,
+    Phase5QuestionClient,
+    GameDataServer,
+} from './game/types';
+
+// ============================================================================
+// QUESTION/ANSWER SEPARATION UTILITIES (SEC-011)
+// ============================================================================
+
+/**
+ * Separates Phase 1 questions into client (without answers) and server (with answers) versions
+ */
+function separatePhase1Questions(questions: Phase1QuestionServer[]): {
+    clientQuestions: Phase1QuestionClient[];
+    serverQuestions: Phase1QuestionServer[];
+} {
+    const clientQuestions: Phase1QuestionClient[] = questions.map((q, index) => ({
+        text: q.text,
+        options: q.options,
+        index,
+        anecdote: q.anecdote,
+    }));
+
+    return { clientQuestions, serverQuestions: questions };
+}
+
+/**
+ * Separates Phase 2 set into client (without answers) and server (with answers) versions
+ */
+function separatePhase2Set(set: {
+    optionA: string;
+    optionB: string;
+    optionADescription?: string;
+    optionBDescription?: string;
+    humorousDescription?: string;
+    items: Array<{ text: string; answer: 'A' | 'B' | 'Both'; justification?: string; anecdote?: string }>;
+}): {
+    clientQuestions: Phase2QuestionClient[];
+    serverSet: Phase2SetServer;
+} {
+    const clientQuestions: Phase2QuestionClient[] = set.items.map((item, index) => ({
+        text: item.text,
+        index,
+        item: item.text,
+        optionA: set.optionA,
+        optionB: set.optionB,
+        optionADescription: set.optionADescription,
+        optionBDescription: set.optionBDescription,
+    }));
+
+    const serverSet: Phase2SetServer = {
+        optionA: set.optionA,
+        optionB: set.optionB,
+        optionADescription: set.optionADescription,
+        optionBDescription: set.optionBDescription,
+        humorousDescription: set.humorousDescription,
+        items: set.items.map(item => ({
+            text: item.text,
+            answer: item.answer,
+            justification: item.justification,
+            anecdote: item.anecdote,
+        })),
+    };
+
+    return { clientQuestions, serverSet };
+}
+
+/**
+ * Separates Phase 3 menus into client (without answers) and server (with answers) versions
+ */
+function separatePhase3Menus(menus: Array<{
+    title: string;
+    description: string;
+    isTrap?: boolean;
+    questions: Array<{ question: string; answer: string }>;
+}>): {
+    clientQuestions: Phase3QuestionClient[];
+    serverQuestions: Phase3QuestionServer[];
+} {
+    // Flatten all questions from all menus for server storage
+    const serverQuestions: Phase3QuestionServer[] = [];
+    const clientQuestions: Phase3QuestionClient[] = [];
+
+    let index = 0;
+    for (const menu of menus) {
+        for (const q of menu.questions) {
+            serverQuestions.push({
+                question: q.question,
+                answer: q.answer,
+                theme: menu.title,
+            });
+            clientQuestions.push({
+                text: q.question,
+                index,
+                theme: menu.title,
+            });
+            index++;
+        }
+    }
+
+    return { clientQuestions, serverQuestions };
+}
+
+/**
+ * Separates Phase 4 questions into client (without answers) and server (with answers) versions
+ */
+function separatePhase4Questions(questions: Phase4QuestionServer[]): {
+    clientQuestions: Phase4QuestionClient[];
+    serverQuestions: Phase4QuestionServer[];
+} {
+    const clientQuestions: Phase4QuestionClient[] = questions.map((q, index) => ({
+        text: q.text,
+        options: q.options,
+        index,
+    }));
+
+    return { clientQuestions, serverQuestions: questions };
+}
+
+/**
+ * Separates Phase 5 questions into client (without answers) and server (with answers) versions
+ */
+function separatePhase5Questions(questions: Phase5QuestionServer[]): {
+    clientQuestions: Phase5QuestionClient[];
+    serverQuestions: Phase5QuestionServer[];
+} {
+    const clientQuestions: Phase5QuestionClient[] = questions.map((q, index) => ({
+        text: q.question,
+        index,
+    }));
+
+    return { clientQuestions, serverQuestions: questions };
+}
+
 /**
  * Generate Game Questions (AI)
  * Use Gemini to generate funny/absurd questions for the game.
@@ -494,6 +644,7 @@ import { validateAnswer } from './services/answerValidator';
  */
 export const generateGameQuestions = onCall(
   {
+    region: 'europe-west1',
     consumeAppCheckToken: true,
     timeoutSeconds: 300, // gemini-3-flash-preview uses "thinking" tokens, needs more time
     memory: "1GiB",     // Genkit + Gemini needs some memory
@@ -675,9 +826,132 @@ export const generateGameQuestions = onCall(
         console.error('Failed to save questions to Firestore:', saveError);
       }
 
+      // SEC-011: Separate questions (client) from answers (server)
+      // Save full data to gameData/{roomCode}/ (clients cannot read)
+      // Save questions-only to rooms/{roomCode}/customQuestions/ (clients can read)
+      let clientData: unknown = processedData;
+      let serverData: GameDataServer[keyof GameDataServer] | undefined;
+
+      if (roomCode) {
+        try {
+          if (phase === 'phase1') {
+            const { clientQuestions, serverQuestions } = separatePhase1Questions(
+              processedData as Phase1QuestionServer[]
+            );
+            clientData = clientQuestions;
+            serverData = serverQuestions;
+          } else if (phase === 'phase2') {
+            const { clientQuestions, serverSet } = separatePhase2Set(
+              processedData as {
+                optionA: string;
+                optionB: string;
+                optionADescription?: string;
+                optionBDescription?: string;
+                humorousDescription?: string;
+                items: Array<{ text: string; answer: 'A' | 'B' | 'Both'; justification?: string; anecdote?: string }>;
+              }
+            );
+            clientData = clientQuestions;
+            serverData = serverSet;
+          } else if (phase === 'phase3') {
+            const { clientQuestions, serverQuestions } = separatePhase3Menus(
+              processedData as Array<{
+                title: string;
+                description: string;
+                isTrap?: boolean;
+                questions: Array<{ question: string; answer: string }>;
+              }>
+            );
+            clientData = clientQuestions;
+            serverData = serverQuestions;
+          } else if (phase === 'phase4') {
+            const { clientQuestions, serverQuestions } = separatePhase4Questions(
+              processedData as Phase4QuestionServer[]
+            );
+            clientData = clientQuestions;
+            serverData = serverQuestions;
+          } else if (phase === 'phase5') {
+            const { clientQuestions, serverQuestions } = separatePhase5Questions(
+              processedData as Phase5QuestionServer[]
+            );
+            clientData = clientQuestions;
+            serverData = serverQuestions;
+          }
+
+          // Save answers to gameData/{roomCode}/ (server-only, clients cannot read)
+          if (serverData) {
+            await admin.database()
+              .ref(`gameData/${roomCode}/${phase}`)
+              .set(serverData);
+            console.log(`🔐 Saved ${phase} answers to gameData/${roomCode}/ (server-only)`);
+          }
+
+          // Save client-facing questions to rooms/{roomCode}/customQuestions/
+          if (clientData) {
+            await admin.database()
+              .ref(`rooms/${roomCode}/customQuestions/${phase}`)
+              .set(clientData);
+            console.log(`📋 Saved ${phase} questions to rooms/${roomCode}/customQuestions/ (client-readable)`);
+          }
+        } catch (separationError) {
+          console.error('Failed to separate and save question data:', separationError);
+          // Fallback: return full data (legacy behavior for backward compatibility)
+          clientData = processedData;
+        }
+      } else if (soloMode && auth) {
+        // Solo mode: Store answers server-side for submitAnswer CF validation
+        // Use auth.uid as the "room" identifier for solo sessions
+        const soloSessionId = auth.uid;
+        let serverData: GameDataServer[keyof GameDataServer] | undefined;
+
+        try {
+          if (phase === 'phase1') {
+            const { clientQuestions, serverQuestions } = separatePhase1Questions(
+              processedData as Phase1QuestionServer[]
+            );
+            clientData = clientQuestions;
+            serverData = serverQuestions;
+          } else if (phase === 'phase2') {
+            const { clientQuestions, serverSet } = separatePhase2Set(
+              processedData as {
+                optionA: string;
+                optionB: string;
+                optionADescription?: string;
+                optionBDescription?: string;
+                humorousDescription?: string;
+                items: Array<{ text: string; answer: 'A' | 'B' | 'Both'; justification?: string; anecdote?: string }>;
+              }
+            );
+            clientData = clientQuestions;
+            serverData = serverSet;
+          } else if (phase === 'phase4') {
+            const { clientQuestions, serverQuestions } = separatePhase4Questions(
+              processedData as Phase4QuestionServer[]
+            );
+            clientData = clientQuestions;
+            serverData = serverQuestions;
+          } else {
+            // Phase 3 and 5 not used in solo mode currently
+            clientData = processedData;
+          }
+
+          // Save answers to gameData/{soloSessionId}/ (server-only, clients cannot read)
+          if (serverData) {
+            await admin.database()
+              .ref(`gameData/${soloSessionId}/${phase}`)
+              .set(serverData);
+            console.log(`🔐 [Solo] Saved ${phase} answers to gameData/${soloSessionId}/ (server-only)`);
+          }
+        } catch (separationError) {
+          console.error('[Solo] Failed to separate question data:', separationError);
+          // Fallback: return full data (legacy behavior)
+          clientData = processedData;
+        }
+      }
+
       return {
         success: true,
-        data: processedData,
+        data: clientData, // Return questions WITHOUT answers
         topic: result.topic, // Return the AI-generated topic
         language: result.language, // Return the language used
         usage: result.usage
@@ -698,6 +972,7 @@ export const generateGameQuestions = onCall(
  */
 export const validatePhase3Answer = onCall(
   {
+    region: 'europe-west1',
     consumeAppCheckToken: true,
     timeoutSeconds: 30, // Quick validation should be fast
     secrets: [geminiApiKey], // Required for LLM validation
@@ -754,6 +1029,7 @@ import { validateAnswerBatch } from './services/answerValidator';
  */
 export const validatePhase5Answers = onCall(
   {
+    region: 'europe-west1',
     consumeAppCheckToken: true,
     timeoutSeconds: 120, // May need more time for 20 validations
     memory: '512MiB',
@@ -938,6 +1214,7 @@ const ValidateSoloScoreSchema = z.object({
  */
 export const validateSoloScore = onCall(
   {
+    region: 'europe-west1',
     consumeAppCheckToken: true,
   },
   async ({ data, auth }) => {
@@ -1098,6 +1375,7 @@ export const validateSoloScore = onCall(
  * TODO: Add App Check protection when configured.
  */
 export const deleteAccount = onCall(
+  { region: 'europe-west1' },
   async ({ auth }) => {
     // 1. Auth Check - user must be authenticated
     if (!auth) {

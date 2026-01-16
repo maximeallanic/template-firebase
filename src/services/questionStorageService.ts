@@ -1,6 +1,6 @@
 import { collection, query, where, getDocs, orderBy, limit, Timestamp, updateDoc, doc, increment } from 'firebase/firestore';
 import { db } from './firebase';
-import type { Question } from '../data/questions';
+import type { Question } from '../types/gameTypes';
 import { generateQuestionHash } from '../utils/hash';
 import { createQuestionCache, createQuestionByIdCache, generateQuestionCacheKey } from '../utils/questionCache';
 
@@ -227,11 +227,12 @@ export async function getRandomQuestionSet(
     seenQuestionIds: Set<string> = new Set()
 ): Promise<StoredQuestionSet | null> {
     // Determine count based on phase
+    // NOTE: These counts must match SOLO_SCORING constants for solo mode validation
     const countByPhase: Record<string, number> = {
-        phase1: 10,
-        phase2: 12, // Match MINIMUM_QUESTION_COUNTS.phase2
-        phase3: 15, // 3 menus × 5 questions
-        phase4: 15,
+        phase1: 10,  // SOLO_SCORING.phase1.maxQuestions
+        phase2: 12,  // SOLO_SCORING.phase2.maxItems
+        phase3: 15,  // 3 menus × 5 questions
+        phase4: 10,  // SOLO_SCORING.phase4.maxQuestions (was 15, causing validation error)
         phase5: 10,
     };
     const count = countByPhase[phase] || 10;
@@ -242,15 +243,15 @@ export async function getRandomQuestionSet(
         return null;
     }
 
-    // Increment usage count for all fetched questions
-    try {
-        const updatePromises = questions.map(q =>
+    // Increment usage count for all fetched questions (fire-and-forget, non-blocking)
+    // We don't await this to prevent blocking the game if Firestore writes fail
+    Promise.all(
+        questions.map(q =>
             updateDoc(doc(db, 'questions', q.id), { usageCount: increment(1) })
-        );
-        await Promise.all(updatePromises);
-    } catch (error) {
+        )
+    ).catch(error => {
         console.warn('Failed to update question usage counts:', error);
-    }
+    });
 
     // Convert to game-ready format based on phase
     let gameQuestions: Question[] | unknown[];
