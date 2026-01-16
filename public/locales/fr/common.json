@@ -146,7 +146,8 @@
     "saving": "Enregistrement...",
     "cancel": "Annuler",
     "errorNameRequired": "Faut un nom quand même !",
-    "errorSaveFailed": "Échec... Réessaie !"
+    "errorSaveFailed": "Échec... Réessaie !",
+    "deleteAccount": "Supprimer mon compte"
   },
   "solo": {
     "mode": "Mode Solo",
@@ -176,5 +177,34 @@
       "phase2Subtitle": "Swipe à fond !",
       "phase4Subtitle": "Chaque seconde compte !"
     }
+  },
+  "accountDelete": {
+    "title": "Supprimer mon compte",
+    "subtitle": "Supprimez définitivement votre compte et toutes vos données",
+    "backHome": "Retour à l'accueil",
+    "loginRequired": "Connexion requise",
+    "loginRequiredDesc": "Vous devez être connecté pour supprimer votre compte.",
+    "loginButton": "Se connecter",
+    "warningTitle": "Attention ! Action irréversible",
+    "warningDesc": "La suppression de votre compte est définitive. Toutes vos données seront effacées et ne pourront pas être récupérées.",
+    "dataDeleted": "Données qui seront supprimées :",
+    "dataProfile": "Votre profil et informations de compte",
+    "dataHistory": "Votre historique de questions vues",
+    "dataLeaderboard": "Vos scores au classement solo",
+    "dataAuth": "Votre compte d'authentification",
+    "connectedAs": "Connecté en tant que :",
+    "confirmTitle": "Confirmation requise",
+    "confirm1": "Je comprends que cette action est irréversible et que toutes mes données seront supprimées.",
+    "confirm2": "Je confirme vouloir supprimer définitivement mon compte.",
+    "deleteButton": "Supprimer mon compte",
+    "processing": "Suppression en cours...",
+    "processingDesc": "Nous supprimons toutes vos données. Veuillez patienter.",
+    "successTitle": "Compte supprimé",
+    "successDesc": "Votre compte et toutes vos données ont été supprimés avec succès. Nous sommes tristes de vous voir partir !",
+    "goHome": "Retour à l'accueil",
+    "errorTitle": "Erreur de suppression",
+    "errorGeneric": "Une erreur est survenue lors de la suppression. Veuillez réessayer.",
+    "gdprInfo": "Conformément au RGPD (Article 17), vous avez le droit à l'effacement de vos données.",
+    "privacyLink": "Consulter notre politique de confidentialité"
   }
 }
