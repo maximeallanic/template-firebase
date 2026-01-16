@@ -34,7 +34,7 @@
     "manage": "Gestionar Plan",
     "atLimit": "Has alcanzado tu limite mensual. Pasa a Pro para seguir analizando emails.",
     "nearLimit": "Te estas quedando sin analisis. Considera pasar a Pro para 250 analisis/mes.",
-    "upgradeCta": "Pasar a Pro - $5/mes",
+    "upgradeCta": "Pasar a Pro - {{price}}/mes",
     "loading": "Cargando..."
   },
   "emailInput": {
@@ -141,7 +141,7 @@
       "badge": "MAS POPULAR",
       "badgeAlt": "Mejor Valor",
       "title": "Pro",
-      "price": "$5",
+      "price": "{{price}}",
       "period": "/mes",
       "perAnalysis": "Solo $0.02 por analisis!",
       "features": {

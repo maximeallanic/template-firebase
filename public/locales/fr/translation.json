@@ -34,7 +34,7 @@
     "manage": "Gérer le forfait",
     "atLimit": "Vous avez atteint votre limite mensuelle. Passez à Pro pour continuer à analyser des emails.",
     "nearLimit": "Vous manquez d'analyses. Passez à Pro pour 250 analyses/mois.",
-    "upgradeCta": "Passer à Pro - 5€/mois",
+    "upgradeCta": "Passer à Pro - {{price}}/mois",
     "loading": "Chargement..."
   },
   "emailInput": {
@@ -141,7 +141,7 @@
       "badge": "⭐ LE PLUS POPULAIRE",
       "badgeAlt": "Meilleur Rapport Qualité-Prix",
       "title": "Pro",
-      "price": "5€",
+      "price": "{{price}}",
       "period": "/mois",
       "perAnalysis": "Seulement 0,02€ par analyse !",
       "features": {

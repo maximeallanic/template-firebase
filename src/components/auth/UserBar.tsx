@@ -11,6 +11,7 @@ import { signOut, createCheckoutSession } from '../../services/firebase';
 import { useAuthUser } from '../../hooks/useAuthUser';
 import { useCurrentUserSubscription } from '../../hooks/useHostSubscription';
 import { useSoundSettings } from '../../hooks/useSoundSettings';
+import { useCurrency } from '../../hooks/useCurrency';
 import { SUPPORTED_LANGUAGES, type SupportedLanguage } from '../../i18n/types';
 
 interface UserBarProps {
@@ -44,6 +45,9 @@ export const UserBar: React.FC<UserBarProps> = ({
 
     // Sound settings
     const { soundEnabled, toggleSound } = useSoundSettings();
+
+    // Currency pricing
+    const { price } = useCurrency();
 
     // Read from localStorage cache if props not provided
     const localProfile = getLocalProfile();
@@ -220,7 +224,7 @@ export const UserBar: React.FC<UserBarProps> = ({
                                         className="w-full px-4 py-2 text-left text-sm bg-gradient-to-r from-amber-500/10 to-orange-500/10 text-amber-400 hover:from-amber-500/20 hover:to-orange-500/20 transition-colors flex items-center gap-2 disabled:opacity-50"
                                     >
                                         <Crown className="w-4 h-4" aria-hidden="true" />
-                                        {isUpgrading ? t('pwa.upgrading') : `${t('pwa.upgrade')} — 4,99 €/${t('subscription.perMonth')}`}
+                                        {isUpgrading ? t('pwa.upgrading') : `${t('pwa.upgrade')} — ${price.formatted}/${t('subscription.perMonth')}`}
                                     </button>
                                 )}
                                 <button

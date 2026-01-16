@@ -34,7 +34,7 @@
     "manage": "Plan Verwalten",
     "atLimit": "Sie haben Ihr monatliches Limit erreicht. Upgraden Sie auf Pro, um weiter E-Mails zu analysieren.",
     "nearLimit": "Ihre Analysen gehen zur Neige. Erwagen Sie ein Upgrade auf Pro fur 250 Analysen/Monat.",
-    "upgradeCta": "Auf Pro Upgraden - 5€/Monat",
+    "upgradeCta": "Auf Pro Upgraden - {{price}}/Monat",
     "loading": "Laden..."
   },
   "emailInput": {
@@ -141,7 +141,7 @@
       "badge": "AM BELIEBTESTEN",
       "badgeAlt": "Bester Wert",
       "title": "Pro",
-      "price": "5€",
+      "price": "{{price}}",
       "period": "/Monat",
       "perAnalysis": "Nur 0,02€ pro Analyse!",
       "features": {
