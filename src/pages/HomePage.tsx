@@ -240,6 +240,18 @@ export default function HomePage() {
     }
   };
 
+  // Handle PWA install
+  const handleInstall = async () => {
+    console.log('[HomePage] Install button clicked');
+    haptic.tap();
+    try {
+      const success = await promptInstall();
+      console.log('[HomePage] Install prompt result:', success);
+    } catch (error) {
+      console.error('[HomePage] Failed to trigger install prompt:', error);
+    }
+  };
+
   // If this is a Firebase email action (verification or password reset), show the handler
   if ((mode === 'verifyEmail' || mode === 'resetPassword') && oobCode) {
     return <EmailActionHandler />;
@@ -316,7 +328,7 @@ export default function HomePage() {
                 </p>
               </div>
               <button
-                onClick={promptInstall}
+                onClick={handleInstall}
                 className="flex-shrink-0 flex items-center gap-2 px-4 py-2 rounded-xl bg-white text-indigo-600 font-bold text-sm hover:bg-indigo-50 transition-colors"
               >
                 <Download className="w-4 h-4" />
