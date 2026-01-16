@@ -240,6 +240,18 @@ export default function HomePage() {
     }
   };
 
+  // Handle PWA install
+  const handleInstall = async () => {
+    console.log('[HomePage] Install button clicked');
+    haptic.tap();
+    try {
+      const success = await promptInstall();
+      console.log('[HomePage] Install prompt result:', success);
+    } catch (error) {
+      console.error('[HomePage] Failed to trigger install prompt:', error);
+    }
+  };
+
   // If this is a Firebase email action (verification or password reset), show the handler
   if ((mode === 'verifyEmail' || mode === 'resetPassword') && oobCode) {
     return <EmailActionHandler />;
@@ -301,7 +313,7 @@ export default function HomePage() {
             initial={{ opacity: 0, y: -20 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -20 }}
-            className="fixed top-4 left-4 right-16 md:left-auto md:right-auto md:top-4 md:left-1/2 md:-translate-x-1/2 z-40"
+            className="fixed top-4 left-4 right-16 md:left-auto md:right-auto md:top-4 md:left-1/2 md:-translate-x-1/2 z-[60]"
           >
             <div className="flex items-center gap-3 px-4 py-3 rounded-2xl bg-gradient-to-r from-indigo-600/90 to-purple-600/90 backdrop-blur-sm border border-indigo-400/30 shadow-xl shadow-indigo-500/20">
               <div className="flex-shrink-0 w-10 h-10 rounded-xl bg-white/20 flex items-center justify-center">
@@ -316,7 +328,7 @@ export default function HomePage() {
                 </p>
               </div>
               <button
-                onClick={promptInstall}
+                onClick={handleInstall}
                 className="flex-shrink-0 flex items-center gap-2 px-4 py-2 rounded-xl bg-white text-indigo-600 font-bold text-sm hover:bg-indigo-50 transition-colors"
               >
                 <Download className="w-4 h-4" />
