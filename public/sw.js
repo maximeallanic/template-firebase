@@ -54,10 +54,15 @@ self.addEventListener('fetch', (event) => {
   // - API calls (Firebase, Cloud Functions)
   // - Non-GET requests
   // - Chrome extension requests
+  // Use strict hostname matching to prevent bypass attacks
+  const isGoogleAPI = url.hostname === 'googleapis.com' || 
+                      url.hostname.endsWith('.googleapis.com');
+  const isCloudFunction = url.hostname.endsWith('.cloudfunctions.net');
+  
   if (
     event.request.method !== 'GET' ||
-    url.origin.includes('googleapis.com') ||
-    url.origin.includes('cloudfunctions.net') ||
+    isGoogleAPI ||
+    isCloudFunction ||
     url.protocol === 'chrome-extension:' ||
     url.pathname.startsWith('/api/')
   ) {
