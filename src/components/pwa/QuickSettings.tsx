@@ -6,6 +6,7 @@ import { useTranslation } from 'react-i18next';
 import { useSoundSettings } from '../../hooks/useSoundSettings';
 import { useAuthUser } from '../../hooks/useAuthUser';
 import { useCurrentUserSubscription } from '../../hooks/useHostSubscription';
+import { useReducedMotion } from '../../hooks/useReducedMotion';
 import { leaveRoom } from '../../services/gameService';
 import { signOut, createCheckoutSession } from '../../services/firebase';
 import { safeStorage } from '../../utils/storage';
@@ -38,6 +39,7 @@ export function QuickSettings({ onEditProfile, roomCode, playerId }: QuickSettin
   const { soundEnabled, toggleSound } = useSoundSettings();
   const { user } = useAuthUser();
   const { isPremium, isLoading: isSubscriptionLoading } = useCurrentUserSubscription();
+  const shouldReduceMotion = useReducedMotion();
 
   const handleLanguageChange = (langCode: string) => {
     i18n.changeLanguage(langCode);
@@ -117,9 +119,9 @@ export function QuickSettings({ onEditProfile, roomCode, playerId }: QuickSettin
         <AnimatePresence>
           {isOpen && (
             <>
-              {/* Backdrop */}
+              {/* Backdrop - no blur for mobile performance */}
               <motion.div
-                className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[150]"
+                className="fixed inset-0 bg-black/70 z-[150]"
                 variants={backdropVariants}
                 initial="hidden"
                 animate="visible"
@@ -129,25 +131,24 @@ export function QuickSettings({ onEditProfile, roomCode, playerId }: QuickSettin
 
               {/* Panel */}
               <motion.div
-                className="fixed top-0 left-0 bottom-0 w-80 max-w-[85vw] z-[150] border-r border-white/10 overflow-hidden"
+                className="fixed top-0 left-0 bottom-0 w-80 max-w-[85vw] z-[150] border-r border-white/10 overflow-hidden will-change-transform"
                 initial={{ x: '-100%' }}
                 animate={{ x: 0 }}
                 exit={{ x: '-100%' }}
-                transition={{
-                  type: 'spring',
-                  stiffness: 300,
-                  damping: 30,
-                }}
+                transition={shouldReduceMotion
+                  ? { duration: 0 }
+                  : { type: 'tween', duration: 0.25, ease: [0.32, 0.72, 0, 1] }
+                }
                 style={{
                   paddingTop: 'env(safe-area-inset-top)',
                   paddingBottom: 'env(safe-area-inset-bottom)',
                 }}
               >
-                {/* Background gradient */}
+                {/* Background gradient - reduced blur for mobile performance */}
                 <div className="absolute inset-0 z-0">
                   <div className="absolute inset-0 bg-gradient-to-b from-slate-900 via-slate-900 to-slate-950" />
-                  <div className="absolute top-[-20%] left-[-30%] w-64 h-64 rounded-full bg-gradient-to-br from-rose-500/20 to-pink-500/10 blur-3xl" />
-                  <div className="absolute bottom-[10%] right-[-20%] w-48 h-48 rounded-full bg-gradient-to-br from-red-500/15 to-orange-500/10 blur-3xl" />
+                  <div className="absolute top-[-20%] left-[-30%] w-64 h-64 rounded-full bg-gradient-to-br from-rose-500/20 to-pink-500/10 blur-xl" />
+                  <div className="absolute bottom-[10%] right-[-20%] w-48 h-48 rounded-full bg-gradient-to-br from-red-500/15 to-orange-500/10 blur-xl" />
                 </div>
                 {/* Header */}
                 <div className="relative z-10 flex items-center justify-between p-4 border-b border-white/10">

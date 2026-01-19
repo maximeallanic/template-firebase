@@ -1,6 +1,6 @@
 # Changelog
 
-All notable changes to this project will be documented in this file.
+All notable changes to Spicy vs Sweet will be documented in this file.
 
 ## [Unreleased]
 
@@ -32,26 +32,15 @@ All notable changes to this project will be documented in this file.
 - **Internationalization**: 5 languages (EN, FR, ES, DE, PT)
 - **Responsive Design**: Works on desktop, tablet, and mobile
 
-### Tech Stack
-- React 19 + TypeScript + Vite 7
-- Firebase (Hosting, Functions Node 22, Firestore, Auth)
-- Google Vertex AI (Gemini 2.5 Flash)
-- Stripe for payments
-- Mailgun for email input
-- Tailwind CSS
-- i18next for translations
+## [Unreleased]
 
-### Documentation
-- Complete setup and deployment guides
-- GitHub Actions CI/CD workflows
-- Firebase security rules
-- Service account configuration guide
+Initial development version.
 
 ---
 
 ## Version Format
 
-This project follows [Semantic Versioning](https://semver.org/):
-- **MAJOR** version for incompatible API changes
-- **MINOR** version for new functionality in a backwards compatible manner
-- **PATCH** version for backwards compatible bug fixes
+This project uses [Semantic Versioning](https://semver.org/):
+- **MAJOR** version for incompatible changes
+- **MINOR** version for new features (backwards-compatible)
+- **PATCH** version for bug fixes (backwards-compatible)

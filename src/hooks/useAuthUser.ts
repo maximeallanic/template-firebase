@@ -26,7 +26,10 @@ export function useAuthUser(): AuthState {
     }, []);
 
     useEffect(() => {
+        let callbackReceived = false;
+
         const unsubscribe = onAuthChange(async (authUser) => {
+            callbackReceived = true;
             setUser(authUser);
 
             if (authUser) {
@@ -44,7 +47,18 @@ export function useAuthUser(): AuthState {
             setLoading(false);
         });
 
-        return () => unsubscribe();
+        // Safety timeout for native apps where auth callback may not fire
+        const timeout = setTimeout(() => {
+            if (!callbackReceived) {
+                console.warn('⚠️ useAuthUser: Auth callback timeout');
+                setLoading(false);
+            }
+        }, 3000);
+
+        return () => {
+            unsubscribe();
+            clearTimeout(timeout);
+        };
     }, []);
 
     return { user, profile, loading, refreshProfile };

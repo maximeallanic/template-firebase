@@ -1,0 +1,48 @@
+{
+  "project_info": {
+    "project_number": "235167916448",
+    "firebase_url": "https://spicy-vs-sweety-default-rtdb.europe-west1.firebasedatabase.app",
+    "project_id": "spicy-vs-sweety",
+    "storage_bucket": "spicy-vs-sweety.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:235167916448:android:02d14a6a58d9ad8946c4c5",
+        "android_client_info": {
+          "package_name": "com.spicyvssweet.app"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "235167916448-v0rh6d7cvhael9nc79oftcg304tcpijn.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.spicyvssweet.app",
+            "certificate_hash": "93867033ae63d4475226f4386ebefd625b801489"
+          }
+        },
+        {
+          "client_id": "235167916448-4vuo4v1js10scr2d2bbk6q1iribtgn6k.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBqgVPQqNItNhF21yDRt11irznWlN_N174"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "235167916448-4vuo4v1js10scr2d2bbk6q1iribtgn6k.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

@@ -12,6 +12,12 @@
   }
 }
 
+/* iOS Safe Area Support */
+html {
+  /* Extend background to cover safe areas */
+  background-color: #0f172a;
+}
+
 body {
   margin: 0;
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
@@ -20,6 +26,20 @@ body {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   background-color: #0f172a;
+  /* Extend to full viewport including safe areas */
+  min-height: 100vh;
+  min-height: 100dvh;
+  /* Add padding for safe areas so content doesn't overlap notch/home indicator */
+  padding-top: env(safe-area-inset-top);
+  padding-bottom: env(safe-area-inset-bottom);
+  padding-left: env(safe-area-inset-left);
+  padding-right: env(safe-area-inset-right);
+}
+
+/* For Capacitor apps - ensure full screen coverage */
+#root {
+  min-height: 100vh;
+  min-height: 100dvh;
 }
 
 /* Design System - Reusable Component Classes */
@@ -140,6 +160,31 @@ body {
   .pwa-main-content {
     display: none !important;
   }
+}
+
+/* Native app mode - Capacitor iOS/Android */
+/* Applied via class set in main.tsx when running as native app */
+html.native-app, html.native-app body {
+  overscroll-behavior: none;
+  -webkit-overflow-scrolling: touch;
+  /* Fixed dimensions to prevent scroll */
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+}
+
+html.native-app #root {
+  width: 100%;
+  height: 100%;
+  overflow: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* Safe areas for native Capacitor apps */
+html.native-app body {
+  padding-top: env(safe-area-inset-top, 0px);
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+  /* Don't apply left/right padding - let content handle it */
 }
 
 /* PWA mode - standalone/fullscreen display mode */

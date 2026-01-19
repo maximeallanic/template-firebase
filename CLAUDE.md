@@ -430,6 +430,11 @@ functions/src/
 └── scripts/
     ├── fetch-questions.ts    # Fetch questions from DB
     └── delete-questions.ts   # Delete questions from DB
+
+scripts/                      # Root-level scripts
+├── deploy-all.sh             # Deploy all services
+├── bump-version.cjs          # Version bump utility (Node.js)
+└── bump-version.sh           # Version bump (bash alternative)
 ```
 
 ## Common Tasks
@@ -612,16 +617,77 @@ Before deploying to production:
 
 ## CI/CD Pipeline
 
+### Create Release (`.github/workflows/create-release.yml`)
+**Triggers:** Manual workflow dispatch only
+
+**Inputs:**
+| Input | Description | Options |
+|-------|-------------|---------|
+| `bump_type` | Version increment type | `patch`, `minor`, `major` |
+| `generate_ai_summary` | Generate AI changelog summary | `true` (default), `false` |
+| `prerelease` | Mark as pre-release | `true`, `false` (default) |
+
+**What it does:**
+1. Bumps version in `package.json`, Android, and iOS configs
+2. Generates categorized changelog from commits
+3. Creates AI summary of changes (via Gemini API)
+4. Updates `CHANGELOG.md`
+5. Commits changes and creates git tag
+6. Creates GitHub Release with full changelog
+
+**Usage:**
+1. Go to Actions → "Create Release"
+2. Click "Run workflow"
+3. Select bump type (patch/minor/major)
+4. Optionally disable AI summary or mark as pre-release
+5. Click "Run workflow"
+
+**Required Secrets:**
+| Secret | Description |
+|--------|-------------|
+| `GEMINI_API_KEY` | Google Gemini API key (optional, for AI summaries) |
+
 ### Production Deployment (`.github/workflows/firebase-hosting-merge.yml`)
-**Triggers:** Push to `master` branch
+**Triggers:**
+- Push of version tags (`v*`, e.g., `v1.0.0`, `v2.1.3`)
+- Manual workflow dispatch (requires typing "deploy" to confirm)
 
 **Stages:**
 1. Quality Checks - ESLint, TypeScript type-check
 2. Build - Frontend + Functions builds
 3. Deploy - Deploy to Firebase Hosting + Functions
 
+**Note:** Use the "Create Release" workflow to create tags, which will automatically trigger this deployment.
+
 ### PR Preview (`.github/workflows/firebase-hosting-pull-request.yml`)
 **Triggers:** Pull request creation or update
 - Automatic preview deployment
 - Quality checks validation
 - Temporary preview URLs (expire after 7 days)
+
+### Mobile PR Preview (`.github/workflows/mobile-pr-preview.yml`)
+**Triggers:** Pull request to `master` branch with platform labels
+
+**Label-based Build Triggering:**
+| Label | Effect |
+|-------|--------|
+| `mobile:android` | Build Android APK and distribute to Firebase |
+| `mobile:ios` | Build iOS IPA and distribute to Firebase |
+
+- Builds only run when corresponding labels are present
+- Add both labels to build for both platforms
+- Distributes to Firebase App Distribution (when configured)
+- Comments PR with download links and build status
+
+**Required Secrets for Mobile Distribution:**
+
+| Secret | Description |
+|--------|-------------|
+| `FIREBASE_ANDROID_APP_ID` | Firebase Android App ID |
+| `FIREBASE_IOS_APP_ID` | Firebase iOS App ID |
+| `FIREBASE_SERVICE_ACCOUNT` | Service account JSON for Firebase |
+| `IOS_P12_BASE64` | Distribution certificate (.p12) in base64 |
+| `IOS_P12_PASSWORD` | Password for the .p12 certificate |
+| `IOS_PROVISIONING_PROFILE_BASE64` | Ad-Hoc provisioning profile in base64 |
+| `IOS_CODE_SIGN_IDENTITY` | e.g., "Apple Distribution: Your Name (TEAMID)" |
+| `IOS_TEAM_ID` | Apple Developer Team ID |

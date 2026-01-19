@@ -1,0 +1,558 @@
+name: Mobile PR Preview
+
+on:
+  pull_request:
+    branches: [master]
+    types: [opened, synchronize, reopened, labeled]
+
+env:
+  NODE_VERSION: '22'
+
+jobs:
+  # Check which platforms should be built based on labels
+  check-labels:
+    name: Check Platform Labels
+    runs-on: ubuntu-latest
+    outputs:
+      build_android: ${{ steps.check.outputs.build_android }}
+      build_ios: ${{ steps.check.outputs.build_ios }}
+      any_platform: ${{ steps.check.outputs.any_platform }}
+    steps:
+      - name: Check for platform labels
+        id: check
+        run: |
+          LABELS='${{ toJSON(github.event.pull_request.labels.*.name) }}'
+
+          # Check for Android label
+          if echo "$LABELS" | grep -q '"mobile:android"'; then
+            echo "build_android=true" >> $GITHUB_OUTPUT
+            echo "✅ Label 'mobile:android' found - Android build enabled"
+          else
+            echo "build_android=false" >> $GITHUB_OUTPUT
+            echo "⏭️ Label 'mobile:android' not found - Android build skipped"
+          fi
+
+          # Check for iOS label
+          if echo "$LABELS" | grep -q '"mobile:ios"'; then
+            echo "build_ios=true" >> $GITHUB_OUTPUT
+            echo "✅ Label 'mobile:ios' found - iOS build enabled"
+          else
+            echo "build_ios=false" >> $GITHUB_OUTPUT
+            echo "⏭️ Label 'mobile:ios' not found - iOS build skipped"
+          fi
+
+          # Check if any platform is enabled
+          if echo "$LABELS" | grep -q '"mobile:android"\|"mobile:ios"'; then
+            echo "any_platform=true" >> $GITHUB_OUTPUT
+          else
+            echo "any_platform=false" >> $GITHUB_OUTPUT
+            echo "ℹ️ No mobile platform labels found. Add 'mobile:android' and/or 'mobile:ios' labels to trigger builds."
+          fi
+
+  # Build web assets (shared by both platforms)
+  build-web:
+    name: Build Web Assets
+    needs: check-labels
+    if: needs.check-labels.outputs.any_platform == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Create production .env file
+        run: |
+          cat > .env << EOF
+          VITE_FIREBASE_API_KEY=${{ secrets.VITE_FIREBASE_API_KEY }}
+          VITE_FIREBASE_AUTH_DOMAIN=${{ secrets.VITE_FIREBASE_AUTH_DOMAIN }}
+          VITE_FIREBASE_PROJECT_ID=${{ secrets.VITE_FIREBASE_PROJECT_ID }}
+          VITE_FIREBASE_STORAGE_BUCKET=${{ secrets.VITE_FIREBASE_STORAGE_BUCKET }}
+          VITE_FIREBASE_MESSAGING_SENDER_ID=${{ secrets.VITE_FIREBASE_MESSAGING_SENDER_ID }}
+          VITE_FIREBASE_APP_ID=${{ secrets.VITE_FIREBASE_APP_ID }}
+          VITE_FIREBASE_MEASUREMENT_ID=${{ secrets.VITE_FIREBASE_MEASUREMENT_ID }}
+          VITE_FIREBASE_DATABASE_URL=${{ secrets.VITE_FIREBASE_DATABASE_URL }}
+          EOF
+
+      - name: Build web app
+        run: npm run build
+
+      - name: Sync Capacitor
+        run: npx cap sync
+
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: web-build
+          path: |
+            dist/
+            ios/
+            android/
+          retention-days: 1
+
+  build-android:
+    name: Build Android APK
+    needs: [check-labels, build-web]
+    if: needs.check-labels.outputs.build_android == 'true'
+    runs-on: ubuntu-latest
+    outputs:
+      apk_path: ${{ steps.build.outputs.apk_path }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Download web build
+        uses: actions/download-artifact@v4
+        with:
+          name: web-build
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Sync Capacitor Android
+        run: npx cap sync android
+
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '21'
+
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v3
+
+      - name: Build Android APK (Debug)
+        id: build
+        working-directory: android
+        run: |
+          ./gradlew assembleDebug
+          echo "apk_path=android/app/build/outputs/apk/debug/app-debug.apk" >> $GITHUB_OUTPUT
+
+      - name: Upload APK artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: android-apk-pr-${{ github.event.pull_request.number }}
+          path: android/app/build/outputs/apk/debug/app-debug.apk
+          retention-days: 14
+
+  distribute-android:
+    name: Distribute Android to Firebase
+    needs: [check-labels, build-android]
+    if: needs.check-labels.outputs.build_android == 'true' && needs.build-android.result == 'success'
+    runs-on: ubuntu-latest
+    outputs:
+      distributed: ${{ steps.set-output.outputs.distributed }}
+    steps:
+      - name: Check if Firebase App Distribution is configured
+        id: check-config
+        run: |
+          if [ -z "${{ secrets.FIREBASE_ANDROID_APP_ID }}" ]; then
+            echo "configured=false" >> $GITHUB_OUTPUT
+            echo "⚠️ Firebase App Distribution (Android) is not configured. Skipping distribution."
+          else
+            echo "configured=true" >> $GITHUB_OUTPUT
+            echo "✅ Firebase App Distribution (Android) is configured."
+          fi
+
+      - name: Checkout code
+        if: steps.check-config.outputs.configured == 'true'
+        uses: actions/checkout@v4
+
+      - name: Download APK artifact
+        if: steps.check-config.outputs.configured == 'true'
+        uses: actions/download-artifact@v4
+        with:
+          name: android-apk-pr-${{ github.event.pull_request.number }}
+          path: ./apk
+
+      - name: Upload to Firebase App Distribution
+        id: upload
+        if: steps.check-config.outputs.configured == 'true'
+        uses: wzieba/Firebase-Distribution-Github-Action@v1
+        with:
+          appId: ${{ secrets.FIREBASE_ANDROID_APP_ID }}
+          serviceCredentialsFileContent: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+          groups: testers
+          file: ./apk/app-debug.apk
+          releaseNotes: |
+            PR #${{ github.event.pull_request.number }}: ${{ github.event.pull_request.title }}
+
+            Platform: Android
+            Branch: ${{ github.head_ref }}
+            Commit: ${{ github.sha }}
+
+            ${{ github.event.pull_request.body }}
+
+      - name: Set output
+        id: set-output
+        run: |
+          if [ "${{ steps.check-config.outputs.configured }}" == "true" ]; then
+            echo "distributed=true" >> $GITHUB_OUTPUT
+          else
+            echo "distributed=false" >> $GITHUB_OUTPUT
+          fi
+
+  # iOS Build
+  build-ios:
+    name: Build iOS IPA
+    needs: [check-labels, build-web]
+    if: needs.check-labels.outputs.build_ios == 'true'
+    runs-on: macos-latest
+    outputs:
+      ipa_built: ${{ steps.set-output.outputs.ipa_built }}
+    steps:
+      - name: Check if iOS signing is configured
+        id: check-signing
+        run: |
+          if [ -z "${{ secrets.IOS_P12_BASE64 }}" ] || [ -z "${{ secrets.IOS_PROVISIONING_PROFILE_BASE64 }}" ]; then
+            echo "configured=false" >> $GITHUB_OUTPUT
+            echo "⚠️ iOS signing certificates not configured. Building unsigned for simulator only."
+          else
+            echo "configured=true" >> $GITHUB_OUTPUT
+            echo "✅ iOS signing certificates are configured."
+          fi
+
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Download web build
+        uses: actions/download-artifact@v4
+        with:
+          name: web-build
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Sync Capacitor iOS
+        run: npx cap sync ios
+
+      - name: Install CocoaPods
+        run: sudo gem install cocoapods
+
+      - name: Install Pods
+        working-directory: ios/App
+        run: pod install
+
+      # Signed build for Firebase App Distribution
+      - name: Install Apple Certificate
+        if: steps.check-signing.outputs.configured == 'true'
+        env:
+          P12_BASE64: ${{ secrets.IOS_P12_BASE64 }}
+          P12_PASSWORD: ${{ secrets.IOS_P12_PASSWORD }}
+          KEYCHAIN_PASSWORD: ${{ github.run_id }}
+        run: |
+          # Create temporary keychain
+          KEYCHAIN_PATH=$RUNNER_TEMP/app-signing.keychain-db
+          security create-keychain -p "$KEYCHAIN_PASSWORD" $KEYCHAIN_PATH
+          security set-keychain-settings -lut 21600 $KEYCHAIN_PATH
+          security unlock-keychain -p "$KEYCHAIN_PASSWORD" $KEYCHAIN_PATH
+
+          # Import certificate
+          echo "$P12_BASE64" | base64 --decode > $RUNNER_TEMP/certificate.p12
+          security import $RUNNER_TEMP/certificate.p12 -P "$P12_PASSWORD" -A -t cert -f pkcs12 -k $KEYCHAIN_PATH
+          security set-key-partition-list -S apple-tool:,apple: -k "$KEYCHAIN_PASSWORD" $KEYCHAIN_PATH
+          security list-keychain -d user -s $KEYCHAIN_PATH
+
+      - name: Install Provisioning Profile
+        if: steps.check-signing.outputs.configured == 'true'
+        env:
+          PROVISIONING_PROFILE_BASE64: ${{ secrets.IOS_PROVISIONING_PROFILE_BASE64 }}
+        run: |
+          PP_PATH=$RUNNER_TEMP/build_pp.mobileprovision
+          echo "$PROVISIONING_PROFILE_BASE64" | base64 --decode > $PP_PATH
+
+          # Install provisioning profile
+          mkdir -p ~/Library/MobileDevice/Provisioning\ Profiles
+          cp $PP_PATH ~/Library/MobileDevice/Provisioning\ Profiles/
+
+          # Extract UUID for later use
+          PP_UUID=$(/usr/libexec/PlistBuddy -c "Print UUID" /dev/stdin <<< $(/usr/bin/security cms -D -i $PP_PATH))
+          echo "PP_UUID=$PP_UUID" >> $GITHUB_ENV
+
+      - name: Build iOS IPA (Signed)
+        if: steps.check-signing.outputs.configured == 'true'
+        working-directory: ios/App
+        env:
+          CODE_SIGN_IDENTITY: ${{ secrets.IOS_CODE_SIGN_IDENTITY }}
+          DEVELOPMENT_TEAM: ${{ secrets.IOS_TEAM_ID }}
+        run: |
+          # Create export options plist
+          cat > ExportOptions.plist << EOF
+          <?xml version="1.0" encoding="UTF-8"?>
+          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+          <plist version="1.0">
+          <dict>
+              <key>method</key>
+              <string>ad-hoc</string>
+              <key>teamID</key>
+              <string>${DEVELOPMENT_TEAM}</string>
+              <key>signingStyle</key>
+              <string>manual</string>
+              <key>provisioningProfiles</key>
+              <dict>
+                  <key>com.spicyvssweet.app</key>
+                  <string>${PP_UUID}</string>
+              </dict>
+          </dict>
+          </plist>
+          EOF
+
+          # Archive
+          xcodebuild -workspace App.xcworkspace \
+            -scheme App \
+            -configuration Release \
+            -destination 'generic/platform=iOS' \
+            -archivePath build/App.xcarchive \
+            archive \
+            CODE_SIGN_IDENTITY="$CODE_SIGN_IDENTITY" \
+            DEVELOPMENT_TEAM="$DEVELOPMENT_TEAM" \
+            PROVISIONING_PROFILE_SPECIFIER="$PP_UUID"
+
+          # Export IPA
+          xcodebuild -exportArchive \
+            -archivePath build/App.xcarchive \
+            -exportPath build/ipa \
+            -exportOptionsPlist ExportOptions.plist
+
+      - name: Build iOS (Unsigned - Simulator only)
+        if: steps.check-signing.outputs.configured != 'true'
+        working-directory: ios/App
+        run: |
+          xcodebuild -workspace App.xcworkspace \
+            -scheme App \
+            -configuration Debug \
+            -sdk iphonesimulator \
+            -derivedDataPath build/DerivedData \
+            clean build \
+            CODE_SIGN_IDENTITY="" \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGNING_ALLOWED=NO
+
+      - name: Upload iOS IPA artifact
+        if: steps.check-signing.outputs.configured == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: ios-ipa-pr-${{ github.event.pull_request.number }}
+          path: ios/App/build/ipa/*.ipa
+          retention-days: 14
+
+      - name: Upload iOS build artifact (unsigned)
+        if: steps.check-signing.outputs.configured != 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: ios-build-pr-${{ github.event.pull_request.number }}
+          path: ios/App/build/DerivedData/Build/Products/Debug-iphonesimulator/
+          retention-days: 14
+
+      - name: Set output
+        id: set-output
+        run: |
+          if [ "${{ steps.check-signing.outputs.configured }}" == "true" ]; then
+            echo "ipa_built=true" >> $GITHUB_OUTPUT
+          else
+            echo "ipa_built=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Cleanup keychain
+        if: always() && steps.check-signing.outputs.configured == 'true'
+        run: |
+          security delete-keychain $RUNNER_TEMP/app-signing.keychain-db || true
+
+  # iOS Distribution to Firebase
+  distribute-ios:
+    name: Distribute iOS to Firebase
+    needs: [check-labels, build-ios]
+    runs-on: ubuntu-latest
+    if: needs.check-labels.outputs.build_ios == 'true' && needs.build-ios.outputs.ipa_built == 'true'
+    outputs:
+      distributed: ${{ steps.set-output.outputs.distributed }}
+    steps:
+      - name: Check if Firebase App Distribution (iOS) is configured
+        id: check-config
+        run: |
+          if [ -z "${{ secrets.FIREBASE_IOS_APP_ID }}" ]; then
+            echo "configured=false" >> $GITHUB_OUTPUT
+            echo "⚠️ Firebase App Distribution (iOS) is not configured. Skipping distribution."
+          else
+            echo "configured=true" >> $GITHUB_OUTPUT
+            echo "✅ Firebase App Distribution (iOS) is configured."
+          fi
+
+      - name: Checkout code
+        if: steps.check-config.outputs.configured == 'true'
+        uses: actions/checkout@v4
+
+      - name: Download IPA artifact
+        if: steps.check-config.outputs.configured == 'true'
+        uses: actions/download-artifact@v4
+        with:
+          name: ios-ipa-pr-${{ github.event.pull_request.number }}
+          path: ./ipa
+
+      - name: Find IPA file
+        if: steps.check-config.outputs.configured == 'true'
+        id: find-ipa
+        run: |
+          IPA_FILE=$(find ./ipa -name "*.ipa" | head -n 1)
+          echo "ipa_path=$IPA_FILE" >> $GITHUB_OUTPUT
+          echo "Found IPA: $IPA_FILE"
+
+      - name: Upload to Firebase App Distribution
+        id: upload
+        if: steps.check-config.outputs.configured == 'true'
+        uses: wzieba/Firebase-Distribution-Github-Action@v1
+        with:
+          appId: ${{ secrets.FIREBASE_IOS_APP_ID }}
+          serviceCredentialsFileContent: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+          groups: testers
+          file: ${{ steps.find-ipa.outputs.ipa_path }}
+          releaseNotes: |
+            PR #${{ github.event.pull_request.number }}: ${{ github.event.pull_request.title }}
+
+            Platform: iOS
+            Branch: ${{ github.head_ref }}
+            Commit: ${{ github.sha }}
+
+            ${{ github.event.pull_request.body }}
+
+      - name: Set output
+        id: set-output
+        run: |
+          if [ "${{ steps.check-config.outputs.configured }}" == "true" ]; then
+            echo "distributed=true" >> $GITHUB_OUTPUT
+          else
+            echo "distributed=false" >> $GITHUB_OUTPUT
+          fi
+
+  comment-pr:
+    name: Comment on PR
+    needs: [check-labels, build-android, build-ios, distribute-android, distribute-ios]
+    runs-on: ubuntu-latest
+    if: always()
+    permissions:
+      pull-requests: write
+    steps:
+      - name: Find existing comment
+        uses: peter-evans/find-comment@v3
+        id: find-comment
+        with:
+          issue-number: ${{ github.event.pull_request.number }}
+          comment-author: 'github-actions[bot]'
+          body-includes: '📱 Mobile Preview'
+
+      - name: Create or update comment
+        uses: peter-evans/create-or-update-comment@v4
+        with:
+          comment-id: ${{ steps.find-comment.outputs.comment-id }}
+          issue-number: ${{ github.event.pull_request.number }}
+          edit-mode: replace
+          body: |
+            ## 📱 Mobile Preview
+
+            | Platform | Label | Build | Firebase Distribution |
+            |----------|-------|-------|----------------------|
+            | 🤖 Android | ${{ needs.check-labels.outputs.build_android == 'true' && '✅ `mobile:android`' || '❌ Missing' }} | ${{ needs.build-android.result == 'success' && '✅ Success' || needs.build-android.result == 'skipped' && '⏭️ Skipped' || needs.build-android.result == 'failure' && '❌ Failed' || '⏭️ Not triggered' }} | ${{ needs.distribute-android.outputs.distributed == 'true' && '✅ Distributed' || needs.build-android.result == 'success' && '⚠️ Not configured' || '⏭️ N/A' }} |
+            | 🍎 iOS | ${{ needs.check-labels.outputs.build_ios == 'true' && '✅ `mobile:ios`' || '❌ Missing' }} | ${{ needs.build-ios.result == 'success' && '✅ Success' || needs.build-ios.result == 'skipped' && '⏭️ Skipped' || needs.build-ios.result == 'failure' && '❌ Failed' || '⏭️ Not triggered' }} | ${{ needs.distribute-ios.outputs.distributed == 'true' && '✅ Distributed' || needs.build-ios.outputs.ipa_built == 'true' && '⚠️ Not configured' || '⏭️ N/A' }} |
+
+            ${{ needs.check-labels.outputs.any_platform != 'true' && '> ℹ️ **No mobile builds triggered.** Add `mobile:android` and/or `mobile:ios` labels to this PR to trigger mobile builds.' || '' }}
+
+            ---
+
+            ### 🤖 Android
+
+            ${{ needs.check-labels.outputs.build_android != 'true' && '⏭️ Add the `mobile:android` label to trigger Android builds.' || '' }}
+
+            ${{ needs.build-android.result == 'success' && '**Download APK:** [app-debug.apk](https://github.com/' || '' }}${{ needs.build-android.result == 'success' && github.repository || '' }}${{ needs.build-android.result == 'success' && '/actions/runs/' || '' }}${{ needs.build-android.result == 'success' && github.run_id || '' }}${{ needs.build-android.result == 'success' && ')' || '' }}
+
+            ${{ needs.build-android.result == 'success' && '> Artifacts → `android-apk-pr-' || '' }}${{ needs.build-android.result == 'success' && github.event.pull_request.number || '' }}${{ needs.build-android.result == 'success' && '`' || '' }}
+
+            ${{ needs.distribute-android.outputs.distributed == 'true' && '✅ **Distributed to testers!** Check Firebase App Distribution.' || '' }}
+
+            ### 🍎 iOS
+
+            ${{ needs.check-labels.outputs.build_ios != 'true' && '⏭️ Add the `mobile:ios` label to trigger iOS builds.' || '' }}
+
+            ${{ needs.build-ios.outputs.ipa_built == 'true' && '**Download IPA:** [App.ipa](https://github.com/' || needs.build-ios.result == 'success' && '**Download Build:** [ios-build](https://github.com/' || '' }}${{ needs.build-ios.result == 'success' && github.repository || '' }}${{ needs.build-ios.result == 'success' && '/actions/runs/' || '' }}${{ needs.build-ios.result == 'success' && github.run_id || '' }}${{ needs.build-ios.result == 'success' && ')' || '' }}
+
+            ${{ needs.build-ios.outputs.ipa_built == 'true' && '> Artifacts → `ios-ipa-pr-' || needs.build-ios.result == 'success' && '> Artifacts → `ios-build-pr-' || '' }}${{ needs.build-ios.result == 'success' && github.event.pull_request.number || '' }}${{ needs.build-ios.result == 'success' && '`' || '' }}
+
+            ${{ needs.distribute-ios.outputs.distributed == 'true' && '✅ **Distributed to testers!** Check Firebase App Distribution.' || '' }}
+
+            ${{ needs.check-labels.outputs.build_ios == 'true' && needs.build-ios.result == 'success' && needs.build-ios.outputs.ipa_built != 'true' && '⚠️ iOS signing not configured. Set up certificates to enable IPA builds.' || '' }}
+
+            ---
+
+            <details>
+            <summary>🏷️ How to trigger builds</summary>
+
+            Add the following labels to this PR to trigger mobile builds:
+
+            | Label | Effect |
+            |-------|--------|
+            | `mobile:android` | Build Android APK and distribute to Firebase |
+            | `mobile:ios` | Build iOS IPA and distribute to Firebase |
+
+            You can add both labels to build for both platforms.
+
+            </details>
+
+            <details>
+            <summary>📋 How to install</summary>
+
+            **Android:**
+            1. Download the APK from the link above
+            2. Transfer to your Android device
+            3. Enable "Install from unknown sources" if prompted
+            4. Open the APK to install
+
+            **iOS (via Firebase App Distribution):**
+            1. Accept the tester invitation email from Firebase
+            2. Install the Firebase App Tester app
+            3. Open the app and sign in
+            4. Find and install the latest build
+
+            </details>
+
+            <details>
+            <summary>🔧 Build info</summary>
+
+            - **Commit:** ${{ github.sha }}
+            - **Branch:** ${{ github.head_ref }}
+            - **Workflow:** [Run #${{ github.run_number }}](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }})
+
+            </details>
+
+            <details>
+            <summary>🔑 Required secrets for iOS distribution</summary>
+
+            To enable iOS builds with Firebase App Distribution, configure these secrets:
+
+            | Secret | Description |
+            |--------|-------------|
+            | `IOS_P12_BASE64` | Distribution certificate (.p12) encoded in base64 |
+            | `IOS_P12_PASSWORD` | Password for the .p12 certificate |
+            | `IOS_PROVISIONING_PROFILE_BASE64` | Ad-Hoc provisioning profile encoded in base64 |
+            | `IOS_CODE_SIGN_IDENTITY` | e.g., "Apple Distribution: Your Name (TEAMID)" |
+            | `IOS_TEAM_ID` | Your Apple Developer Team ID |
+            | `FIREBASE_IOS_APP_ID` | Firebase iOS App ID (e.g., 1:123456789:ios:abc123) |
+
+            </details>

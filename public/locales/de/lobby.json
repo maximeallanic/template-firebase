@@ -37,5 +37,9 @@
     "startGame": "LOS GEHT'S!",
     "waitingForHost": "Der Host bereitet sich mental vor...",
     "spectatorMode": "POPCORN-MODUS"
+  },
+  "mobile": {
+    "gameOptions": "Spieloptionen",
+    "back": "Zurück"
   }
 }

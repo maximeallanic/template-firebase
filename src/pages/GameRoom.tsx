@@ -25,7 +25,8 @@ import { PhaseTransition } from '../components/game/PhaseTransition';
 import { DebugPanel } from '../components/game/DebugPanel';
 import { MockPlayerProvider } from '../contexts/MockPlayerContext';
 import {
-    Flame, Candy, Link, Eye, Clapperboard, Check, Share2, Users, Scale, Play
+    Flame, Candy, Link, Eye, Clapperboard, Check, Share2, Users, Scale, Play,
+    Settings, ChevronLeft
 } from 'lucide-react';
 import { AvatarIcon } from '../components/AvatarIcon';
 import { audioService } from '../services/audioService';
@@ -99,6 +100,8 @@ export default function GameRoom() {
     const [showLobbyOnboarding, setShowLobbyOnboarding] = useState(false);
     // Profile edit modal for PWA mode
     const [showProfileEdit, setShowProfileEdit] = useState(false);
+    // Mobile lobby: 2-step navigation (1 = players/teams, 2 = game options)
+    const [mobileStep, setMobileStep] = useState<1 | 2>(1);
 
     // Refs for tracking previous values
     const prevStatus = useRef<string>('');
@@ -370,23 +373,53 @@ export default function GameRoom() {
                                         animate={{ opacity: 1 }}
                                         exit={{ opacity: 0 }}
                                         transition={{ duration: durations.fast, ease: organicEase }}
-                                        className="flex flex-col items-center"
+                                        className="flex flex-col items-center w-full"
                                     >
+                                        {/* Header always visible */}
                                         <LobbyHeader roomCode={room.code} linkCopied={linkCopied} onCopyLink={handleCopyLink} />
-                                        <UnassignedPlayersList
-                                            players={unassigned}
-                                            roomCode={room.code}
-                                            isHost={isHost}
-                                        />
-                                        <StartGameButton
-                                            isHost={isHost}
-                                            canStart={players.length >= 2 && unassigned.length === 0}
-                                            onStart={handleStartGame}
-                                            difficulty={getRoomDifficulty(room)}
-                                            onDifficultyChange={(d) => updateRoomDifficulty(room.code, d)}
-                                            languageInfo={getRoomLanguageInfo(room)}
-                                            onLanguageChange={(lang) => updateRoomForcedLanguage(room.code, lang)}
-                                        />
+
+                                        {/* Mobile: 2-step navigation */}
+                                        <div className="md:hidden w-full">
+                                            {mobileStep === 1 ? (
+                                                <>
+                                                    <UnassignedPlayersList
+                                                        players={unassigned}
+                                                        roomCode={room.code}
+                                                        isHost={isHost}
+                                                    />
+                                                    <MobileNextStepButton onClick={() => setMobileStep(2)} />
+                                                </>
+                                            ) : (
+                                                <MobileGameOptions
+                                                    onBack={() => setMobileStep(1)}
+                                                    isHost={isHost}
+                                                    canStart={players.length >= 2 && unassigned.length === 0}
+                                                    onStart={handleStartGame}
+                                                    difficulty={getRoomDifficulty(room)}
+                                                    onDifficultyChange={(d) => updateRoomDifficulty(room.code, d)}
+                                                    languageInfo={getRoomLanguageInfo(room)}
+                                                    onLanguageChange={(lang) => updateRoomForcedLanguage(room.code, lang)}
+                                                />
+                                            )}
+                                        </div>
+
+                                        {/* Desktop: All in one view */}
+                                        <div className="hidden md:block w-full">
+                                            <UnassignedPlayersList
+                                                players={unassigned}
+                                                roomCode={room.code}
+                                                isHost={isHost}
+                                            />
+                                            <StartGameButton
+                                                isHost={isHost}
+                                                canStart={players.length >= 2 && unassigned.length === 0}
+                                                onStart={handleStartGame}
+                                                difficulty={getRoomDifficulty(room)}
+                                                onDifficultyChange={(d) => updateRoomDifficulty(room.code, d)}
+                                                languageInfo={getRoomLanguageInfo(room)}
+                                                onLanguageChange={(lang) => updateRoomForcedLanguage(room.code, lang)}
+                                            />
+                                        </div>
                                     </motion.div>
                                 )}
                             </AnimatePresence>
@@ -506,11 +539,16 @@ function TeamSide({ team, players }: { team: 'spicy' | 'sweet'; players: Player[
     const variants = prefersReducedMotion ? playerCardReducedVariants : playerCardVariants;
 
     return (
-        <div className={`flex-1 ${isSpicy ? 'bg-red-900/20 border-b-4 md:border-b-0 md:border-r-4 border-red-600/30' : 'bg-pink-900/20'} flex flex-col items-center justify-center p-8 relative overflow-hidden group`}>
+        <div className={`flex-1 ${isSpicy ? 'bg-red-900/20 border-b-4 md:border-b-0 md:border-r-4 border-red-600/30' : 'bg-pink-900/20'} flex flex-col items-center ${isSpicy ? 'md:items-start justify-start pt-16' : 'md:items-end justify-end pb-16'} md:justify-center md:pt-0 md:pb-0 p-8 relative overflow-hidden group`}>
             <div className={`absolute inset-0 bg-gradient-to-${isSpicy ? 'br' : 'tl'} from-${isSpicy ? 'red' : 'pink'}-900/0 via-${isSpicy ? 'red' : 'pink'}-600/5 to-${isSpicy ? 'red' : 'pink'}-500/10 pointer-events-none`} />
 
-            <h2 className={`text-3xl md:text-5xl font-black ${isSpicy ? 'text-red-500' : 'text-pink-500'} uppercase tracking-tighter mb-8 drop-shadow-xl z-0 opacity-80 flex items-center gap-3`}>
-                Team {t(`common:teams.${team}`)} {isSpicy ? <Flame className="w-10 h-10 md:w-16 md:h-16" /> : <Candy className="w-10 h-10 md:w-16 md:h-16" />}
+            <h2 className={`text-3xl md:text-5xl font-black ${isSpicy ? 'text-red-500' : 'text-pink-500'} uppercase tracking-tighter mb-8 drop-shadow-xl z-0 opacity-80 flex items-end gap-3`}>
+                <span className="pb-[15px]">Team</span>
+                <img
+                    src={isSpicy ? '/team_spicy.svg' : '/team_sweet.svg'}
+                    alt={`Team ${t(`common:teams.${team}`)}`}
+                    className="w-20 h-20 md:w-32 md:h-32"
+                />
             </h2>
 
             <div className="grid grid-cols-2 gap-4 w-full max-w-md z-10">
@@ -529,7 +567,7 @@ function TeamSide({ team, players }: { team: 'spicy' | 'sweet'; players: Player[
                     ))}
                 </AnimatePresence>
                 {players.length === 0 && (
-                    <p className={`col-span-2 text-center ${isSpicy ? 'text-red-300/50' : 'text-sweet-300/50'} font-medium italic`}>
+                    <p className={`col-span-2 text-center ${isSpicy ? 'md:text-left text-red-300/50' : 'md:text-right text-sweet-300/50'} font-medium italic`}>
                         {isSpicy ? t('lobby:teams.waitingSpicy') : t('lobby:teams.waitingSweet')}
                     </p>
                 )}
@@ -553,7 +591,7 @@ function PlayerCard({ player, theme }: { player: Player; theme: 'spicy' | 'sweet
 function LobbyHeader({ roomCode, linkCopied, onCopyLink }: { roomCode: string; linkCopied: boolean; onCopyLink: () => void }) {
     const { t } = useTranslation('lobby');
     return (
-        <header className="mb-6 text-center">
+        <header className="mb-3 md:mb-6 text-center">
             <span className="block text-xs font-bold text-gray-500 uppercase tracking-widest mb-1">{t('room.roomCode')}</span>
             <div className="flex items-center justify-center gap-2 mt-2">
                 <span className="text-5xl font-black tracking-widest text-transparent bg-clip-text bg-gradient-to-r from-red-400 to-pink-400" style={{ backgroundImage: 'linear-gradient(to right, #f87171, #f472b6)', WebkitBackgroundClip: 'text', color: 'transparent' }}>
@@ -592,7 +630,7 @@ function UnassignedPlayersList({ players, roomCode, isHost }: { players: Player[
     const variants = prefersReducedMotion ? playerCardReducedVariants : playerCardVariants;
 
     return (
-        <div className="w-full space-y-3 mb-6 max-h-64 overflow-y-auto custom-scrollbar" role="list" aria-label={t('teams.unassigned')}>
+        <div className="w-full space-y-2 md:space-y-3 mb-3 md:mb-6 max-h-64 overflow-y-auto custom-scrollbar" role="list" aria-label={t('teams.unassigned')}>
             <AnimatePresence mode="popLayout">
                 {players.length > 0 ? (
                     players.map(player => (
@@ -637,7 +675,7 @@ function UnassignedPlayersList({ players, roomCode, isHost }: { players: Player[
                         initial="hidden"
                         animate="visible"
                         exit="exit"
-                        className="text-gray-500 text-center text-sm py-4"
+                        className="hidden md:block text-gray-500 text-center text-sm py-4"
                     >
                         {t('teams.allAssigned')}
                     </motion.p>
@@ -715,6 +753,97 @@ function StartGameButton({ isHost, canStart, onStart, difficulty, onDifficultyCh
             >
                 {t('game.startGame')} <Clapperboard className="w-6 h-6" />
             </button>
+        </div>
+    );
+}
+
+// Mobile-only: Button to navigate from step 1 (players) to step 2 (options)
+function MobileNextStepButton({ onClick }: { onClick: () => void }) {
+    const { t } = useTranslation('lobby');
+    return (
+        <button
+            onClick={onClick}
+            className="w-full bg-slate-800 hover:bg-slate-700 text-white font-bold py-3 px-4 rounded-xl flex items-center justify-center gap-2 transition-colors border border-slate-700"
+        >
+            <Settings className="w-5 h-5" />
+            {t('mobile.gameOptions')}
+        </button>
+    );
+}
+
+// Mobile-only: Game options panel (step 2)
+interface MobileGameOptionsProps {
+    onBack: () => void;
+    isHost: boolean;
+    canStart: boolean;
+    onStart: () => void;
+    difficulty: Difficulty;
+    onDifficultyChange: (difficulty: Difficulty) => void;
+    languageInfo: {
+        isUnanimous: boolean;
+        unanimousLanguage: GameLanguage | null;
+        forcedLanguage: GameLanguage | null;
+        effectiveLanguage: GameLanguage;
+    };
+    onLanguageChange: (language: GameLanguage | null) => void;
+}
+
+function MobileGameOptions({
+    onBack,
+    isHost,
+    canStart,
+    onStart,
+    difficulty,
+    onDifficultyChange,
+    languageInfo,
+    onLanguageChange
+}: MobileGameOptionsProps) {
+    const { t } = useTranslation('lobby');
+
+    return (
+        <div className="w-full space-y-4">
+            {/* Back button */}
+            <button
+                onClick={onBack}
+                className="flex items-center gap-1 text-slate-400 hover:text-white transition-colors font-medium"
+            >
+                <ChevronLeft className="w-5 h-5" />
+                {t('mobile.back')}
+            </button>
+
+            {/* Difficulty Selector */}
+            <DifficultySelector
+                value={difficulty}
+                onChange={isHost ? onDifficultyChange : () => {}}
+                disabled={!isHost}
+            />
+
+            {/* Language Selector */}
+            <RoomLanguageSelector
+                effectiveLanguage={languageInfo.effectiveLanguage}
+                forcedLanguage={languageInfo.forcedLanguage}
+                isUnanimous={languageInfo.isUnanimous}
+                unanimousLanguage={languageInfo.unanimousLanguage}
+                onChange={isHost ? onLanguageChange : () => {}}
+                disabled={!isHost}
+                compact={true}
+            />
+
+            {/* Start button (host) or waiting message (non-host) */}
+            {isHost ? (
+                <button
+                    onClick={onStart}
+                    disabled={!canStart}
+                    className="w-full bg-gradient-to-r from-yellow-400 to-orange-500 text-brand-darker text-xl font-black py-4 px-8 rounded-xl shadow-lg hover:shadow-yellow-500/20 hover:scale-105 active:scale-95 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                    aria-disabled={!canStart}
+                >
+                    {t('game.startGame')} <Clapperboard className="w-6 h-6" />
+                </button>
+            ) : (
+                <p className="text-gray-400 font-medium animate-pulse text-center py-4">
+                    {t('game.waitingForHost')}
+                </p>
+            )}
         </div>
     );
 }

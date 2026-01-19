@@ -1,0 +1,9 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">Spicy vs Sweet</string>
+    <string name="title_activity_main">Spicy vs Sweet</string>
+    <string name="package_name">com.spicyvssweet.app</string>
+    <string name="custom_url_scheme">com.spicyvssweet.app</string>
+    <!-- Google Sign-In Web Client ID (required for @southdevs/capacitor-google-auth) -->
+    <string name="server_client_id">235167916448-4vuo4v1js10scr2d2bbk6q1iribtgn6k.apps.googleusercontent.com</string>
+</resources>
