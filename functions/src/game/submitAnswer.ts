@@ -177,6 +177,7 @@ async function handlePhase1(
     request: SubmitAnswerRequest,
     odId: string,
     team: TeamType,
+    playerName: string,
     gameData: GameDataServer
 ): Promise<SubmitAnswerResponse> {
     const { roomId, questionIndex, answer, clientTimestamp } = request;
@@ -225,14 +226,24 @@ async function handlePhase1(
         };
     }
 
-    // Award point if winner and reveal correct answer in room state
+    // Award point if winner and update room state to show result
     const pointsAwarded = isWinner ? 1 : 0;
     if (isWinner) {
         const db = getDatabase();
         await Promise.all([
             awardPoints(roomId, odId, 1),
             // Reveal correct answer to all players (for result display)
-            db.ref(`rooms/${roomId}/state/phase1CorrectAnswer/${questionIndex}`).set(question.correctIndex)
+            db.ref(`rooms/${roomId}/state/phase1CorrectAnswer/${questionIndex}`).set(question.correctIndex),
+            // CRITICAL: Transition to result state so UI shows the correct answer
+            db.ref(`rooms/${roomId}/state/phaseState`).set('result'),
+            // Set round winner for UI display
+            db.ref(`rooms/${roomId}/state/roundWinner`).set({
+                playerId: odId,
+                name: playerName,
+                team
+            }),
+            // Clear timeout flag (round ended with a winner, not timeout)
+            db.ref(`rooms/${roomId}/state/isTimeout`).set(false)
         ]);
     }
 
@@ -243,7 +254,7 @@ async function handlePhase1(
         // Only reveal correct answer when round is over (winner found)
         // This prevents cheating with rebond system (multiple attempts)
         correctAnswerIndex: isWinner ? question.correctIndex : undefined,
-        roundWinner: isWinner ? { odId, name: '', team } : undefined,
+        roundWinner: isWinner ? { odId, name: playerName, team } : undefined,
     };
 }
 
@@ -834,7 +845,7 @@ export const submitAnswer = onCall({
     // Route to phase-specific handler
     switch (phase) {
         case 'phase1':
-            return handlePhase1(request, odId, team, gameData);
+            return handlePhase1(request, odId, team, playerInfo.name || 'Joueur', gameData);
         case 'phase2':
             return handlePhase2(request, odId, team, gameData);
         case 'phase3':
