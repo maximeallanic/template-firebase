@@ -94,6 +94,9 @@ export interface SoloGameState {
     };
     generationError: string | null;
 
+    // Submission state (for CF calls)
+    isSubmitting: boolean;
+
     // Background generation tracking (Phase 2 & 4 while playing Phase 1)
     backgroundGeneration: {
         phase2: 'idle' | 'generating' | 'done' | 'error';
@@ -230,6 +233,7 @@ export function createInitialSoloState(
             phase4: 'pending',
         },
         generationError: null,
+        isSubmitting: false,
         backgroundGeneration: {
             phase2: 'idle',
             phase4: 'idle',

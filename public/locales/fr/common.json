@@ -16,7 +16,8 @@
     "delete": "Supprimer",
     "edit": "Modifier",
     "submit": "Envoyer !",
-    "upgrade": "Passer Pro"
+    "upgrade": "Passer Pro",
+    "understood": "Compris !"
   },
   "labels": {
     "loading": "Ça charge...",

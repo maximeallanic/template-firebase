@@ -60,9 +60,19 @@ export interface Player {
 
 // === GAME STATE ===
 
+// === PLAYER READINESS ===
+
+/**
+ * Tracks which players are ready to start a phase (clicked "Understood" on rules screen)
+ * Key: player ID, Value: true if ready
+ */
+export type PlayersReady = Record<string, boolean>;
+
 export interface GameState {
     status: 'lobby' | 'phase1' | 'phase2' | 'phase3' | 'phase4' | 'phase5' | 'victory';
     phaseState: 'idle' | 'reading' | 'answering' | 'result' | 'menu_selection' | 'questioning' | 'phase_results';
+    /** Players who have clicked "Understood" on the phase intro screen */
+    playersReady?: PlayersReady;
     isGenerating?: boolean; // True when AI is generating questions (visible to all players)
     phase2Generating?: boolean; // Lock for Phase 2 generation (prevents double generation)
     currentQuestionIndex?: number;
@@ -71,6 +81,7 @@ export interface GameState {
     phase1BlockedTeams?: Team[]; // Teams blocked after wrong answer
     phase1TriedWrongOptions?: number[]; // Options already tried and wrong (for rebond system)
     phase1LastWrongTeam?: Team; // Team that just answered wrong (for rebond feedback)
+    phase1CorrectAnswer?: Record<number, number>; // Revealed correct answer index per question (set by CF when round ends)
     roundWinner?: { playerId: string | 'ALL'; name: string; team: Team | 'neutral' } | null;
     isTimeout?: boolean; // True when round ended due to timer expiring
     // Phase 2 - Team-based (1 réponse par équipe suffit)

@@ -1,5 +1,26 @@
 {
   "rules": {
+    "gameData": {
+      // SEC-011: Game answers stored server-side only
+      // CRITICAL: This node contains correct answers for all phases
+      // For multiplayer: Clients MUST NOT be able to read OR write this data
+      // For solo mode (roomId === auth.uid): Owner can write their own session
+      // Only Cloud Functions (using Admin SDK) can access multiplayer nodes
+      "$roomId": {
+        // Solo mode: allow owner to read/write their own session
+        // Multiplayer: block all client access (CF uses Admin SDK)
+        ".read": "auth != null && auth.uid == $roomId",
+        ".write": "auth != null && auth.uid == $roomId"
+      }
+    },
+    "soloSessions": {
+      "$odId": {
+        // Solo sessions: only the owner can read their own session
+        // Write is blocked - only Cloud Functions can write
+        ".read": "auth != null && auth.uid == $odId",
+        ".write": false
+      }
+    },
     "rooms": {
       "$roomId": {
         // Authenticated users can read rooms they're part of, or any room (to join)
@@ -48,8 +69,39 @@
         },
         "state": {
           ".validate": "newData.hasChild('status') && newData.hasChild('phaseState')",
-          // Only host can modify game state
-          ".write": "auth != null && data.parent().child('hostId').val() == auth.uid"
+          // Only host can modify game state (except playersReady and phase answer nodes)
+          ".write": "auth != null && data.parent().child('hostId').val() == auth.uid",
+          "playersReady": {
+            "$playerId": {
+              // Each player can mark themselves as ready (if they're in the room)
+              ".write": "auth != null && $playerId == auth.uid && root.child('rooms').child($roomId).child('players').child(auth.uid).exists()",
+              ".validate": "newData.isBoolean()"
+            }
+          },
+          // Phase answer nodes - readable by all players, written by Cloud Functions (Admin SDK)
+          "phase1Answers": {
+            ".read": "auth != null && root.child('rooms').child($roomId).child('players').child(auth.uid).exists()"
+          },
+          "phase2Answers": {
+            ".read": "auth != null && root.child('rooms').child($roomId).child('players').child(auth.uid).exists()"
+          },
+          "phase3Answers": {
+            ".read": "auth != null && root.child('rooms').child($roomId).child('players').child(auth.uid).exists()"
+          },
+          "phase4Answers": {
+            ".read": "auth != null && root.child('rooms').child($roomId).child('players').child(auth.uid).exists()"
+          },
+          "phase4Buzz": {
+            // Players can write their buzz (first one wins in RTDB)
+            ".read": "auth != null && root.child('rooms').child($roomId).child('players').child(auth.uid).exists()",
+            "$questionIndex": {
+              ".write": "auth != null && root.child('rooms').child($roomId).child('players').child(auth.uid).exists() && !data.exists()",
+              ".validate": "newData.hasChildren(['odId', 'team', 'timestamp'])"
+            }
+          },
+          "phase5Answers": {
+            ".read": "auth != null && root.child('rooms').child($roomId).child('players').child(auth.uid).exists()"
+          }
         },
         "hostId": {
           // Host ID can only be set on room creation, cannot be changed

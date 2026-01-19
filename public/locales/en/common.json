@@ -16,7 +16,8 @@
     "delete": "Delete",
     "edit": "Edit",
     "submit": "Send!",
-    "upgrade": "Go Pro"
+    "upgrade": "Go Pro",
+    "understood": "Got it!"
   },
   "labels": {
     "loading": "Loading...",

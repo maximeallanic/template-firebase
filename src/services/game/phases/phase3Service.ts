@@ -1,17 +1,19 @@
 /**
  * Phase 3 (La Carte) - Parallel play with theme selection and LLM validation
  * Teams choose themes and answer questions in parallel
+ *
+ * Server-Side Validation:
+ * Answer validation is now handled by Cloud Function submitAnswer.
+ * This service only handles state management (theme selection, progress).
  */
 
-import { ref, get, update, runTransaction, increment } from 'firebase/database';
-import { rtdb } from '../../firebase';
+import { ref, get, update, runTransaction } from 'firebase/database';
+import { rtdb, submitAnswer as submitAnswerCF } from '../../firebase';
+import type { SubmitAnswerResponse } from '../../firebase';
 import { validateRoom } from '../roomService';
 import type {
     Team, Player, GameState, Phase3Theme, Phase3TeamProgress
 } from '../../../types/gameTypes';
-
-// Import LLM validation for Phase 3
-import { validatePhase3Answer as validatePhase3AnswerLLM } from '../../aiClient';
 
 // Import default Phase 3 themes
 import { PHASE3_DATA } from '../../data/phase3';
@@ -157,18 +159,23 @@ export const selectPhase3Theme = async (
  * Submit a Phase 3 answer.
  * Uses LLM validation for fuzzy matching.
  * First player from team to answer correctly wins the point.
+ *
+ * SERVER-SIDE VALIDATION: All validation is now done by Cloud Function submitAnswer.
+ * This function is a thin wrapper that forwards the request to the CF.
+ *
  * @param code - Room code
- * @param playerId - Player submitting answer
+ * @param playerId - Player submitting answer (unused - auth from CF)
  * @param answer - Player's answer text
+ * @returns The response from the Cloud Function (converted to legacy format)
  */
 export const submitPhase3Answer = async (
     code: string,
-    playerId: string,
+    _playerId: string, // Unused - kept for API compatibility
     answer: string
 ): Promise<{ success: boolean; isCorrect: boolean; alreadyAnswered?: boolean; error?: string }> => {
     const roomId = code.toUpperCase();
 
-    // Get room data
+    // Get current question index from room state
     const roomSnapshot = await get(ref(rtdb, `rooms/${roomId}`));
     if (!roomSnapshot.exists()) {
         return { success: false, isCorrect: false, error: 'Room not found' };
@@ -176,138 +183,37 @@ export const submitPhase3Answer = async (
 
     const room = validateRoom(roomSnapshot.val());
 
-    // Validate state
-    if (room.state.phase3State !== 'playing') {
+    // Get player's team to find current question index
+    // Note: auth.uid is used by CF, we still need player info for the local state read
+    const state = room.state;
+    if (state.phase3State !== 'playing') {
         return { success: false, isCorrect: false, error: 'Not in playing state' };
     }
 
-    const player = room.players[playerId];
-    if (!player || !player.team) {
-        return { success: false, isCorrect: false, error: 'Player not found or no team' };
-    }
+    // We need to find the current question index from the calling player's perspective
+    // The CF will determine this from auth, but we need a question index for the request
+    // The CF will re-validate the team and question internally
+    // For P3, questionIndex represents the team's current question
+    // We pass 0 and let CF figure out the real index from auth.uid
+    const questionIndex = 0; // CF will determine actual index from player's team progress
 
-    const team = player.team;
-    const teamProgress = room.state.phase3TeamProgress?.[team];
-    if (!teamProgress) {
-        return { success: false, isCorrect: false, error: 'Team progress not found' };
-    }
-
-    // Check if team already finished
-    if (teamProgress.finished) {
-        return { success: false, isCorrect: false, error: 'Team already finished' };
-    }
-
-    const questionIndex = teamProgress.currentQuestionIndex;
-
-    // Check if this question was already answered by someone on the team
-    if (teamProgress.questionAnsweredBy?.[questionIndex]) {
-        return { success: false, isCorrect: false, alreadyAnswered: true, error: 'Question already answered' };
-    }
-
-    // Get the question
-    const themes = room.customQuestions?.phase3 || PHASE3_DATA;
-    const theme = themes[teamProgress.themeIndex];
-    if (!theme || !theme.questions[questionIndex]) {
-        return { success: false, isCorrect: false, error: 'Question not found' };
-    }
-
-    const question = theme.questions[questionIndex];
-
-    // Validate answer using LLM
-    let isCorrect = false;
-    try {
-        const validationResult = await validatePhase3AnswerLLM({
-            playerAnswer: answer,
-            correctAnswer: question.answer,
-            acceptableAnswers: question.acceptableAnswers,
-        });
-        isCorrect = validationResult.isCorrect;
-    } catch (error) {
-        console.error('[Phase3] LLM validation error, using fallback:', error);
-        // Fallback: Check exact match first, then acceptable answers
-        const normalizedAnswer = answer.toLowerCase().trim();
-        const normalizedCorrect = question.answer.toLowerCase().trim();
-        isCorrect = normalizedAnswer === normalizedCorrect;
-
-        // If exact match failed, check acceptable answers
-        if (!isCorrect && question.acceptableAnswers?.length) {
-            isCorrect = question.acceptableAnswers.some(alt =>
-                alt.toLowerCase().trim() === normalizedAnswer
-            );
-        }
-
-        // Log if answer was rejected in fallback mode (for debugging)
-        if (!isCorrect) {
-            console.warn('[Phase3] Answer rejected in fallback mode:', {
-                playerAnswer: answer,
-                expectedAnswer: question.answer,
-                acceptableCount: question.acceptableAnswers?.length || 0
-            });
-        }
-    }
-
-    if (!isCorrect) {
-        // Wrong answer - don't update state, just return
-        return { success: true, isCorrect: false };
-    }
-
-    // Correct answer - use transaction to update state atomically
-    const stateRef = ref(rtdb, `rooms/${roomId}/state`);
-    const txResult = await runTransaction(stateRef, (currentState: GameState | null) => {
-        if (!currentState) return currentState;
-
-        const progress = currentState.phase3TeamProgress?.[team];
-        if (!progress) return currentState;
-
-        // Double-check the question hasn't been answered yet (race condition)
-        if (progress.questionAnsweredBy?.[questionIndex]) {
-            return; // Abort - already answered
-        }
-
-        // Update progress
-        const newProgress: Phase3TeamProgress = {
-            ...progress,
-            questionAnsweredBy: {
-                ...progress.questionAnsweredBy,
-                [questionIndex]: playerId,
-            },
-            score: progress.score + 1,
-            currentQuestionIndex: questionIndex + 1,
-        };
-
-        // Check if team finished (5 questions answered)
-        if (newProgress.currentQuestionIndex >= 5) {
-            newProgress.finished = true;
-            newProgress.finishedAt = Date.now();
-        }
-
-        const newTeamProgress = {
-            ...currentState.phase3TeamProgress,
-            [team]: newProgress,
-        };
-
-        // Check if both teams finished
-        const otherTeam = team === 'spicy' ? 'sweet' : 'spicy';
-        const otherProgress = newTeamProgress[otherTeam];
-        const bothFinished = newProgress.finished && otherProgress?.finished;
-
-        return {
-            ...currentState,
-            phase3TeamProgress: newTeamProgress,
-            phase3State: bothFinished ? 'finished' : currentState.phase3State,
-        };
+    // Call Cloud Function for server-side validation
+    const result: SubmitAnswerResponse = await submitAnswerCF({
+        roomId,
+        phase: 'phase3',
+        questionIndex,
+        answer,
+        clientTimestamp: Date.now(),
+        isSolo: false
     });
 
-    if (!txResult.committed) {
-        return { success: false, isCorrect: true, alreadyAnswered: true, error: 'Question already answered by teammate' };
-    }
-
-    // Award point to player
-    await update(ref(rtdb), {
-        [`rooms/${roomId}/players/${playerId}/score`]: increment(1),
-    });
-
-    return { success: true, isCorrect: true };
+    // Convert CF response to legacy format
+    return {
+        success: result.success,
+        isCorrect: result.correct,
+        alreadyAnswered: result.teamAlreadyAnswered,
+        error: result.message
+    };
 };
 
 /**

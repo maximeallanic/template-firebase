@@ -6,7 +6,7 @@
 
 import { createContext, useContext, useReducer, useCallback, useRef, useEffect, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
-import { ref, child, get } from 'firebase/database';
+import { ref, child, get, set } from 'firebase/database';
 import type { Avatar, SimplePhase2Set, Difficulty } from '../types/gameTypes';
 import { toGameLanguage } from '../types/languageTypes';
 import { hasEnoughQuestions, MINIMUM_QUESTION_COUNTS } from '../types/gameTypes';
@@ -20,8 +20,35 @@ import {
     SOLO_SCORING,
 } from '../types/soloTypes';
 import { generateWithRetry } from '../services/aiClient';
-import { rtdb } from '../services/firebase';
+import { rtdb, submitAnswer as submitAnswerCF } from '../services/firebase';
+import type { SubmitAnswerResponse } from '../services/firebase';
 import { getRandomQuestionSet } from '../services/questionStorageService';
+
+/**
+ * Sanitizes an object by removing all undefined values recursively.
+ * Firebase RTDB does not accept undefined values, so we need to clean the data before storing.
+ */
+function sanitizeForRTDB<T>(obj: T): T {
+    if (obj === null || obj === undefined) {
+        return obj;
+    }
+
+    if (Array.isArray(obj)) {
+        return obj.map(item => sanitizeForRTDB(item)) as T;
+    }
+
+    if (typeof obj === 'object') {
+        const result: Record<string, unknown> = {};
+        for (const [key, value] of Object.entries(obj as Record<string, unknown>)) {
+            if (value !== undefined) {
+                result[key] = sanitizeForRTDB(value);
+            }
+        }
+        return result as T;
+    }
+
+    return obj;
+}
 
 // === ACTION TYPES ===
 
@@ -39,6 +66,7 @@ type SoloGameAction =
     | { type: 'EXIT_WAITING' } // Transition from waiting_for_phase to actual phase
     | { type: 'START_PHASE'; phase: SoloPhaseStatus }
     | { type: 'SUBMIT_PHASE1_ANSWER'; answerIndex: number; isCorrect: boolean }
+    | { type: 'SET_SUBMITTING'; isSubmitting: boolean } // Loading state for CF calls
     | { type: 'NEXT_PHASE1_QUESTION' }
     | { type: 'SUBMIT_PHASE2_ANSWER'; answer: 'A' | 'B' | 'Both'; isCorrect: boolean }
     | { type: 'NEXT_PHASE2_ITEM' }
@@ -456,6 +484,12 @@ function soloGameReducer(state: SoloGameState, action: SoloGameAction): SoloGame
         case 'RESET_GAME':
             return createInitialSoloState(state.playerId, state.playerName, state.playerAvatar, state.difficulty);
 
+        case 'SET_SUBMITTING':
+            return {
+                ...state,
+                isSubmitting: action.isSubmitting,
+            };
+
         default:
             return state;
     }
@@ -590,38 +624,50 @@ export function SoloGameProvider({
                             console.log(`[SOLO] ✅ Phase1 completed: ${(filteredData as unknown[]).length} questions`);
                         }
                     }
-                } else if (phase === 'phase2' && (filteredData as { items?: unknown[] })?.items) {
-                    const setData = filteredData as { items: { text: string }[] };
-                    const filteredItems = await filterUnseenQuestions(setData.items, (item: { text: string }) => item.text);
-                    filteredData = { ...setData, items: filteredItems };
-                    console.log(`[SOLO] Filtered phase2 items: ${setData.items.length} -> ${filteredItems.length}`);
+                } else if (phase === 'phase2') {
+                    // Phase 2 expects { items: [...] } format
+                    const rawData = filteredData as { items?: { text: string }[] };
 
-                    // Check if we need completion after filtering
-                    const minRequired = MINIMUM_QUESTION_COUNTS.phase2;
-                    const currentCount = filteredItems.length;
-                    if (currentCount < minRequired) {
-                        const missingCount = minRequired - currentCount;
-                        console.log(`[SOLO] ⚠️ Phase2 needs completion: ${currentCount}/${minRequired} (missing: ${missingCount})`);
-                        const completionResult = await generateWithRetry({
-                            phase: 'phase2',
-                            soloMode: true,
-                            difficulty,
-                            language,
-                            completeCount: missingCount,
-                            existingQuestions: filteredItems
-                        });
-                        if ((completionResult.data as { items?: unknown[] })?.items) {
-                            const completionItems = (completionResult.data as { items: { text: string }[] }).items;
-                            const completionFiltered = await filterUnseenQuestions(completionItems, (item: { text: string }) => item.text);
-                            filteredData = { ...setData, items: [...filteredItems, ...completionFiltered] };
-                            console.log(`[SOLO] ✅ Phase2 completed: ${(filteredData as { items: unknown[] }).items.length} items`);
+                    if (rawData?.items && Array.isArray(rawData.items)) {
+                        const setData = rawData as { items: { text: string }[] };
+                        const filteredItems = await filterUnseenQuestions(setData.items, (item: { text: string }) => item.text);
+                        filteredData = { ...setData, items: filteredItems };
+                        console.log(`[SOLO] Filtered phase2 items: ${setData.items.length} -> ${filteredItems.length}`);
+
+                        // Check if we need completion after filtering
+                        const minRequired = MINIMUM_QUESTION_COUNTS.phase2;
+                        const currentCount = filteredItems.length;
+                        if (currentCount < minRequired) {
+                            const missingCount = minRequired - currentCount;
+                            console.log(`[SOLO] ⚠️ Phase2 needs completion: ${currentCount}/${minRequired} (missing: ${missingCount})`);
+                            const completionResult = await generateWithRetry({
+                                phase: 'phase2',
+                                soloMode: true,
+                                difficulty,
+                                language,
+                                completeCount: missingCount,
+                                existingQuestions: filteredItems
+                            });
+                            if ((completionResult.data as { items?: unknown[] })?.items) {
+                                const completionItems = (completionResult.data as { items: { text: string }[] }).items;
+                                const completionFiltered = await filterUnseenQuestions(completionItems, (item: { text: string }) => item.text);
+                                filteredData = { ...setData, items: [...filteredItems, ...completionFiltered] };
+                                console.log(`[SOLO] ✅ Phase2 completed: ${(filteredData as { items: unknown[] }).items.length} items`);
+                            }
                         }
-                    }
-                    // Ensure we don't exceed the expected count
-                    const phase2Items = (filteredData as { items: unknown[] }).items;
-                    if (phase2Items.length > minRequired) {
-                        filteredData = { ...filteredData as object, items: phase2Items.slice(0, minRequired) };
-                        console.log(`[SOLO] 📏 Phase2 trimmed to ${minRequired} items`);
+                        // Ensure we don't exceed the expected count
+                        const phase2Items = (filteredData as { items: unknown[] }).items;
+                        if (phase2Items.length > minRequired) {
+                            filteredData = { ...filteredData as object, items: phase2Items.slice(0, minRequired) };
+                            console.log(`[SOLO] 📏 Phase2 trimmed to ${minRequired} items`);
+                        }
+                    } else {
+                        // Invalid format - log error and throw to trigger retry
+                        console.error(`[SOLO] ❌ Phase2 data missing items property:`, {
+                            hasData: !!filteredData,
+                            keys: filteredData ? Object.keys(filteredData as object) : [],
+                        });
+                        throw new Error('Phase2 generation returned invalid format (missing items array)');
                     }
                 } else if (phase === 'phase4' && Array.isArray(filteredData)) {
                     filteredData = await filterUnseenQuestions(filteredData as { text: string }[], (q: { text: string }) => q.text);
@@ -682,16 +728,21 @@ export function SoloGameProvider({
     }, []);
 
     // Start background generation for Phase 2 and Phase 4 (non-blocking, fire-and-forget)
-    const startBackgroundGeneration = useCallback((seenIds: Set<string>, difficulty: Difficulty) => {
+    const startBackgroundGeneration = useCallback((seenIds: Set<string>, difficulty: Difficulty, playerId: string) => {
         const abort = new AbortController();
         backgroundAbortRef.current = abort;
 
         // Phase 2 (fire-and-forget)
         dispatch({ type: 'BACKGROUND_GEN_START', phase: 'phase2' });
         generatePhaseWithRetries('phase2', seenIds, abort.signal, difficulty, 3)
-            .then(questions => {
+            .then(async questions => {
                 if (!abort.signal.aborted) {
                     console.log('[SOLO] ✅ Background phase2 ready');
+                    // Store Phase 2 questions in gameData for CF validation
+                    // Sanitize to remove undefined values (RTDB doesn't accept undefined)
+                    const gameDataRef = ref(rtdb, `gameData/${playerId}/phase2`);
+                    await set(gameDataRef, sanitizeForRTDB(questions));
+                    console.log('[SOLO] Phase 2 questions stored in gameData for CF validation');
                     dispatch({ type: 'BACKGROUND_GEN_DONE', phase: 'phase2', questions });
                 }
             })
@@ -705,9 +756,14 @@ export function SoloGameProvider({
         // Phase 4 (fire-and-forget, runs in parallel with Phase 2)
         dispatch({ type: 'BACKGROUND_GEN_START', phase: 'phase4' });
         generatePhaseWithRetries('phase4', seenIds, abort.signal, difficulty, 3)
-            .then(questions => {
+            .then(async questions => {
                 if (!abort.signal.aborted) {
                     console.log('[SOLO] ✅ Background phase4 ready');
+                    // Store Phase 4 questions in gameData for CF validation
+                    // Sanitize to remove undefined values (RTDB doesn't accept undefined)
+                    const gameDataRef = ref(rtdb, `gameData/${playerId}/phase4`);
+                    await set(gameDataRef, sanitizeForRTDB(questions));
+                    console.log('[SOLO] Phase 4 questions stored in gameData for CF validation');
                     dispatch({ type: 'BACKGROUND_GEN_DONE', phase: 'phase4', questions });
                 }
             })
@@ -742,13 +798,20 @@ export function SoloGameProvider({
             dispatch({ type: 'SET_GENERATION_PROGRESS', phase: 'phase1', status: 'done' });
             dispatch({ type: 'SET_QUESTIONS', phase: 'phase1', questions: phase1Questions });
 
+            // Store Phase 1 questions in gameData for CF validation
+            // roomId = playerId in solo mode
+            // Sanitize to remove undefined values (RTDB doesn't accept undefined)
+            const gameDataRef = ref(rtdb, `gameData/${state.playerId}/phase1`);
+            await set(gameDataRef, sanitizeForRTDB(phase1Questions));
+            console.log('[SOLO] Phase 1 questions stored in gameData for CF validation');
+
             console.log('[SOLO] Phase 1 ready - starting game immediately');
 
             // Start the game immediately with Phase 1
             dispatch({ type: 'PHASE1_READY' });
 
             // Start background generation for Phase 2 & 4 (non-blocking)
-            startBackgroundGeneration(seenIds, difficulty);
+            startBackgroundGeneration(seenIds, difficulty, state.playerId);
         } catch (error) {
             console.error('[SOLO] Phase 1 generation failed:', error);
             dispatch({
@@ -765,11 +828,16 @@ export function SoloGameProvider({
         try {
             const seenIds = seenIdsRef.current;
             const questions = await generatePhaseWithRetries(phase, seenIds, new AbortController().signal, state.difficulty, 3);
+            // Store questions in gameData for CF validation
+            // Sanitize to remove undefined values (RTDB doesn't accept undefined)
+            const gameDataRef = ref(rtdb, `gameData/${state.playerId}/${phase}`);
+            await set(gameDataRef, sanitizeForRTDB(questions));
+            console.log(`[SOLO] ${phase} questions stored in gameData for CF validation (retry)`);
             dispatch({ type: 'BACKGROUND_GEN_DONE', phase, questions });
         } catch (error) {
             dispatch({ type: 'BACKGROUND_GEN_ERROR', phase, error: (error as Error).message });
         }
-    }, [generatePhaseWithRetries, state.difficulty]);
+    }, [generatePhaseWithRetries, state.difficulty, state.playerId]);
 
     // Effect: Auto-transition from waiting_for_phase when ENOUGH questions become available
     useEffect(() => {
@@ -797,54 +865,115 @@ export function SoloGameProvider({
         dispatch({ type: 'RESET_GAME' });
     }, []);
 
-    // Phase 1 actions
-    const submitPhase1Answer = useCallback((answerIndex: number) => {
-        const questions = state.customQuestions.phase1;
-        if (!questions || !state.phase1State) return;
+    // Phase 1 actions - now uses Cloud Function for server-side validation
+    const submitPhase1Answer = useCallback(async (answerIndex: number) => {
+        if (!state.phase1State || state.isSubmitting) return;
 
-        const currentQuestion = questions[state.phase1State.currentQuestionIndex];
-        if (!currentQuestion) return;
+        const questionIndex = state.phase1State.currentQuestionIndex;
 
-        const isCorrect = answerIndex === currentQuestion.correctIndex;
-        dispatch({ type: 'SUBMIT_PHASE1_ANSWER', answerIndex, isCorrect });
-    }, [state.customQuestions.phase1, state.phase1State]);
+        dispatch({ type: 'SET_SUBMITTING', isSubmitting: true });
+
+        try {
+            // Call Cloud Function for validation (roomId = playerId in solo mode)
+            const result: SubmitAnswerResponse = await submitAnswerCF({
+                roomId: state.playerId,
+                phase: 'phase1',
+                questionIndex,
+                answer: answerIndex,
+                clientTimestamp: Date.now(),
+                isSolo: true,
+            });
+
+            if (result.success) {
+                dispatch({ type: 'SUBMIT_PHASE1_ANSWER', answerIndex, isCorrect: result.correct });
+            } else {
+                console.error('[SOLO] Phase 1 CF validation failed:', result.message);
+                // Fallback: still update UI to prevent stuck state
+                dispatch({ type: 'SUBMIT_PHASE1_ANSWER', answerIndex, isCorrect: false });
+            }
+        } catch (error) {
+            console.error('[SOLO] Phase 1 CF call failed:', error);
+            // Fallback: still update UI to prevent stuck state
+            dispatch({ type: 'SUBMIT_PHASE1_ANSWER', answerIndex, isCorrect: false });
+        } finally {
+            dispatch({ type: 'SET_SUBMITTING', isSubmitting: false });
+        }
+    }, [state.phase1State, state.playerId, state.isSubmitting]);
 
     const nextPhase1Question = useCallback(() => {
         dispatch({ type: 'NEXT_PHASE1_QUESTION' });
     }, []);
 
-    // Phase 2 actions
-    const submitPhase2Answer = useCallback((answer: 'A' | 'B' | 'Both') => {
-        const setData = state.customQuestions.phase2;
-        if (!setData || !state.phase2State) return;
+    // Phase 2 actions - now uses Cloud Function for server-side validation
+    const submitPhase2Answer = useCallback(async (answer: 'A' | 'B' | 'Both') => {
+        if (!state.phase2State || state.isSubmitting) return;
 
-        const currentItem = setData.items[state.phase2State.currentItemIndex];
-        if (!currentItem) return;
+        const questionIndex = state.phase2State.currentItemIndex;
 
-        // Check if answer is correct (including accepted alternatives)
-        const isCorrect = answer === currentItem.answer ||
-            (currentItem.acceptedAnswers?.includes(answer) ?? false);
+        dispatch({ type: 'SET_SUBMITTING', isSubmitting: true });
 
-        dispatch({ type: 'SUBMIT_PHASE2_ANSWER', answer, isCorrect });
-    }, [state.customQuestions.phase2, state.phase2State]);
+        try {
+            // Call Cloud Function for validation (roomId = playerId in solo mode)
+            const result: SubmitAnswerResponse = await submitAnswerCF({
+                roomId: state.playerId,
+                phase: 'phase2',
+                questionIndex,
+                answer,
+                clientTimestamp: Date.now(),
+                isSolo: true,
+            });
+
+            if (result.success) {
+                dispatch({ type: 'SUBMIT_PHASE2_ANSWER', answer, isCorrect: result.correct });
+            } else {
+                console.error('[SOLO] Phase 2 CF validation failed:', result.message);
+                dispatch({ type: 'SUBMIT_PHASE2_ANSWER', answer, isCorrect: false });
+            }
+        } catch (error) {
+            console.error('[SOLO] Phase 2 CF call failed:', error);
+            dispatch({ type: 'SUBMIT_PHASE2_ANSWER', answer, isCorrect: false });
+        } finally {
+            dispatch({ type: 'SET_SUBMITTING', isSubmitting: false });
+        }
+    }, [state.phase2State, state.playerId, state.isSubmitting]);
 
     const nextPhase2Item = useCallback(() => {
         dispatch({ type: 'NEXT_PHASE2_ITEM' });
     }, []);
 
-    // Phase 4 actions
-    const submitPhase4Answer = useCallback((answerIndex: number) => {
-        const questions = state.customQuestions.phase4;
-        if (!questions || !state.phase4State) return;
+    // Phase 4 actions - now uses Cloud Function for server-side validation
+    const submitPhase4Answer = useCallback(async (answerIndex: number) => {
+        if (!state.phase4State || state.isSubmitting) return;
 
-        const currentQuestion = questions[state.phase4State.currentQuestionIndex];
-        if (!currentQuestion) return;
-
-        const isCorrect = answerIndex === currentQuestion.correctIndex;
+        const questionIndex = state.phase4State.currentQuestionIndex;
         const timeMs = Date.now() - (state.phase4State.questionStartTime || Date.now());
 
-        dispatch({ type: 'SUBMIT_PHASE4_ANSWER', answerIndex, isCorrect, timeMs });
-    }, [state.customQuestions.phase4, state.phase4State]);
+        dispatch({ type: 'SET_SUBMITTING', isSubmitting: true });
+
+        try {
+            // Call Cloud Function for validation (roomId = playerId in solo mode)
+            const result: SubmitAnswerResponse = await submitAnswerCF({
+                roomId: state.playerId,
+                phase: 'phase4',
+                questionIndex,
+                answer: answerIndex,
+                clientTimestamp: Date.now(),
+                isSolo: true,
+            });
+
+            if (result.success) {
+                dispatch({ type: 'SUBMIT_PHASE4_ANSWER', answerIndex, isCorrect: result.correct, timeMs });
+            } else {
+                console.error('[SOLO] Phase 4 CF validation failed:', result.message);
+                dispatch({ type: 'SUBMIT_PHASE4_ANSWER', answerIndex, isCorrect: false, timeMs });
+            }
+        } catch (error) {
+            console.error('[SOLO] Phase 4 CF call failed:', error);
+            dispatch({ type: 'SUBMIT_PHASE4_ANSWER', answerIndex, isCorrect: false, timeMs });
+        } finally {
+            dispatch({ type: 'SET_SUBMITTING', isSubmitting: false });
+        }
+    }, [state.phase4State, state.playerId, state.isSubmitting]);
 
     const nextPhase4Question = useCallback(() => {
         dispatch({ type: 'NEXT_PHASE4_QUESTION' });

@@ -7,7 +7,6 @@ import { submitPhase2Answer as submitPhase2AnswerToRoom, endPhase2Round } from '
 import { usePhaseTransition } from '../../hooks/usePhaseTransition';
 import type { Room, Team } from '../../services/gameService';
 import type { SimplePhase2Set } from '../../types/gameTypes';
-import { PHASE2_SETS } from '../../data/phase2';
 import { markQuestionAsSeen } from '../../services/historyService';
 import { useReducedMotion } from '../../hooks/useReducedMotion';
 import { useHaptic } from '../../hooks/useHaptic';
@@ -57,11 +56,14 @@ export function Phase2Player({ room, playerId, isHost, mode = 'multiplayer', sol
     } = room.state;
 
     // In solo mode, customQuestions.phase2 is a single set, not an array
+    // Server-side questions are required - no fallback to static data
+    const phase2Data = customQuestions?.phase2 as SimplePhase2Set | undefined;
+    const phase2Array = customQuestions?.phase2 as SimplePhase2Set[] | undefined;
     const currentSet: SimplePhase2Set | undefined = isSolo
-        ? (customQuestions?.phase2 as SimplePhase2Set | undefined) || PHASE2_SETS[0]
-        : (customQuestions?.phase2 as SimplePhase2Set[] | undefined)?.[setIndex] || PHASE2_SETS[setIndex];
-    const currentItem = currentSet?.items[itemIndex];
-    const totalItems = currentSet?.items.length || 0;
+        ? (phase2Data?.items?.length ? phase2Data : undefined)
+        : (phase2Array?.[setIndex]?.items?.length ? phase2Array[setIndex] : undefined);
+    const currentItem = currentSet?.items?.[itemIndex];
+    const totalItems = currentSet?.items?.length || 0;
     const currentAnecdote = currentItem?.anecdote;
 
     // Get current player's team (in solo mode, always 'spicy')

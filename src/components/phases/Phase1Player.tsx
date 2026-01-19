@@ -149,7 +149,7 @@ export function Phase1Player({ room, playerId, isHost, mode = 'multiplayer', sol
     });
 
     const { state, players } = room;
-    const { phaseState, currentQuestionIndex, phase1Answers, phase1BlockedTeams, phase1TriedWrongOptions } = state;
+    const { phaseState, currentQuestionIndex, phase1Answers, phase1BlockedTeams, phase1TriedWrongOptions, phase1CorrectAnswer } = state;
 
     // Rebond: track tried wrong options (disabled in solo mode)
     const triedWrongOptions = isSolo ? [] : (phase1TriedWrongOptions || []);
@@ -277,63 +277,53 @@ export function Phase1Player({ room, playerId, isHost, mode = 'multiplayer', sol
         haptic.tap();
         setSubmitError(false);
 
-        // Check if answer is wrong BEFORE submitting (for immediate visual feedback)
-        // Use displayedQuestion (what user sees) not currentQuestion (which may have changed)
-        const isWrongAnswer = displayedQuestion && index !== displayedQuestion.correctIndex;
-
-        // Start the network submission immediately (optimistic UI)
-        const submitPromise = (async () => {
-            try {
-                if (isSolo && soloHandlers) {
-                    soloHandlers.submitPhase1Answer(index);
-                } else {
-                    await submitAnswer(room.code, playerId, index);
-                }
-                return { success: true };
-            } catch (error) {
-                console.error('Failed to submit answer:', error);
-                return { success: false, error };
-            }
-        })();
-
-        if (isWrongAnswer && !prefersReducedMotion) {
-            // Show immediate wrong answer feedback
-            setWrongFeedbackIndex(index);
-            setHasShownWrongFeedback(true); // Mark that we showed the animation
-            audioService.playError();
-            haptic.error();
-
-            // Solo mode: delay result state to let animation play
-            if (isSolo) {
-                setSoloDelayingResult(true);
+        // Submit answer to server for validation
+        // Server returns whether answer is correct
+        try {
+            let result: { success: boolean; correct?: boolean };
+            if (isSolo && soloHandlers) {
+                soloHandlers.submitPhase1Answer(index);
+                // Solo mode doesn't return result synchronously
+                result = { success: true };
+            } else {
+                result = await submitAnswer(room.code, playerId, index);
             }
 
-            // Run animation and network call in PARALLEL (not sequential)
-            const feedbackDuration = getTransitionDuration('wrongFeedback', prefersReducedMotion);
-            const [, networkResult] = await Promise.all([
-                new Promise<void>(resolve => setTimeout(resolve, feedbackDuration)),
-                submitPromise
-            ]);
-
-            setWrongFeedbackIndex(null);
-            // Solo mode: animation done, allow result state now
-            if (isSolo) {
-                setSoloDelayingResult(false);
-            }
-
-            if (!networkResult.success) {
+            if (!result.success) {
                 setSubmitError(true);
                 audioService.playError();
                 return; // Don't lock answer, allow retry
             }
-        } else {
-            // Correct answer or reduced motion: just wait for network
-            const networkResult = await submitPromise;
-            if (!networkResult.success) {
-                setSubmitError(true);
+
+            // Check if answer was wrong (from server response)
+            const isWrongAnswer = result.correct === false;
+
+            if (isWrongAnswer && !prefersReducedMotion) {
+                // Show wrong answer feedback based on server response
+                setWrongFeedbackIndex(index);
+                setHasShownWrongFeedback(true);
                 audioService.playError();
-                return;
+                haptic.error();
+
+                // Solo mode: delay result state to let animation play
+                if (isSolo) {
+                    setSoloDelayingResult(true);
+                }
+
+                // Wait for animation to complete
+                const feedbackDuration = getTransitionDuration('wrongFeedback', prefersReducedMotion);
+                await new Promise<void>(resolve => setTimeout(resolve, feedbackDuration));
+
+                setWrongFeedbackIndex(null);
+                if (isSolo) {
+                    setSoloDelayingResult(false);
+                }
             }
+        } catch (error) {
+            console.error('Failed to submit answer:', error);
+            setSubmitError(true);
+            audioService.playError();
+            return;
         }
 
         // Success: lock the answer
@@ -450,9 +440,15 @@ export function Phase1Player({ room, playerId, isHost, mode = 'multiplayer', sol
     }, [isAnswering]);
 
     // Result reveal animation sequence: first shake wrong answer, then reveal correct
+    // SOLO: Use correctIndex directly from question (safe - local play)
+    // MULTIPLAYER: Use phase1CorrectAnswer from room state (secure - from server)
+    const correctAnswerIndex = isSolo
+        ? displayedQuestion?.correctIndex
+        : (displayedQuestionIndex !== undefined ? phase1CorrectAnswer?.[displayedQuestionIndex] : undefined);
+
     useEffect(() => {
         if (isResult && myAnswer !== null) {
-            const isWrongAnswer = displayedQuestion && myAnswer !== displayedQuestion.correctIndex;
+            const isWrongAnswer = correctAnswerIndex !== undefined && myAnswer !== correctAnswerIndex;
 
             // Only show shake animation if we haven't already shown it via wrongFeedbackIndex
             if (isWrongAnswer && !prefersReducedMotion && !hasShownWrongFeedback) {
@@ -480,7 +476,7 @@ export function Phase1Player({ room, playerId, isHost, mode = 'multiplayer', sol
         } else if (!isResult) {
             setResultRevealPhase('idle');
         }
-    }, [isResult, myAnswer, displayedQuestion, prefersReducedMotion, hasShownWrongFeedback]);
+    }, [isResult, myAnswer, correctAnswerIndex, prefersReducedMotion, hasShownWrongFeedback]);
 
     // Determining feedback if result is shown
     let resultMessage = t('common:labels.waiting');
@@ -735,7 +731,8 @@ export function Phase1Player({ room, playerId, isHost, mode = 'multiplayer', sol
                             const isFaded = myAnswer !== null && !isSelected;
 
                             // Check if this is the correct answer during result phase
-                            const isCorrectAnswer = displayedQuestion && idx === displayedQuestion.correctIndex;
+                            // Use correctAnswerIndex from Cloud Function (not client data)
+                            const isCorrectAnswer = correctAnswerIndex !== undefined && idx === correctAnswerIndex;
                             // Only transform to result card after the shake animation is done
                             const shouldTransformToResult = isResult && isCorrectAnswer && resultRevealPhase === 'revealing';
 

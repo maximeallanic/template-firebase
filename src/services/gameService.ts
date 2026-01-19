@@ -1,7 +1,7 @@
 import { ref, get, update } from 'firebase/database';
 import { doc, getDoc } from 'firebase/firestore';
 import { rtdb, db } from './firebase';
-import type { Question } from '../data/questions';
+import type { Question } from '../types/gameTypes';
 
 // Re-export all types from centralized types file
 export type {
