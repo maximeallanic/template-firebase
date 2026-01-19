@@ -440,12 +440,15 @@ export function Phase1Player({ room, playerId, isHost, mode = 'multiplayer', sol
     }, [isAnswering]);
 
     // Result reveal animation sequence: first shake wrong answer, then reveal correct
-    // Use correctIndex from server (phase1CorrectAnswer) not from client question data
-    const serverCorrectIndex = displayedQuestionIndex !== undefined ? phase1CorrectAnswer?.[displayedQuestionIndex] : undefined;
+    // SOLO: Use correctIndex directly from question (safe - local play)
+    // MULTIPLAYER: Use phase1CorrectAnswer from room state (secure - from server)
+    const correctAnswerIndex = isSolo
+        ? displayedQuestion?.correctIndex
+        : (displayedQuestionIndex !== undefined ? phase1CorrectAnswer?.[displayedQuestionIndex] : undefined);
 
     useEffect(() => {
         if (isResult && myAnswer !== null) {
-            const isWrongAnswer = serverCorrectIndex !== undefined && myAnswer !== serverCorrectIndex;
+            const isWrongAnswer = correctAnswerIndex !== undefined && myAnswer !== correctAnswerIndex;
 
             // Only show shake animation if we haven't already shown it via wrongFeedbackIndex
             if (isWrongAnswer && !prefersReducedMotion && !hasShownWrongFeedback) {
@@ -473,7 +476,7 @@ export function Phase1Player({ room, playerId, isHost, mode = 'multiplayer', sol
         } else if (!isResult) {
             setResultRevealPhase('idle');
         }
-    }, [isResult, myAnswer, serverCorrectIndex, prefersReducedMotion, hasShownWrongFeedback]);
+    }, [isResult, myAnswer, correctAnswerIndex, prefersReducedMotion, hasShownWrongFeedback]);
 
     // Determining feedback if result is shown
     let resultMessage = t('common:labels.waiting');
@@ -728,8 +731,8 @@ export function Phase1Player({ room, playerId, isHost, mode = 'multiplayer', sol
                             const isFaded = myAnswer !== null && !isSelected;
 
                             // Check if this is the correct answer during result phase
-                            // Use serverCorrectIndex from Cloud Function (not client data)
-                            const isCorrectAnswer = serverCorrectIndex !== undefined && idx === serverCorrectIndex;
+                            // Use correctAnswerIndex from Cloud Function (not client data)
+                            const isCorrectAnswer = correctAnswerIndex !== undefined && idx === correctAnswerIndex;
                             // Only transform to result card after the shake animation is done
                             const shouldTransformToResult = isResult && isCorrectAnswer && resultRevealPhase === 'revealing';
 
