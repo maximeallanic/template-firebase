@@ -146,7 +146,8 @@
     "saving": "Speichere...",
     "cancel": "Abbrechen",
     "errorNameRequired": "Name muss sein!",
-    "errorSaveFailed": "Speichern fehlgeschlagen. Nochmal?"
+    "errorSaveFailed": "Speichern fehlgeschlagen. Nochmal?",
+    "deleteAccount": "Mein Konto löschen"
   },
   "solo": {
     "mode": "Solo-Modus",
@@ -176,5 +177,34 @@
       "phase2Subtitle": "Sortier das Zeug!",
       "phase4Subtitle": "Schnell sein = mehr Punkte!"
     }
+  },
+  "accountDelete": {
+    "title": "Konto löschen",
+    "subtitle": "Lösche dein Konto und alle deine Daten dauerhaft",
+    "backHome": "Zurück zur Startseite",
+    "loginRequired": "Anmeldung erforderlich",
+    "loginRequiredDesc": "Du musst angemeldet sein, um dein Konto zu löschen.",
+    "loginButton": "Anmelden",
+    "warningTitle": "Achtung! Unwiderrufliche Aktion",
+    "warningDesc": "Das Löschen deines Kontos ist dauerhaft. Alle deine Daten werden gelöscht und können nicht wiederhergestellt werden.",
+    "dataDeleted": "Daten die gelöscht werden:",
+    "dataProfile": "Dein Profil und Kontoinformationen",
+    "dataHistory": "Dein Fragenverlauf",
+    "dataLeaderboard": "Deine Solo-Ranglisten-Punkte",
+    "dataAuth": "Dein Authentifizierungskonto",
+    "connectedAs": "Angemeldet als:",
+    "confirmTitle": "Bestätigung erforderlich",
+    "confirm1": "Ich verstehe, dass diese Aktion unwiderruflich ist und alle meine Daten gelöscht werden.",
+    "confirm2": "Ich bestätige, dass ich mein Konto dauerhaft löschen möchte.",
+    "deleteButton": "Konto löschen",
+    "processing": "Konto wird gelöscht...",
+    "processingDesc": "Wir löschen alle deine Daten. Bitte warte.",
+    "successTitle": "Konto gelöscht",
+    "successDesc": "Dein Konto und alle deine Daten wurden erfolgreich gelöscht. Schade, dass du gehst!",
+    "goHome": "Zurück zur Startseite",
+    "errorTitle": "Löschfehler",
+    "errorGeneric": "Beim Löschen ist ein Fehler aufgetreten. Bitte versuche es erneut.",
+    "gdprInfo": "Gemäß DSGVO (Artikel 17) hast du das Recht auf Löschung deiner Daten.",
+    "privacyLink": "Unsere Datenschutzrichtlinie ansehen"
   }
 }

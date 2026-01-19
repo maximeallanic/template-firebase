@@ -146,7 +146,8 @@
     "saving": "Guardando...",
     "cancel": "Cancelar",
     "errorNameRequired": "El nombre no puede estar vacío",
-    "errorSaveFailed": "Error al actualizar el perfil. Inténtalo de nuevo."
+    "errorSaveFailed": "Error al actualizar el perfil. Inténtalo de nuevo.",
+    "deleteAccount": "Eliminar mi cuenta"
   },
   "solo": {
     "mode": "Modo Solo",
@@ -176,5 +177,34 @@
       "phase2Subtitle": "¡Clasifica los elementos!",
       "phase4Subtitle": "¡Responde rápido para más puntos!"
     }
+  },
+  "accountDelete": {
+    "title": "Eliminar mi cuenta",
+    "subtitle": "Elimina permanentemente tu cuenta y todos tus datos",
+    "backHome": "Volver al inicio",
+    "loginRequired": "Inicio de sesión requerido",
+    "loginRequiredDesc": "Debes iniciar sesión para eliminar tu cuenta.",
+    "loginButton": "Iniciar sesión",
+    "warningTitle": "¡Atención! Acción irreversible",
+    "warningDesc": "Eliminar tu cuenta es permanente. Todos tus datos serán borrados y no podrán recuperarse.",
+    "dataDeleted": "Datos que serán eliminados:",
+    "dataProfile": "Tu perfil e información de cuenta",
+    "dataHistory": "Tu historial de preguntas",
+    "dataLeaderboard": "Tus puntuaciones en la clasificación solo",
+    "dataAuth": "Tu cuenta de autenticación",
+    "connectedAs": "Conectado como:",
+    "confirmTitle": "Confirmación requerida",
+    "confirm1": "Entiendo que esta acción es irreversible y todos mis datos serán eliminados.",
+    "confirm2": "Confirmo que quiero eliminar permanentemente mi cuenta.",
+    "deleteButton": "Eliminar mi cuenta",
+    "processing": "Eliminando cuenta...",
+    "processingDesc": "Estamos eliminando todos tus datos. Por favor espera.",
+    "successTitle": "Cuenta eliminada",
+    "successDesc": "Tu cuenta y todos tus datos han sido eliminados correctamente. ¡Nos entristece verte partir!",
+    "goHome": "Volver al inicio",
+    "errorTitle": "Error de eliminación",
+    "errorGeneric": "Ocurrió un error durante la eliminación. Por favor, inténtalo de nuevo.",
+    "gdprInfo": "De acuerdo con el RGPD (Artículo 17), tienes derecho al borrado de tus datos.",
+    "privacyLink": "Ver nuestra Política de Privacidad"
   }
 }

@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useTranslation } from 'react-i18next';
-import { X, Save, User } from 'lucide-react';
+import { X, Save, User, Trash2 } from 'lucide-react';
 import { updatePlayerProfile, type Avatar, AVATAR_LIST } from '../../services/gameService';
 import { saveProfile } from '../../services/profileService';
 import { AvatarIcon } from '../AvatarIcon';
@@ -156,27 +157,40 @@ export const ProfileEditModal: React.FC<ProfileEditModalProps> = ({
                     </div>
 
                     {/* Footer */}
-                    <div className="p-5 border-t border-slate-700 bg-slate-800/30 flex justify-end gap-3">
-                        <button
-                            onClick={onClose}
-                            disabled={isSaving}
-                            className="px-5 py-2 rounded-xl font-bold text-slate-400 hover:text-white transition-colors"
-                        >
-                            {t('profileEdit.cancel')}
-                        </button>
-                        <button
-                            onClick={handleSave}
-                            disabled={isSaving || !name.trim()}
-                            className="bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-400 hover:to-purple-500 text-white px-6 py-2 rounded-xl font-bold shadow-lg disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 transition-all"
-                        >
-                            {isSaving ? (
-                                <>{t('profileEdit.saving')}</>
-                            ) : (
-                                <>
-                                    <Save className="w-4 h-4" /> {t('profileEdit.save')}
-                                </>
-                            )}
-                        </button>
+                    <div className="p-5 border-t border-slate-700 bg-slate-800/30 space-y-4">
+                        <div className="flex justify-end gap-3">
+                            <button
+                                onClick={onClose}
+                                disabled={isSaving}
+                                className="px-5 py-2 rounded-xl font-bold text-slate-400 hover:text-white transition-colors"
+                            >
+                                {t('profileEdit.cancel')}
+                            </button>
+                            <button
+                                onClick={handleSave}
+                                disabled={isSaving || !name.trim()}
+                                className="bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-400 hover:to-purple-500 text-white px-6 py-2 rounded-xl font-bold shadow-lg disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 transition-all"
+                            >
+                                {isSaving ? (
+                                    <>{t('profileEdit.saving')}</>
+                                ) : (
+                                    <>
+                                        <Save className="w-4 h-4" /> {t('profileEdit.save')}
+                                    </>
+                                )}
+                            </button>
+                        </div>
+                        {/* Delete Account Link */}
+                        <div className="pt-2 border-t border-slate-700/50">
+                            <Link
+                                to="/account/delete"
+                                onClick={onClose}
+                                className="text-sm text-red-400/70 hover:text-red-400 transition-colors flex items-center gap-2 justify-center"
+                            >
+                                <Trash2 className="w-4 h-4" />
+                                {t('profileEdit.deleteAccount')}
+                            </Link>
+                        </div>
                     </div>
                 </motion.div>
             </div>

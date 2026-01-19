@@ -72,8 +72,10 @@ export function useAppInstall(): UseAppInstallResult {
 
     // Capture the beforeinstallprompt event
     const handleBeforeInstallPrompt = (e: Event) => {
+      console.log('[useAppInstall] beforeinstallprompt event captured');
       e.preventDefault(); // Prevent the mini-infobar from appearing on mobile
       setDeferredPrompt(e as BeforeInstallPromptEvent);
+      console.log('[useAppInstall] deferredPrompt stored');
     };
 
     window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
@@ -95,11 +97,20 @@ export function useAppInstall(): UseAppInstallResult {
   }, []);
 
   const promptInstall = useCallback(async (): Promise<boolean> => {
-    if (!deferredPrompt) return false;
+    console.log('[useAppInstall] promptInstall called, deferredPrompt:', deferredPrompt);
+    
+    if (!deferredPrompt) {
+      console.warn('[useAppInstall] No deferred prompt available');
+      return false;
+    }
 
     try {
+      console.log('[useAppInstall] Calling deferredPrompt.prompt()');
       await deferredPrompt.prompt();
+      
+      console.log('[useAppInstall] Waiting for user choice');
       const { outcome } = await deferredPrompt.userChoice;
+      console.log('[useAppInstall] User choice outcome:', outcome);
 
       if (outcome === 'accepted') {
         setIsInstalled(true);
@@ -108,7 +119,7 @@ export function useAppInstall(): UseAppInstallResult {
       }
       return false;
     } catch (error) {
-      console.error('Failed to prompt install:', error);
+      console.error('[useAppInstall] Failed to prompt install:', error);
       return false;
     }
   }, [deferredPrompt]);

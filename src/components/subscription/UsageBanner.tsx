@@ -1,6 +1,7 @@
 import React from 'react';
 import { useTranslation } from 'react-i18next';
 import { FoodLoader } from '../ui/FoodLoader';
+import { useCurrency } from '../../hooks/useCurrency';
 
 interface UsageBannerProps {
   analysesUsed: number;
@@ -18,6 +19,7 @@ export const UsageBanner: React.FC<UsageBannerProps> = ({
   isUpgrading = false,
 }) => {
   const { t } = useTranslation(['translation', 'common']);
+  const { price } = useCurrency();
   const percentage = (analysesUsed / analysesLimit) * 100;
   const isNearLimit = percentage >= 80;
   const isAtLimit = analysesUsed >= analysesLimit;
@@ -75,7 +77,7 @@ export const UsageBanner: React.FC<UsageBannerProps> = ({
                 {t('usage.loading')}
               </>
             ) : (
-              t('usage.upgradeCta')
+              t('usage.upgradeCta', { price: price.formatted })
             )}
           </button>
         )}

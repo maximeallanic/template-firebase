@@ -146,7 +146,8 @@
     "saving": "Saving...",
     "cancel": "Cancel",
     "errorNameRequired": "Name cannot be empty",
-    "errorSaveFailed": "Failed to update profile. Please try again."
+    "errorSaveFailed": "Failed to update profile. Please try again.",
+    "deleteAccount": "Delete my account"
   },
   "solo": {
     "mode": "Solo Mode",
@@ -176,5 +177,34 @@
       "phase2Subtitle": "Classify the elements!",
       "phase4Subtitle": "Answer fast for more points!"
     }
+  },
+  "accountDelete": {
+    "title": "Delete My Account",
+    "subtitle": "Permanently delete your account and all your data",
+    "backHome": "Back to Home",
+    "loginRequired": "Login Required",
+    "loginRequiredDesc": "You must be logged in to delete your account.",
+    "loginButton": "Log In",
+    "warningTitle": "Warning! Irreversible Action",
+    "warningDesc": "Deleting your account is permanent. All your data will be erased and cannot be recovered.",
+    "dataDeleted": "Data that will be deleted:",
+    "dataProfile": "Your profile and account information",
+    "dataHistory": "Your question history",
+    "dataLeaderboard": "Your solo leaderboard scores",
+    "dataAuth": "Your authentication account",
+    "connectedAs": "Connected as:",
+    "confirmTitle": "Confirmation Required",
+    "confirm1": "I understand this action is irreversible and all my data will be deleted.",
+    "confirm2": "I confirm I want to permanently delete my account.",
+    "deleteButton": "Delete My Account",
+    "processing": "Deleting account...",
+    "processingDesc": "We are deleting all your data. Please wait.",
+    "successTitle": "Account Deleted",
+    "successDesc": "Your account and all your data have been successfully deleted. We're sad to see you go!",
+    "goHome": "Back to Home",
+    "errorTitle": "Deletion Error",
+    "errorGeneric": "An error occurred during deletion. Please try again.",
+    "gdprInfo": "In accordance with GDPR (Article 17), you have the right to erasure of your data.",
+    "privacyLink": "View our Privacy Policy"
   }
 }

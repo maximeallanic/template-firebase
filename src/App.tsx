@@ -7,6 +7,7 @@ import { PageTransition } from './components/ui/PageTransition';
 import { SharedBackground, type BackgroundVariant } from './components/ui/SharedBackground';
 import { FoodLoader } from './components/ui/FoodLoader';
 import { PersistentHeader } from './components/layout/PersistentHeader';
+import { useKonamiCode } from './hooks/useKonamiCode';
 
 // Game Modules
 const HomePage = lazy(() => import('./pages/HomePage'));
@@ -23,15 +24,22 @@ const Leaderboard = lazy(() => import('./pages/Leaderboard'));
 const TermsAndConditions = lazy(() => import('./pages/TermsAndConditions'));
 const TermsOfService = lazy(() => import('./pages/TermsOfService'));
 
+// Account Management
+const AccountDelete = lazy(() => import('./pages/AccountDelete'));
+
 function App() {
   const location = useLocation();
+
+  // Global Konami code listener for preview environments
+  // Activates dev mode (DebugPanel) when sequence is entered
+  useKonamiCode();
 
   // Determine background variant based on current route
   const bgVariant = useMemo((): BackgroundVariant => {
     const path = location.pathname;
     if (path === '/') return 'home';
     if (path === '/host' || path === '/login' || path === '/solo' || path === '/leaderboard') return 'lobby';
-    if (path === '/terms' || path === '/privacy') return 'legal';
+    if (path === '/terms' || path === '/privacy' || path.startsWith('/account/')) return 'legal';
     if (path.startsWith('/room/') || path.startsWith('/solo/')) return 'game';
     return 'home';
   }, [location.pathname]);
@@ -115,6 +123,13 @@ function App() {
           <Route path="/privacy" element={
             <PageTransition>
               <TermsOfService />
+            </PageTransition>
+          } />
+
+          {/* Account Management */}
+          <Route path="/account/delete" element={
+            <PageTransition>
+              <AccountDelete />
             </PageTransition>
           } />
           </Routes>

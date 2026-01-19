@@ -34,7 +34,7 @@
     "manage": "Gerenciar Plano",
     "atLimit": "Voce atingiu seu limite mensal. Faca upgrade para Pro para continuar analisando emails.",
     "nearLimit": "Suas analises estao acabando. Considere fazer upgrade para Pro para 250 analises/mes.",
-    "upgradeCta": "Fazer Upgrade para Pro - R$25/mes",
+    "upgradeCta": "Fazer Upgrade para Pro - {{price}}/mes",
     "loading": "Carregando..."
   },
   "emailInput": {
@@ -141,7 +141,7 @@
       "badge": "MAIS POPULAR",
       "badgeAlt": "Melhor Valor",
       "title": "Pro",
-      "price": "R$25",
+      "price": "{{price}}",
       "period": "/mes",
       "perAnalysis": "Apenas R$0,10 por analise!",
       "features": {

@@ -1079,3 +1079,129 @@ export const validateSoloScore = onCall(
   }
 );
 
+// ============================================================================
+// ACCOUNT DELETION (GDPR Article 17 - Right to Erasure)
+// ============================================================================
+
+/**
+ * Delete User Account
+ * Permanently deletes all user data from Firebase Auth, Firestore, and RTDB.
+ * This function implements GDPR Article 17 (Right to Erasure).
+ *
+ * Data deleted:
+ * - Firebase Auth user account
+ * - Firestore: users/{userId}
+ * - Firestore: soloLeaderboard entries where playerId == userId
+ * - RTDB: userHistory/{userId}
+ *
+ * Protected by Firebase Authentication.
+ * TODO: Add App Check protection when configured.
+ */
+export const deleteAccount = onCall(
+  async ({ auth }) => {
+    // 1. Auth Check - user must be authenticated
+    if (!auth) {
+      throw new HttpsError('unauthenticated', 'User must be authenticated to delete account');
+    }
+
+    const userId = auth.uid;
+    console.log(`[deleteAccount] Starting account deletion for user: ${userId}`);
+
+    const deletionResults = {
+      firebaseAuth: false,
+      firestoreUser: false,
+      firestoreLeaderboard: false,
+      rtdbHistory: false,
+    };
+
+    try {
+      // 2. Delete Firestore user document
+      try {
+        const userDocRef = db.collection('users').doc(userId);
+        const userDoc = await userDocRef.get();
+
+        if (userDoc.exists) {
+          await userDocRef.delete();
+          deletionResults.firestoreUser = true;
+          console.log(`[deleteAccount] Deleted Firestore user document for: ${userId}`);
+        } else {
+          deletionResults.firestoreUser = true; // No document to delete
+          console.log(`[deleteAccount] No Firestore user document found for: ${userId}`);
+        }
+      } catch (error) {
+        console.error(`[deleteAccount] Error deleting Firestore user document:`, error);
+        // Continue with other deletions
+      }
+
+      // 3. Delete leaderboard entries
+      try {
+        const leaderboardQuery = db.collection('soloLeaderboard').where('playerId', '==', userId);
+        const leaderboardDocs = await leaderboardQuery.get();
+
+        if (!leaderboardDocs.empty) {
+          const batch = db.batch();
+          leaderboardDocs.docs.forEach(doc => {
+            batch.delete(doc.ref);
+          });
+          await batch.commit();
+          deletionResults.firestoreLeaderboard = true;
+          console.log(`[deleteAccount] Deleted ${leaderboardDocs.size} leaderboard entries for: ${userId}`);
+        } else {
+          deletionResults.firestoreLeaderboard = true; // No entries to delete
+          console.log(`[deleteAccount] No leaderboard entries found for: ${userId}`);
+        }
+      } catch (error) {
+        console.error(`[deleteAccount] Error deleting leaderboard entries:`, error);
+        // Continue with other deletions
+      }
+
+      // 4. Delete RTDB user history
+      try {
+        const historyRef = admin.database().ref(`userHistory/${userId}`);
+        const historySnapshot = await historyRef.once('value');
+
+        if (historySnapshot.exists()) {
+          await historyRef.remove();
+          deletionResults.rtdbHistory = true;
+          console.log(`[deleteAccount] Deleted RTDB user history for: ${userId}`);
+        } else {
+          deletionResults.rtdbHistory = true; // No history to delete
+          console.log(`[deleteAccount] No RTDB user history found for: ${userId}`);
+        }
+      } catch (error) {
+        console.error(`[deleteAccount] Error deleting RTDB user history:`, error);
+        // Continue with other deletions
+      }
+
+      // 5. Delete Firebase Auth user (last step)
+      try {
+        await admin.auth().deleteUser(userId);
+        deletionResults.firebaseAuth = true;
+        console.log(`[deleteAccount] Deleted Firebase Auth user: ${userId}`);
+      } catch (error) {
+        console.error(`[deleteAccount] Error deleting Firebase Auth user:`, error);
+        throw new HttpsError('internal', 'Failed to delete authentication account');
+      }
+
+      // 6. Verify all deletions succeeded
+      const allDeleted = Object.values(deletionResults).every(result => result);
+
+      if (!allDeleted) {
+        console.warn(`[deleteAccount] Partial deletion for user ${userId}:`, deletionResults);
+      }
+
+      console.log(`[deleteAccount] Account deletion completed for user: ${userId}`, deletionResults);
+
+      return {
+        success: true,
+        message: 'Account deleted successfully',
+        deletionResults,
+      };
+    } catch (error) {
+      console.error(`[deleteAccount] Fatal error during account deletion:`, error);
+      const message = error instanceof Error ? error.message : 'Unknown error';
+      throw new HttpsError('internal', `Account deletion failed: ${message}`);
+    }
+  }
+);
+
