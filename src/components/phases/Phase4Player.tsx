@@ -11,6 +11,7 @@ import { audioService } from '../../services/audioService';
 import { useReducedMotion } from '../../hooks/useReducedMotion';
 import { useHaptic } from '../../hooks/useHaptic';
 import { getTransitionDuration } from '../../animations';
+import { PHASE4_QUESTIONS } from '../../data/phase4';
 import type { SoloPhaseHandlers } from '../../types/soloTypes';
 
 // Modular components
@@ -49,15 +50,13 @@ export function Phase4Player({ room, playerId, isHost, mode = 'multiplayer', sol
     const team = player?.team;
     const { phase4State, currentPhase4QuestionIndex, phase4Answers, phase4Winner, phase4QuestionStartTime, isTimeout } = room.state;
 
-    // Server-side questions are required - no fallback to static data
-    const questionsList: Phase4QuestionType[] | undefined = room.customQuestions?.phase4 as Phase4QuestionType[] | undefined;
-    const totalQuestions = questionsList?.length || 0;
+    // Use custom AI-generated questions if available, fallback to static questions
+    const questionsList: Phase4QuestionType[] = room.customQuestions?.phase4 || PHASE4_QUESTIONS;
+    const totalQuestions = questionsList.length;
+
     const currentQuestionIdx = currentPhase4QuestionIndex ?? 0;
-    const currentQuestion = questionsList?.[currentQuestionIdx];
-    // isFinished is true when we've answered all questions (not when questions haven't loaded)
-    const isFinished = totalQuestions > 0 && !currentQuestion;
-    // questionsLoading is true when questions haven't loaded yet
-    const questionsLoading = !questionsList || questionsList.length === 0;
+    const currentQuestion = questionsList[currentQuestionIdx];
+    const isFinished = !currentQuestion;
 
     // Timer state
     const [timeRemaining, setTimeRemaining] = useState(QUESTION_TIMER);
@@ -258,17 +257,6 @@ export function Phase4Player({ room, playerId, isHost, mode = 'multiplayer', sol
         }
     }, [isSubmitting, hasAnswered, phase4State, team, room.code, playerId, isSolo, soloHandlers, currentQuestion, prefersReducedMotion, wrongFeedbackIndex, haptic]);
 
-    // --- LOADING VIEW ---
-    // Show loading state if questions haven't loaded yet
-    if (questionsLoading) {
-        return (
-            <div className="min-h-screen flex items-center justify-center">
-                <FoodLoader />
-                <p className="ml-3 text-white/70">{t('game-ui:loading')}</p>
-            </div>
-        );
-    }
-
     // --- FINISHED VIEW ---
     // En mode solo, on ne montre pas cette vue car le rideau gère la transition vers results
     if (isFinished && isSolo) {
@@ -313,16 +301,6 @@ export function Phase4Player({ room, playerId, isHost, mode = 'multiplayer', sol
                         {t('player.waitingForHost')}
                     </motion.p>
                 )}
-            </div>
-        );
-    }
-
-    // Guard: ensure currentQuestion exists before rendering question views
-    if (!currentQuestion) {
-        return (
-            <div className="min-h-screen flex items-center justify-center">
-                <FoodLoader />
-                <p className="ml-3 text-white/70">{t('game-ui:loading')}</p>
             </div>
         );
     }

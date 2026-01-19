@@ -1,12 +1,9 @@
 import { motion } from 'framer-motion';
 import { useTranslation } from 'react-i18next';
 import { type Room, initPhase3 } from '../../../services/gameService';
-import { markPlayerReady, areAllPlayersReady, getReadinessCount } from '../../../services/game';
-import { Utensils, Users, Keyboard, Trophy, Check, Loader2 } from 'lucide-react';
+import { Utensils, Users, Keyboard, Trophy } from 'lucide-react';
 import { audioService } from '../../../services/audioService';
 import { organicEase, durations } from '../../../animations';
-import { useAuthUser } from '../../../hooks/useAuthUser';
-import { useMemo } from 'react';
 
 interface Phase3IntroProps {
     room: Room;
@@ -15,20 +12,6 @@ interface Phase3IntroProps {
 
 export function Phase3Intro({ room, isHost }: Phase3IntroProps) {
     const { t } = useTranslation(['game-ui', 'common']);
-    const { user } = useAuthUser();
-    const playerId = user?.uid;
-
-    // Readiness state
-    const playersReady = room.state.playersReady;
-    const isPlayerReady = playerId ? playersReady?.[playerId] === true : false;
-    const allReady = useMemo(() => areAllPlayersReady(room.players, playersReady), [room.players, playersReady]);
-    const { ready, total } = useMemo(() => getReadinessCount(room.players, playersReady), [room.players, playersReady]);
-
-    const handleReady = async () => {
-        if (!playerId) return;
-        audioService.playClick();
-        await markPlayerReady(room.code, playerId);
-    };
 
     const handleStart = async () => {
         audioService.playClick();
@@ -102,53 +85,21 @@ export function Phase3Intro({ room, isHost }: Phase3IntroProps) {
                     </div>
                 </div>
 
-                {/* Ready/Start Button */}
-                <div className="flex flex-col items-center gap-4">
-                    {/* Readiness indicator */}
-                    {ready > 0 && (
-                        <div className="text-slate-400 text-sm flex items-center gap-2">
-                            <Check className="w-4 h-4 text-green-400" />
-                            <span>{t('phase1Intro.playersReady', { ready, total })}</span>
-                        </div>
-                    )}
-
-                    {/* Player: "Understood" button */}
-                    {!isPlayerReady && (
-                        <motion.button
-                            whileHover={{ scale: 1.05, boxShadow: "0 0 30px rgba(34,197,94,0.4)" }}
-                            whileTap={{ scale: 0.95 }}
-                            onClick={handleReady}
-                            className="bg-gradient-to-r from-green-600 to-green-500 text-white px-12 py-5 rounded-2xl text-2xl font-black shadow-2xl uppercase tracking-wider"
-                        >
-                            {t('common:buttons.understood')}
-                        </motion.button>
-                    )}
-
-                    {/* Player ready: waiting for others */}
-                    {isPlayerReady && !isHost && !allReady && (
-                        <div className="flex items-center gap-3 text-slate-400">
-                            <Loader2 className="w-6 h-6 animate-spin" />
-                            <span className="text-lg">{t('phase1Intro.waitingForOthers')}</span>
-                        </div>
-                    )}
-
-                    {/* Host: Start button (enabled when all ready) */}
-                    {isHost && isPlayerReady && (
-                        <motion.button
-                            whileHover={allReady ? { scale: 1.05, boxShadow: "0 0 30px rgba(249,115,22,0.4)" } : {}}
-                            whileTap={allReady ? { scale: 0.95 } : {}}
-                            onClick={handleStart}
-                            disabled={!allReady}
-                            className={`px-12 py-5 rounded-2xl text-2xl font-black shadow-2xl uppercase tracking-wider transition-all ${
-                                allReady
-                                    ? 'bg-gradient-to-r from-orange-600 to-orange-500 text-white cursor-pointer'
-                                    : 'bg-slate-700 text-slate-500 cursor-not-allowed'
-                            }`}
-                        >
-                            {allReady ? t('common:buttons.start') : t('phase1Intro.waitingForPlayers')}
-                        </motion.button>
-                    )}
-                </div>
+                {/* Start Button */}
+                {isHost ? (
+                    <motion.button
+                        whileHover={{ scale: 1.05, boxShadow: "0 0 30px rgba(249,115,22,0.4)" }}
+                        whileTap={{ scale: 0.95 }}
+                        onClick={handleStart}
+                        className="bg-gradient-to-r from-orange-600 to-orange-500 text-white px-12 py-5 rounded-2xl text-2xl font-black shadow-2xl uppercase tracking-wider"
+                    >
+                        {t('common:buttons.start')}
+                    </motion.button>
+                ) : (
+                    <div className="animate-pulse text-orange-500/50 text-xl font-bold uppercase tracking-widest">
+                        {t('player.waitingForHost')}
+                    </div>
+                )}
             </motion.div>
         </div>
     );
