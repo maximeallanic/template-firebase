@@ -651,6 +651,43 @@ export async function submitAnswer(request: SubmitAnswerRequest): Promise<Submit
   }
 }
 
+// ============================================================================
+// PHASE 1 ANSWER REVEAL (for timeout case)
+// ============================================================================
+
+interface RevealPhase1AnswerRequest {
+  roomId: string;
+  questionIndex: number;
+}
+
+interface RevealPhase1AnswerResponse {
+  success: boolean;
+  correctIndex?: number;
+  error?: string;
+}
+
+const revealPhase1AnswerFunction = httpsCallable<RevealPhase1AnswerRequest, RevealPhase1AnswerResponse>(
+  functions,
+  'revealPhase1Answer'
+);
+
+/**
+ * Reveal the correct answer for Phase 1 when timeout occurs
+ * Only the host can call this function
+ */
+export async function revealPhase1Answer(roomId: string, questionIndex: number): Promise<RevealPhase1AnswerResponse> {
+  try {
+    const result = await revealPhase1AnswerFunction({ roomId, questionIndex });
+    return result.data;
+  } catch (error: unknown) {
+    console.error('Error revealing Phase 1 answer:', error);
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Failed to reveal answer',
+    };
+  }
+}
+
 /**
  * Delete the current user's account and all associated data
  * Implements GDPR Article 17 (Right to Erasure)

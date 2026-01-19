@@ -3,11 +3,14 @@
     "gameData": {
       // SEC-011: Game answers stored server-side only
       // CRITICAL: This node contains correct answers for all phases
-      // Clients MUST NOT be able to read OR write this data
-      // Only Cloud Functions (using Admin SDK) can access this node
+      // For multiplayer: Clients MUST NOT be able to read OR write this data
+      // For solo mode (roomId === auth.uid): Owner can write their own session
+      // Only Cloud Functions (using Admin SDK) can access multiplayer nodes
       "$roomId": {
-        ".read": false,
-        ".write": false
+        // Solo mode: allow owner to read/write their own session
+        // Multiplayer: block all client access (CF uses Admin SDK)
+        ".read": "auth != null && auth.uid == $roomId",
+        ".write": "auth != null && auth.uid == $roomId"
       }
     },
     "soloSessions": {

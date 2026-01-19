@@ -81,6 +81,12 @@ export interface SubmitAnswerResponse {
     team: TeamType;
   };
 
+  // === Correct answer reveal (after round ends) ===
+  /** The correct answer index (MCQ phases) or correct answer text (text phases) */
+  correctAnswerIndex?: number;
+  /** The correct answer text for display */
+  correctAnswer?: string;
+
   // === Error handling ===
   /** Error code if success is false */
   error?: 'TIMEOUT' | 'INVALID_PHASE' | 'INVALID_QUESTION' | 'NOT_IN_ROOM' | 'ALREADY_ANSWERED' | 'INTERNAL';

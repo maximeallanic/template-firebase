@@ -8,7 +8,7 @@
  */
 
 import { ref, get, update } from 'firebase/database';
-import { rtdb, submitAnswer as submitAnswerCF } from '../../firebase';
+import { rtdb, submitAnswer as submitAnswerCF, revealPhase1Answer } from '../../firebase';
 import type { SubmitAnswerResponse } from '../../firebase';
 import { validateRoom } from '../roomService';
 import type { GameState } from '../../../types/gameTypes';
@@ -68,6 +68,7 @@ export const startNextQuestion = async (code: string, nextIndex: number): Promis
 /**
  * Handle Phase 1 timeout (timer expired with no correct answer)
  * Sets phaseState to 'result' with no winner, allowing normal flow to continue
+ * Also reveals the correct answer via Cloud Function
  * @param code - Room code
  */
 export const handlePhase1Timeout = async (code: string): Promise<void> => {
@@ -82,12 +83,19 @@ export const handlePhase1Timeout = async (code: string): Promise<void> => {
         return;
     }
 
+    const questionIndex = state.currentQuestionIndex ?? 0;
+
     // Transition to 'result' with no winner (timeout)
-    await update(ref(rtdb, `rooms/${roomId}/state`), {
-        phaseState: 'result',
-        roundWinner: null,
-        isTimeout: true
-    });
+    // Run both in parallel: update state + reveal correct answer
+    await Promise.all([
+        update(ref(rtdb, `rooms/${roomId}/state`), {
+            phaseState: 'result',
+            roundWinner: null,
+            isTimeout: true
+        }),
+        // Reveal the correct answer via Cloud Function (only host calls this)
+        revealPhase1Answer(roomId, questionIndex)
+    ]);
 };
 
 /**

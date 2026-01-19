@@ -6,7 +6,7 @@ import Stripe from 'stripe';
 import { z } from 'zod';
 
 // Re-export game functions
-export { submitAnswer } from './game/submitAnswer';
+export { submitAnswer, revealPhase1Answer } from './game/submitAnswer';
 
 // Define secrets for production (Secret Manager)
 const stripeSecretKey = defineSecret('STRIPE_SECRET_KEY');

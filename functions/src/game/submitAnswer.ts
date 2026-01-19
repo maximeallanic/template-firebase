@@ -225,16 +225,24 @@ async function handlePhase1(
         };
     }
 
-    // Award point if winner
+    // Award point if winner and reveal correct answer in room state
     const pointsAwarded = isWinner ? 1 : 0;
     if (isWinner) {
-        await awardPoints(roomId, odId, 1);
+        const db = getDatabase();
+        await Promise.all([
+            awardPoints(roomId, odId, 1),
+            // Reveal correct answer to all players (for result display)
+            db.ref(`rooms/${roomId}/state/phase1CorrectAnswer/${questionIndex}`).set(question.correctIndex)
+        ]);
     }
 
     return {
         success: true,
         correct,
         pointsAwarded,
+        // Only reveal correct answer when round is over (winner found)
+        // This prevents cheating with rebond system (multiple attempts)
+        correctAnswerIndex: isWinner ? question.correctIndex : undefined,
         roundWinner: isWinner ? { odId, name: '', team } : undefined,
     };
 }
@@ -683,6 +691,48 @@ async function handleSoloAnswer(
             };
     }
 }
+
+/**
+ * Cloud Function: revealPhase1Answer
+ *
+ * Called by host when Phase 1 timer expires with no correct answer.
+ * Reveals the correct answer index to all players.
+ */
+export const revealPhase1Answer = onCall({
+    region: 'europe-west1',
+    memory: '128MiB',
+}, async ({ data, auth }): Promise<{ success: boolean; correctIndex?: number; error?: string }> => {
+    if (!auth) {
+        throw new HttpsError('unauthenticated', 'Authentication required');
+    }
+
+    const { roomId, questionIndex } = data as { roomId: string; questionIndex: number };
+    const odId = auth.uid;
+
+    if (!roomId || questionIndex === undefined) {
+        return { success: false, error: 'Missing roomId or questionIndex' };
+    }
+
+    // Verify user is host
+    const db = getDatabase();
+    const hostIdSnapshot = await db.ref(`rooms/${roomId}/hostId`).get();
+    if (!hostIdSnapshot.exists() || hostIdSnapshot.val() !== odId) {
+        return { success: false, error: 'Only host can reveal answer' };
+    }
+
+    // Get game data
+    const gameData = await getGameData(roomId);
+    if (!gameData?.phase1?.[questionIndex]) {
+        return { success: false, error: 'Question not found' };
+    }
+
+    const correctIndex = gameData.phase1[questionIndex].correctIndex;
+
+    // Write correct answer to room state
+    await db.ref(`rooms/${roomId}/state/phase1CorrectAnswer/${questionIndex}`).set(correctIndex);
+
+    return { success: true, correctIndex };
+});
 
 /**
  * Main Cloud Function: submitAnswer
