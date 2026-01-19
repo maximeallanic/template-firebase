@@ -22,11 +22,6 @@ export {
 export {
     addTeamPoints,
     getTeamScores,
-    // Player readiness system
-    markPlayerReady,
-    clearPlayersReady,
-    areAllPlayersReady,
-    getReadinessCount,
 } from './sharedUtils';
 
 // Phase 1 - Tenders (Speed MCQ)

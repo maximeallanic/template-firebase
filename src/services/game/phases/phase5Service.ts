@@ -1,15 +1,10 @@
 /**
  * Phase 5 (Burger Ultime) - Memory duel service
  * Teams select representatives who memorize and recall answers
- *
- * Server-Side Validation:
- * Answer validation is now handled by Cloud Function submitAnswer.
- * Each answer is validated immediately via LLM when submitted.
  */
 
 import { ref, set, get, update, runTransaction } from 'firebase/database';
-import { rtdb, submitAnswer as submitAnswerCF } from '../../firebase';
-import type { SubmitAnswerResponse } from '../../firebase';
+import { rtdb } from '../../firebase';
 import { validateRoom } from '../roomService';
 import type { Team, Phase5State, Phase5Results } from '../../../types/gameTypes';
 
@@ -215,206 +210,62 @@ export const nextPhase5MemoryQuestion = async (roomCode: string, totalQuestions:
 // === PHASE 5 ANSWERING ===
 
 /**
- * Result of a Phase 5 answer submission
- */
-export interface Phase5AnswerResult {
-    success: boolean;
-    correct: boolean;
-    llmFeedback?: string;
-    confidence?: number;
-    teamFinished: boolean;
-    error?: string;
-}
-
-/**
  * Submit an answer (called by representative)
- * Uses Cloud Function for server-side LLM validation.
- *
- * SERVER-SIDE VALIDATION: Each answer is validated immediately by the CF.
- * The CF stores validation results in gameData and updates scores.
- *
- * @returns Validation result with immediate feedback
+ * Answers are stored in order as they are submitted
  */
 export const submitPhase5Answer = async (
     roomCode: string,
     playerId: string,
     answer: string,
     team: Team
-): Promise<Phase5AnswerResult> => {
+) => {
     const roomId = roomCode.toUpperCase();
 
     // Verify player is the representative for this team
     const repSnap = await get(ref(rtdb, `rooms/${roomId}/state/phase5Representatives/${team}`));
     if (repSnap.val() !== playerId) {
         console.warn('Non-representative trying to submit answer');
-        return { success: false, correct: false, teamFinished: false, error: 'NOT_REPRESENTATIVE' };
+        return;
     }
 
-    // Get current answer index for this team
-    const indexSnap = await get(ref(rtdb, `rooms/${roomId}/state/phase5CurrentAnswerIndex/${team}`));
-    const questionIndex = indexSnap.val() || 0;
+    // Use transaction to append answer atomically
+    const answersRef = ref(rtdb, `rooms/${roomId}/state/phase5Answers/${team}`);
+    const indexRef = ref(rtdb, `rooms/${roomId}/state/phase5CurrentAnswerIndex/${team}`);
 
-    // Check if already completed
-    if (questionIndex >= 10) {
-        return { success: false, correct: false, teamFinished: true, error: 'ALREADY_COMPLETE' };
-    }
+    const result = await runTransaction(answersRef, (currentAnswers) => {
+        const answers = currentAnswers || [];
+        if (answers.length >= 10) return; // Already complete
+        return [...answers, answer];
+    });
 
-    try {
-        // Call Cloud Function for server-side LLM validation
-        const result: SubmitAnswerResponse = await submitAnswerCF({
-            roomId,
-            phase: 'phase5',
-            questionIndex,
-            answer,
-            clientTimestamp: Date.now(),
-        });
+    if (result.committed) {
+        // Update index for UI
+        const newLength = (result.snapshot.val() || []).length;
+        await set(indexRef, newLength);
 
-        if (result.success) {
-            // Store answer locally for UI display
-            const answersRef = ref(rtdb, `rooms/${roomId}/state/phase5Answers/${team}`);
-            await runTransaction(answersRef, (currentAnswers) => {
-                const answers = currentAnswers || [];
-                if (answers.length >= 10) return answers;
-                return [...answers, {
-                    text: answer,
-                    correct: result.correct,
-                    feedback: result.llmFeedback,
-                }];
-            });
-
-            // Update index for UI
-            const newIndex = questionIndex + 1;
-            await set(ref(rtdb, `rooms/${roomId}/state/phase5CurrentAnswerIndex/${team}`), newIndex);
-
-            // Check if both teams have finished
-            const teamFinished = result.teamFinished || newIndex >= 10;
-            if (teamFinished) {
-                await checkPhase5AnswerCompletion(roomCode);
-            }
-
-            return {
-                success: true,
-                correct: result.correct,
-                llmFeedback: result.llmFeedback,
-                confidence: result.confidence,
-                teamFinished,
-            };
-        } else {
-            console.error('[Phase 5] CF validation failed:', result.message);
-            return {
-                success: false,
-                correct: false,
-                teamFinished: false,
-                error: result.error || 'VALIDATION_FAILED',
-            };
-        }
-    } catch (error) {
-        console.error('[Phase 5] CF call failed:', error);
-        return {
-            success: false,
-            correct: false,
-            teamFinished: false,
-            error: 'CF_ERROR',
-        };
+        // Check if both teams have submitted all 10
+        await checkPhase5AnswerCompletion(roomCode);
     }
 };
 
 /**
- * Check if both teams finished answering.
- * With server-side validation, we skip the "validating" state and go directly to "result".
- * Also awards points to representatives based on "in order" scoring.
+ * Check if both teams finished answering
  */
 export const checkPhase5AnswerCompletion = async (roomCode: string) => {
     const roomId = roomCode.toUpperCase();
-    const roomSnapshot = await get(ref(rtdb, `rooms/${roomId}`));
-    if (!roomSnapshot.exists()) return;
+    const snapshot = await get(ref(rtdb, `rooms/${roomId}/state`));
+    if (!snapshot.exists()) return;
 
-    const room = validateRoom(roomSnapshot.val());
-    const state = room.state;
+    const state = snapshot.val();
+    const answers = state.phase5Answers || {};
 
-    const spicyIndex = state.phase5CurrentAnswerIndex?.spicy || 0;
-    const sweetIndex = state.phase5CurrentAnswerIndex?.sweet || 0;
-
-    const spicyDone = spicyIndex >= 10;
-    const sweetDone = sweetIndex >= 10;
+    const spicyDone = (answers.spicy?.length || 0) >= 10;
+    const sweetDone = (answers.sweet?.length || 0) >= 10;
 
     if (spicyDone && sweetDone) {
-        // Both teams finished - calculate final results from stored answers
-        // Note: answers now contain { text, correct, feedback } objects, not plain strings
-        interface Phase5AnswerItem { text: string; correct: boolean; feedback?: string }
-        const answers = (state.phase5Answers || {}) as { spicy?: Phase5AnswerItem[]; sweet?: Phase5AnswerItem[] };
-        const spicyAnswers: Phase5AnswerItem[] = answers.spicy || [];
-        const sweetAnswers: Phase5AnswerItem[] = answers.sweet || [];
-
-        // Calculate team results based on correct answers (already validated by CF)
-        const calculateTeamResult = (teamAnswers: Array<{ correct: boolean }>) => {
-            // First 5 must be correct in order
-            const first5Correct = teamAnswers.slice(0, 5).every(a => a.correct);
-            // All 10 must be correct in order
-            const all10Correct = teamAnswers.every(a => a.correct);
-
-            let points = 0;
-            if (all10Correct) {
-                points = 10;
-            } else if (first5Correct) {
-                points = 5;
-            }
-
-            return { first5Correct, all10Correct, points };
-        };
-
-        const spicyResult = calculateTeamResult(spicyAnswers);
-        const sweetResult = calculateTeamResult(sweetAnswers);
-
-        // Award points to representatives using transactions (prevent duplicates)
-        const spicyRepId = state.phase5Representatives?.spicy;
-        const sweetRepId = state.phase5Representatives?.sweet;
-
-        if (spicyRepId && spicyResult.points > 0) {
-            const spicyRepRef = ref(rtdb, `rooms/${roomId}/players/${spicyRepId}`);
-            await runTransaction(spicyRepRef, (currentData) => {
-                if (currentData && !currentData.phase5Scored) {
-                    return {
-                        ...currentData,
-                        score: (currentData.score || 0) + spicyResult.points,
-                        phase5Scored: true,
-                    };
-                }
-                return currentData;
-            });
-        }
-
-        if (sweetRepId && sweetResult.points > 0) {
-            const sweetRepRef = ref(rtdb, `rooms/${roomId}/players/${sweetRepId}`);
-            await runTransaction(sweetRepRef, (currentData) => {
-                if (currentData && !currentData.phase5Scored) {
-                    return {
-                        ...currentData,
-                        score: (currentData.score || 0) + sweetResult.points,
-                        phase5Scored: true,
-                    };
-                }
-                return currentData;
-            });
-        }
-
-        // Store results and move to result state
+        // Move to validating state - Cloud Function will be called by client
         await update(ref(rtdb, `rooms/${roomId}/state`), {
-            phase5State: 'result',
-            phase5Results: {
-                spicy: {
-                    answers: spicyAnswers,
-                    first5Correct: spicyResult.first5Correct,
-                    all10Correct: spicyResult.all10Correct,
-                    points: spicyResult.points,
-                },
-                sweet: {
-                    answers: sweetAnswers,
-                    first5Correct: sweetResult.first5Correct,
-                    all10Correct: sweetResult.all10Correct,
-                    points: sweetResult.points,
-                },
-            },
+            phase5State: 'validating'
         });
     }
 };
@@ -422,22 +273,59 @@ export const checkPhase5AnswerCompletion = async (roomCode: string) => {
 // === PHASE 5 RESULTS ===
 
 /**
- * Store validation results and calculate points.
- *
- * @deprecated This function is no longer used with server-side validation.
- * Results are now automatically calculated and stored by checkPhase5AnswerCompletion()
- * when both teams finish answering. Kept for backward compatibility only.
+ * Store validation results and calculate points
+ * Called after Cloud Function returns
  */
 export const setPhase5Results = async (
     roomCode: string,
     results: Phase5Results
 ) => {
     const roomId = roomCode.toUpperCase();
-    console.warn('[Phase 5] setPhase5Results is deprecated. Results are now calculated automatically.');
 
-    // Just update the state - scoring is handled by checkPhase5AnswerCompletion
-    await update(ref(rtdb, `rooms/${roomId}/state`), {
-        phase5State: 'result',
-        phase5Results: results,
-    });
+    // Get current room data to identify representatives
+    const snapshot = await get(ref(rtdb, `rooms/${roomId}`));
+    if (!snapshot.exists()) return;
+    const room = validateRoom(snapshot.val());
+
+    // Award points ONLY to the team representatives (prevent score duplication)
+    const spicyRepId = room.state.phase5Representatives?.spicy;
+    const sweetRepId = room.state.phase5Representatives?.sweet;
+
+    const updates: Record<string, unknown> = {
+        [`rooms/${roomId}/state/phase5State`]: 'result',
+        [`rooms/${roomId}/state/phase5Results`]: results
+    };
+
+    // Add score to Spicy representative using transaction to prevent duplicates
+    if (spicyRepId && results.spicy.points > 0) {
+        const spicyRepRef = ref(rtdb, `rooms/${roomId}/players/${spicyRepId}`);
+        await runTransaction(spicyRepRef, (currentData) => {
+            if (currentData && !currentData.phase5Scored) {
+                return {
+                    ...currentData,
+                    score: (currentData.score || 0) + results.spicy.points,
+                    phase5Scored: true
+                };
+            }
+            return currentData;
+        });
+    }
+
+    // Add score to Sweet representative using transaction to prevent duplicates
+    if (sweetRepId && results.sweet.points > 0) {
+        const sweetRepRef = ref(rtdb, `rooms/${roomId}/players/${sweetRepId}`);
+        await runTransaction(sweetRepRef, (currentData) => {
+            if (currentData && !currentData.phase5Scored) {
+                return {
+                    ...currentData,
+                    score: (currentData.score || 0) + results.sweet.points,
+                    phase5Scored: true
+                };
+            }
+            return currentData;
+        });
+    }
+
+    // Update game state
+    await update(ref(rtdb), updates);
 };

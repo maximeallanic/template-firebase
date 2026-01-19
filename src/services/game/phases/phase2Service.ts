@@ -1,20 +1,19 @@
 /**
  * Phase 2 (Sucré Salé) - Binary choice service
  * Both teams have 20s to answer. First correct answer wins.
- *
- * Server-Side Validation:
- * Answer validation is now handled by Cloud Function submitAnswer.
- * This service only handles state management (advancing items, timeouts).
  */
 
-import { ref, get, update, increment } from 'firebase/database';
-import { rtdb, submitAnswer as submitAnswerCF } from '../../firebase';
-import type { SubmitAnswerResponse } from '../../firebase';
+import { ref, get, update, runTransaction, increment } from 'firebase/database';
+import { rtdb } from '../../firebase';
 import { validateRoom } from '../roomService';
-import type { Team, SimplePhase2Set } from '../../../types/gameTypes';
+import { PHASE2_SETS } from '../../../data/phase2';
+import type {
+    Team, GameState, SimplePhase2Set, Phase2TeamAnswer, Phase2TeamAnswers
+} from '../../../types/gameTypes';
 
-// Note: Auto-advance is now handled by Cloud Function
-// Legacy lock removed - CF handles all state transitions
+// Module-level lock for Phase 2 auto-advance to prevent multiple setTimeout calls
+// Key format: `${roomId}_${currentPhase2Item}`
+const phase2AutoAdvanceScheduled: Record<string, boolean> = {};
 
 /**
  * Advance to the next Phase 2 item
@@ -47,45 +46,173 @@ export const nextPhase2Item = async (code: string) => {
  * Only 1 person per team needs to answer.
  * Round ends when: both teams answered OR timeout (20s).
  * Winner determined by: first correct answer wins (by timestamp if both correct).
- *
- * SERVER-SIDE VALIDATION: All validation is now done by Cloud Function submitAnswer.
- * This function is a thin wrapper that forwards the request to the CF.
- *
- * @returns The response from the Cloud Function
  */
 export const submitPhase2Answer = async (
     roomId: string,
-    _playerId: string, // Unused - kept for API compatibility
+    playerId: string,
     answer: 'A' | 'B' | 'Both'
-): Promise<SubmitAnswerResponse> => {
-    const roomCode = roomId.toUpperCase();
+) => {
+    // SECURITY: Fetch room data from server
+    const roomRef = ref(rtdb, `rooms/${roomId}`);
+    const roomSnapshot = await get(roomRef);
+    if (!roomSnapshot.exists()) return;
 
-    // Get current question index from room state
-    const stateSnapshot = await get(ref(rtdb, `rooms/${roomCode}/state`));
-    if (!stateSnapshot.exists()) {
-        return {
-            success: false,
-            correct: false,
-            pointsAwarded: 0,
-            error: 'NOT_IN_ROOM',
-            message: 'Room not found'
+    const room = validateRoom(roomSnapshot.val());
+    const player = room.players[playerId];
+    if (!player?.team) return; // Player must have a team
+
+    const myTeam = player.team;
+    const otherTeam: Team = myTeam === 'spicy' ? 'sweet' : 'spicy';
+
+    // Get current question data
+    const setIndex = room.state.currentPhase2Set ?? 0;
+    const itemIndex = room.state.currentPhase2Item ?? 0;
+    const phase2Sets = room.customQuestions?.phase2 as SimplePhase2Set[] | undefined;
+    const currentSet = phase2Sets?.[setIndex] || PHASE2_SETS[setIndex];
+    if (!currentSet?.items?.[itemIndex]) return;
+
+    const item = currentSet.items[itemIndex];
+    const correctAnswer = item.answer;
+    const acceptedAnswers = item.acceptedAnswers || [correctAnswer];
+    const isCorrect = answer === correctAnswer || acceptedAnswers.includes(answer);
+
+    // Check if other team has real online players
+    const otherTeamHasPlayers = Object.values(room.players).some(
+        p => p.team === otherTeam && p.isOnline && !p.id.startsWith('mock_')
+    );
+
+    // Record timestamp BEFORE transaction for fair comparison
+    // (timestamp reflects when user clicked, not when transaction runs)
+    const submitTimestamp = Date.now();
+
+    // Use transaction for atomic state update
+    const stateRef = ref(rtdb, `rooms/${roomId}/state`);
+    const result = await runTransaction(stateRef, (currentState: GameState | null) => {
+        if (!currentState) return currentState;
+        if (currentState.phaseState === 'result') return; // Round already ended
+
+        const teamAnswers: Phase2TeamAnswers = currentState.phase2TeamAnswers || {};
+
+        // Check if my team already answered
+        if (teamAnswers[myTeam]) {
+            return; // Abort - team already answered
+        }
+
+        // Record this team's answer
+        const myAnswer: Phase2TeamAnswer = {
+            playerId,
+            playerName: player.name,
+            answer,
+            correct: isCorrect,
+            timestamp: submitTimestamp // Use pre-recorded timestamp
         };
-    }
 
-    const state = stateSnapshot.val();
-    const questionIndex = state.currentPhase2Item ?? 0;
+        const newTeamAnswers: Phase2TeamAnswers = {
+            ...teamAnswers,
+            [myTeam]: myAnswer
+        };
 
-    // Call Cloud Function for server-side validation
-    const result = await submitAnswerCF({
-        roomId: roomCode,
-        phase: 'phase2',
-        questionIndex,
-        answer,
-        clientTimestamp: Date.now(),
-        isSolo: false
+        const newState: GameState = {
+            ...currentState,
+            phase2TeamAnswers: newTeamAnswers
+        };
+
+        // PARALLEL MODE: Check if both teams have answered
+        const otherTeamAnswer = newTeamAnswers[otherTeam];
+        const bothTeamsAnswered = otherTeamAnswer !== undefined;
+
+        if (bothTeamsAnswered) {
+            // Both teams have answered - determine winner
+            const myCorrect = isCorrect;
+            const otherCorrect = otherTeamAnswer.correct;
+
+            if (myCorrect && !otherCorrect) {
+                // Only my team got it right
+                newState.phase2RoundWinner = myTeam;
+                newState.roundWinner = { playerId, name: player.name, team: myTeam };
+            } else if (!myCorrect && otherCorrect) {
+                // Only other team got it right
+                newState.phase2RoundWinner = otherTeam;
+                newState.roundWinner = {
+                    playerId: otherTeamAnswer.playerId,
+                    name: otherTeamAnswer.playerName,
+                    team: otherTeam
+                };
+            } else if (myCorrect && otherCorrect) {
+                // Both correct - BOTH TEAMS WIN
+                newState.phase2RoundWinner = 'both';
+                newState.phase2BothCorrect = true;
+                newState.roundWinner = null; // No single winner
+            } else {
+                // Both wrong - no winner
+                newState.phase2RoundWinner = null;
+                newState.roundWinner = null;
+            }
+
+            newState.phaseState = 'result';
+        } else if (!otherTeamHasPlayers) {
+            // Other team has no players - end round now
+            if (isCorrect) {
+                newState.phase2RoundWinner = myTeam;
+                newState.roundWinner = { playerId, name: player.name, team: myTeam };
+            } else {
+                newState.phase2RoundWinner = null;
+                newState.roundWinner = null;
+            }
+            newState.phaseState = 'result';
+        }
+        // If only one team has answered and other team has players, wait for them or timeout
+
+        return newState;
     });
 
-    return result;
+    // Transaction aborted or failed
+    if (!result.committed) {
+        return;
+    }
+
+    // Award points (if round ended)
+    const newState = result.snapshot.val() as GameState;
+    if (newState?.phaseState === 'result') {
+        if (newState.phase2BothCorrect) {
+            // Both teams correct - award point to BOTH players who answered
+            const spicyAnswer = newState.phase2TeamAnswers?.spicy;
+            const sweetAnswer = newState.phase2TeamAnswers?.sweet;
+            const pointUpdates: Record<string, ReturnType<typeof increment>> = {};
+            if (spicyAnswer) {
+                pointUpdates[`rooms/${roomId}/players/${spicyAnswer.playerId}/score`] = increment(1);
+            }
+            if (sweetAnswer) {
+                pointUpdates[`rooms/${roomId}/players/${sweetAnswer.playerId}/score`] = increment(1);
+            }
+            if (Object.keys(pointUpdates).length > 0) {
+                await update(ref(rtdb), pointUpdates);
+            }
+        } else if (newState.phase2RoundWinner && newState.phase2RoundWinner !== 'both') {
+            // Single winner - award point to winning team's player
+            const winningTeam = newState.phase2RoundWinner;
+            const winningAnswer = newState.phase2TeamAnswers?.[winningTeam];
+            if (winningAnswer) {
+                await update(ref(rtdb), {
+                    [`rooms/${roomId}/players/${winningAnswer.playerId}/score`]: increment(1)
+                });
+            }
+        }
+    }
+
+    // Handle auto-advance if round ended (with lock to prevent multiple timers)
+    if (newState?.phaseState === 'result') {
+        const advanceKey = `${roomId}_${newState.currentPhase2Item ?? 0}`;
+        if (!phase2AutoAdvanceScheduled[advanceKey]) {
+            phase2AutoAdvanceScheduled[advanceKey] = true;
+            const hasAnecdote = item.anecdote;
+            const delay = hasAnecdote ? 10000 : 4000;
+            setTimeout(() => {
+                nextPhase2Item(roomId);
+                delete phase2AutoAdvanceScheduled[advanceKey]; // Cleanup after advance
+            }, delay);
+        }
+    }
 };
 
 /**
@@ -106,14 +233,7 @@ export const endPhase2Round = async (roomCode: string) => {
     const setIndex = room.state.currentPhase2Set ?? 0;
     const itemIndex = room.state.currentPhase2Item ?? 0;
     const phase2Sets = room.customQuestions?.phase2 as SimplePhase2Set[] | undefined;
-    const currentSet = phase2Sets?.[setIndex];
-
-    // Server-side questions required - return early if missing
-    if (!currentSet) {
-        console.error('[Phase2Service] No question set available for timeout handling');
-        return;
-    }
-
+    const currentSet = phase2Sets?.[setIndex] || PHASE2_SETS[setIndex];
     const item = currentSet?.items?.[itemIndex];
     const hasAnecdote = item?.anecdote;
 

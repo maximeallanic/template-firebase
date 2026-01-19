@@ -7,6 +7,8 @@ import { type Question, hasEnoughQuestions, getMissingQuestionCount, MINIMUM_QUE
 import { generateWithRetry } from '../services/aiClient';
 import { filterUnseenQuestions } from '../services/historyService';
 import { getRandomQuestionSet } from '../services/questionStorageService';
+import { PHASE4_QUESTIONS } from '../data/phase4';
+import { PHASE5_QUESTIONS } from '../data/phase5';
 import {
     acquireGenerationLock,
     releaseGenerationLock,
@@ -44,6 +46,7 @@ export function useQuestionGeneration({
     const hasCheckedExhaustion = useRef(false);
     const hasFilteredPhase3 = useRef(false);
     const hasFilteredPhase4 = useRef(false);
+    const hasFilteredPhase5 = useRef(false);
 
     // Refs to hold latest values for use in effects that shouldn't re-run on every change
     const roomRef = useRef(room);
@@ -414,12 +417,21 @@ export function useQuestionGeneration({
                 await overwriteGameQuestions(currentRoom.code, 'phase4', filteredData as unknown[]);
                 console.log('[QUESTION-GEN] ✅ Phase 4: AI generation complete!');
             } catch (err) {
-                console.error('[QUESTION-GEN] ❌ Phase 4: AI generation failed:', {
+                console.error('[QUESTION-GEN] ❌ Phase 4: AI generation failed, using fallback:', {
                     error: (err as Error).message,
                     errorCode: (err as { code?: string })?.code
                 });
-                setGenerationError("Échec de la génération Phase 4. Veuillez réessayer.");
-                // No fallback - server-side questions are required
+                setGenerationError("Échec de la génération Phase 4. Questions par défaut utilisées.");
+
+                // Fallback to filtered static questions
+                console.log('[QUESTION-GEN] 🔍 Phase 4: Filtering static fallback questions...');
+                const filtered = await filterUnseenQuestions(PHASE4_QUESTIONS, q => q.text);
+                console.log('[QUESTION-GEN] Phase 4: Fallback filter result', {
+                    original: PHASE4_QUESTIONS.length,
+                    filtered: filtered.length
+                });
+                await overwriteGameQuestions(currentRoom.code, 'phase4', filtered);
+                console.log('[QUESTION-GEN] ✅ Phase 4: Fallback questions saved');
             } finally {
                 // Release the Firebase distributed lock
                 await releaseGenerationLock(currentRoom.code, currentMyId);
@@ -436,13 +448,38 @@ export function useQuestionGeneration({
     const hasPhase3CustomQuestions = !!room?.customQuestions?.phase3;
     const hasPhase4CustomQuestions = !!room?.customQuestions?.phase4;
     const hasPhase5CustomQuestions = !!room?.customQuestions?.phase5;
-    // Phase 5 questions must be pre-generated via AI (pregen chain)
-    // No fallback to static questions - server-side generation is required
     useEffect(() => {
-        if (roomStatus === 'phase5' && !hasPhase5CustomQuestions) {
-            console.warn('[QUESTION-GEN] Phase 5: No custom questions available - questions should be pre-generated');
-        }
-    }, [roomStatus, hasPhase5CustomQuestions]);
+        const filterPhase5Questions = async () => {
+            const currentRoom = roomRef.current;
+            const currentIsHost = isHostRef.current;
+            if (!currentRoom || roomStatus !== 'phase5') return;
+            if (hasFilteredPhase5.current) return;
+            if (hasPhase5CustomQuestions) {
+                console.log('[QUESTION-GEN] Phase 5: Using existing custom questions');
+                return;
+            }
+            if (!currentIsHost) return;
+
+            hasFilteredPhase5.current = true;
+            console.log('[QUESTION-GEN] 🔍 Phase 5: Filtering seen questions...', {
+                roomCode: currentRoom.code,
+                totalQuestions: PHASE5_QUESTIONS.length
+            });
+
+            const filtered = await filterUnseenQuestions(PHASE5_QUESTIONS, q => q.question);
+            console.log('[QUESTION-GEN] Phase 5: Filter result', {
+                original: PHASE5_QUESTIONS.length,
+                filtered: filtered.length,
+                removed: PHASE5_QUESTIONS.length - filtered.length
+            });
+
+            if (filtered.length < PHASE5_QUESTIONS.length) {
+                await overwriteGameQuestions(currentRoom.code, 'phase5', filtered);
+                console.log('[QUESTION-GEN] ✅ Phase 5: Filtered questions saved to Firebase');
+            }
+        };
+        filterPhase5Questions();
+    }, [roomStatus, hasPhase5CustomQuestions, roomCode, isHost]);
 
     // Helper function to trigger background pre-generation for all phases (non-blocking)
     // Chains Phase 2 -> Phase 3 -> Phase 4 -> Phase 5 generation
