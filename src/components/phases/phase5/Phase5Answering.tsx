@@ -226,15 +226,19 @@ export function Phase5Answering({ room, currentPlayerId, currentPlayerTeam }: Ph
                             {t('phase5.previousAnswers')}
                         </div>
                         <div className="flex flex-wrap justify-center gap-2">
-                            {myTeamAnswers.map((answer, idx) => (
-                                <div
-                                    key={idx}
-                                    className="bg-slate-800/40 px-3 py-1 rounded-lg text-sm text-slate-400"
-                                >
-                                    <span className="text-slate-600 mr-1">{idx + 1}.</span>
-                                    {answer}
-                                </div>
-                            ))}
+                            {myTeamAnswers.map((answerData, idx) => {
+                                // Handle both old string format and new { answer, isCorrect } format
+                                const answerText = typeof answerData === 'string' ? answerData : answerData?.answer;
+                                return (
+                                    <div
+                                        key={idx}
+                                        className="bg-slate-800/40 px-3 py-1 rounded-lg text-sm text-slate-400"
+                                    >
+                                        <span className="text-slate-600 mr-1">{idx + 1}.</span>
+                                        {answerText}
+                                    </div>
+                                );
+                            })}
                         </div>
                     </motion.div>
                 )}

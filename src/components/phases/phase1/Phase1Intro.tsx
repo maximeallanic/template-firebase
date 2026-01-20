@@ -1,9 +1,16 @@
+import { useState, useCallback, useMemo } from 'react';
 import { motion } from 'framer-motion';
 import { useTranslation } from 'react-i18next';
-import { type Room, startNextQuestion } from '../../../services/gameService';
-import { Zap, Clock, Trophy, Users } from 'lucide-react';
+import {
+    type Room,
+    startNextQuestion,
+    markPlayerReady,
+    getReadinessStatus,
+} from '../../../services/gameService';
+import { Zap, Clock, Trophy, Users, CheckCircle } from 'lucide-react';
 import { audioService } from '../../../services/audioService';
 import { organicEase, durations } from '../../../animations';
+import { useAuthUser } from '../../../hooks/useAuthUser';
 
 interface Phase1IntroProps {
     room: Room;
@@ -12,6 +19,24 @@ interface Phase1IntroProps {
 
 export function Phase1Intro({ room, isHost }: Phase1IntroProps) {
     const { t } = useTranslation(['game-ui', 'common']);
+    const { user } = useAuthUser();
+    const [isMarking, setIsMarking] = useState(false);
+
+    const readiness = useMemo(() => getReadinessStatus(room, 'phase1'), [room]);
+    const isPlayerReady = user?.uid
+        ? Boolean(room.state.playersReady?.['phase1']?.[user.uid])
+        : false;
+
+    const handleReady = useCallback(async () => {
+        if (!user?.uid || isMarking) return;
+        setIsMarking(true);
+        try {
+            audioService.playClick();
+            await markPlayerReady(room.code, user.uid, 'phase1');
+        } finally {
+            setIsMarking(false);
+        }
+    }, [room.code, user?.uid, isMarking]);
 
     const handleStart = async () => {
         audioService.playClick();
@@ -85,21 +110,50 @@ export function Phase1Intro({ room, isHost }: Phase1IntroProps) {
                     </div>
                 </div>
 
-                {/* Start Button */}
-                {isHost ? (
-                    <motion.button
-                        whileHover={{ scale: 1.05, boxShadow: "0 0 30px rgba(239,68,68,0.4)" }}
-                        whileTap={{ scale: 0.95 }}
-                        onClick={handleStart}
-                        className="bg-gradient-to-r from-red-600 to-red-500 text-white px-12 py-5 rounded-2xl text-2xl font-black shadow-2xl uppercase tracking-wider"
-                    >
-                        {t('common:buttons.start')}
-                    </motion.button>
-                ) : (
-                    <div className="animate-pulse text-red-500/50 text-xl font-bold uppercase tracking-widest">
-                        {t('player.waitingForHost')}
+                {/* Readiness & Start Button */}
+                <div className="flex flex-col items-center gap-4">
+                    {/* Readiness indicator */}
+                    <div className="text-sm text-slate-400 flex items-center gap-2">
+                        <Users className="w-4 h-4" />
+                        <span>
+                            {t('player.readyCount', {
+                                ready: readiness.readyCount,
+                                total: readiness.totalCount
+                            })}
+                        </span>
                     </div>
-                )}
+
+                    {isHost ? (
+                        <motion.button
+                            whileHover={readiness.allReady ? { scale: 1.05, boxShadow: "0 0 30px rgba(239,68,68,0.4)" } : {}}
+                            whileTap={readiness.allReady ? { scale: 0.95 } : {}}
+                            onClick={handleStart}
+                            disabled={!readiness.allReady}
+                            className={`px-12 py-5 rounded-2xl text-2xl font-black shadow-2xl uppercase tracking-wider transition-all ${
+                                readiness.allReady
+                                    ? 'bg-gradient-to-r from-red-600 to-red-500 text-white cursor-pointer'
+                                    : 'bg-slate-700 text-slate-500 cursor-not-allowed'
+                            }`}
+                        >
+                            {readiness.allReady ? t('common:buttons.start') : t('player.waitingForPlayers')}
+                        </motion.button>
+                    ) : isPlayerReady ? (
+                        <div className="flex items-center gap-2 text-green-400 text-xl font-bold">
+                            <CheckCircle className="w-6 h-6" />
+                            <span>{t('player.youAreReady')}</span>
+                        </div>
+                    ) : (
+                        <motion.button
+                            whileHover={{ scale: 1.05, boxShadow: "0 0 30px rgba(34,197,94,0.4)" }}
+                            whileTap={{ scale: 0.95 }}
+                            onClick={handleReady}
+                            disabled={isMarking}
+                            className="bg-gradient-to-r from-green-600 to-green-500 text-white px-12 py-5 rounded-2xl text-2xl font-black shadow-2xl uppercase tracking-wider"
+                        >
+                            {t('player.iUnderstood')}
+                        </motion.button>
+                    )}
+                </div>
             </motion.div>
         </div>
     );

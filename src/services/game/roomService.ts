@@ -448,3 +448,67 @@ export const updateRoomForcedLanguage = async (
         });
     }
 };
+
+// ============================================================================
+// PLAYER READINESS
+// ============================================================================
+
+/**
+ * Mark a player as ready for a specific phase.
+ * Used to ensure all players have read the rules before starting.
+ *
+ * @param code - Room code
+ * @param playerId - Player ID
+ * @param phase - Phase name (phase1, phase2, etc.)
+ */
+export const markPlayerReady = async (
+    code: string,
+    playerId: string,
+    phase: string
+): Promise<void> => {
+    const roomId = code.toUpperCase();
+    await update(ref(rtdb, `rooms/${roomId}/state/playersReady/${phase}`), {
+        [playerId]: true
+    });
+};
+
+/**
+ * Clear player readiness for a specific phase.
+ * Called when transitioning to a new phase.
+ *
+ * @param code - Room code
+ * @param phase - Phase name (phase1, phase2, etc.)
+ */
+export const clearPlayersReady = async (
+    code: string,
+    phase: string
+): Promise<void> => {
+    const roomId = code.toUpperCase();
+    await set(ref(rtdb, `rooms/${roomId}/state/playersReady/${phase}`), null);
+};
+
+/**
+ * Get count of ready and total players for a phase.
+ * Excludes mock players and offline players.
+ *
+ * @param room - Room object
+ * @param phase - Phase name
+ * @returns Object with readyCount and totalCount
+ */
+export const getReadinessStatus = (
+    room: Room,
+    phase: string
+): { readyCount: number; totalCount: number; allReady: boolean } => {
+    const realPlayers = Object.values(room.players || {})
+        .filter(p => p.isOnline && !p.id.startsWith('mock_'));
+
+    const readyPlayers = room.state.playersReady?.[phase] || {};
+    const readyCount = realPlayers.filter(p => readyPlayers[p.id]).length;
+    const totalCount = realPlayers.length;
+
+    return {
+        readyCount,
+        totalCount,
+        allReady: readyCount >= totalCount && totalCount > 0
+    };
+};

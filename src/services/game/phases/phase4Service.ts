@@ -1,18 +1,22 @@
 /**
  * Phase 4 (La Note) - Speed MCQ race service
  * First correct answer wins 2 points
+ *
+ * Server-side validation via submitAnswer CF (#72)
+ * Scoring handled by nextPhase CF
  */
 
-import { ref, get, update, runTransaction, increment } from 'firebase/database';
-import { rtdb } from '../../firebase';
+import { ref, get, update, runTransaction } from 'firebase/database';
+import { rtdb, submitAnswer as submitAnswerCF } from '../../firebase';
 import { validateRoom } from '../roomService';
-import { PHASE4_QUESTIONS } from '../../../data/phase4';
 import type { Phase4Answer, Phase4Winner } from '../../../types/gameTypes';
 
 /**
  * Submit an answer for Phase 4.
- * Uses a transaction to handle race conditions.
+ * Uses server-side validation via submitAnswer CF (#72).
  * First player to answer correctly wins 2 points.
+ *
+ * Scoring handled by nextPhase CF
  */
 export const submitPhase4Answer = async (
     roomCode: string,
@@ -33,15 +37,20 @@ export const submitPhase4Answer = async (
     const player = room.players[playerId];
     if (!player || !player.team) return;
 
-    // Get current question
-    const questionsList = room.customQuestions?.phase4 || PHASE4_QUESTIONS;
+    // Get current question index
     const currentIdx = room.state.currentPhase4QuestionIndex ?? 0;
-    const currentQuestion = questionsList[currentIdx];
-    if (!currentQuestion) return;
 
-    const isCorrect = answerIndex === currentQuestion.correctIndex;
+    // Call server-side validation
+    let isCorrect = false;
+    try {
+        const response = await submitAnswerCF(roomId, 'phase4', currentIdx, answerIndex, timestamp);
+        isCorrect = response.isCorrect;
+    } catch (error) {
+        console.error('[Phase4] Error calling submitAnswer CF:', error);
+        return;
+    }
 
-    // Use transaction for atomic answer submission
+    // Use transaction for atomic answer submission (for display purposes)
     const answersRef = ref(rtdb, `rooms/${roomId}/state/phase4Answers`);
 
     const result = await runTransaction(answersRef, (currentAnswers) => {
@@ -50,10 +59,10 @@ export const submitPhase4Answer = async (
         // If already answered, abort
         if (playerId in answers) return;
 
-        // Add this player's answer with timestamp
+        // Add this player's answer with timestamp and correctness
         return {
             ...answers,
-            [playerId]: { answer: answerIndex, timestamp }
+            [playerId]: { answer: answerIndex, timestamp, isCorrect }
         };
     });
 
@@ -77,7 +86,8 @@ export const submitPhase4Answer = async (
 
             for (const [pid, data] of Object.entries(allAnswers)) {
                 const answerData = data as Phase4Answer;
-                if (answerData.answer === currentQuestion.correctIndex) {
+                // Use isCorrect flag from CF validation
+                if (answerData.isCorrect === true) {
                     if (answerData.timestamp < firstCorrectTime) {
                         firstCorrectTime = answerData.timestamp;
                         firstCorrectPlayer = pid;
@@ -101,13 +111,7 @@ export const submitPhase4Answer = async (
             return currentState;
         });
 
-        // Award points if this player won
-        const updatedState = (await get(ref(rtdb, `rooms/${roomId}/state`))).val();
-        if (updatedState?.phase4Winner?.playerId === playerId) {
-            await update(ref(rtdb), {
-                [`rooms/${roomId}/players/${playerId}/score`]: increment(2)
-            });
-        }
+        // Note: Scoring removed - nextPhase CF will calculate scores from revealedAnswers
     }
 
     // Check if all real players have answered (handles "all wrong" case)
@@ -130,9 +134,9 @@ export const submitPhase4Answer = async (
 
     // If all real players have answered
     if (realAnswerCount >= realPlayers.length && realPlayers.length > 0) {
-        // Check if any answer is correct
+        // Check if any answer is correct (using isCorrect flag from CF)
         const hasCorrectAnswer = Object.values(allAnswers).some(
-            (a) => (a as Phase4Answer).answer === currentQuestion.correctIndex
+            (a) => (a as Phase4Answer).isCorrect === true
         );
 
         // If no correct answer, transition to result with no winner

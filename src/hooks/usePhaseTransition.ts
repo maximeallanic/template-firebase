@@ -1,14 +1,13 @@
 import { useCallback } from 'react';
 import {
     showPhaseResults,
-    setGameStatus,
-    endGameWithVictory,
     startNextQuestion,
     nextPhase2Item,
     nextPhase4Question,
     type Room,
     type PhaseStatus,
 } from '../services/gameService';
+import { nextPhase as nextPhaseCF } from '../services/firebase';
 
 interface UsePhaseTransitionOptions {
     /**
@@ -145,22 +144,40 @@ export function usePhaseTransition({
 
     /**
      * Advance to the next game phase.
+     * Uses nextPhase CF to calculate scores and transition (#72)
      */
     const advanceToNextPhaseFn = useCallback(async (targetPhase: PhaseStatus) => {
         // Only host can transition to next phase (not solo)
         if (!room || !isHost) return;
 
-        await setGameStatus(room.code, targetPhase);
+        // Get the current phase to pass to nextPhase CF
+        const currentPhase = room.state.status;
+        if (currentPhase === 'lobby' || currentPhase === 'victory') return;
+
+        try {
+            // nextPhase CF will calculate scores and transition to next phase
+            await nextPhaseCF(room.code, currentPhase);
+            console.log(`[usePhaseTransition] Transitioned from ${currentPhase} to ${targetPhase}`);
+        } catch (error) {
+            console.error('[usePhaseTransition] Error calling nextPhase CF:', error);
+        }
     }, [room, isHost]);
 
     /**
      * End the game and show victory screen.
+     * Uses nextPhase CF with phase5 to calculate final scores and transition to victory (#72)
      */
     const endGameFn = useCallback(async () => {
         // Only host can end the game (not solo - solo uses different flow)
         if (!room || !isHost) return;
 
-        await endGameWithVictory(room.code);
+        try {
+            // nextPhase CF from phase5 will calculate scores and transition to victory
+            await nextPhaseCF(room.code, 'phase5');
+            console.log('[usePhaseTransition] Game ended, transitioned to victory');
+        } catch (error) {
+            console.error('[usePhaseTransition] Error ending game:', error);
+        }
     }, [room, isHost]);
 
     return {

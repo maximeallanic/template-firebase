@@ -1,10 +1,13 @@
 /**
  * Phase 5 (Burger Ultime) - Memory duel service
  * Teams select representatives who memorize and recall answers
+ *
+ * Server-side validation via submitAnswer CF (#72)
+ * Scoring handled by nextPhase CF
  */
 
 import { ref, set, get, update, runTransaction } from 'firebase/database';
-import { rtdb } from '../../firebase';
+import { rtdb, submitAnswer as submitAnswerCF } from '../../firebase';
 import { validateRoom } from '../roomService';
 import type { Team, Phase5State, Phase5Results } from '../../../types/gameTypes';
 
@@ -211,31 +214,53 @@ export const nextPhase5MemoryQuestion = async (roomCode: string, totalQuestions:
 
 /**
  * Submit an answer (called by representative)
- * Answers are stored in order as they are submitted
+ * Validates via submitAnswer CF and stores result
+ *
+ * Scoring handled by nextPhase CF
  */
 export const submitPhase5Answer = async (
     roomCode: string,
     playerId: string,
     answer: string,
     team: Team
-) => {
+): Promise<{ isCorrect: boolean } | null> => {
     const roomId = roomCode.toUpperCase();
 
     // Verify player is the representative for this team
     const repSnap = await get(ref(rtdb, `rooms/${roomId}/state/phase5Representatives/${team}`));
     if (repSnap.val() !== playerId) {
         console.warn('Non-representative trying to submit answer');
-        return;
+        return null;
     }
 
-    // Use transaction to append answer atomically
+    // Get current answer index for this team
+    const answersSnap = await get(ref(rtdb, `rooms/${roomId}/state/phase5Answers/${team}`));
+    const currentAnswers = answersSnap.val() || [];
+    const questionIndex = currentAnswers.length;
+
+    if (questionIndex >= 10) {
+        console.warn('Already submitted all 10 answers');
+        return null;
+    }
+
+    // Call server-side validation via submitAnswer CF
+    let isCorrect = false;
+    try {
+        const response = await submitAnswerCF(roomId, 'phase5', questionIndex, answer, Date.now());
+        isCorrect = response.isCorrect;
+    } catch (error) {
+        console.error('[Phase5] Error calling submitAnswer CF:', error);
+        // Continue anyway to store the answer
+    }
+
+    // Use transaction to append answer atomically (with validation result)
     const answersRef = ref(rtdb, `rooms/${roomId}/state/phase5Answers/${team}`);
     const indexRef = ref(rtdb, `rooms/${roomId}/state/phase5CurrentAnswerIndex/${team}`);
 
-    const result = await runTransaction(answersRef, (currentAnswers) => {
-        const answers = currentAnswers || [];
+    const result = await runTransaction(answersRef, (currentAnswersInTx) => {
+        const answers = currentAnswersInTx || [];
         if (answers.length >= 10) return; // Already complete
-        return [...answers, answer];
+        return [...answers, { answer, isCorrect }];
     });
 
     if (result.committed) {
@@ -246,6 +271,8 @@ export const submitPhase5Answer = async (
         // Check if both teams have submitted all 10
         await checkPhase5AnswerCompletion(roomCode);
     }
+
+    return { isCorrect };
 };
 
 /**
@@ -263,9 +290,10 @@ export const checkPhase5AnswerCompletion = async (roomCode: string) => {
     const sweetDone = (answers.sweet?.length || 0) >= 10;
 
     if (spicyDone && sweetDone) {
-        // Move to validating state - Cloud Function will be called by client
+        // Server-side validation already done per-answer via submitAnswer CF (#72)
+        // Go directly to result state - no need for separate validation phase
         await update(ref(rtdb, `rooms/${roomId}/state`), {
-            phase5State: 'validating'
+            phase5State: 'result'
         });
     }
 };
@@ -273,8 +301,10 @@ export const checkPhase5AnswerCompletion = async (roomCode: string) => {
 // === PHASE 5 RESULTS ===
 
 /**
- * Store validation results and calculate points
- * Called after Cloud Function returns
+ * Store validation results for display
+ * Called after all answers submitted and validated
+ *
+ * Note: Scoring removed - nextPhase CF will calculate scores from revealedAnswers (#72)
  */
 export const setPhase5Results = async (
     roomCode: string,
@@ -282,50 +312,12 @@ export const setPhase5Results = async (
 ) => {
     const roomId = roomCode.toUpperCase();
 
-    // Get current room data to identify representatives
-    const snapshot = await get(ref(rtdb, `rooms/${roomId}`));
-    if (!snapshot.exists()) return;
-    const room = validateRoom(snapshot.val());
-
-    // Award points ONLY to the team representatives (prevent score duplication)
-    const spicyRepId = room.state.phase5Representatives?.spicy;
-    const sweetRepId = room.state.phase5Representatives?.sweet;
-
     const updates: Record<string, unknown> = {
         [`rooms/${roomId}/state/phase5State`]: 'result',
         [`rooms/${roomId}/state/phase5Results`]: results
     };
 
-    // Add score to Spicy representative using transaction to prevent duplicates
-    if (spicyRepId && results.spicy.points > 0) {
-        const spicyRepRef = ref(rtdb, `rooms/${roomId}/players/${spicyRepId}`);
-        await runTransaction(spicyRepRef, (currentData) => {
-            if (currentData && !currentData.phase5Scored) {
-                return {
-                    ...currentData,
-                    score: (currentData.score || 0) + results.spicy.points,
-                    phase5Scored: true
-                };
-            }
-            return currentData;
-        });
-    }
+    // Note: Scoring removed - nextPhase CF will calculate scores
 
-    // Add score to Sweet representative using transaction to prevent duplicates
-    if (sweetRepId && results.sweet.points > 0) {
-        const sweetRepRef = ref(rtdb, `rooms/${roomId}/players/${sweetRepId}`);
-        await runTransaction(sweetRepRef, (currentData) => {
-            if (currentData && !currentData.phase5Scored) {
-                return {
-                    ...currentData,
-                    score: (currentData.score || 0) + results.sweet.points,
-                    phase5Scored: true
-                };
-            }
-            return currentData;
-        });
-    }
-
-    // Update game state
     await update(ref(rtdb), updates);
 };

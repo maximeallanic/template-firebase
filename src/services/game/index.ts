@@ -16,6 +16,10 @@ export {
     updatePlayerProfile,
     updateRoomDifficulty,
     getRoomDifficulty,
+    // Player readiness
+    markPlayerReady,
+    clearPlayersReady,
+    getReadinessStatus,
 } from './roomService';
 
 // Shared utilities

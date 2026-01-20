@@ -1,7 +1,6 @@
 import { ref, get, update } from 'firebase/database';
 import { doc, getDoc } from 'firebase/firestore';
 import { rtdb, db } from './firebase';
-import type { Question } from '../data/questions';
 
 // Re-export all types from centralized types file
 export type {
@@ -35,7 +34,7 @@ export { AVATAR_LIST, PHASE_NAMES, DIFFICULTY_LIST, DEFAULT_DIFFICULTY } from '.
 // Import types for internal use
 import type {
     Player, GameState, SimplePhase2Set, Phase3Menu,
-    Phase4Question, Phase5Data, PhaseStatus
+    Phase4Question, Phase5Data, PhaseStatus, Question
 } from '../types/gameTypes';
 
 // ============================================================================
@@ -55,6 +54,10 @@ export {
     updatePlayerProfile,
     updateRoomDifficulty,
     getRoomDifficulty,
+    // Player readiness
+    markPlayerReady,
+    clearPlayersReady,
+    getReadinessStatus,
 } from './game/roomService';
 
 // Shared utilities

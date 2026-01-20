@@ -142,21 +142,21 @@ export const SOLO_MAX_SCORE =
 // Interface for callbacks passed to PhaseX components in solo mode
 
 export interface SoloPhaseHandlers {
-    // Phase 1 (Tenders)
-    submitPhase1Answer: (answerIndex: number) => void;
+    // Phase 1 (Tenders) - async for CF validation (#83)
+    submitPhase1Answer: (answerIndex: number) => void | Promise<void>;
     nextPhase1Question: () => void;
 
-    // Phase 2 (Sucré Salé)
-    submitPhase2Answer: (answer: 'A' | 'B' | 'Both') => void;
+    // Phase 2 (Sucré Salé) - async for CF validation (#83)
+    submitPhase2Answer: (answer: 'A' | 'B' | 'Both') => void | Promise<void>;
     nextPhase2Item: () => void;
 
     // Phase 3 (La Carte) - Optional, not used in solo mode but kept for compatibility
     selectPhase3Theme?: (themeIndex: number) => void;
-    submitPhase3Answer?: (answer: string) => void;
+    submitPhase3Answer?: (answer: string) => void | Promise<void>;
     nextPhase3Question?: () => void;
 
-    // Phase 4 (La Note)
-    submitPhase4Answer: (answerIndex: number) => void;
+    // Phase 4 (La Note) - async for CF validation (#83)
+    submitPhase4Answer: (answerIndex: number) => void | Promise<void>;
     nextPhase4Question: () => void;
     handlePhase4Timeout: () => void;
 

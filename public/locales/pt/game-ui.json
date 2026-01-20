@@ -2,6 +2,10 @@
   "player": {
     "waitingForHost": "O chefe está meditando... Paciência.",
     "waitingForOthers": "Os outros ainda estão pensando... (força aí)",
+    "waitingForPlayers": "Aguardando jogadores...",
+    "readyCount": "{{ready}}/{{total}} prontos",
+    "youAreReady": "Você está pronto!",
+    "iUnderstood": "Entendido!",
     "yourTurn": "HORA DE BRILHAR!",
     "teamBlocked": "Pausa pro café! O outro time está jogando...",
     "answerNow": "VAI VAI VAI!",

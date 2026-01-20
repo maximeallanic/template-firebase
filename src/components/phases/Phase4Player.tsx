@@ -11,7 +11,6 @@ import { audioService } from '../../services/audioService';
 import { useReducedMotion } from '../../hooks/useReducedMotion';
 import { useHaptic } from '../../hooks/useHaptic';
 import { getTransitionDuration } from '../../animations';
-import { PHASE4_QUESTIONS } from '../../data/phase4';
 import type { SoloPhaseHandlers } from '../../types/soloTypes';
 
 // Modular components
@@ -50,8 +49,8 @@ export function Phase4Player({ room, playerId, isHost, mode = 'multiplayer', sol
     const team = player?.team;
     const { phase4State, currentPhase4QuestionIndex, phase4Answers, phase4Winner, phase4QuestionStartTime, isTimeout } = room.state;
 
-    // Use custom AI-generated questions if available, fallback to static questions
-    const questionsList: Phase4QuestionType[] = room.customQuestions?.phase4 || PHASE4_QUESTIONS;
+    // AI-generated questions are mandatory - no fallback data
+    const questionsList: Phase4QuestionType[] = room.customQuestions?.phase4 || [];
     const totalQuestions = questionsList.length;
 
     const currentQuestionIdx = currentPhase4QuestionIndex ?? 0;
@@ -98,7 +97,8 @@ export function Phase4Player({ room, playerId, isHost, mode = 'multiplayer', sol
     // Result reveal animation sequence: first shake wrong answer, then reveal correct
     useEffect(() => {
         if (phase4State === 'result' && myAnswer !== undefined) {
-            const isWrongAnswer = currentQuestion && myAnswer.answer !== currentQuestion.correctIndex;
+            // Use server-validated isCorrect flag (from submitAnswer CF) (#72)
+            const isWrongAnswer = myAnswer.isCorrect === false;
 
             if (isWrongAnswer && !prefersReducedMotion) {
                 // Step 1: Show shake animation on wrong answer
@@ -207,7 +207,9 @@ export function Phase4Player({ room, playerId, isHost, mode = 'multiplayer', sol
         }
     }, [isFinished, isSolo, isHost, showPhaseResults]);
 
-    // Handle answer submission with parallel animations
+    // Handle answer submission
+    // Note: Server-side validation (#72) - we can't know if answer is wrong until server responds
+    // In solo mode, we still have local access to correct answers for immediate feedback
     const handleAnswerClick = useCallback(async (answerIndex: number) => {
         // Prevent interaction during wrong feedback animation or if already submitting
         if (isSubmitting || hasAnswered || phase4State !== 'questioning' || wrongFeedbackIndex !== null) return;
@@ -218,42 +220,30 @@ export function Phase4Player({ room, playerId, isHost, mode = 'multiplayer', sol
         setIsSubmitting(true);
         haptic.buzzer();
 
-        // Check if answer is wrong BEFORE submitting (for immediate visual feedback)
-        const isWrongAnswer = currentQuestion && answerIndex !== currentQuestion.correctIndex;
+        if (isSolo && soloHandlers) {
+            // Solo mode: we have local access to correct answers for immediate feedback
+            const isWrongAnswer = currentQuestion && answerIndex !== (currentQuestion as Phase4QuestionType & { correctIndex?: number }).correctIndex;
 
-        // Create submit promise (optimistic - starts immediately)
-        const submitPromise = (async () => {
-            if (isSolo && soloHandlers) {
-                soloHandlers.submitPhase4Answer(answerIndex);
-                return { success: true };
-            } else {
-                try {
-                    await submitPhase4Answer(room.code, playerId, answerIndex);
-                    return { success: true };
-                } catch (error) {
-                    console.error('Phase4 submit error:', error);
-                    return { success: false, error };
-                }
+            if (isWrongAnswer && !prefersReducedMotion) {
+                // Show immediate wrong answer feedback
+                setWrongFeedbackIndex(answerIndex);
+                audioService.playError();
+                haptic.error();
+
+                const feedbackDuration = getTransitionDuration('wrongFeedback', prefersReducedMotion);
+                await new Promise<void>(resolve => setTimeout(resolve, feedbackDuration));
+                setWrongFeedbackIndex(null);
             }
-        })();
 
-        if (isWrongAnswer && !prefersReducedMotion) {
-            // Show immediate wrong answer feedback
-            setWrongFeedbackIndex(answerIndex);
-            audioService.playError();
-            haptic.error();
-
-            // Animation and network call run in PARALLEL (no blocking)
-            const feedbackDuration = getTransitionDuration('wrongFeedback', prefersReducedMotion);
-            await Promise.all([
-                new Promise<void>(resolve => setTimeout(resolve, feedbackDuration)),
-                submitPromise
-            ]);
-
-            setWrongFeedbackIndex(null);
+            soloHandlers.submitPhase4Answer(answerIndex);
         } else {
-            // No animation needed, just submit
-            await submitPromise;
+            // Multiplayer: submit to server, server validates
+            // No immediate feedback - result reveal animation handles it
+            try {
+                await submitPhase4Answer(room.code, playerId, answerIndex);
+            } catch (error) {
+                console.error('Phase4 submit error:', error);
+            }
         }
     }, [isSubmitting, hasAnswered, phase4State, team, room.code, playerId, isSolo, soloHandlers, currentQuestion, prefersReducedMotion, wrongFeedbackIndex, haptic]);
 
@@ -338,6 +328,8 @@ export function Phase4Player({ room, playerId, isHost, mode = 'multiplayer', sol
 
     // After 'shaking' phase: show the result
     if (phase4State === 'result' && resultRevealPhase === 'revealing') {
+        // Get revealed correct answer from CF validation (#72)
+        const revealedAnswer = room.revealedAnswers?.phase4?.[currentQuestionIdx];
         return (
             <Phase4Result
                 question={currentQuestion}
@@ -345,6 +337,7 @@ export function Phase4Player({ room, playerId, isHost, mode = 'multiplayer', sol
                 myAnswer={myAnswer}
                 isSolo={isSolo}
                 isTimeout={isTimeout}
+                revealedCorrectIndex={revealedAnswer?.correctIndex}
             />
         );
     }

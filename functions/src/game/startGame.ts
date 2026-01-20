@@ -185,16 +185,34 @@ export const startGame = onCall(
       };
     }
 
-    // 5. Check if P1 questions already exist (idempotency)
+    // 5. Check if P1 questions already exist (client may have pre-generated them)
     const existingP1Ref = db.ref(`${basePath}/customQuestions/phase1`);
     const existingP1Snap = await existingP1Ref.once('value');
 
     if (existingP1Snap.exists()) {
-      console.log(`[startGame] P1 already exists for ${roomId}, skipping generation`);
-      const existingQuestions = existingP1Snap.val();
+      console.log(`[startGame] P1 already exists for ${roomId}, extracting answers`);
+      const existingQuestions = existingP1Snap.val() as Phase1Question[];
       const questionCount = Array.isArray(existingQuestions) ? existingQuestions.length : 0;
 
-      // Still initialize state and trigger P2-P5 generation if not done
+      // Check if answers were already extracted (game was already started before)
+      const existingAnswersRef = db.ref(`gameData/${roomId}/phase1`);
+      const existingAnswersSnap = await existingAnswersRef.once('value');
+
+      if (!existingAnswersSnap.exists() && questionCount > 0) {
+        // Extract answers from existing questions and store privately
+        // Questions may include correctIndex which needs to be separated
+        const { publicQuestions, privateAnswers } = separatePhase1Questions(existingQuestions);
+
+        // Update public questions (remove any answer data)
+        await db.ref(`${basePath}/customQuestions/phase1`).set(publicQuestions);
+
+        // Store private answers
+        await db.ref(`gameData/${roomId}/phase1`).set(privateAnswers);
+
+        console.log(`[startGame] Extracted ${privateAnswers.length} answers from existing P1 questions`);
+      }
+
+      // Initialize state and trigger P2-P5 generation if not done
       await initializeGameState(roomId, mode, questionCount);
 
       // Check if P2-P5 generation was already triggered

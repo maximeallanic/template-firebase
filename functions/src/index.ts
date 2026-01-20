@@ -92,8 +92,6 @@ function sanitizeLog(message: string): string {
  */
 const RATE_LIMITS: Record<string, number> = {
   generateGameQuestions: 20, // 20 per hour
-  validatePhase3Answer: 200, // 200 per hour
-  validatePhase5Answers: 50, // 50 per hour
 };
 
 /**
@@ -148,21 +146,6 @@ const GenerateQuestionsSchema = z.object({
   // Completion mode: generate only missing questions
   completeCount: z.number().int().min(1).max(20).optional(),
   existingQuestions: z.array(z.unknown()).optional(),
-});
-
-const ValidatePhase3Schema = z.object({
-  playerAnswer: z.string().min(1).max(500),
-  correctAnswer: z.string().min(1).max(500),
-  acceptableAnswers: z.array(z.string().max(500)).nullish(), // Accept null, undefined, or array
-});
-
-const ValidatePhase5Schema = z.object({
-  questions: z.array(z.object({
-    answer: z.string().min(1),
-    acceptableAnswers: z.array(z.string()).nullish(), // Accept null, undefined, or array
-  })).length(10),
-  spicyAnswers: z.array(z.string()).length(10),
-  sweetAnswers: z.array(z.string()).length(10),
 });
 
 /**
@@ -482,7 +465,6 @@ export const stripeWebhook = onRequest(
 
 
 import { generateGameQuestionsFlow } from './services/gameGenerator';
-import { validateAnswer } from './services/answerValidator';
 
 /**
  * Generate Game Questions (AI)
@@ -686,170 +668,6 @@ export const generateGameQuestions = onCall(
       console.error('AI Generation Error:', e);
       const message = e instanceof Error ? e.message : 'Unknown error';
       throw new HttpsError('internal', `Generation failed: ${message}`);
-    }
-  }
-);
-
-/**
- * Validate Phase 3 Answer
- * Uses LLM to validate player answers against correct answers.
- * Supports fuzzy matching for typos, synonyms, and abbreviations.
- * Protected by App Check.
- */
-export const validatePhase3Answer = onCall(
-  {
-    consumeAppCheckToken: true,
-    timeoutSeconds: 30, // Quick validation should be fast
-    secrets: [geminiApiKey], // Required for LLM validation
-  },
-  async ({ data, auth }) => {
-    if (!auth) {
-      throw new HttpsError('unauthenticated', 'User must be authenticated');
-    }
-
-    // SEC-004: Check rate limit
-    await checkRateLimit(auth.uid, 'validatePhase3Answer');
-
-    // SEC-005: Validate input with Zod schema
-    let validatedData;
-    try {
-      validatedData = ValidatePhase3Schema.parse(data);
-    } catch (zodError) {
-      const message = zodError instanceof z.ZodError
-        ? zodError.errors.map(e => e.message).join(', ')
-        : 'Invalid input';
-      throw new HttpsError('invalid-argument', message);
-    }
-
-    const { playerAnswer, correctAnswer, acceptableAnswers } = validatedData;
-
-    try {
-      const result = await validateAnswer(
-        playerAnswer,
-        correctAnswer,
-        acceptableAnswers ?? undefined // Convert null to undefined
-      );
-
-      return {
-        isCorrect: result.isCorrect,
-        confidence: result.confidence,
-        matchType: result.matchType,
-        explanation: result.explanation,
-      };
-    } catch (error) {
-      console.error('[validatePhase3Answer] Error:', error);
-      const message = error instanceof Error ? error.message : 'Validation failed';
-      throw new HttpsError('internal', message);
-    }
-  }
-);
-
-import { validateAnswerBatch } from './services/answerValidator';
-
-/**
- * Validate Phase 5 Answers
- * Validates 10 answers from each team representative using LLM.
- * Calculates points: +5 if first 5 correct in order, +10 if all 10 correct in order, 0 otherwise.
- * Protected by App Check.
- */
-export const validatePhase5Answers = onCall(
-  {
-    consumeAppCheckToken: true,
-    timeoutSeconds: 120, // May need more time for 20 validations
-    memory: '512MiB',
-    secrets: [geminiApiKey], // Required for LLM validation
-  },
-  async ({ data, auth }) => {
-    if (!auth) {
-      throw new HttpsError('unauthenticated', 'User must be authenticated');
-    }
-
-    // SEC-004: Check rate limit
-    await checkRateLimit(auth.uid, 'validatePhase5Answers');
-
-    // SEC-005: Validate input with Zod schema
-    let validatedData;
-    try {
-      validatedData = ValidatePhase5Schema.parse(data);
-    } catch (zodError) {
-      const message = zodError instanceof z.ZodError
-        ? zodError.errors.map(e => e.message).join(', ')
-        : 'Invalid input';
-      throw new HttpsError('invalid-argument', message);
-    }
-
-    const { questions, spicyAnswers, sweetAnswers } = validatedData;
-
-    try {
-      // Prepare validation batches for both teams
-      const spicyValidationInput = questions.map((q, i) => ({
-        playerAnswer: spicyAnswers[i] || '',
-        correctAnswer: q.answer,
-        acceptableAnswers: q.acceptableAnswers ?? undefined, // Convert null to undefined
-      }));
-
-      const sweetValidationInput = questions.map((q, i) => ({
-        playerAnswer: sweetAnswers[i] || '',
-        correctAnswer: q.answer,
-        acceptableAnswers: q.acceptableAnswers ?? undefined, // Convert null to undefined
-      }));
-
-      // Validate both teams in parallel
-      const [spicyResults, sweetResults] = await Promise.all([
-        validateAnswerBatch(spicyValidationInput),
-        validateAnswerBatch(sweetValidationInput),
-      ]);
-
-      // Build team results
-      const buildTeamResult = (
-        validationResults: Awaited<ReturnType<typeof validateAnswerBatch>>,
-        answers: string[],
-        questionsList: Array<{ answer: string }>
-      ) => {
-        const answerResults = validationResults.map((result, index) => ({
-          index,
-          expected: questionsList[index].answer,
-          given: answers[index] || '',
-          isCorrect: result.isCorrect,
-          explanation: result.explanation,
-        }));
-
-        // Check if first 5 are all correct (in order)
-        const first5Correct = answerResults.slice(0, 5).every(r => r.isCorrect);
-
-        // Check if all 10 are correct (in order)
-        const all10Correct = answerResults.every(r => r.isCorrect);
-
-        // Calculate points: +10 for all 10, +5 for first 5, 0 otherwise
-        let points = 0;
-        if (all10Correct) {
-          points = 10;
-        } else if (first5Correct) {
-          points = 5;
-        }
-
-        return {
-          answers: answerResults,
-          first5Correct,
-          all10Correct,
-          points,
-        };
-      };
-
-      const spicyTeamResult = buildTeamResult(spicyResults, spicyAnswers, questions);
-      const sweetTeamResult = buildTeamResult(sweetResults, sweetAnswers, questions);
-
-      console.log(`[validatePhase5Answers] Spicy: ${spicyTeamResult.points}pts (5/5: ${spicyTeamResult.first5Correct}, 10/10: ${spicyTeamResult.all10Correct})`);
-      console.log(`[validatePhase5Answers] Sweet: ${sweetTeamResult.points}pts (5/5: ${sweetTeamResult.first5Correct}, 10/10: ${sweetTeamResult.all10Correct})`);
-
-      return {
-        spicy: spicyTeamResult,
-        sweet: sweetTeamResult,
-      };
-    } catch (error) {
-      console.error('[validatePhase5Answers] Error:', error);
-      const message = error instanceof Error ? error.message : 'Validation failed';
-      throw new HttpsError('internal', message);
     }
   }
 );

@@ -19,9 +19,11 @@ interface WinnerInfo {
 interface Phase4ResultProps {
     question: Phase4Question;
     winner: WinnerInfo | null;
-    myAnswer: { answer: number; timestamp: number } | undefined;
+    myAnswer: { answer: number; timestamp: number; isCorrect?: boolean } | undefined;
     isSolo?: boolean;
     isTimeout?: boolean;  // True when round ended due to timer expiring
+    /** Revealed correct answer index from CF validation (#72) */
+    revealedCorrectIndex?: number;
 }
 
 export function Phase4Result({
@@ -29,16 +31,19 @@ export function Phase4Result({
     winner,
     myAnswer,
     isSolo = false,
-    isTimeout = false
+    isTimeout = false,
+    revealedCorrectIndex
 }: Phase4ResultProps) {
     const { t } = useTranslation(['game-ui']);
     const { tRandom } = useRandomTranslation();
     const prefersReducedMotion = useReducedMotion();
     const hasPlayedAudioRef = useRef(false);
 
-    const correctIndex = question.correctIndex;
+    // Use revealedCorrectIndex if available (server-validated), fallback to question.correctIndex for solo
+    const correctIndex = revealedCorrectIndex ?? (question as Phase4Question & { correctIndex?: number }).correctIndex ?? 0;
     const correctOption = question.options[correctIndex];
-    const myAnswerCorrect = myAnswer?.answer === correctIndex;
+    // Use server-validated isCorrect if available, otherwise compute locally (solo mode)
+    const myAnswerCorrect = myAnswer?.isCorrect ?? (myAnswer?.answer === correctIndex);
 
     // Play audio feedback once when result is shown
     useEffect(() => {

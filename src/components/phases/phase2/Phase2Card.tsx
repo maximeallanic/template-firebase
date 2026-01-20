@@ -37,6 +37,8 @@ interface Phase2CardProps {
     myTeamAnswer?: Phase2TeamAnswer;
     isSolo?: boolean;
     bothTeamsCorrect?: boolean;
+    /** Revealed correct answer from CF validation (#72) - used in multiplayer when correctAnswer is stripped */
+    revealedAnswer?: Phase2Answer;
 }
 
 export function Phase2Card({
@@ -52,8 +54,11 @@ export function Phase2Card({
     roundWinner,
     myTeamAnswer,
     isSolo = false,
-    bothTeamsCorrect = false
+    bothTeamsCorrect = false,
+    revealedAnswer
 }: Phase2CardProps) {
+    // Use revealedAnswer from CF validation in multiplayer, fallback to item.answer for solo (#72)
+    const correctAnswer = revealedAnswer ?? item.answer;
     const { t } = useTranslation(['game-ui']);
     const { tRandom } = useRandomTranslation();
     const prefersReducedMotion = useReducedMotion();
@@ -293,8 +298,8 @@ export function Phase2Card({
                         animate={prefersReducedMotion ? { opacity: 1 } : { opacity: 1, y: 0 }}
                         transition={{ delay: durations.quick, duration: durations.quick, ease: organicEase }}
                         className={`absolute -top-3 left-1/2 -translate-x-1/2 px-3 py-1 rounded-full text-xs font-bold text-white ${
-                            item.answer === 'A' ? 'bg-red-500' :
-                            item.answer === 'B' ? 'bg-pink-500' :
+                            correctAnswer === 'A' ? 'bg-red-500' :
+                            correctAnswer === 'B' ? 'bg-pink-500' :
                             'bg-purple-500'
                         }`}
                         aria-hidden="true"
@@ -420,7 +425,7 @@ export function Phase2Card({
                                         font-bold
                                         ${getAccentColor() === 'red' ? 'text-red-400' : 'text-amber-400'}
                                     `}>
-                                        {getAnswerText(item.answer)}
+                                        {getAnswerText(correctAnswer)}
                                     </span>
                                 </div>
                             )}

@@ -1,17 +1,17 @@
 /**
  * Phase 3 (La Carte) - Parallel play with theme selection and LLM validation
  * Teams choose themes and answer questions in parallel
+ *
+ * Server-side validation via submitAnswer CF (#72)
+ * Scoring handled by nextPhase CF
  */
 
-import { ref, get, update, runTransaction, increment } from 'firebase/database';
-import { rtdb } from '../../firebase';
+import { ref, get, update, runTransaction } from 'firebase/database';
+import { rtdb, submitAnswer as submitAnswerCF } from '../../firebase';
 import { validateRoom } from '../roomService';
 import type {
     Team, Player, GameState, Phase3Theme, Phase3TeamProgress
 } from '../../../types/gameTypes';
-
-// Import LLM validation for Phase 3
-import { validatePhase3Answer as validatePhase3AnswerLLM } from '../../aiClient';
 
 // Import default Phase 3 themes
 import { PHASE3_DATA } from '../../data/phase3';
@@ -155,8 +155,11 @@ export const selectPhase3Theme = async (
 
 /**
  * Submit a Phase 3 answer.
- * Uses LLM validation for fuzzy matching.
+ * Uses server-side LLM validation via submitAnswer CF (#72).
  * First player from team to answer correctly wins the point.
+ *
+ * Scoring handled by nextPhase CF
+ *
  * @param code - Room code
  * @param playerId - Player submitting answer
  * @param answer - Player's answer text
@@ -204,46 +207,17 @@ export const submitPhase3Answer = async (
         return { success: false, isCorrect: false, alreadyAnswered: true, error: 'Question already answered' };
     }
 
-    // Get the question
-    const themes = room.customQuestions?.phase3 || PHASE3_DATA;
-    const theme = themes[teamProgress.themeIndex];
-    if (!theme || !theme.questions[questionIndex]) {
-        return { success: false, isCorrect: false, error: 'Question not found' };
-    }
+    // Call server-side LLM validation via submitAnswer CF
+    // questionIndex for P3 encodes: themeIndex * 100 + questionIndexInTheme
+    const encodedQuestionIndex = teamProgress.themeIndex * 100 + questionIndex;
 
-    const question = theme.questions[questionIndex];
-
-    // Validate answer using LLM
     let isCorrect = false;
     try {
-        const validationResult = await validatePhase3AnswerLLM({
-            playerAnswer: answer,
-            correctAnswer: question.answer,
-            acceptableAnswers: question.acceptableAnswers,
-        });
-        isCorrect = validationResult.isCorrect;
+        const response = await submitAnswerCF(roomId, 'phase3', encodedQuestionIndex, answer, Date.now());
+        isCorrect = response.isCorrect;
     } catch (error) {
-        console.error('[Phase3] LLM validation error, using fallback:', error);
-        // Fallback: Check exact match first, then acceptable answers
-        const normalizedAnswer = answer.toLowerCase().trim();
-        const normalizedCorrect = question.answer.toLowerCase().trim();
-        isCorrect = normalizedAnswer === normalizedCorrect;
-
-        // If exact match failed, check acceptable answers
-        if (!isCorrect && question.acceptableAnswers?.length) {
-            isCorrect = question.acceptableAnswers.some(alt =>
-                alt.toLowerCase().trim() === normalizedAnswer
-            );
-        }
-
-        // Log if answer was rejected in fallback mode (for debugging)
-        if (!isCorrect) {
-            console.warn('[Phase3] Answer rejected in fallback mode:', {
-                playerAnswer: answer,
-                expectedAnswer: question.answer,
-                acceptableCount: question.acceptableAnswers?.length || 0
-            });
-        }
+        console.error('[Phase3] Error calling submitAnswer CF:', error);
+        return { success: false, isCorrect: false, error: 'Server validation failed' };
     }
 
     if (!isCorrect) {
@@ -302,10 +276,7 @@ export const submitPhase3Answer = async (
         return { success: false, isCorrect: true, alreadyAnswered: true, error: 'Question already answered by teammate' };
     }
 
-    // Award point to player
-    await update(ref(rtdb), {
-        [`rooms/${roomId}/players/${playerId}/score`]: increment(1),
-    });
+    // Note: Scoring removed - nextPhase CF will calculate scores from revealedAnswers
 
     return { success: true, isCorrect: true };
 };

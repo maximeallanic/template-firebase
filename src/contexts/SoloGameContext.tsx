@@ -6,7 +6,7 @@
 
 import { createContext, useContext, useReducer, useCallback, useRef, useEffect, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
-import { ref, child, get } from 'firebase/database';
+import { ref, child, get, set, onValue, off } from 'firebase/database';
 import type { Avatar, SimplePhase2Set, Difficulty } from '../types/gameTypes';
 import { toGameLanguage } from '../types/languageTypes';
 import { hasEnoughQuestions, MINIMUM_QUESTION_COUNTS } from '../types/gameTypes';
@@ -20,7 +20,11 @@ import {
     SOLO_SCORING,
 } from '../types/soloTypes';
 import { generateWithRetry } from '../services/aiClient';
-import { rtdb } from '../services/firebase';
+import {
+    rtdb,
+    startGame as startGameCF,
+    submitAnswer as submitAnswerCF,
+} from '../services/firebase';
 import { getRandomQuestionSet } from '../services/questionStorageService';
 
 // === ACTION TYPES ===
@@ -470,14 +474,14 @@ interface SoloGameContextValue {
     // Game flow
     startGame: () => Promise<void>;
     resetGame: () => void;
-    // Phase 1 actions
-    submitPhase1Answer: (answerIndex: number) => void;
+    // Phase 1 actions - now async for CF validation (#83)
+    submitPhase1Answer: (answerIndex: number) => Promise<void>;
     nextPhase1Question: () => void;
-    // Phase 2 actions
-    submitPhase2Answer: (answer: 'A' | 'B' | 'Both') => void;
+    // Phase 2 actions - now async for CF validation (#83)
+    submitPhase2Answer: (answer: 'A' | 'B' | 'Both') => Promise<void>;
     nextPhase2Item: () => void;
-    // Phase 4 actions
-    submitPhase4Answer: (answerIndex: number) => void;
+    // Phase 4 actions - now async for CF validation (#83)
+    submitPhase4Answer: (answerIndex: number) => Promise<void>;
     nextPhase4Question: () => void;
     handlePhase4Timeout: () => void;
     // Phase transitions
@@ -520,6 +524,8 @@ export function SoloGameProvider({
     const seenIdsRef = useRef<Set<string>>(new Set());
     // Ref to store current language for AI generation
     const languageRef = useRef(toGameLanguage(i18n.language));
+    // Ref for solo session Firebase listener (#83)
+    const soloSessionRef = useRef<ReturnType<typeof ref> | null>(null);
 
     // Keep language ref updated
     useEffect(() => {
@@ -681,82 +687,122 @@ export function SoloGameProvider({
         return seenIds;
     }, []);
 
-    // Start background generation for Phase 2 and Phase 4 (non-blocking, fire-and-forget)
-    const startBackgroundGeneration = useCallback((seenIds: Set<string>, difficulty: Difficulty) => {
-        const abort = new AbortController();
-        backgroundAbortRef.current = abort;
-
-        // Phase 2 (fire-and-forget)
-        dispatch({ type: 'BACKGROUND_GEN_START', phase: 'phase2' });
-        generatePhaseWithRetries('phase2', seenIds, abort.signal, difficulty, 3)
-            .then(questions => {
-                if (!abort.signal.aborted) {
-                    console.log('[SOLO] ✅ Background phase2 ready');
-                    dispatch({ type: 'BACKGROUND_GEN_DONE', phase: 'phase2', questions });
-                }
-            })
-            .catch(error => {
-                if (!abort.signal.aborted) {
-                    console.error('[SOLO] ❌ Background phase2 failed:', error);
-                    dispatch({ type: 'BACKGROUND_GEN_ERROR', phase: 'phase2', error: (error as Error).message });
-                }
-            });
-
-        // Phase 4 (fire-and-forget, runs in parallel with Phase 2)
-        dispatch({ type: 'BACKGROUND_GEN_START', phase: 'phase4' });
-        generatePhaseWithRetries('phase4', seenIds, abort.signal, difficulty, 3)
-            .then(questions => {
-                if (!abort.signal.aborted) {
-                    console.log('[SOLO] ✅ Background phase4 ready');
-                    dispatch({ type: 'BACKGROUND_GEN_DONE', phase: 'phase4', questions });
-                }
-            })
-            .catch(error => {
-                if (!abort.signal.aborted) {
-                    console.error('[SOLO] ❌ Background phase4 failed:', error);
-                    dispatch({ type: 'BACKGROUND_GEN_ERROR', phase: 'phase4', error: (error as Error).message });
-                }
-            });
-    }, [generatePhaseWithRetries]);
+    // NOTE: Background generation for P2/P4 is now handled by CF via Pub/Sub (#83)
+    // The startGame CF triggers generatePhaseQuestions which generates all phases server-side
 
     // Player setup
     const setPlayerInfo = useCallback((playerId: string, playerName: string, playerAvatar: Avatar) => {
         dispatch({ type: 'SET_PLAYER_INFO', playerId, playerName, playerAvatar });
     }, []);
 
-    // Start game: Generate Phase 1 (blocking), then start background generation for Phase 2 & 4
+    // Start game: Create solo session and call startGame CF (#83)
+    // The CF handles question generation and stores them in soloSessions/{playerId}/
     const startGame = useCallback(async () => {
         dispatch({ type: 'START_GENERATION' });
 
+        const playerId = state.playerId;
+        const difficulty = state.difficulty;
+        const language = languageRef.current;
+
         try {
-            // Load player history
-            const seenIds = await loadPlayerHistory(state.playerId);
+            // Load player history for local deduplication hints
+            const seenIds = await loadPlayerHistory(playerId);
             seenIdsRef.current = seenIds;
 
-            const difficulty = state.difficulty;
-            console.log(`[SOLO] Starting game with difficulty: ${difficulty}`);
+            console.log(`[SOLO] Starting game with difficulty: ${difficulty}, language: ${language}`);
 
-            // Phase 1 only (blocking) - game starts as soon as this is ready
+            // 1. Create solo session entry in RTDB (required for CF to verify ownership)
+            const sessionRef = ref(rtdb, `soloSessions/${playerId}`);
+            await set(sessionRef, {
+                playerId,
+                playerName: state.playerName,
+                playerAvatar: state.playerAvatar,
+                difficulty,
+                language,
+                createdAt: Date.now(),
+                hostId: playerId, // For CF compatibility (verifyHost checks hostId)
+                players: {
+                    [playerId]: {
+                        id: playerId,
+                        name: state.playerName,
+                        avatar: state.playerAvatar,
+                        team: 'spicy', // Solo player is always spicy team
+                        isHost: true,
+                        score: 0,
+                        joinedAt: Date.now(),
+                        isOnline: true,
+                    }
+                }
+            });
+
+            console.log('[SOLO] Session created in RTDB');
+
+            // 2. Call startGame CF - this generates P1 and triggers P2-P5 background generation
             dispatch({ type: 'SET_GENERATION_PROGRESS', phase: 'phase1', status: 'generating' });
-            const phase1Questions = await generatePhaseWithRetries('phase1', seenIds, new AbortController().signal, difficulty, 3);
-            dispatch({ type: 'SET_GENERATION_PROGRESS', phase: 'phase1', status: 'done' });
-            dispatch({ type: 'SET_QUESTIONS', phase: 'phase1', questions: phase1Questions });
 
-            console.log('[SOLO] Phase 1 ready - starting game immediately');
+            const result = await startGameCF(playerId, 'solo', difficulty, language);
 
-            // Start the game immediately with Phase 1
+            if (!result.success) {
+                throw new Error(result.error || 'Failed to start game');
+            }
+
+            console.log('[SOLO] startGame CF completed successfully');
+
+            // 3. Subscribe to solo session state for real-time updates
+            const stateRef = ref(rtdb, `soloSessions/${playerId}`);
+            onValue(stateRef, (snapshot) => {
+                if (!snapshot.exists()) return;
+
+                const sessionData = snapshot.val();
+
+                // Update questions from CF-generated data
+                if (sessionData.customQuestions) {
+                    if (sessionData.customQuestions.phase1) {
+                        dispatch({ type: 'SET_QUESTIONS', phase: 'phase1', questions: sessionData.customQuestions.phase1 });
+                        dispatch({ type: 'SET_GENERATION_PROGRESS', phase: 'phase1', status: 'done' });
+                    }
+                    if (sessionData.customQuestions.phase2) {
+                        dispatch({ type: 'BACKGROUND_GEN_DONE', phase: 'phase2', questions: sessionData.customQuestions.phase2 });
+                    }
+                    if (sessionData.customQuestions.phase4) {
+                        dispatch({ type: 'BACKGROUND_GEN_DONE', phase: 'phase4', questions: sessionData.customQuestions.phase4 });
+                    }
+                }
+
+                // Update generation status from CF
+                if (sessionData.generationStatus) {
+                    const status = sessionData.generationStatus;
+                    if (status.phases) {
+                        for (const phaseStatus of status.phases) {
+                            if (phaseStatus.phase === 'phase2' && phaseStatus.generated) {
+                                dispatch({ type: 'SET_GENERATION_PROGRESS', phase: 'phase2', status: 'done' });
+                            }
+                            if (phaseStatus.phase === 'phase4' && phaseStatus.generated) {
+                                dispatch({ type: 'SET_GENERATION_PROGRESS', phase: 'phase4', status: 'done' });
+                            }
+                        }
+                    }
+                }
+            });
+
+            // Store the session ref for cleanup
+            soloSessionRef.current = stateRef;
+
+            // 4. Start the game immediately with Phase 1 (CF has generated it)
             dispatch({ type: 'PHASE1_READY' });
 
-            // Start background generation for Phase 2 & 4 (non-blocking)
-            startBackgroundGeneration(seenIds, difficulty);
+            // Mark P2/P4 as generating (they'll be updated when CF completes them)
+            dispatch({ type: 'BACKGROUND_GEN_START', phase: 'phase2' });
+            dispatch({ type: 'BACKGROUND_GEN_START', phase: 'phase4' });
+
         } catch (error) {
-            console.error('[SOLO] Phase 1 generation failed:', error);
+            console.error('[SOLO] Game start failed:', error);
             dispatch({
                 type: 'GENERATION_ERROR',
-                error: 'Impossible de charger les questions. Veuillez réessayer.',
+                error: error instanceof Error ? error.message : 'Impossible de démarrer la partie. Veuillez réessayer.',
             });
         }
-    }, [state.playerId, state.difficulty, loadPlayerHistory, generatePhaseWithRetries, startBackgroundGeneration]);
+    }, [state.playerId, state.playerName, state.playerAvatar, state.difficulty, loadPlayerHistory]);
 
     // Retry background generation for a specific phase (used when waiting_for_phase with error)
     const retryBackgroundGeneration = useCallback(async (phase: 'phase2' | 'phase4') => {
@@ -782,12 +828,17 @@ export function SoloGameProvider({
         }
     }, [state.status, state.pendingPhase, state.customQuestions]);
 
-    // Effect: Cleanup background generation on unmount
+    // Effect: Cleanup background generation and Firebase listener on unmount
     useEffect(() => {
         return () => {
             if (backgroundAbortRef.current) {
                 backgroundAbortRef.current.abort();
                 backgroundAbortRef.current = null;
+            }
+            // Cleanup Firebase listener (#83)
+            if (soloSessionRef.current) {
+                off(soloSessionRef.current);
+                soloSessionRef.current = null;
             }
         };
     }, []);
@@ -797,54 +848,99 @@ export function SoloGameProvider({
         dispatch({ type: 'RESET_GAME' });
     }, []);
 
-    // Phase 1 actions
-    const submitPhase1Answer = useCallback((answerIndex: number) => {
-        const questions = state.customQuestions.phase1;
-        if (!questions || !state.phase1State) return;
+    // Phase 1 actions - Uses submitAnswer CF for server-side validation (#83)
+    const submitPhase1Answer = useCallback(async (answerIndex: number) => {
+        if (!state.phase1State) return;
 
-        const currentQuestion = questions[state.phase1State.currentQuestionIndex];
-        if (!currentQuestion) return;
+        const playerId = state.playerId;
+        const questionIndex = state.phase1State.currentQuestionIndex;
 
-        const isCorrect = answerIndex === currentQuestion.correctIndex;
-        dispatch({ type: 'SUBMIT_PHASE1_ANSWER', answerIndex, isCorrect });
-    }, [state.customQuestions.phase1, state.phase1State]);
+        try {
+            // Call CF for server-side validation
+            const result = await submitAnswerCF(
+                playerId,
+                'phase1',
+                questionIndex,
+                answerIndex,
+                Date.now()
+            );
+
+            const isCorrect = result.isCorrect;
+            dispatch({ type: 'SUBMIT_PHASE1_ANSWER', answerIndex, isCorrect });
+
+            console.log(`[SOLO] Phase1 Q${questionIndex}: ${isCorrect ? '✅' : '❌'}`);
+        } catch (error) {
+            console.error('[SOLO] submitPhase1Answer CF error:', error);
+            // Fallback: mark as incorrect to avoid blocking game
+            dispatch({ type: 'SUBMIT_PHASE1_ANSWER', answerIndex, isCorrect: false });
+        }
+    }, [state.playerId, state.phase1State]);
 
     const nextPhase1Question = useCallback(() => {
         dispatch({ type: 'NEXT_PHASE1_QUESTION' });
     }, []);
 
-    // Phase 2 actions
-    const submitPhase2Answer = useCallback((answer: 'A' | 'B' | 'Both') => {
-        const setData = state.customQuestions.phase2;
-        if (!setData || !state.phase2State) return;
+    // Phase 2 actions - Uses submitAnswer CF for server-side validation (#83)
+    const submitPhase2Answer = useCallback(async (answer: 'A' | 'B' | 'Both') => {
+        if (!state.phase2State) return;
 
-        const currentItem = setData.items[state.phase2State.currentItemIndex];
-        if (!currentItem) return;
+        const playerId = state.playerId;
+        const questionIndex = state.phase2State.currentItemIndex;
 
-        // Check if answer is correct (including accepted alternatives)
-        const isCorrect = answer === currentItem.answer ||
-            (currentItem.acceptedAnswers?.includes(answer) ?? false);
+        try {
+            // Call CF for server-side validation
+            const result = await submitAnswerCF(
+                playerId,
+                'phase2',
+                questionIndex,
+                answer,
+                Date.now()
+            );
 
-        dispatch({ type: 'SUBMIT_PHASE2_ANSWER', answer, isCorrect });
-    }, [state.customQuestions.phase2, state.phase2State]);
+            const isCorrect = result.isCorrect;
+            dispatch({ type: 'SUBMIT_PHASE2_ANSWER', answer, isCorrect });
+
+            console.log(`[SOLO] Phase2 Q${questionIndex}: ${isCorrect ? '✅' : '❌'}`);
+        } catch (error) {
+            console.error('[SOLO] submitPhase2Answer CF error:', error);
+            // Fallback: mark as incorrect to avoid blocking game
+            dispatch({ type: 'SUBMIT_PHASE2_ANSWER', answer, isCorrect: false });
+        }
+    }, [state.playerId, state.phase2State]);
 
     const nextPhase2Item = useCallback(() => {
         dispatch({ type: 'NEXT_PHASE2_ITEM' });
     }, []);
 
-    // Phase 4 actions
-    const submitPhase4Answer = useCallback((answerIndex: number) => {
-        const questions = state.customQuestions.phase4;
-        if (!questions || !state.phase4State) return;
+    // Phase 4 actions - Uses submitAnswer CF for server-side validation (#83)
+    const submitPhase4Answer = useCallback(async (answerIndex: number) => {
+        if (!state.phase4State) return;
 
-        const currentQuestion = questions[state.phase4State.currentQuestionIndex];
-        if (!currentQuestion) return;
-
-        const isCorrect = answerIndex === currentQuestion.correctIndex;
+        const playerId = state.playerId;
+        const questionIndex = state.phase4State.currentQuestionIndex;
         const timeMs = Date.now() - (state.phase4State.questionStartTime || Date.now());
+        const clientTimestamp = Date.now();
 
-        dispatch({ type: 'SUBMIT_PHASE4_ANSWER', answerIndex, isCorrect, timeMs });
-    }, [state.customQuestions.phase4, state.phase4State]);
+        try {
+            // Call CF for server-side validation
+            const result = await submitAnswerCF(
+                playerId,
+                'phase4',
+                questionIndex,
+                answerIndex,
+                clientTimestamp
+            );
+
+            const isCorrect = result.isCorrect;
+            dispatch({ type: 'SUBMIT_PHASE4_ANSWER', answerIndex, isCorrect, timeMs });
+
+            console.log(`[SOLO] Phase4 Q${questionIndex}: ${isCorrect ? '✅' : '❌'} (${timeMs}ms)`);
+        } catch (error) {
+            console.error('[SOLO] submitPhase4Answer CF error:', error);
+            // Fallback: mark as incorrect to avoid blocking game
+            dispatch({ type: 'SUBMIT_PHASE4_ANSWER', answerIndex, isCorrect: false, timeMs });
+        }
+    }, [state.playerId, state.phase4State]);
 
     const nextPhase4Question = useCallback(() => {
         dispatch({ type: 'NEXT_PHASE4_QUESTION' });
