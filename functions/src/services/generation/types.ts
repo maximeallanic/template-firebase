@@ -55,6 +55,7 @@ export interface Phase1DialogueReview {
 // --- PHASE 2 TYPES ---
 
 export interface Phase2Set {
+    title?: string;  // Set title (e.g., "Sucré ou Salé ?") - optional, generated from options
     optionA: string;
     optionB: string;
     optionADescription?: string;  // Description pour différencier les homonymes
@@ -138,8 +139,11 @@ export interface Phase3Menu {
     title: string;
     description: string;
     isTrap?: boolean;
-    questions: Array<{ question: string; answer: string }>;
+    questions: Array<{ question: string; answer: string; acceptableAnswers?: string[] }>;
 }
+
+// Alias for Phase3Menu (used in newer code)
+export type Phase3Theme = Phase3Menu;
 
 export interface Phase3DialogueReview {
     approved: boolean;

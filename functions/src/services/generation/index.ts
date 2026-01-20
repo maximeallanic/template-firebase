@@ -64,3 +64,20 @@ export { generatePhase2WithDialogue } from './phase2Generator';
 export { generatePhase3WithDialogue } from './phase3Generator';
 export { generatePhase4WithDialogue } from './phase4Generator';
 export { generatePhase5WithDialogue } from './phase5Generator';
+
+// Question/Answer separator (security - #72)
+export {
+    separatePhase1Questions,
+    separatePhase2Set,
+    separatePhase2Sets,
+    separatePhase3Themes,
+    separatePhase4Questions,
+    separatePhase5Questions,
+    separateQuestionsAnswers,
+    type Phase1Separated,
+    type Phase2Separated,
+    type Phase3Separated,
+    type Phase4Separated,
+    type Phase5Separated,
+    type SeparatedData,
+} from './questionSeparator';
