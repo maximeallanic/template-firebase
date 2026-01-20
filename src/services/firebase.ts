@@ -938,3 +938,58 @@ export async function startGame(
     throw new Error(message);
   }
 }
+
+// Types for submitAnswer (#81)
+type PhaseId = 'phase1' | 'phase2' | 'phase3' | 'phase4' | 'phase5';
+
+interface SubmitAnswerRequest {
+  roomId: string;
+  phase: PhaseId;
+  questionIndex: number;
+  answer: number | string; // number for P1/P2/P4, string for P3/P5
+  clientTimestamp: number;
+}
+
+interface SubmitAnswerResponse {
+  success: boolean;
+  isCorrect: boolean;
+  correctAnswer?: number | string;
+  explanation?: string;
+  error?: string;
+}
+
+const submitAnswerFunction = httpsCallable<SubmitAnswerRequest, SubmitAnswerResponse>(
+  functions,
+  'submitAnswer'
+);
+
+/**
+ * Submit an answer for validation
+ * @param roomId - Room code (multi) or session ID (solo)
+ * @param phase - Current game phase
+ * @param questionIndex - Index of the question being answered
+ * @param answer - The player's answer (number for MCQ, string for open questions)
+ * @param clientTimestamp - Client timestamp for fairness in speed rounds
+ */
+export async function submitAnswer(
+  roomId: string,
+  phase: PhaseId,
+  questionIndex: number,
+  answer: number | string,
+  clientTimestamp?: number
+): Promise<SubmitAnswerResponse> {
+  try {
+    const result = await submitAnswerFunction({
+      roomId,
+      phase,
+      questionIndex,
+      answer,
+      clientTimestamp: clientTimestamp || Date.now(),
+    });
+    return result.data;
+  } catch (error: unknown) {
+    console.error('Error submitting answer:', error);
+    const message = error instanceof Error ? error.message : 'Failed to submit answer';
+    throw new Error(message);
+  }
+}
