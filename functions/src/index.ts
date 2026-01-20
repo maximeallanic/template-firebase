@@ -1205,3 +1205,10 @@ export const deleteAccount = onCall(
   }
 );
 
+// ============================================================================
+// GAME SERVER-SIDE ORCHESTRATION (#72)
+// ============================================================================
+
+// Pub/Sub triggered function for background question generation
+export { generatePhaseQuestions } from './game';
+
