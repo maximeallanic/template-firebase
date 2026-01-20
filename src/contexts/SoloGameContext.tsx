@@ -406,14 +406,6 @@ function soloGameReducer(state: SoloGameState, action: SoloGameAction): SoloGame
 
             if (!questionsReady && (nextPhase === 'phase2' || nextPhase === 'phase4')) {
                 // Questions not ready (missing or insufficient) - enter waiting state
-                console.log('[SOLO] Insufficient questions for', nextPhase, {
-                    currentCount: state.customQuestions[nextPhase]
-                        ? (nextPhase === 'phase2'
-                            ? (state.customQuestions.phase2 as SimplePhase2Set)?.items?.length
-                            : (state.customQuestions[nextPhase] as unknown[])?.length)
-                        : 0,
-                    required: MINIMUM_QUESTION_COUNTS[nextPhase]
-                });
                 return {
                     ...state,
                     status: 'waiting_for_phase',
@@ -552,17 +544,13 @@ export function SoloGameProvider({
                 if (language === 'fr') {
                     const storedSet = await getRandomQuestionSet(phase, seenIds);
                     if (storedSet) {
-                        console.log(`[SOLO] ✅ Using Firestore questions for ${phase} (French cache)`);
                         return phase === 'phase2'
                             ? storedSet.questions as unknown as SimplePhase2Set
                             : storedSet.questions;
                     }
-                } else {
-                    console.log(`[SOLO] 🌍 Skipping Firestore cache for ${phase} (language: ${language})`);
                 }
 
                 // Fall back to AI generation with difficulty and language
-                console.log(`[SOLO] 🤖 AI generation for ${phase} (difficulty: ${difficulty}, language: ${language}, seenIds: ${seenIds.size}, attempt ${attempt}/${maxRetries})`);
                 const result = await generateWithRetry({ phase, soloMode: true, difficulty, language });
 
                 // Filter generated questions by seenIds (client-side safety filter)
@@ -571,14 +559,12 @@ export function SoloGameProvider({
 
                 if (phase === 'phase1' && Array.isArray(filteredData)) {
                     filteredData = await filterUnseenQuestions(filteredData as { text: string }[], (q: { text: string }) => q.text);
-                    console.log(`[SOLO] Filtered phase1 questions: ${(result.data as unknown[]).length} -> ${(filteredData as unknown[]).length}`);
 
                     // Check if we need completion after filtering
                     const minRequired = MINIMUM_QUESTION_COUNTS.phase1;
                     const currentCount = (filteredData as unknown[]).length;
                     if (currentCount < minRequired) {
                         const missingCount = minRequired - currentCount;
-                        console.log(`[SOLO] ⚠️ Phase1 needs completion: ${currentCount}/${minRequired} (missing: ${missingCount})`);
                         const completionResult = await generateWithRetry({
                             phase: 'phase1',
                             soloMode: true,
@@ -593,21 +579,18 @@ export function SoloGameProvider({
                                 (q: { text: string }) => q.text
                             );
                             filteredData = [...(filteredData as unknown[]), ...completionFiltered];
-                            console.log(`[SOLO] ✅ Phase1 completed: ${(filteredData as unknown[]).length} questions`);
                         }
                     }
                 } else if (phase === 'phase2' && (filteredData as { items?: unknown[] })?.items) {
                     const setData = filteredData as { items: { text: string }[] };
                     const filteredItems = await filterUnseenQuestions(setData.items, (item: { text: string }) => item.text);
                     filteredData = { ...setData, items: filteredItems };
-                    console.log(`[SOLO] Filtered phase2 items: ${setData.items.length} -> ${filteredItems.length}`);
 
                     // Check if we need completion after filtering
                     const minRequired = MINIMUM_QUESTION_COUNTS.phase2;
                     const currentCount = filteredItems.length;
                     if (currentCount < minRequired) {
                         const missingCount = minRequired - currentCount;
-                        console.log(`[SOLO] ⚠️ Phase2 needs completion: ${currentCount}/${minRequired} (missing: ${missingCount})`);
                         const completionResult = await generateWithRetry({
                             phase: 'phase2',
                             soloMode: true,
@@ -620,25 +603,21 @@ export function SoloGameProvider({
                             const completionItems = (completionResult.data as { items: { text: string }[] }).items;
                             const completionFiltered = await filterUnseenQuestions(completionItems, (item: { text: string }) => item.text);
                             filteredData = { ...setData, items: [...filteredItems, ...completionFiltered] };
-                            console.log(`[SOLO] ✅ Phase2 completed: ${(filteredData as { items: unknown[] }).items.length} items`);
                         }
                     }
                     // Ensure we don't exceed the expected count
                     const phase2Items = (filteredData as { items: unknown[] }).items;
                     if (phase2Items.length > minRequired) {
                         filteredData = { ...filteredData as object, items: phase2Items.slice(0, minRequired) };
-                        console.log(`[SOLO] 📏 Phase2 trimmed to ${minRequired} items`);
                     }
                 } else if (phase === 'phase4' && Array.isArray(filteredData)) {
                     filteredData = await filterUnseenQuestions(filteredData as { text: string }[], (q: { text: string }) => q.text);
-                    console.log(`[SOLO] Filtered phase4 questions: ${(result.data as unknown[]).length} -> ${(filteredData as unknown[]).length}`);
 
                     // Check if we need completion after filtering
                     const minRequired = MINIMUM_QUESTION_COUNTS.phase4;
                     const currentCount = (filteredData as unknown[]).length;
                     if (currentCount < minRequired) {
                         const missingCount = minRequired - currentCount;
-                        console.log(`[SOLO] ⚠️ Phase4 needs completion: ${currentCount}/${minRequired} (missing: ${missingCount})`);
                         const completionResult = await generateWithRetry({
                             phase: 'phase4',
                             soloMode: true,
@@ -653,7 +632,6 @@ export function SoloGameProvider({
                                 (q: { text: string }) => q.text
                             );
                             filteredData = [...(filteredData as unknown[]), ...completionFiltered];
-                            console.log(`[SOLO] ✅ Phase4 completed: ${(filteredData as unknown[]).length} questions`);
                         }
                     }
                 }
@@ -661,7 +639,6 @@ export function SoloGameProvider({
                 return filteredData;
             } catch (error) {
                 lastError = error as Error;
-                console.warn(`[SOLO] ${phase}: Attempt ${attempt} failed:`, error);
 
                 if (attempt < maxRetries && !signal.aborted) {
                     await new Promise(r => setTimeout(r, 1000 * attempt)); // Exponential backoff
@@ -679,10 +656,9 @@ export function SoloGameProvider({
             const historySnap = await get(child(ref(rtdb), `userHistory/${playerId}`));
             if (historySnap.exists()) {
                 Object.keys(historySnap.val()).forEach(id => seenIds.add(id));
-                console.log('[SOLO] Loaded player history:', seenIds.size, 'seen questions');
             }
-        } catch (e) {
-            console.warn('[SOLO] Failed to get player history:', e);
+        } catch {
+            // Ignore history fetch errors - player may not have history yet
         }
         return seenIds;
     }, []);
@@ -709,7 +685,6 @@ export function SoloGameProvider({
             const seenIds = await loadPlayerHistory(playerId);
             seenIdsRef.current = seenIds;
 
-            console.log(`[SOLO] Starting game with difficulty: ${difficulty}, language: ${language}`);
 
             // 1. Create solo session entry in RTDB (required for CF to verify ownership)
             const sessionRef = ref(rtdb, `soloSessions/${playerId}`);
@@ -735,7 +710,6 @@ export function SoloGameProvider({
                 }
             });
 
-            console.log('[SOLO] Session created in RTDB');
 
             // 2. Call startGame CF - this generates P1 and triggers P2-P5 background generation
             dispatch({ type: 'SET_GENERATION_PROGRESS', phase: 'phase1', status: 'generating' });
@@ -746,7 +720,6 @@ export function SoloGameProvider({
                 throw new Error(result.error || 'Failed to start game');
             }
 
-            console.log('[SOLO] startGame CF completed successfully');
 
             // 3. Subscribe to solo session state for real-time updates
             const stateRef = ref(rtdb, `soloSessions/${playerId}`);
@@ -822,7 +795,6 @@ export function SoloGameProvider({
         if (state.status === 'waiting_for_phase' && state.pendingPhase) {
             const questionsReady = hasEnoughQuestions(state.customQuestions, state.pendingPhase);
             if (questionsReady) {
-                console.log(`[SOLO] Enough questions ready for ${state.pendingPhase} - transitioning`);
                 dispatch({ type: 'EXIT_WAITING' });
             }
         }
@@ -868,7 +840,6 @@ export function SoloGameProvider({
             const isCorrect = result.isCorrect;
             dispatch({ type: 'SUBMIT_PHASE1_ANSWER', answerIndex, isCorrect });
 
-            console.log(`[SOLO] Phase1 Q${questionIndex}: ${isCorrect ? '✅' : '❌'}`);
         } catch (error) {
             console.error('[SOLO] submitPhase1Answer CF error:', error);
             // Fallback: mark as incorrect to avoid blocking game
@@ -900,7 +871,6 @@ export function SoloGameProvider({
             const isCorrect = result.isCorrect;
             dispatch({ type: 'SUBMIT_PHASE2_ANSWER', answer, isCorrect });
 
-            console.log(`[SOLO] Phase2 Q${questionIndex}: ${isCorrect ? '✅' : '❌'}`);
         } catch (error) {
             console.error('[SOLO] submitPhase2Answer CF error:', error);
             // Fallback: mark as incorrect to avoid blocking game
@@ -934,7 +904,6 @@ export function SoloGameProvider({
             const isCorrect = result.isCorrect;
             dispatch({ type: 'SUBMIT_PHASE4_ANSWER', answerIndex, isCorrect, timeMs });
 
-            console.log(`[SOLO] Phase4 Q${questionIndex}: ${isCorrect ? '✅' : '❌'} (${timeMs}ms)`);
         } catch (error) {
             console.error('[SOLO] submitPhase4Answer CF error:', error);
             // Fallback: mark as incorrect to avoid blocking game

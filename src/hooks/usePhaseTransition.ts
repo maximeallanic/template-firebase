@@ -129,7 +129,8 @@ export function usePhaseTransition({
             // Phase 5 transitions are handled within its sub-components (Phase5Memorizing, etc.)
 
             default:
-                console.warn(`advanceToNextQuestion called in unsupported phase: ${currentPhase}`);
+                // Unsupported phase for this function
+                break;
         }
     }, [room, canTransition]);
 
@@ -146,7 +147,8 @@ export function usePhaseTransition({
      * Advance to the next game phase.
      * Uses nextPhase CF to calculate scores and transition (#72)
      */
-    const advanceToNextPhaseFn = useCallback(async (targetPhase: PhaseStatus) => {
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const advanceToNextPhaseFn = useCallback(async (_targetPhase: PhaseStatus) => {
         // Only host can transition to next phase (not solo)
         if (!room || !isHost) return;
 
@@ -157,7 +159,6 @@ export function usePhaseTransition({
         try {
             // nextPhase CF will calculate scores and transition to next phase
             await nextPhaseCF(room.code, currentPhase);
-            console.log(`[usePhaseTransition] Transitioned from ${currentPhase} to ${targetPhase}`);
         } catch (error) {
             console.error('[usePhaseTransition] Error calling nextPhase CF:', error);
         }
@@ -174,7 +175,6 @@ export function usePhaseTransition({
         try {
             // nextPhase CF from phase5 will calculate scores and transition to victory
             await nextPhaseCF(room.code, 'phase5');
-            console.log('[usePhaseTransition] Game ended, transitioned to victory');
         } catch (error) {
             console.error('[usePhaseTransition] Error ending game:', error);
         }

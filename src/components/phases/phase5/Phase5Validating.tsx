@@ -1,4 +1,3 @@
-import { useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { useTranslation } from 'react-i18next';
 import { type Room } from '../../../services/gameService';
@@ -19,11 +18,6 @@ import { organicEase, durations } from '../../../animations';
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 export function Phase5Validating(_props: { room: Room; isHost: boolean }) {
     const { t } = useTranslation(['game-ui', 'common']);
-
-    // Log if we unexpectedly reach this state
-    useEffect(() => {
-        console.warn('[Phase5Validating] Unexpected validating state - should transition directly to result');
-    }, []);
 
     return (
         <div className="flex flex-col items-center justify-center min-h-full p-6 text-white">
