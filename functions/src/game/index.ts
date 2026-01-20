@@ -4,13 +4,14 @@
  * Exports all game-related Cloud Functions:
  * - startGame (#88) - Start game and generate P1
  * - submitAnswer (#81) - Validate answers per phase rules
+ * - nextPhase (#89) - Calculate scores and transition phases
  * - generatePhaseQuestions (Pub/Sub) - Background question generation
- * - nextPhase (future - #89)
  */
 
 // Callable Cloud Functions
 export { startGame } from './startGame';
 export { submitAnswer } from './submitAnswer';
+export { nextPhase } from './nextPhase';
 
 // Pub/Sub triggered function for background question generation
 export { generatePhaseQuestions } from './generatePhaseQuestions';

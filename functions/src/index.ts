@@ -1210,7 +1210,7 @@ export const deleteAccount = onCall(
 // ============================================================================
 
 // Callable Cloud Functions for game orchestration
-export { startGame, submitAnswer } from './game';
+export { startGame, submitAnswer, nextPhase } from './game';
 
 // Pub/Sub triggered function for background question generation
 export { generatePhaseQuestions } from './game';

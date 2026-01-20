@@ -993,3 +993,46 @@ export async function submitAnswer(
     throw new Error(message);
   }
 }
+
+// Types for nextPhase (#89)
+interface TeamScores {
+  spicy: number;
+  sweet: number;
+}
+
+interface NextPhaseRequest {
+  roomId: string;
+  currentPhase: PhaseId;
+}
+
+interface NextPhaseResponse {
+  success: boolean;
+  nextPhase: PhaseId | 'victory';
+  scores: TeamScores;
+  error?: string;
+}
+
+const nextPhaseFunction = httpsCallable<NextPhaseRequest, NextPhaseResponse>(
+  functions,
+  'nextPhase'
+);
+
+/**
+ * Advance to the next game phase
+ * Calculates scores from submitted answers and transitions game state
+ * @param roomId - Room code (multi) or session ID (solo)
+ * @param currentPhase - The current phase being completed
+ */
+export async function nextPhase(
+  roomId: string,
+  currentPhase: PhaseId
+): Promise<NextPhaseResponse> {
+  try {
+    const result = await nextPhaseFunction({ roomId, currentPhase });
+    return result.data;
+  } catch (error: unknown) {
+    console.error('Error advancing to next phase:', error);
+    const message = error instanceof Error ? error.message : 'Failed to advance to next phase';
+    throw new Error(message);
+  }
+}
