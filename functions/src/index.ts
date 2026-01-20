@@ -1209,6 +1209,9 @@ export const deleteAccount = onCall(
 // GAME SERVER-SIDE ORCHESTRATION (#72)
 // ============================================================================
 
+// Callable Cloud Functions for game orchestration
+export { startGame } from './game';
+
 // Pub/Sub triggered function for background question generation
 export { generatePhaseQuestions } from './game';
 

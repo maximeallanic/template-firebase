@@ -892,3 +892,49 @@ export async function deleteAccount() {
     throw new Error(message);
   }
 }
+
+// ============================================================================
+// GAME ORCHESTRATION FUNCTIONS (#72)
+// ============================================================================
+
+// Types for startGame (#88)
+interface StartGameRequest {
+  roomId: string;
+  mode: 'multi' | 'solo';
+  difficulty?: 'easy' | 'normal' | 'hard' | 'wtf';
+  language?: string;
+}
+
+interface StartGameResponse {
+  success: boolean;
+  phase: 'phase1';
+  error?: string;
+}
+
+const startGameFunction = httpsCallable<StartGameRequest, StartGameResponse>(
+  functions,
+  'startGame'
+);
+
+/**
+ * Start a game - generates Phase 1 and triggers background generation for P2-P5
+ * @param roomId - Room code (multi) or session ID (solo)
+ * @param mode - 'multi' for multiplayer, 'solo' for single player
+ * @param difficulty - Game difficulty level
+ * @param language - Language for question generation
+ */
+export async function startGame(
+  roomId: string,
+  mode: 'multi' | 'solo',
+  difficulty?: 'easy' | 'normal' | 'hard' | 'wtf',
+  language?: string
+): Promise<StartGameResponse> {
+  try {
+    const result = await startGameFunction({ roomId, mode, difficulty, language });
+    return result.data;
+  } catch (error: unknown) {
+    console.error('Error starting game:', error);
+    const message = error instanceof Error ? error.message : 'Failed to start game';
+    throw new Error(message);
+  }
+}
