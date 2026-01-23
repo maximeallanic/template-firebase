@@ -265,5 +265,19 @@ export const submitAnswer = async (code: string, playerId: string, answerIndex: 
                 score: currentScore + 1 // Phase 1 gives 1 point per correct answer
             });
         }
+
+        // If all options exhausted (3 wrong answers tried) without a winner,
+        // reveal the correct answer so the UI can display it
+        // Note: Check !roundWinner because Firebase RTDB converts null to undefined (key deletion)
+        const allOptionsExhausted = (finalState?.phase1TriedWrongOptions?.length ?? 0) >= 3;
+        if (finalState?.phaseState === 'result' &&
+            !finalState?.roundWinner &&
+            allOptionsExhausted) {
+            try {
+                await revealTimeoutCF(roomId, 'phase1', qIndex, 'multi');
+            } catch (error) {
+                console.error('[Phase1] Error revealing answer after all options exhausted:', error);
+            }
+        }
     }
 };

@@ -410,5 +410,60 @@
     "autoUnanimous": "Auto: alle sprechen {{lang}}",
     "autoMixed": "Auto: gemischt → Englisch",
     "hint": "Fragen auf {{lang}}"
+  },
+  "phase1Intro": {
+    "title": "TENDERS",
+    "subtitle": "Schnelligkeitsrunde! Wer zuerst antwortet, gewinnt.",
+    "howToPlay": "So geht's",
+    "step1Speed": "Geschwindigkeit = Sieg. Keine Zeit zum Nachdenken!",
+    "step2Timer": "Timer läuft: du hast max 60 Sekunden",
+    "step3FirstWins": "Erste richtige Antwort gewinnt den Punkt",
+    "step4Rebound": "Falsche Antwort? Das andere Team kann klauen!",
+    "stepLabel": "Regel {{number}}",
+    "scoring": "Punkte",
+    "correctAnswer": "Richtige Antwort",
+    "wrongAnswer": "Falsche Antwort",
+    "reboundChance": "Gegner-Rebound"
+  },
+  "phase2Intro": {
+    "title": "SÜSS ODER SALZIG",
+    "subtitle": "Wische zum Sortieren! Wie Tinder, aber für Essen.",
+    "howToPlay": "So geht's",
+    "step1SwipeLeft": "Wische links/rechts für A/B, hoch wenn beides!",
+    "step2SwipeRight": "20 Sekunden pro Element, es geht schnell!",
+    "step3SwipeUp": "Beide Teams spielen gleichzeitig",
+    "step4FirstWins": "Ein Spieler pro Team reicht!",
+    "stepLabel": "Regel {{number}}",
+    "controls": "Steuerung",
+    "optionA": "Option A (links)",
+    "optionB": "Option B (rechts)",
+    "optionBoth": "Beides (hoch)"
+  },
+  "phase3Intro": {
+    "title": "DIE KARTE",
+    "subtitle": "Wähle dein Gericht und antworte schnell!",
+    "howToPlay": "So geht's",
+    "step1SelectMenu": "Wähle ein Thema aus der Karte",
+    "step2TypeAnswers": "Tippe deine Antworten",
+    "step3TeamRace": "Rennen gegen das andere Team",
+    "step4EarnPoints": "Jede richtige Antwort = +1 Punkt",
+    "stepLabel": "Regel {{number}}",
+    "scoring": "Punkte",
+    "correctAnswer": "Richtige Antwort",
+    "approxSpelling": "Ähnliche Schreibweise"
+  },
+  "phase4Intro": {
+    "title": "DIE RECHNUNG",
+    "subtitle": "Die Rechnung ist hoch! Antworte am schnellsten.",
+    "howToPlay": "So geht's",
+    "step1ReadQuestion": "Lies die Frage aufmerksam",
+    "step2Timer": "Timer läuft: keine Zeit zum Nachdenken",
+    "step3AnswerFast": "Antworte so schnell wie möglich",
+    "step4FirstCorrectWins": "Erster richtig = Champion",
+    "stepLabel": "Regel {{number}}",
+    "scoring": "Punkte",
+    "firstCorrect": "1. richtig",
+    "timerSeconds": "{{seconds}}s",
+    "perQuestion": "pro Frage"
   }
 }

@@ -410,5 +410,60 @@
     "autoUnanimous": "Auto: todos falam {{lang}}",
     "autoMixed": "Auto: misturado → Inglês",
     "hint": "Perguntas em {{lang}}"
+  },
+  "phase1Intro": {
+    "title": "TENDERS",
+    "subtitle": "Corrida de velocidade! O primeiro a responder ganha.",
+    "howToPlay": "Como jogar",
+    "step1Speed": "Velocidade = vitória. Sem tempo pra pensar!",
+    "step2Timer": "Timer apertado: tens 60 segundos máx",
+    "step3FirstWins": "Primeira resposta correta ganha o ponto",
+    "step4Rebound": "Resposta errada? O outro time pode roubar!",
+    "stepLabel": "Regra {{number}}",
+    "scoring": "Pontos",
+    "correctAnswer": "Resposta correta",
+    "wrongAnswer": "Resposta errada",
+    "reboundChance": "Rebote adversário"
+  },
+  "phase2Intro": {
+    "title": "DOCE OU SALGADO",
+    "subtitle": "Desliza para classificar! É Tinder mas pra comida.",
+    "howToPlay": "Como jogar",
+    "step1SwipeLeft": "Desliza esquerda/direita pra A/B, cima se for os dois!",
+    "step2SwipeRight": "20 segundos por elemento, vai rápido!",
+    "step3SwipeUp": "Os dois times jogam ao mesmo tempo",
+    "step4FirstWins": "Um jogador por time é suficiente!",
+    "stepLabel": "Regra {{number}}",
+    "controls": "Controles",
+    "optionA": "Opção A (esquerda)",
+    "optionB": "Opção B (direita)",
+    "optionBoth": "Os dois (cima)"
+  },
+  "phase3Intro": {
+    "title": "O CARDÁPIO",
+    "subtitle": "Escolhe teu prato e responde rápido!",
+    "howToPlay": "Como jogar",
+    "step1SelectMenu": "Escolhe um tema do cardápio",
+    "step2TypeAnswers": "Digita tuas respostas",
+    "step3TeamRace": "Corrida contra o outro time",
+    "step4EarnPoints": "Cada resposta correta = +1 ponto",
+    "stepLabel": "Regra {{number}}",
+    "scoring": "Pontos",
+    "correctAnswer": "Resposta correta",
+    "approxSpelling": "Ortografia aprox."
+  },
+  "phase4Intro": {
+    "title": "A CONTA",
+    "subtitle": "A conta é alta! Responde o mais rápido.",
+    "howToPlay": "Como jogar",
+    "step1ReadQuestion": "Lê a pergunta com atenção",
+    "step2Timer": "Timer apertado: sem tempo pra pensar",
+    "step3AnswerFast": "Responde o mais rápido possível",
+    "step4FirstCorrectWins": "Primeiro correto = campeão",
+    "stepLabel": "Regra {{number}}",
+    "scoring": "Pontos",
+    "firstCorrect": "1º correto",
+    "timerSeconds": "{{seconds}}s",
+    "perQuestion": "por pergunta"
   }
 }

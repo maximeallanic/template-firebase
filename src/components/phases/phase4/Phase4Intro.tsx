@@ -100,7 +100,7 @@ export function Phase4Intro({ room, isHost }: Phase4IntroProps) {
                         <div className="flex justify-center gap-6 text-sm">
                             <div className="bg-green-500/20 px-4 py-2 rounded-lg">
                                 <span className="font-bold text-green-400">{t('phase4Intro.firstCorrect')}</span>
-                                <span className="text-slate-400 ml-2">= +1 pt</span>
+                                <span className="text-slate-400 ml-2">= +2 pts</span>
                             </div>
                             <div className="bg-red-500/20 px-4 py-2 rounded-lg">
                                 <span className="font-bold text-red-400">{t('phase4Intro.timerSeconds', { seconds: 15 })}</span>

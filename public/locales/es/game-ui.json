@@ -410,5 +410,60 @@
     "autoUnanimous": "Auto: todos hablan {{lang}}",
     "autoMixed": "Auto: es un caos, usamos inglés",
     "hint": "Preguntas en {{lang}}"
+  },
+  "phase1Intro": {
+    "title": "TENDERS",
+    "subtitle": "¡Carrera de velocidad! El primero en responder gana.",
+    "howToPlay": "Cómo jugar",
+    "step1Speed": "Velocidad = victoria. ¡Sin tiempo para pensar!",
+    "step2Timer": "Timer ajustado: tienes 60 segundos máx",
+    "step3FirstWins": "Primera respuesta correcta gana el punto",
+    "step4Rebound": "¿Respuesta incorrecta? ¡El otro equipo puede robar!",
+    "stepLabel": "Regla {{number}}",
+    "scoring": "Puntos",
+    "correctAnswer": "Respuesta correcta",
+    "wrongAnswer": "Respuesta incorrecta",
+    "reboundChance": "Rebote adversario"
+  },
+  "phase2Intro": {
+    "title": "DULCE O SALADO",
+    "subtitle": "¡Desliza para clasificar! Es Tinder pero para comida.",
+    "howToPlay": "Cómo jugar",
+    "step1SwipeLeft": "Desliza izquierda/derecha para A/B, arriba si son los dos!",
+    "step2SwipeRight": "20 segundos por elemento, ¡va rápido!",
+    "step3SwipeUp": "Los dos equipos juegan al mismo tiempo",
+    "step4FirstWins": "¡Un solo jugador por equipo es suficiente!",
+    "stepLabel": "Regla {{number}}",
+    "controls": "Controles",
+    "optionA": "Opción A (izquierda)",
+    "optionB": "Opción B (derecha)",
+    "optionBoth": "Ambos (arriba)"
+  },
+  "phase3Intro": {
+    "title": "EL MENÚ",
+    "subtitle": "¡Elige tu plato y responde rápido!",
+    "howToPlay": "Cómo jugar",
+    "step1SelectMenu": "Elige un tema del menú",
+    "step2TypeAnswers": "Escribe tus respuestas",
+    "step3TeamRace": "Carrera contra el otro equipo",
+    "step4EarnPoints": "Cada respuesta correcta = +1 punto",
+    "stepLabel": "Regla {{number}}",
+    "scoring": "Puntos",
+    "correctAnswer": "Respuesta correcta",
+    "approxSpelling": "Ortografía aprox."
+  },
+  "phase4Intro": {
+    "title": "LA CUENTA",
+    "subtitle": "¡La cuenta es cara! Responde lo más rápido.",
+    "howToPlay": "Cómo jugar",
+    "step1ReadQuestion": "Lee la pregunta con atención",
+    "step2Timer": "Timer ajustado: sin tiempo para pensar",
+    "step3AnswerFast": "Responde lo más rápido posible",
+    "step4FirstCorrectWins": "Primero correcto = campeón",
+    "stepLabel": "Regla {{number}}",
+    "scoring": "Puntos",
+    "firstCorrect": "1º correcto",
+    "timerSeconds": "{{seconds}}s",
+    "perQuestion": "por pregunta"
   }
 }
