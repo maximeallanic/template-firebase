@@ -60,7 +60,7 @@ platform :android do
     upload_to_play_store(
       package_name: "com.spicyvssweet.app",
       track: "internal",
-      aab: "../app/build/outputs/bundle/release/app-release.aab",
+      aab: lane_context[SharedValues::GRADLE_AAB_OUTPUT_PATH],
       json_key_data: ENV["PLAY_STORE_CREDENTIALS"],
       skip_upload_metadata: true,
       skip_upload_images: true,
@@ -80,7 +80,7 @@ platform :android do
     upload_to_play_store(
       package_name: "com.spicyvssweet.app",
       track: "beta",
-      aab: "../app/build/outputs/bundle/release/app-release.aab",
+      aab: lane_context[SharedValues::GRADLE_AAB_OUTPUT_PATH],
       json_key_data: ENV["PLAY_STORE_CREDENTIALS"],
       skip_upload_metadata: true,
       skip_upload_images: true,
@@ -100,7 +100,7 @@ platform :android do
     upload_to_play_store(
       package_name: "com.spicyvssweet.app",
       track: "production",
-      aab: "../app/build/outputs/bundle/release/app-release.aab",
+      aab: lane_context[SharedValues::GRADLE_AAB_OUTPUT_PATH],
       json_key_data: ENV["PLAY_STORE_CREDENTIALS"],
       skip_upload_metadata: true,
       skip_upload_images: true,
