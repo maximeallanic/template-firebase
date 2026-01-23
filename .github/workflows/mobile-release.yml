@@ -154,10 +154,7 @@ jobs:
           APP_STORE_CONNECT_API_KEY_ID: ${{ secrets.APP_STORE_CONNECT_API_KEY_ID }}
           APP_STORE_CONNECT_API_KEY_ISSUER_ID: ${{ secrets.APP_STORE_CONNECT_API_KEY_ISSUER_ID }}
           APP_STORE_CONNECT_API_KEY_CONTENT: ${{ secrets.APP_STORE_CONNECT_API_KEY_CONTENT }}
-        run: |
-          bundle exec fastlane pilot upload \
-            --ipa build/SpicyVsSweet.ipa \
-            --skip_waiting_for_build_processing
+        run: bundle exec fastlane upload_testflight
 
       - name: Upload to App Store
         if: steps.track.outputs.ios_lane == 'release'
@@ -166,13 +163,7 @@ jobs:
           APP_STORE_CONNECT_API_KEY_ID: ${{ secrets.APP_STORE_CONNECT_API_KEY_ID }}
           APP_STORE_CONNECT_API_KEY_ISSUER_ID: ${{ secrets.APP_STORE_CONNECT_API_KEY_ISSUER_ID }}
           APP_STORE_CONNECT_API_KEY_CONTENT: ${{ secrets.APP_STORE_CONNECT_API_KEY_CONTENT }}
-        run: |
-          bundle exec fastlane deliver \
-            --ipa build/SpicyVsSweet.ipa \
-            --skip_metadata \
-            --skip_screenshots \
-            --submit_for_review \
-            --automatic_release
+        run: bundle exec fastlane upload_appstore
 
       - name: iOS deployment summary
         run: |
