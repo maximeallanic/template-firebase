@@ -41,6 +41,14 @@ export const DIFFICULTY_LIST: Difficulty[] = ['easy', 'normal', 'hard', 'wtf'];
 
 export const DEFAULT_DIFFICULTY: Difficulty = 'normal';
 
+// Difficulty multipliers for score calculation
+export const DIFFICULTY_MULTIPLIERS: Record<Difficulty, number> = {
+    easy: 1,
+    normal: 2,
+    hard: 3,
+    wtf: 4,
+};
+
 // === TEAMS & PLAYERS ===
 
 export type Team = 'spicy' | 'sweet';

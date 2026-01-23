@@ -9,7 +9,7 @@ import { useTranslation } from 'react-i18next';
 import { ref, child, get, set, onValue, off } from 'firebase/database';
 import type { Avatar, SimplePhase2Set, Difficulty } from '../types/gameTypes';
 import { toGameLanguage } from '../types/languageTypes';
-import { hasEnoughQuestions, MINIMUM_QUESTION_COUNTS } from '../types/gameTypes';
+import { hasEnoughQuestions, MINIMUM_QUESTION_COUNTS, DIFFICULTY_MULTIPLIERS } from '../types/gameTypes';
 import {
     type SoloGameState,
     type SoloPhaseStatus,
@@ -250,7 +250,9 @@ function soloGameReducer(state: SoloGameState, action: SoloGameAction): SoloGame
 
             const newCorrectCount = state.phase1State.correctCount + (action.isCorrect ? 1 : 0);
             const newAnswers = [...state.phase1State.answers, action.answerIndex];
-            const scoreIncrease = action.isCorrect ? SOLO_SCORING.phase1.correctAnswer : 0;
+            const baseScore = action.isCorrect ? SOLO_SCORING.phase1.correctAnswer : 0;
+            const multiplier = DIFFICULTY_MULTIPLIERS[state.difficulty] || 1;
+            const scoreIncrease = baseScore * multiplier;
             const questionIndex = state.phase1State.currentQuestionIndex;
 
             return {
@@ -310,7 +312,9 @@ function soloGameReducer(state: SoloGameState, action: SoloGameAction): SoloGame
 
             const newCorrectCount = state.phase2State.correctCount + (action.isCorrect ? 1 : 0);
             const newAnswers = [...state.phase2State.answers, action.answer];
-            const scoreIncrease = action.isCorrect ? SOLO_SCORING.phase2.correctAnswer : 0;
+            const baseScore = action.isCorrect ? SOLO_SCORING.phase2.correctAnswer : 0;
+            const multiplier = DIFFICULTY_MULTIPLIERS[state.difficulty] || 1;
+            const scoreIncrease = baseScore * multiplier;
             const itemIndex = state.phase2State.currentItemIndex;
 
             return {
@@ -357,7 +361,9 @@ function soloGameReducer(state: SoloGameState, action: SoloGameAction): SoloGame
         case 'SUBMIT_PHASE4_ANSWER': {
             if (!state.phase4State) return state;
 
-            const pointsEarned = action.isCorrect ? calculatePhase4Score(action.timeMs) : 0;
+            const basePoints = action.isCorrect ? calculatePhase4Score(action.timeMs) : 0;
+            const multiplier = DIFFICULTY_MULTIPLIERS[state.difficulty] || 1;
+            const pointsEarned = basePoints * multiplier;
             const newAnswers = [...state.phase4State.answers, action.answerIndex];
             const newTimeTaken = [...state.phase4State.timeTaken, action.timeMs];
             const questionIndex = state.phase4State.currentQuestionIndex;

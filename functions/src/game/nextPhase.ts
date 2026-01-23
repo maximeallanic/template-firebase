@@ -22,8 +22,9 @@ import type {
   TeamScores,
   GameMode,
   GenerationStatus,
+  Difficulty,
 } from '../types/secureGameTypes';
-import { getBasePath, getNextPhase } from '../types/secureGameTypes';
+import { getBasePath, getNextPhase, DIFFICULTY_MULTIPLIERS } from '../types/secureGameTypes';
 
 // Point values per phase
 const PHASE_POINTS: Record<PhaseId, number> = {
@@ -293,6 +294,28 @@ async function getCurrentScores(basePath: string): Promise<TeamScores> {
 }
 
 /**
+ * Get game difficulty from room/session
+ */
+async function getGameDifficulty(
+  basePath: string,
+  mode: GameMode
+): Promise<Difficulty> {
+  const db = admin.database();
+
+  if (mode === 'solo') {
+    // Solo: difficulty stored at root level
+    const diffRef = db.ref(`${basePath}/difficulty`);
+    const diffSnap = await diffRef.once('value');
+    return (diffSnap.val() as Difficulty) || 'normal';
+  }
+
+  // Multi: difficulty stored in gameOptions
+  const diffRef = db.ref(`${basePath}/gameOptions/difficulty`);
+  const diffSnap = await diffRef.once('value');
+  return (diffSnap.val() as Difficulty) || 'normal';
+}
+
+/**
  * nextPhase Cloud Function
  *
  * Configuration:
@@ -356,19 +379,29 @@ export const nextPhase = onCall(
     try {
       // 6. Calculate phase scores
       const phaseScores = await calculatePhaseScores(roomId, currentPhase, basePath);
-      console.log(`[nextPhase] Phase ${currentPhase} scores:`, phaseScores);
 
-      // 7. Get current total scores and add phase scores
-      const currentScores = await getCurrentScores(basePath);
-      const newScores: TeamScores = {
-        spicy: currentScores.spicy + phaseScores.spicy,
-        sweet: currentScores.sweet + phaseScores.sweet,
+      // 7. Apply difficulty multiplier
+      const difficulty = await getGameDifficulty(basePath, mode);
+      const multiplier = DIFFICULTY_MULTIPLIERS[difficulty] || 1;
+
+      const multipliedScores: TeamScores = {
+        spicy: phaseScores.spicy * multiplier,
+        sweet: phaseScores.sweet * multiplier,
       };
 
-      // 8. Determine next phase
+      console.log(`[nextPhase] Phase ${currentPhase}: base=${JSON.stringify(phaseScores)}, x${multiplier}=${JSON.stringify(multipliedScores)}`);
+
+      // 8. Get current total scores and add multiplied phase scores
+      const currentScores = await getCurrentScores(basePath);
+      const newScores: TeamScores = {
+        spicy: currentScores.spicy + multipliedScores.spicy,
+        sweet: currentScores.sweet + multipliedScores.sweet,
+      };
+
+      // 9. Determine next phase
       const nextPhaseId = getNextPhase(currentPhase);
 
-      // 9. If not victory, wait for questions to be ready
+      // 10. If not victory, wait for questions to be ready
       if (nextPhaseId !== 'victory') {
         const questionsReady = await waitForQuestionsReady(roomId, nextPhaseId, basePath);
         if (!questionsReady) {
@@ -376,7 +409,7 @@ export const nextPhase = onCall(
         }
       }
 
-      // 10. Update game state atomically
+      // 11. Update game state atomically
       const updates: Record<string, unknown> = {
         [`${basePath}/state/status`]: nextPhaseId,
         [`${basePath}/state/teamScores`]: newScores,
@@ -396,7 +429,7 @@ export const nextPhase = onCall(
 
       console.log(`[nextPhase] Transitioned ${roomId} from ${currentPhase} to ${nextPhaseId}`);
 
-      // 11. Return result
+      // 12. Return result
       return {
         success: true,
         nextPhase: nextPhaseId,

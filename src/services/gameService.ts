@@ -423,6 +423,7 @@ export const restartGame = async (roomCode: string): Promise<void> => {
         [`rooms/${roomId}/state/status`]: 'lobby',
         ...phaseUpdates,
         [`rooms/${roomId}/state/winnerTeam`]: null,
+        [`rooms/${roomId}/state/teamScores`]: null,
         [`rooms/${roomId}/state/isGenerating`]: null,
         [`rooms/${roomId}/customQuestions`]: null,
         [`rooms/${roomId}/generationStatus`]: null

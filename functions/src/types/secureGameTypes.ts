@@ -15,6 +15,14 @@
 export type Team = 'spicy' | 'sweet';
 export type Difficulty = 'easy' | 'normal' | 'hard' | 'wtf';
 export type GameMode = 'multi' | 'solo';
+
+// Difficulty multipliers for score calculation
+export const DIFFICULTY_MULTIPLIERS: Record<Difficulty, number> = {
+  easy: 1,
+  normal: 2,
+  hard: 3,
+  wtf: 4,
+};
 export type PhaseId = 'phase1' | 'phase2' | 'phase3' | 'phase4' | 'phase5';
 
 // ============================================================================

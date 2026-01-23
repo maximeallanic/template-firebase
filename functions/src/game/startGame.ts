@@ -99,6 +99,7 @@ async function initializeGameState(
     phase1LastWrongTeam: null,
     roundWinner: null,
     isTimeout: false,
+    isGenerating: false, // Clear loading state when game actually starts
   });
 
   // Reset readiness for all players (used by Phase1Intro to track who's ready)
@@ -243,7 +244,10 @@ export const startGame = onCall(
     }
 
     try {
-      // 6. Set generation status to "generating"
+      // 6. Set isGenerating so all players see loading UI immediately
+      await db.ref(`${basePath}/state/isGenerating`).set(true);
+
+      // 7. Set generation status to "generating"
       const generationStatus: GenerationStatus = {
         status: 'generating',
         startedAt: Date.now(),
@@ -306,6 +310,9 @@ export const startGame = onCall(
         errors: [error instanceof Error ? error.message : 'Unknown error'],
       };
       await db.ref(`${basePath}/generationStatus`).set(errorStatus);
+
+      // Clear loading state on error
+      await db.ref(`${basePath}/state/isGenerating`).set(false);
 
       const message = error instanceof Error ? error.message : 'Failed to start game';
       throw new HttpsError('internal', message);
