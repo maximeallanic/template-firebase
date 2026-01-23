@@ -7,7 +7,7 @@
  */
 
 import { ref, get, update, runTransaction } from 'firebase/database';
-import { rtdb, submitAnswer as submitAnswerCF } from '../../firebase';
+import { rtdb, submitAnswer as submitAnswerCF, revealTimeoutAnswer as revealTimeoutCF } from '../../firebase';
 import { validateRoom } from '../roomService';
 import type { Team, GameState } from '../../../types/gameTypes';
 
@@ -35,14 +35,29 @@ export const startNextQuestion = async (code: string, nextIndex: number): Promis
     // Safety check: prevent out of bounds
     if (nextIndex >= questionsList.length) return;
 
-    // Guard against duplicate calls: only advance if in 'result' state
-    // and the current question index is actually the previous one
+    // Guard against duplicate calls: only advance from valid states
     const currentIndex = room.state.currentQuestionIndex ?? -1;
-    if (room.state.phaseState !== 'result' && room.state.phaseState !== 'idle') {
+    const phaseState = room.state.phaseState;
+
+    // Allow transition from:
+    // 1. 'idle' state (first question start from readiness screen)
+    // 2. 'result' state (advancing to next question)
+    if (phaseState !== 'result' && phaseState !== 'idle') {
         return;
     }
-    if (currentIndex !== nextIndex - 1) {
-        return;
+
+    // For 'idle' state: allow starting first question (nextIndex 0) when currentIndex is 0
+    // For 'result' state: require currentIndex to be exactly nextIndex - 1
+    if (phaseState === 'idle') {
+        // Starting from readiness screen - only allow index 0
+        if (nextIndex !== 0) {
+            return;
+        }
+    } else {
+        // Advancing from result - must be sequential
+        if (currentIndex !== nextIndex - 1) {
+            return;
+        }
     }
 
     const updates: Record<string, unknown> = {};
@@ -65,7 +80,7 @@ export const startNextQuestion = async (code: string, nextIndex: number): Promis
 
 /**
  * Handle Phase 1 timeout (timer expired with no correct answer)
- * Sets phaseState to 'result' with no winner, allowing normal flow to continue
+ * Calls Cloud Function to reveal correct answer and transition to result state
  * @param code - Room code
  */
 export const handlePhase1Timeout = async (code: string): Promise<void> => {
@@ -80,12 +95,20 @@ export const handlePhase1Timeout = async (code: string): Promise<void> => {
         return;
     }
 
-    // Transition to 'result' with no winner (timeout)
-    await update(ref(rtdb, `rooms/${roomId}/state`), {
-        phaseState: 'result',
-        roundWinner: null,
-        isTimeout: true
-    });
+    const questionIndex = state.currentQuestionIndex ?? 0;
+
+    // Call CF to reveal correct answer and transition to result state
+    try {
+        await revealTimeoutCF(roomId, 'phase1', questionIndex, 'multi');
+    } catch (error) {
+        console.error('[Phase1] Error revealing timeout answer:', error);
+        // Fallback: just transition to result state without revealing answer
+        await update(ref(rtdb, `rooms/${roomId}/state`), {
+            phaseState: 'result',
+            roundWinner: null,
+            isTimeout: true
+        });
+    }
 };
 
 /**
@@ -159,7 +182,7 @@ export const submitAnswer = async (code: string, playerId: string, answerIndex: 
 
     // Use transaction to update local state for display (rebond logic)
     const stateRef = ref(rtdb, `rooms/${roomId}/state`);
-    await runTransaction(stateRef, (currentState: GameState | null) => {
+    const result = await runTransaction(stateRef, (currentState: GameState | null) => {
         if (!currentState) return currentState;
 
         // Re-validate state (might have changed during CF call)
@@ -193,7 +216,6 @@ export const submitAnswer = async (code: string, playerId: string, answerIndex: 
                 team: player.team || 'neutral'
             };
             newState.phaseState = 'result';
-            // Note: No scoring here - nextPhase CF will calculate scores from revealedAnswers
         } else if (player.team) {
             // WRONG ANSWER: Implement rebond logic
 
@@ -230,4 +252,18 @@ export const submitAnswer = async (code: string, playerId: string, answerIndex: 
 
         return newState;
     });
+
+    // Update player score if they won the round (real-time feedback)
+    // Only award points if transaction committed AND this player is the winner
+    if (result.committed) {
+        const finalState = result.snapshot.val() as GameState | null;
+        if (finalState?.roundWinner?.playerId === playerId && finalState?.phaseState === 'result') {
+            const playerScoreRef = ref(rtdb, `rooms/${roomId}/players/${playerId}/score`);
+            const currentScoreSnap = await get(playerScoreRef);
+            const currentScore = currentScoreSnap.val() || 0;
+            await update(ref(rtdb, `rooms/${roomId}/players/${playerId}`), {
+                score: currentScore + 1 // Phase 1 gives 1 point per correct answer
+            });
+        }
+    }
 };

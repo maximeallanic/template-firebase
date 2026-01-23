@@ -176,6 +176,9 @@ RAPPELS FINAUX :
 - Anecdotes FUN et SURPRENANTES (15-20 mots, faits insolites ou chiffres étonnants)
 - 12 items EXACTEMENT
 - Pas de ton encyclopédique ou professoral
+- ⚠️ ÉVITER LA POLYSÉMIE : Si un mot a PLUSIEURS SENS qui pourraient matcher DIFFÉRENTES catégories, NE PAS L'UTILISER !
+  Exemple interdit : "Les vedettes" avec Seine/Scène (vedettes = bateaux OU stars → ambigu)
+  Exemple OK : "Les marées" avec Seine/Scène (un seul sens pertinent → la Seine)
 
 Pas de markdown dans le JSON.`;
 
@@ -256,6 +259,9 @@ Vérifie chaque item :
 2. Pas d'ambiguïté (clairement A, B ou Both) ?
 3. Réponse contre-intuitive (pas trop évidente) ?
 4. Max 4 mots ?
+5. ⚠️ POLYSÉMIE DANGEREUSE : Le mot a-t-il PLUSIEURS SENS qui pourraient matcher DIFFÉRENTES catégories ?
+   Exemple : "Les vedettes" avec Seine/Scène → REJETÉ car vedettes = bateaux (Seine) OU stars (Scène)
+   Exemple : "Les étoiles" avec Mer/Mère → OK car un seul sens pertinent (astres → ni mer ni mère spécifiquement)
 
 Distribution attendue : 5 A + 5 B + 2 Both
 
@@ -263,7 +269,7 @@ JSON:
 {
   "setValid": true|false,
   "setReason": "Raison si invalide",
-  "itemReviews": [{"index":0,"text":"...","answer":"A","status":"approved"|"rejected","reason":"..."|null,"issue":"answer_wrong"|"ambiguous"|"too_easy"|null}],
+  "itemReviews": [{"index":0,"text":"...","answer":"A","status":"approved"|"rejected","reason":"..."|null,"issue":"answer_wrong"|"ambiguous"|"too_easy"|"polysemy"|null}],
   "summary": {"approved":10,"rejected":2,"rejectedIndices":[4,9]}
 }`;
 

@@ -83,7 +83,7 @@ export function separatePhase2Set(set: Phase2Set): Phase2Separated {
     });
     privateItems.push({
       answer: item.answer,
-      acceptedAnswers: item.acceptedAnswers,
+      acceptedAnswers: item.acceptedAnswers ?? [], // Default to empty array to avoid undefined in Firebase
     });
   }
 
@@ -143,7 +143,7 @@ export function separatePhase3Themes(themes: Phase3Theme[]): Phase3Separated {
       });
       privateQuestionAnswers.push({
         expectedAnswer: q.answer,
-        acceptableAnswers: q.acceptableAnswers,
+        acceptableAnswers: q.acceptableAnswers ?? [], // Default to empty array to avoid undefined in Firebase
       });
     }
 

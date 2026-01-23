@@ -69,6 +69,9 @@ function SoloGameInner() {
         state: mapSoloStateToGameState(state),
         createdAt: state.startedAt || Date.now(),
         customQuestions: state.customQuestions,
+        // Include revealed answers for PhaseX components to show correct answers (#72)
+        // Cast needed: solo mode doesn't have teamAnswers, but PhaseX only needs answer/correctIndex
+        revealedAnswers: state.revealedAnswers as Room['revealedAnswers'],
     }), [state]);
 
     // Calculate current round info for header display (mobile)
@@ -149,6 +152,8 @@ function SoloGameInner() {
                 });
 
             // Submit with server-side validation
+            // Cap totalTimeMs to 30 minutes (1800000ms) to match CF validation limit
+            const cappedTimeMs = Math.min(state.totalTimeMs || 0, 1800000);
             submitValidatedScore({
                 playerName: state.playerName,
                 playerAvatar: state.playerAvatar,
@@ -159,7 +164,7 @@ function SoloGameInner() {
                 submittedPhase1Score: state.phaseScores.phase1,
                 submittedPhase2Score: state.phaseScores.phase2,
                 submittedPhase4Score: state.phaseScores.phase4,
-                totalTimeMs: state.totalTimeMs || 0,
+                totalTimeMs: cappedTimeMs,
             }).then(result => {
                 console.log('[SoloGame] Score validated:', result);
             }).catch(err => {

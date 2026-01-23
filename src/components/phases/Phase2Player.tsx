@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { motion, useAnimation, AnimatePresence } from 'framer-motion';
 import { Lock, CheckCircle, XCircle, AlertTriangle } from 'lucide-react';
@@ -55,11 +55,18 @@ export function Phase2Player({ room, playerId, isHost, mode = 'multiplayer', sol
         phase2BothCorrect,
     } = room.state;
 
-    // In solo mode, customQuestions.phase2 is a single set, not an array
-    // AI-generated questions are mandatory - no fallback data
-    const currentSet: SimplePhase2Set | undefined = isSolo
-        ? (customQuestions?.phase2 as SimplePhase2Set | undefined)
-        : (customQuestions?.phase2 as SimplePhase2Set[] | undefined)?.[setIndex];
+    // Phase2 data can be either a single set (solo/some generators) or an array of sets
+    // Handle both cases for compatibility
+    const phase2Data = customQuestions?.phase2;
+    let currentSet: SimplePhase2Set | undefined;
+
+    if (Array.isArray(phase2Data)) {
+        // Array of sets (expected multiplayer format)
+        currentSet = phase2Data[setIndex];
+    } else if (phase2Data && typeof phase2Data === 'object') {
+        // Single set object (solo format or legacy)
+        currentSet = phase2Data as SimplePhase2Set;
+    }
     const currentItem = currentSet?.items[itemIndex];
     const totalItems = currentSet?.items.length || 0;
     const currentAnecdote = currentItem?.anecdote;
@@ -78,7 +85,15 @@ export function Phase2Player({ room, playerId, isHost, mode = 'multiplayer', sol
 
     // Solo mode state
     const [soloAnswered, setSoloAnswered] = useState(false);
-    const [soloResult, setSoloResult] = useState<{ correct: boolean; answer: Phase2Answer } | null>(null);
+    const [soloAnswerChoice, setSoloAnswerChoice] = useState<Phase2Answer | null>(null);
+
+    // Derive soloResult from revealedAnswers (CF is source of truth #72)
+    const revealedAnswer = room.revealedAnswers?.phase2?.[`${setIndex}_${itemIndex}`]?.answer;
+    const soloResult = useMemo(() => {
+        if (!soloAnswered || !soloAnswerChoice) return null;
+        const soloCorrect = revealedAnswer !== undefined && soloAnswerChoice === revealedAnswer;
+        return { correct: soloCorrect, answer: soloAnswerChoice };
+    }, [soloAnswered, soloAnswerChoice, revealedAnswer]);
 
     // Timer state for parallel mode (multiplayer only)
     const [timeRemaining, setTimeRemaining] = useState(PHASE2_TIMER_SECONDS);
@@ -90,7 +105,7 @@ export function Phase2Player({ room, playerId, isHost, mode = 'multiplayer', sol
     useEffect(() => {
         if (isSolo) {
             setSoloAnswered(false);
-            setSoloResult(null);
+            setSoloAnswerChoice(null);
         }
     }, [itemIndex, isSolo]);
 
@@ -131,8 +146,9 @@ export function Phase2Player({ room, playerId, isHost, mode = 'multiplayer', sol
 
     // Timer countdown for parallel mode (multiplayer only)
     useEffect(() => {
-        // Skip timer for solo mode or when round is over
-        if (isSolo || phaseState === 'result' || !phase2QuestionStartTime) {
+        // Skip timer for solo mode, when round is over, when no valid question, or when phase is done
+        if (isSolo || phaseState === 'result' || phaseState === 'phase_results' ||
+            !phase2QuestionStartTime || !currentItem) {
             setTimeRemaining(PHASE2_TIMER_SECONDS);
             hasHandledTimeoutRef.current = false;
             if (timerRef.current) {
@@ -147,8 +163,8 @@ export function Phase2Player({ room, playerId, isHost, mode = 'multiplayer', sol
             const remaining = Math.max(0, PHASE2_TIMER_SECONDS - elapsed);
             setTimeRemaining(remaining);
 
-            // Handle timeout (host triggers end)
-            if (remaining === 0 && !hasHandledTimeoutRef.current && isHost) {
+            // Handle timeout (host triggers end) - only if we have a valid current item
+            if (remaining === 0 && !hasHandledTimeoutRef.current && isHost && currentItem) {
                 hasHandledTimeoutRef.current = true;
                 endPhase2Round(roomId);
             }
@@ -163,7 +179,7 @@ export function Phase2Player({ room, playerId, isHost, mode = 'multiplayer', sol
                 timerRef.current = null;
             }
         };
-    }, [isSolo, phaseState, phase2QuestionStartTime, isHost, roomId, itemIndex]);
+    }, [isSolo, phaseState, phase2QuestionStartTime, isHost, roomId, itemIndex, currentItem]);
 
     // Handle answer submission
     const handleAnswer = useCallback((choice: Phase2Answer) => {
@@ -172,12 +188,11 @@ export function Phase2Player({ room, playerId, isHost, mode = 'multiplayer', sol
 
         if (isSolo && soloHandlers) {
             // Solo mode: use solo handlers
-            const isCorrect = choice === currentItem.answer ||
-                (currentItem.acceptedAnswers?.includes(choice) ?? false);
-
+            // Don't calculate isCorrect locally - answer is stripped for security (#72)
+            // CF will validate and populate revealedAnswers
             soloHandlers.submitPhase2Answer(choice);
             setSoloAnswered(true);
-            setSoloResult({ correct: isCorrect, answer: choice });
+            setSoloAnswerChoice(choice);
         } else {
             // Multiplayer mode: submit to room
             submitPhase2AnswerToRoom(roomId, playerId, choice);
@@ -209,12 +224,16 @@ export function Phase2Player({ room, playerId, isHost, mode = 'multiplayer', sol
     }, []);
 
     // Auto-trigger phase results when phase 2 is complete (multiplayer only)
-    // Guard: only trigger if we're still in phase2 (prevents re-triggering after phase3 starts)
+    // Guard: only trigger if we're still in phase2 AND not already showing phase_results
     useEffect(() => {
-        if ((!currentSet || !currentItem) && isHost && !isSolo && room.state.status === 'phase2') {
+        if ((!currentSet || !currentItem) &&
+            isHost &&
+            !isSolo &&
+            room.state.status === 'phase2' &&
+            room.state.phaseState !== 'phase_results') {
             showPhaseResults();
         }
-    }, [currentSet, currentItem, isHost, isSolo, room.state.status, showPhaseResults]);
+    }, [currentSet, currentItem, isHost, isSolo, room.state.status, room.state.phaseState, showPhaseResults]);
 
     // --- FINISHED VIEW ---
     // Phase 2 complete - show brief loading while auto-transitioning to results

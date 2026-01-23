@@ -7,7 +7,7 @@
  */
 
 import { ref, get, update, runTransaction } from 'firebase/database';
-import { rtdb, submitAnswer as submitAnswerCF } from '../../firebase';
+import { rtdb, submitAnswer as submitAnswerCF, revealTimeoutAnswer as revealTimeoutCF } from '../../firebase';
 import { validateRoom } from '../roomService';
 import type {
     Team, GameState, SimplePhase2Set, Phase2TeamAnswer, Phase2TeamAnswers
@@ -19,15 +19,77 @@ const phase2AutoAdvanceScheduled: Record<string, boolean> = {};
 
 /**
  * Advance to the next Phase 2 item
+ * When called from idle state (via Phase2Intro), starts at item 0
+ * When called after a result, advances to next item
+ * If no more items, does nothing (UI will trigger phase_results)
  */
 export const nextPhase2Item = async (code: string) => {
     const roomId = code.toUpperCase();
+    console.log('[nextPhase2Item] Starting', { roomId });
+
     const roomRef = ref(rtdb, `rooms/${roomId}`);
     const snapshot = await get(roomRef);
-    if (!snapshot.exists()) return;
+    if (!snapshot.exists()) {
+        console.log('[nextPhase2Item] Room not found');
+        return;
+    }
 
     const room = validateRoom(snapshot.val());
-    if (room.state.status !== 'phase2') return;
+    if (room.state.status !== 'phase2') {
+        console.log('[nextPhase2Item] Not in phase2, status:', room.state.status);
+        return;
+    }
+
+    const phaseState = room.state.phaseState;
+    const currentIndex = room.state.currentPhase2Item ?? 0;
+
+    // Guard: only allow transition from 'idle' (starting phase) or 'result' (after a question)
+    if (phaseState !== 'idle' && phaseState !== 'result') {
+        console.log('[nextPhase2Item] Invalid phaseState:', phaseState);
+        return;
+    }
+
+    // Calculate next index based on current state
+    // From 'idle': start at 0 (first item)
+    // From 'result': advance to next item
+    const nextIndex = phaseState === 'idle' ? 0 : currentIndex + 1;
+
+    // Check if there are more questions
+    // Handle both single set (from some generators) and array of sets
+    const setIndex = room.state.currentPhase2Set ?? 0;
+    const phase2Data = room.customQuestions?.phase2;
+    let currentSet: SimplePhase2Set | undefined;
+
+    if (Array.isArray(phase2Data)) {
+        // Array of sets (expected multiplayer format)
+        currentSet = phase2Data[setIndex];
+    } else if (phase2Data && typeof phase2Data === 'object') {
+        // Single set object (solo format or legacy)
+        currentSet = phase2Data as SimplePhase2Set;
+    }
+
+    const totalItems = currentSet?.items?.length ?? 0;
+
+    console.log('[nextPhase2Item] Question check', {
+        phaseState,
+        currentIndex,
+        nextIndex,
+        setIndex,
+        totalItems,
+        isArray: Array.isArray(phase2Data),
+        hasPhase2Data: !!phase2Data,
+        hasCurrentSet: !!currentSet,
+        currentSetTitle: currentSet?.title
+    });
+
+    // If no more items, transition to phase_results
+    if (nextIndex >= totalItems) {
+        console.log('[nextPhase2Item] No more items, transitioning to phase_results');
+        await update(ref(rtdb), {
+            [`rooms/${roomId}/state/phaseState`]: 'phase_results'
+        });
+        return;
+    }
 
     const updates: Record<string, unknown> = {};
     updates[`rooms/${roomId}/state/roundWinner`] = null;
@@ -35,7 +97,6 @@ export const nextPhase2Item = async (code: string) => {
     updates[`rooms/${roomId}/state/phase2RoundWinner`] = null;
     updates[`rooms/${roomId}/state/phase2BothCorrect`] = false;
 
-    const nextIndex = (room.state.currentPhase2Item ?? 0) + 1;
     updates[`rooms/${roomId}/state/currentPhase2Item`] = nextIndex;
     updates[`rooms/${roomId}/state/phaseState`] = 'answering'; // Phase 2 allows immediate answering
     updates[`rooms/${roomId}/state/phase2QuestionStartTime`] = Date.now();
@@ -70,10 +131,18 @@ export const submitPhase2Answer = async (
     const otherTeam: Team = myTeam === 'spicy' ? 'sweet' : 'spicy';
 
     // Get current question data for display
+    // Handle both single set (from some generators) and array of sets
     const setIndex = room.state.currentPhase2Set ?? 0;
     const itemIndex = room.state.currentPhase2Item ?? 0;
-    const phase2Sets = room.customQuestions?.phase2 as SimplePhase2Set[] | undefined;
-    const currentSet = phase2Sets?.[setIndex] || undefined;
+    const phase2Data = room.customQuestions?.phase2;
+    let currentSet: SimplePhase2Set | undefined;
+
+    if (Array.isArray(phase2Data)) {
+        currentSet = phase2Data[setIndex];
+    } else if (phase2Data && typeof phase2Data === 'object') {
+        currentSet = phase2Data as SimplePhase2Set;
+    }
+
     if (!currentSet?.items?.[itemIndex]) return;
 
     const item = currentSet.items[itemIndex];
@@ -212,10 +281,18 @@ export const endPhase2Round = async (roomCode: string) => {
     // Already in result state, skip
     if (room.state.phaseState === 'result') return;
 
+    // Handle both single set (from some generators) and array of sets
     const setIndex = room.state.currentPhase2Set ?? 0;
     const itemIndex = room.state.currentPhase2Item ?? 0;
-    const phase2Sets = room.customQuestions?.phase2 as SimplePhase2Set[] | undefined;
-    const currentSet = phase2Sets?.[setIndex] || undefined;
+    const phase2Data = room.customQuestions?.phase2;
+    let currentSet: SimplePhase2Set | undefined;
+
+    if (Array.isArray(phase2Data)) {
+        currentSet = phase2Data[setIndex];
+    } else if (phase2Data && typeof phase2Data === 'object') {
+        currentSet = phase2Data as SimplePhase2Set;
+    }
+
     const item = currentSet?.items?.[itemIndex];
     const hasAnecdote = item?.anecdote;
 
@@ -253,6 +330,15 @@ export const endPhase2Round = async (roomCode: string) => {
         : null;
 
     await update(ref(rtdb), updates);
+
+    // Always reveal the correct answer on timeout (whether or not teams answered)
+    // This populates revealedAnswers.phase2.{setIndex}_{itemIndex}.answer
+    // so the UI can display the correct answer
+    try {
+        await revealTimeoutCF(roomId, 'phase2', itemIndex, 'multi', setIndex);
+    } catch (error) {
+        console.error('[Phase2] Error revealing answer on timeout:', error);
+    }
 
     // Note: Scoring removed - nextPhase CF will calculate scores from revealedAnswers
 

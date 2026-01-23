@@ -56,10 +56,24 @@ export const Phase3QuestionInput: React.FC<Phase3QuestionInputProps> = ({
     const skipTriggeredRef = useRef(false);
     const inputRef = useRef<HTMLInputElement>(null);
     const typingDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+    const timeoutQuestionIndexRef = useRef<number | null>(null);
+    // Track questions that have been attempted with wrong answers (to prevent re-submission on state flip-flops)
+    const attemptedQuestionsRef = useRef<Set<number>>(new Set());
 
     const currentQuestionIndex = teamProgress.currentQuestionIndex;
     const currentQuestion = theme.questions[currentQuestionIndex];
     const isFinished = teamProgress.finished;
+
+    // Debug logging for input disabled state
+    console.log('[Phase3] Render state:', {
+        currentQuestionIndex,
+        isSubmitting,
+        skipTriggered: skipTriggeredRef.current,
+        feedback,
+        timeLeft,
+        isFinished,
+        inputDisabled: isSubmitting || skipTriggeredRef.current || feedback === 'correct' || feedback === 'incorrect' || feedback === 'already_answered' || timeLeft === 0,
+    });
 
     // Get who answered each question
     const getAnsweredBy = useCallback((questionIndex: number): Player | null => {
@@ -106,9 +120,10 @@ export const Phase3QuestionInput: React.FC<Phase3QuestionInputProps> = ({
         };
     }, [roomCode, playerId, isSolo]);
 
-    // Reset state when question changes (someone else answered correctly)
+    // Reset state when question changes (someone else answered correctly or timeout skip)
     useEffect(() => {
         if (currentQuestionIndex !== lastQuestionIndex) {
+            console.log('[Phase3] Question changed:', lastQuestionIndex, '->', currentQuestionIndex);
             setAnswer('');
             setFeedback(null);
             setIsSubmitting(false);
@@ -116,6 +131,8 @@ export const Phase3QuestionInput: React.FC<Phase3QuestionInputProps> = ({
             setTimeLeft(QUESTION_TIME_LIMIT);
             hasPlayedFeedbackRef.current = false;
             skipTriggeredRef.current = false;
+            // Reset the timeout question ref for the new question
+            timeoutQuestionIndexRef.current = null;
             // Clear typing when question changes
             if (!isSolo) {
                 clearPhase3Typing(roomCode, playerId).catch(console.error);
@@ -207,20 +224,33 @@ export const Phase3QuestionInput: React.FC<Phase3QuestionInputProps> = ({
     }, [feedback, isSolo, roomCode, playerTeam, isFinished]);
 
     // Auto-skip when time runs out (multiplayer only)
+    // FIX: Set skipTriggeredRef INSIDE the timeout to avoid race condition
+    // where effect re-runs and cancels the timeout while ref is already true
     useEffect(() => {
-        // Only trigger skip once per question
-        if (skipTriggeredRef.current) return;
-
         const shouldSkip = timeLeft === 0 && !isSolo && !isFinished && !feedback;
         if (!shouldSkip) return;
 
-        skipTriggeredRef.current = true;
-        console.log('[Phase3] Will skip question in 2s (timeout)');
+        // Check if we already scheduled a skip for THIS question
+        if (timeoutQuestionIndexRef.current === currentQuestionIndex) {
+            return; // Already scheduled for this question
+        }
+
+        console.log('[Phase3] Timeout detected, will skip question in 2s');
+        timeoutQuestionIndexRef.current = currentQuestionIndex;
 
         // Wait 2 seconds to show feedback, then skip to next question
         const skipTimer = setTimeout(async () => {
+            // Double-check we should still skip (question might have changed)
+            if (timeoutQuestionIndexRef.current !== currentQuestionIndex) {
+                console.log('[Phase3] Question changed, canceling skip');
+                return;
+            }
+
+            // Now set the ref to prevent duplicate skips
+            skipTriggeredRef.current = true;
+
             try {
-                console.log('[Phase3] Skipping question now...');
+                console.log('[Phase3] Skipping question now (timeout)...');
                 const result = await skipPhase3Question(roomCode, playerTeam);
                 console.log('[Phase3] Skip result:', result);
                 if (!result.success) {
@@ -228,7 +258,8 @@ export const Phase3QuestionInput: React.FC<Phase3QuestionInputProps> = ({
                     // Retry once after 1 second
                     setTimeout(async () => {
                         try {
-                            await skipPhase3Question(roomCode, playerTeam);
+                            const retryResult = await skipPhase3Question(roomCode, playerTeam);
+                            console.log('[Phase3] Skip retry result:', retryResult);
                         } catch (retryError) {
                             console.error('[Phase3] Skip retry failed:', retryError);
                         }
@@ -239,7 +270,8 @@ export const Phase3QuestionInput: React.FC<Phase3QuestionInputProps> = ({
                 // Retry once after 1 second
                 setTimeout(async () => {
                     try {
-                        await skipPhase3Question(roomCode, playerTeam);
+                        const retryResult = await skipPhase3Question(roomCode, playerTeam);
+                        console.log('[Phase3] Skip retry result:', retryResult);
                     } catch (retryError) {
                         console.error('[Phase3] Skip retry failed:', retryError);
                     }
@@ -247,16 +279,34 @@ export const Phase3QuestionInput: React.FC<Phase3QuestionInputProps> = ({
             }
         }, 2000);
 
-        return () => clearTimeout(skipTimer);
-    }, [timeLeft, isSolo, roomCode, playerTeam, isFinished, feedback]);
+        return () => {
+            clearTimeout(skipTimer);
+            // Reset the timeout question ref if cleanup is called
+            // (but only if it was for this question)
+            if (timeoutQuestionIndexRef.current === currentQuestionIndex) {
+                timeoutQuestionIndexRef.current = null;
+            }
+        };
+    }, [timeLeft, isSolo, roomCode, playerTeam, isFinished, feedback, currentQuestionIndex]);
+
+    // Track if we need recovery (separate from the changing timeLeft)
+    const needsRecoveryRef = useRef(false);
+
+    // Set recovery flag when stuck
+    useEffect(() => {
+        needsRecoveryRef.current = skipTriggeredRef.current && (feedback === 'incorrect' || timeLeft === 0);
+    }, [feedback, timeLeft]);
 
     // Recovery mechanism: Reset state if stuck for too long (5 seconds after skip was triggered)
+    // This effect only depends on feedback and currentQuestionIndex to avoid timer reset every second
     useEffect(() => {
+        if (feedback !== 'incorrect') return;
         if (!skipTriggeredRef.current) return;
-        if (feedback !== 'incorrect' && timeLeft !== 0) return;
 
         // If we're stuck (skipTriggered but question hasn't changed after 5s), allow retry
         const recoveryTimer = setTimeout(() => {
+            // Double-check we still need recovery
+            if (!needsRecoveryRef.current) return;
             console.log('[Phase3] Recovery: resetting state after being stuck');
             setFeedback(null);
             setAnswer('');
@@ -265,7 +315,7 @@ export const Phase3QuestionInput: React.FC<Phase3QuestionInputProps> = ({
         }, 5000);
 
         return () => clearTimeout(recoveryTimer);
-    }, [feedback, timeLeft, currentQuestionIndex]);
+    }, [feedback, currentQuestionIndex]);
 
     // Auto-advance to next question in solo mode after correct answer
     useEffect(() => {
@@ -294,6 +344,9 @@ export const Phase3QuestionInput: React.FC<Phase3QuestionInputProps> = ({
                 setAnswer('');
                 setFeedback(null);
                 setIsSubmitting(false);
+                // IMPORTANT: Also reset skipTriggeredRef to re-enable input
+                // in case the backend hasn't yet incremented the question index
+                skipTriggeredRef.current = false;
             }, 2000);
 
             return () => clearTimeout(resetTimer);
@@ -319,13 +372,34 @@ export const Phase3QuestionInput: React.FC<Phase3QuestionInputProps> = ({
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-        if (!answer.trim() || isSubmitting || feedback === 'correct' || feedback === 'incorrect' || feedback === 'already_answered') return;
+
+        const alreadyAttempted = attemptedQuestionsRef.current.has(currentQuestionIndex);
+
+        console.log('[Phase3] handleSubmit called:', {
+            answer: answer.substring(0, 20),
+            isSubmitting,
+            feedback,
+            skipTriggered: skipTriggeredRef.current,
+            currentQuestionIndex,
+            alreadyAttempted,
+        });
+
+        // Block submission if already answered, submitting, skip triggered, or already attempted this question
+        if (!answer.trim() || isSubmitting || skipTriggeredRef.current || alreadyAttempted || feedback === 'correct' || feedback === 'incorrect' || feedback === 'already_answered') {
+            console.log('[Phase3] handleSubmit blocked:', {
+                noAnswer: !answer.trim(),
+                isSubmitting,
+                skipTriggered: skipTriggeredRef.current,
+                alreadyAttempted,
+                feedbackBlocked: feedback === 'correct' || feedback === 'incorrect' || feedback === 'already_answered',
+            });
+            return;
+        }
 
         // Play click sound on submit
         audioService.playClick();
 
         setIsSubmitting(true);
-        setFeedback(null);
 
         try {
             let isCorrect = false;
@@ -350,11 +424,15 @@ export const Phase3QuestionInput: React.FC<Phase3QuestionInputProps> = ({
                 // Answer will be cleared by the useEffect when question changes
             } else {
                 setFeedback('incorrect');
-                // Don't clear answer on incorrect - let user modify it
+                // Mark this question as attempted to prevent re-submission
+                attemptedQuestionsRef.current.add(currentQuestionIndex);
+                console.log('[Phase3] Question marked as attempted:', currentQuestionIndex);
             }
         } catch (error) {
             console.error('[Phase3] Submit error:', error);
             setFeedback('incorrect');
+            // Also mark as attempted on error
+            attemptedQuestionsRef.current.add(currentQuestionIndex);
         } finally {
             setIsSubmitting(false);
         }
@@ -459,7 +537,7 @@ export const Phase3QuestionInput: React.FC<Phase3QuestionInputProps> = ({
                                 updateTypingDebounced(newValue);
                             }}
                             placeholder={t('phase3.typeAnswer')}
-                            disabled={isSubmitting || feedback === 'correct' || feedback === 'incorrect' || feedback === 'already_answered' || timeLeft === 0}
+                            disabled={isSubmitting || skipTriggeredRef.current || feedback === 'correct' || feedback === 'incorrect' || feedback === 'already_answered' || timeLeft === 0}
                             autoFocus
                             maxLength={MAX_ANSWER_LENGTH}
                             aria-label={t('phase3.typeAnswer')}
@@ -592,9 +670,16 @@ export const Phase3QuestionInput: React.FC<Phase3QuestionInputProps> = ({
                             role="alert"
                             aria-live="polite"
                         >
-                            <div className="flex items-center justify-center gap-2 text-slate-700 font-bold">
-                                <Clock className="w-5 h-5" aria-hidden="true" />
-                                {t('phase3.timeUp')}
+                            <div className="flex flex-col items-center gap-2">
+                                <div className="flex items-center justify-center gap-2 text-slate-700 font-bold">
+                                    <Clock className="w-5 h-5" aria-hidden="true" />
+                                    {t('phase3.timeUp')}
+                                </div>
+                                {currentQuestion?.answer && (
+                                    <div className="text-sm text-slate-600 mt-1">
+                                        {t('phase3.correctAnswerWas', { answer: currentQuestion.answer })}
+                                    </div>
+                                )}
                             </div>
                         </motion.div>
                     )}

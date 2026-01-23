@@ -105,6 +105,14 @@ export interface SoloGameState {
     };
     pendingPhase?: 'phase2' | 'phase4'; // Phase waiting for questions
 
+    // Revealed answers from CF validation (#72 - server-side orchestration)
+    // Mirrors the structure in Room type for compatibility with PhaseX components
+    revealedAnswers: {
+        phase1: Record<number, { correctIndex: number; revealedAt: number }>;
+        phase2: Record<string, { answer: 'A' | 'B' | 'Both'; revealedAt: number }>; // Key format: "setIndex_itemIndex"
+        phase4: Record<number, { correctIndex: number; revealedAt: number }>;
+    };
+
     // Timestamps
     startedAt: number | null;
     endedAt: number | null;
@@ -236,6 +244,11 @@ export function createInitialSoloState(
         },
         backgroundErrors: {},
         pendingPhase: undefined,
+        revealedAnswers: {
+            phase1: {},
+            phase2: {},
+            phase4: {},
+        },
         startedAt: null,
         endedAt: null,
     };
@@ -290,13 +303,14 @@ export function mapSoloStateToGameState(state: SoloGameState): import('./gameTyp
         baseState.phaseState = currentAnswered ? 'result' : 'answering';
 
         // Set roundWinner if player answered correctly (for result display)
-        if (currentAnswered && state.customQuestions.phase1) {
-            const question = state.customQuestions.phase1[currentIdx];
+        // Use revealedAnswers from CF validation - correctIndex is stripped from public questions (#72)
+        if (currentAnswered) {
             const playerAnswer = state.phase1State.answers[currentIdx];
+            const revealedCorrect = state.revealedAnswers.phase1[currentIdx]?.correctIndex;
             if (playerAnswer === null) {
                 // Timeout occurred - set isTimeout flag
                 baseState.isTimeout = true;
-            } else if (question && playerAnswer === question.correctIndex) {
+            } else if (revealedCorrect !== undefined && playerAnswer === revealedCorrect) {
                 baseState.roundWinner = {
                     playerId: state.playerId,
                     name: state.playerName,
@@ -338,9 +352,10 @@ export function mapSoloStateToGameState(state: SoloGameState): import('./gameTyp
             }
 
             // Set phase4Winner if answer was correct
-            if (answerValue !== null && state.customQuestions.phase4) {
-                const question = state.customQuestions.phase4[currentIndex];
-                if (question && answerValue === question.correctIndex) {
+            // Use revealedAnswers from CF validation - correctIndex is stripped from public questions (#72)
+            if (answerValue !== null) {
+                const revealedCorrect = state.revealedAnswers.phase4[currentIndex]?.correctIndex;
+                if (revealedCorrect !== undefined && answerValue === revealedCorrect) {
                     baseState.phase4Winner = {
                         playerId: state.playerId,
                         name: state.playerName,

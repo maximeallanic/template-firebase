@@ -42,11 +42,11 @@ type SoloGameAction =
     | { type: 'BACKGROUND_GEN_ERROR'; phase: 'phase2' | 'phase4'; error: string }
     | { type: 'EXIT_WAITING' } // Transition from waiting_for_phase to actual phase
     | { type: 'START_PHASE'; phase: SoloPhaseStatus }
-    | { type: 'SUBMIT_PHASE1_ANSWER'; answerIndex: number; isCorrect: boolean }
+    | { type: 'SUBMIT_PHASE1_ANSWER'; answerIndex: number; isCorrect: boolean; correctIndex: number }
     | { type: 'NEXT_PHASE1_QUESTION' }
-    | { type: 'SUBMIT_PHASE2_ANSWER'; answer: 'A' | 'B' | 'Both'; isCorrect: boolean }
+    | { type: 'SUBMIT_PHASE2_ANSWER'; answer: 'A' | 'B' | 'Both'; isCorrect: boolean; correctAnswer: 'A' | 'B' | 'Both' }
     | { type: 'NEXT_PHASE2_ITEM' }
-    | { type: 'SUBMIT_PHASE4_ANSWER'; answerIndex: number; isCorrect: boolean; timeMs: number }
+    | { type: 'SUBMIT_PHASE4_ANSWER'; answerIndex: number; isCorrect: boolean; timeMs: number; correctIndex: number }
     | { type: 'NEXT_PHASE4_QUESTION' }
     | { type: 'PHASE4_TIMEOUT' }
     | { type: 'ADVANCE_TO_NEXT_PHASE' }
@@ -251,6 +251,7 @@ function soloGameReducer(state: SoloGameState, action: SoloGameAction): SoloGame
             const newCorrectCount = state.phase1State.correctCount + (action.isCorrect ? 1 : 0);
             const newAnswers = [...state.phase1State.answers, action.answerIndex];
             const scoreIncrease = action.isCorrect ? SOLO_SCORING.phase1.correctAnswer : 0;
+            const questionIndex = state.phase1State.currentQuestionIndex;
 
             return {
                 ...state,
@@ -266,6 +267,17 @@ function soloGameReducer(state: SoloGameState, action: SoloGameAction): SoloGame
                 },
                 correctAnswers: state.correctAnswers + (action.isCorrect ? 1 : 0),
                 totalQuestions: state.totalQuestions + 1,
+                // Store revealed answer for Phase1Player to display correct answer (#72)
+                revealedAnswers: {
+                    ...state.revealedAnswers,
+                    phase1: {
+                        ...state.revealedAnswers.phase1,
+                        [questionIndex]: {
+                            correctIndex: action.correctIndex,
+                            revealedAt: Date.now(),
+                        },
+                    },
+                },
             };
         }
 
@@ -299,6 +311,7 @@ function soloGameReducer(state: SoloGameState, action: SoloGameAction): SoloGame
             const newCorrectCount = state.phase2State.correctCount + (action.isCorrect ? 1 : 0);
             const newAnswers = [...state.phase2State.answers, action.answer];
             const scoreIncrease = action.isCorrect ? SOLO_SCORING.phase2.correctAnswer : 0;
+            const itemIndex = state.phase2State.currentItemIndex;
 
             return {
                 ...state,
@@ -314,6 +327,18 @@ function soloGameReducer(state: SoloGameState, action: SoloGameAction): SoloGame
                 },
                 correctAnswers: state.correctAnswers + (action.isCorrect ? 1 : 0),
                 totalQuestions: state.totalQuestions + 1,
+                // Store revealed answer for Phase2Player (#72)
+                // Key format: "setIndex_itemIndex" - solo mode always uses setIndex 0
+                revealedAnswers: {
+                    ...state.revealedAnswers,
+                    phase2: {
+                        ...state.revealedAnswers.phase2,
+                        [`0_${itemIndex}`]: {
+                            answer: action.correctAnswer,
+                            revealedAt: Date.now(),
+                        },
+                    },
+                },
             };
         }
 
@@ -335,6 +360,7 @@ function soloGameReducer(state: SoloGameState, action: SoloGameAction): SoloGame
             const pointsEarned = action.isCorrect ? calculatePhase4Score(action.timeMs) : 0;
             const newAnswers = [...state.phase4State.answers, action.answerIndex];
             const newTimeTaken = [...state.phase4State.timeTaken, action.timeMs];
+            const questionIndex = state.phase4State.currentQuestionIndex;
 
             return {
                 ...state,
@@ -351,6 +377,17 @@ function soloGameReducer(state: SoloGameState, action: SoloGameAction): SoloGame
                 },
                 correctAnswers: state.correctAnswers + (action.isCorrect ? 1 : 0),
                 totalQuestions: state.totalQuestions + 1,
+                // Store revealed answer for Phase4Player (#72)
+                revealedAnswers: {
+                    ...state.revealedAnswers,
+                    phase4: {
+                        ...state.revealedAnswers.phase4,
+                        [questionIndex]: {
+                            correctIndex: action.correctIndex,
+                            revealedAt: Date.now(),
+                        },
+                    },
+                },
             };
         }
 
@@ -827,6 +864,8 @@ export function SoloGameProvider({
         const playerId = state.playerId;
         const questionIndex = state.phase1State.currentQuestionIndex;
 
+        console.log(`[SOLO] submitPhase1Answer called: playerId=${playerId}, qIdx=${questionIndex}, answer=${answerIndex}`);
+
         try {
             // Call CF for server-side validation
             const result = await submitAnswerCF(
@@ -837,13 +876,18 @@ export function SoloGameProvider({
                 Date.now()
             );
 
+            console.log(`[SOLO] CF result:`, result);
+
             const isCorrect = result.isCorrect;
-            dispatch({ type: 'SUBMIT_PHASE1_ANSWER', answerIndex, isCorrect });
+            // CF returns correctAnswer for revealed answers (#72)
+            const correctIndex = typeof result.correctAnswer === 'number' ? result.correctAnswer : answerIndex;
+            console.log(`[SOLO] Dispatching: isCorrect=${isCorrect}, correctIndex=${correctIndex}`);
+            dispatch({ type: 'SUBMIT_PHASE1_ANSWER', answerIndex, isCorrect, correctIndex });
 
         } catch (error) {
             console.error('[SOLO] submitPhase1Answer CF error:', error);
-            // Fallback: mark as incorrect to avoid blocking game
-            dispatch({ type: 'SUBMIT_PHASE1_ANSWER', answerIndex, isCorrect: false });
+            // Fallback: mark as incorrect, use player's answer as dummy correctIndex
+            dispatch({ type: 'SUBMIT_PHASE1_ANSWER', answerIndex, isCorrect: false, correctIndex: -1 });
         }
     }, [state.playerId, state.phase1State]);
 
@@ -869,12 +913,14 @@ export function SoloGameProvider({
             );
 
             const isCorrect = result.isCorrect;
-            dispatch({ type: 'SUBMIT_PHASE2_ANSWER', answer, isCorrect });
+            // CF returns correctAnswer for revealed answers (#72)
+            const correctAnswer = (result.correctAnswer as 'A' | 'B' | 'Both') || answer;
+            dispatch({ type: 'SUBMIT_PHASE2_ANSWER', answer, isCorrect, correctAnswer });
 
         } catch (error) {
             console.error('[SOLO] submitPhase2Answer CF error:', error);
-            // Fallback: mark as incorrect to avoid blocking game
-            dispatch({ type: 'SUBMIT_PHASE2_ANSWER', answer, isCorrect: false });
+            // Fallback: mark as incorrect, use player's answer as dummy correctAnswer
+            dispatch({ type: 'SUBMIT_PHASE2_ANSWER', answer, isCorrect: false, correctAnswer: answer });
         }
     }, [state.playerId, state.phase2State]);
 
@@ -902,12 +948,14 @@ export function SoloGameProvider({
             );
 
             const isCorrect = result.isCorrect;
-            dispatch({ type: 'SUBMIT_PHASE4_ANSWER', answerIndex, isCorrect, timeMs });
+            // CF returns correctAnswer for revealed answers (#72)
+            const correctIndex = typeof result.correctAnswer === 'number' ? result.correctAnswer : answerIndex;
+            dispatch({ type: 'SUBMIT_PHASE4_ANSWER', answerIndex, isCorrect, timeMs, correctIndex });
 
         } catch (error) {
             console.error('[SOLO] submitPhase4Answer CF error:', error);
-            // Fallback: mark as incorrect to avoid blocking game
-            dispatch({ type: 'SUBMIT_PHASE4_ANSWER', answerIndex, isCorrect: false, timeMs });
+            // Fallback: mark as incorrect, use -1 as dummy correctIndex
+            dispatch({ type: 'SUBMIT_PHASE4_ANSWER', answerIndex, isCorrect: false, timeMs, correctIndex: -1 });
         }
     }, [state.playerId, state.phase4State]);
 

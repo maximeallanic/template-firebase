@@ -238,6 +238,11 @@ export const submitPhase3Answer = async (
             return; // Abort - already answered
         }
 
+        // Check if the question has already advanced (due to skip/timeout)
+        if (progress.currentQuestionIndex !== questionIndex) {
+            return; // Abort - question already skipped
+        }
+
         // Update progress
         const newProgress: Phase3TeamProgress = {
             ...progress,

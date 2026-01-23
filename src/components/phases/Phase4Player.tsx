@@ -7,7 +7,6 @@ import type { Room, Phase4Question as Phase4QuestionType } from '../../services/
 import { submitPhase4Answer, handlePhase4Timeout, nextPhase4Question } from '../../services/gameService';
 import { usePhaseTransition } from '../../hooks/usePhaseTransition';
 import { markQuestionAsSeen } from '../../services/historyService';
-import { audioService } from '../../services/audioService';
 import { useReducedMotion } from '../../hooks/useReducedMotion';
 import { useHaptic } from '../../hooks/useHaptic';
 import { getTransitionDuration } from '../../animations';
@@ -100,6 +99,15 @@ export function Phase4Player({ room, playerId, isHost, mode = 'multiplayer', sol
             // Use server-validated isCorrect flag (from submitAnswer CF) (#72)
             const isWrongAnswer = myAnswer.isCorrect === false;
 
+            // Debug logging for result phase transition
+            console.log('[Phase4Player] Result phase transition:', {
+                myAnswerIndex: myAnswer.answer,
+                myAnswerIsCorrect: myAnswer.isCorrect,
+                isWrongAnswer,
+                prefersReducedMotion,
+                willShowShaking: isWrongAnswer && !prefersReducedMotion,
+            });
+
             if (isWrongAnswer && !prefersReducedMotion) {
                 // Step 1: Show shake animation on wrong answer
                 setResultRevealPhase('shaking');
@@ -117,6 +125,7 @@ export function Phase4Player({ room, playerId, isHost, mode = 'multiplayer', sol
             }
         } else if (phase4State === 'result' && myAnswer === undefined) {
             // Player didn't answer - go directly to revealing
+            console.log('[Phase4Player] Result phase: player did not answer');
             setResultRevealPhase('revealing');
         } else if (phase4State !== 'result') {
             setResultRevealPhase('idle');
@@ -216,25 +225,23 @@ export function Phase4Player({ room, playerId, isHost, mode = 'multiplayer', sol
         // In multiplayer, need team. In solo, always allowed
         if (!isSolo && !team) return;
 
+        // Debug logging for validation tracking
+        console.log('[Phase4Player] handleAnswerClick:', {
+            answerIndex,
+            currentQuestionIdx,
+            questionText: currentQuestion?.text?.substring(0, 50),
+            selectedOption: currentQuestion?.options?.[answerIndex],
+            isSolo,
+            playerId,
+        });
+
         // Lock immediately to prevent double-clicks (fixes race condition)
         setIsSubmitting(true);
         haptic.buzzer();
 
         if (isSolo && soloHandlers) {
-            // Solo mode: we have local access to correct answers for immediate feedback
-            const isWrongAnswer = currentQuestion && answerIndex !== (currentQuestion as Phase4QuestionType & { correctIndex?: number }).correctIndex;
-
-            if (isWrongAnswer && !prefersReducedMotion) {
-                // Show immediate wrong answer feedback
-                setWrongFeedbackIndex(answerIndex);
-                audioService.playError();
-                haptic.error();
-
-                const feedbackDuration = getTransitionDuration('wrongFeedback', prefersReducedMotion);
-                await new Promise<void>(resolve => setTimeout(resolve, feedbackDuration));
-                setWrongFeedbackIndex(null);
-            }
-
+            // Solo mode: correctIndex is stripped for security (#72)
+            // CF validates and returns result - no immediate wrong feedback
             soloHandlers.submitPhase4Answer(answerIndex);
         } else {
             // Multiplayer: submit to server, server validates
@@ -245,7 +252,7 @@ export function Phase4Player({ room, playerId, isHost, mode = 'multiplayer', sol
                 console.error('Phase4 submit error:', error);
             }
         }
-    }, [isSubmitting, hasAnswered, phase4State, team, room.code, playerId, isSolo, soloHandlers, currentQuestion, prefersReducedMotion, wrongFeedbackIndex, haptic]);
+    }, [isSubmitting, hasAnswered, phase4State, team, room.code, playerId, isSolo, soloHandlers, wrongFeedbackIndex, haptic, currentQuestionIdx, currentQuestion]);
 
     // --- FINISHED VIEW ---
     // En mode solo, on ne montre pas cette vue car le rideau gère la transition vers results

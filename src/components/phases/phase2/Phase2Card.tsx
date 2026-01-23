@@ -167,8 +167,10 @@ export function Phase2Card({
 
     // Get ring color based on result
     const getRingClass = () => {
-        if (!isRoundOver || !hasAnswered) return '';
-        // Both teams correct = green ring (positive)
+        if (!isRoundOver) return '';
+        // No one answered = amber ring
+        if (!hasAnswered) return 'ring-4 ring-amber-500 shadow-amber-500/30';
+        // Both teams correct = purple ring (positive)
         if (bothTeamsCorrect) return 'ring-4 ring-purple-500 shadow-purple-500/30';
         return didWin
             ? 'ring-4 ring-green-500 shadow-green-500/30'
@@ -182,6 +184,10 @@ export function Phase2Card({
         }
         if (isRoundOver && hasAnswered && !didWin && !bothTeamsCorrect) {
             return 'bg-gradient-to-r from-red-400 via-rose-400 to-red-400';
+        }
+        // Timeout - no one answered
+        if (isRoundOver && !hasAnswered) {
+            return 'bg-gradient-to-r from-amber-400 via-yellow-400 to-amber-400';
         }
         return 'bg-gradient-to-r from-red-400 via-purple-400 to-pink-400';
     };
@@ -340,7 +346,8 @@ export function Phase2Card({
             </div>
 
             {/* Adjacent Result Message - rendered via Portal to avoid transform issues */}
-            {isRoundOver && hasAnswered && createPortal(
+            {/* Show on timeout too (when no one answered) */}
+            {isRoundOver && createPortal(
                 <motion.div
                     initial={prefersReducedMotion ? { opacity: 0 } : { opacity: 0, scale: 0.9 }}
                     animate={prefersReducedMotion ? { opacity: 1 } : { opacity: 1, scale: 1 }}

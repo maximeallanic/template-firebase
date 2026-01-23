@@ -123,7 +123,19 @@ export function Phase4Intro({ room, isHost }: Phase4IntroProps) {
                         </span>
                     </div>
 
-                    {isHost ? (
+                    {isHost && !isPlayerReady ? (
+                        // Host must also mark ready first
+                        <motion.button
+                            whileHover={{ scale: 1.05, boxShadow: "0 0 30px rgba(34,197,94,0.4)" }}
+                            whileTap={{ scale: 0.95 }}
+                            onClick={handleReady}
+                            disabled={isMarking}
+                            className="bg-gradient-to-r from-green-600 to-green-500 text-white px-12 py-5 rounded-2xl text-2xl font-black shadow-2xl uppercase tracking-wider"
+                        >
+                            {t('player.iUnderstood')}
+                        </motion.button>
+                    ) : isHost && isPlayerReady ? (
+                        // Host is ready, show Start button
                         <motion.button
                             whileHover={readiness.allReady ? { scale: 1.05, boxShadow: "0 0 30px rgba(168,85,247,0.4)" } : {}}
                             whileTap={readiness.allReady ? { scale: 0.95 } : {}}

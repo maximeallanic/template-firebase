@@ -273,7 +273,7 @@ export async function validatePhase3Answer(
     playerId,
     playerAnswer: answer,
     isCorrect: validationResult.isCorrect,
-    explanation: validationResult.explanation,
+    explanation: validationResult.explanation || '',
     revealedAt: Date.now(),
   };
   await db.ref(revealPath).set(revealed);
@@ -325,24 +325,37 @@ export async function validatePhase4Answer(
   // Check if already revealed
   const revealedRef = db.ref(`${basePath}/revealedAnswers/phase4/${questionIndex}`);
   const revealedSnap = await revealedRef.once('value');
-  const alreadyRevealed = revealedSnap.exists();
+  const existingRevealed = revealedSnap.val() as Phase4RevealedAnswer | null;
+  const alreadyRevealed = !!existingRevealed;
 
-  if (isCorrect && !alreadyRevealed) {
-    const revealed: Phase4RevealedAnswer = {
-      correctIndex: correctAnswer.correctIndex,
-      winnerId: playerId,
-      winnerName: playerName,
-      winnerTeam: playerTeam,
-      revealedAt: Date.now(),
-    };
-    await revealedRef.set(revealed);
+  // Always store revealed answer for result display (fixes visual bug #72)
+  // If correct and first, set winner; otherwise just store correctIndex
+  if (!alreadyRevealed) {
+    if (isCorrect) {
+      // First correct answer - store with winner info
+      const revealed: Phase4RevealedAnswer = {
+        correctIndex: correctAnswer.correctIndex,
+        winnerId: playerId,
+        winnerName: playerName,
+        winnerTeam: playerTeam,
+        revealedAt: Date.now(),
+      };
+      await revealedRef.set(revealed);
+    } else {
+      // Wrong answer - still store correctIndex for result display
+      // Use partial update to preserve potential future winner info
+      await revealedRef.update({
+        correctIndex: correctAnswer.correctIndex,
+        revealedAt: Date.now(),
+      });
+    }
   }
 
   return {
     isCorrect,
-    shouldReveal: isCorrect || alreadyRevealed,
-    correctIndex: isCorrect ? correctAnswer.correctIndex : -1,
-    allowRebond: !isCorrect && !alreadyRevealed, // Allow rebond if incorrect and not revealed
+    shouldReveal: true, // Always reveal for Phase 4 so result display works
+    correctIndex: correctAnswer.correctIndex, // Always return correct index
+    allowRebond: !isCorrect && !existingRevealed?.winnerId, // Allow rebond if no winner yet
     explanation: isCorrect ? 'Correct!' : 'Incorrect - rebond!',
   };
 }
@@ -394,7 +407,7 @@ export async function validatePhase5Answer(
     representativeId,
     givenAnswer: answer,
     isCorrect: validationResult.isCorrect,
-    explanation: validationResult.explanation,
+    explanation: validationResult.explanation || '',
     revealedAt: Date.now(),
   };
   await db.ref(revealPath).set(revealed);

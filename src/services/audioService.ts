@@ -163,7 +163,10 @@ class AudioService {
 
   private createAudio(soundId: SoundId): HTMLAudioElement {
     const config = SOUND_CONFIG[soundId];
-    const audio = new Audio(config.file);
+    // Use absolute path from root to avoid issues with client-side routing
+    // e.g., at /game/ABCD, relative "sounds/x.mp3" would resolve to /game/ABCD/sounds/x.mp3
+    const absolutePath = config.file.startsWith('/') ? config.file : `/${config.file}`;
+    const audio = new Audio(absolutePath);
     audio.preload = 'auto';
     audio.loop = config.loop;
     audio.volume = config.defaultVolume * this.masterVolume;
@@ -261,8 +264,23 @@ class AudioService {
     try {
       await audio.play();
     } catch (e) {
-      console.warn(`Failed to play sound ${soundId}:`, e);
-      this.activeSounds.delete(soundId);
+      // Only warn if this wasn't an intentional stop (audio still active)
+      // AbortError happens when stop() is called during play() - this is expected
+      // in React Strict Mode where components double-mount and cleanup runs mid-play
+      // NotSupportedError can also occur when audio is stopped before loading completes
+      const isExpectedError =
+        e instanceof DOMException &&
+        (e.name === 'AbortError' || e.name === 'NotSupportedError');
+      const isStillActive = this.activeSounds.get(soundId) === audio;
+
+      if (!isExpectedError || isStillActive) {
+        console.warn(`Failed to play sound ${soundId}:`, e);
+      }
+
+      // Clean up only if still registered
+      if (isStillActive) {
+        this.activeSounds.delete(soundId);
+      }
     }
   }
 

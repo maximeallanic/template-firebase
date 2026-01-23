@@ -196,6 +196,11 @@ export const submitAnswer = onCall(
             throw new HttpsError('not-found', 'Phase 1 answers not found');
           }
 
+          // Debug logging for solo mode validation
+          console.log(`[submitAnswer] Phase1 validation: roomId=${roomId}, mode=${mode}, qIdx=${questionIndex}, userAnswer=${answer}`);
+          console.log(`[submitAnswer] Private answers found: ${answers.length} items`);
+          console.log(`[submitAnswer] Expected correctIndex: ${answers[questionIndex]?.correctIndex}`);
+
           const result = await validatePhase1Answer(
             roomId,
             questionIndex,
@@ -207,8 +212,16 @@ export const submitAnswer = onCall(
             basePath
           );
 
+          console.log(`[submitAnswer] Validation result: isCorrect=${result.isCorrect}, shouldReveal=${result.shouldReveal}`);
+
           isCorrect = result.isCorrect;
-          correctAnswer = result.shouldReveal ? result.correctIndex : undefined;
+          // In solo mode, always reveal correct answer immediately for feedback
+          // In multi mode, only reveal after first correct or if already revealed
+          correctAnswer = (mode === 'solo' || result.shouldReveal)
+            ? answers[questionIndex]?.correctIndex
+            : undefined;
+
+          console.log(`[submitAnswer] Returning: isCorrect=${isCorrect}, correctAnswer=${correctAnswer}`);
           explanation = result.explanation;
           break;
         }
@@ -239,7 +252,13 @@ export const submitAnswer = onCall(
           );
 
           isCorrect = result.isCorrect;
-          correctAnswer = result.shouldReveal ? result.correctAnswer : undefined;
+          // In solo mode, always reveal correct answer immediately for feedback
+          if (mode === 'solo' || result.shouldReveal) {
+            // Get correct answer from private data
+            const answersArray = Array.isArray(answers) ? answers : [answers];
+            const setAnswers = answersArray[setIndex];
+            correctAnswer = setAnswers?.items?.[questionIndex]?.answer;
+          }
           explanation = result.explanation;
           break;
         }
@@ -277,6 +296,11 @@ export const submitAnswer = onCall(
             throw new HttpsError('not-found', 'Phase 4 answers not found');
           }
 
+          // Debug logging for Phase 4 validation
+          console.log(`[submitAnswer] Phase4 validation: roomId=${roomId}, mode=${mode}, qIdx=${questionIndex}, userAnswer=${answer}`);
+          console.log(`[submitAnswer] Phase4 private answers found: ${answers.length} items`);
+          console.log(`[submitAnswer] Phase4 expected correctIndex at qIdx ${questionIndex}: ${answers[questionIndex]?.correctIndex}`);
+
           const result = await validatePhase4Answer(
             roomId,
             questionIndex,
@@ -288,8 +312,13 @@ export const submitAnswer = onCall(
             basePath
           );
 
+          console.log(`[submitAnswer] Phase4 validation result: isCorrect=${result.isCorrect}, shouldReveal=${result.shouldReveal}`);
+
           isCorrect = result.isCorrect;
-          correctAnswer = result.shouldReveal ? result.correctIndex : undefined;
+          // In solo mode, always reveal correct answer immediately for feedback
+          correctAnswer = (mode === 'solo' || result.shouldReveal)
+            ? answers[questionIndex]?.correctIndex
+            : undefined;
           explanation = result.explanation;
           break;
         }

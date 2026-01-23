@@ -90,11 +90,11 @@
       ".write": false
     },
     "soloSessions": {
-      "$odId": {
-        // SECURITY: Solo sessions - only the owner can read their session
-        ".read": "auth != null && auth.uid == $odId",
-        // All writes handled by Cloud Functions (via Admin SDK)
-        ".write": false
+      "$userId": {
+        // Solo sessions - only the owner can read/write their own session
+        // Solo mode is local-only (no multiplayer cheating concerns)
+        ".read": "auth != null && auth.uid == $userId",
+        ".write": "auth != null && auth.uid == $userId"
       }
     },
     "userHistory": {

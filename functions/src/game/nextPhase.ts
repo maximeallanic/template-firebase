@@ -27,11 +27,11 @@ import { getBasePath, getNextPhase } from '../types/secureGameTypes';
 
 // Point values per phase
 const PHASE_POINTS: Record<PhaseId, number> = {
-  phase1: 10,  // Tenders - Speed MCQ
-  phase2: 10,  // Sucré Salé - Binary choice
-  phase3: 15,  // La Carte - Theme questions
-  phase4: 15,  // La Note - Buzzer MCQ
-  phase5: 20,  // Burger Ultime - Memory questions
+  phase1: 1,   // Tenders - Speed MCQ
+  phase2: 1,   // Sucré Salé - Binary choice
+  phase3: 1,   // La Carte - Theme questions
+  phase4: 2,   // La Note - Buzzer MCQ
+  phase5: 0,   // Burger Ultime - Uses bonus scoring (see calculatePhase5Scores)
 };
 
 /**
@@ -165,7 +165,7 @@ async function calculatePhase4Scores(
 
 /**
  * Calculate team scores for Phase 5 (Burger Ultime - Memory questions)
- * Each correct team answer gets points
+ * Bonus exclusif: 5pts if first 5 correct, OR 10pts if all 10 correct (not cumulative)
  */
 async function calculatePhase5Scores(
   roomId: string,
@@ -178,10 +178,23 @@ async function calculatePhase5Scores(
   const revealedSnap = await revealedRef.once('value');
   const revealedAnswers = revealedSnap.val() || {};
 
-  for (const answer of Object.values(revealedAnswers)) {
-    const revealed = answer as { team: Team; isCorrect: boolean };
-    if (revealed.isCorrect) {
-      scores[revealed.team] += PHASE_POINTS.phase5;
+  // Calculate bonus scoring for each team
+  for (const team of ['spicy', 'sweet'] as Team[]) {
+    const teamAnswers: boolean[] = [];
+    for (let i = 0; i < 10; i++) {
+      const key = `${i}_${team}`;
+      const revealed = revealedAnswers[key] as { isCorrect: boolean } | undefined;
+      teamAnswers.push(revealed?.isCorrect ?? false);
+    }
+
+    const first5Correct = teamAnswers.slice(0, 5).every(c => c);
+    const all10Correct = teamAnswers.length === 10 && teamAnswers.every(c => c);
+
+    // Bonus exclusif: 5pts if first 5 correct, OR 10pts if all 10 correct
+    if (all10Correct) {
+      scores[team] = 10;
+    } else if (first5Correct) {
+      scores[team] = 5;
     }
   }
 
@@ -371,6 +384,8 @@ export const nextPhase = onCall(
         [`${basePath}/state/currentQuestionIndex`]: 0,
         [`${basePath}/state/roundWinner`]: null,
         [`${basePath}/state/lastPhaseTransition`]: Date.now(),
+        // Reset player readiness for new phase (used by PhaseXIntro screens)
+        [`${basePath}/state/playersReady`]: null,
       };
 
       // Clear submitted answers for previous phase

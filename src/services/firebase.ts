@@ -913,7 +913,8 @@ interface StartGameResponse {
 
 const startGameFunction = httpsCallable<StartGameRequest, StartGameResponse>(
   functions,
-  'startGame'
+  'startGame',
+  { timeout: 300000 } // 5 minutes - AI generation with dialogue can take 2-3 min
 );
 
 /**
@@ -1033,6 +1034,52 @@ export async function nextPhase(
   } catch (error: unknown) {
     console.error('Error advancing to next phase:', error);
     const message = error instanceof Error ? error.message : 'Failed to advance to next phase';
+    throw new Error(message);
+  }
+}
+
+// Types for revealTimeoutAnswer
+interface RevealTimeoutRequest {
+  roomId: string;
+  phase: 'phase1' | 'phase2' | 'phase4';
+  questionIndex: number;
+  setIndex?: number; // For Phase 2 only
+  mode?: 'multi' | 'solo';
+}
+
+interface RevealTimeoutResponse {
+  success: boolean;
+  correctIndex?: number; // For Phase 1 and Phase 4
+  correctAnswer?: 'A' | 'B' | 'Both'; // For Phase 2
+}
+
+const revealTimeoutAnswerFunction = httpsCallable<RevealTimeoutRequest, RevealTimeoutResponse>(
+  functions,
+  'revealTimeoutAnswer'
+);
+
+/**
+ * Reveal the correct answer on timeout (when no player answered correctly)
+ * Used for Phase 1, Phase 2, and Phase 4 when the timer expires
+ * @param roomId - Room code (multi) or session ID (solo)
+ * @param phase - Current phase (phase1, phase2, or phase4)
+ * @param questionIndex - Index of the question
+ * @param mode - 'multi' for multiplayer, 'solo' for single player
+ * @param setIndex - For Phase 2 only, which set of questions
+ */
+export async function revealTimeoutAnswer(
+  roomId: string,
+  phase: 'phase1' | 'phase2' | 'phase4',
+  questionIndex: number,
+  mode: 'multi' | 'solo' = 'multi',
+  setIndex?: number
+): Promise<RevealTimeoutResponse> {
+  try {
+    const result = await revealTimeoutAnswerFunction({ roomId, phase, questionIndex, mode, setIndex });
+    return result.data;
+  } catch (error: unknown) {
+    console.error('Error revealing timeout answer:', error);
+    const message = error instanceof Error ? error.message : 'Failed to reveal answer';
     throw new Error(message);
   }
 }

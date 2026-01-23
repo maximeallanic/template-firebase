@@ -83,14 +83,26 @@ async function initializeGameState(
   // Initialize scores
   const scores: TeamScores = { spicy: 0, sweet: 0 };
 
-  // Set initial game state
+  // Set initial game state - phaseState is 'idle' until all players are ready
+  // The readiness system (#80) handles transition to 'answering' when all players
+  // have dismissed the intro modal
   await db.ref(`${basePath}/state`).update({
     status: 'phase1',
-    phaseState: 'idle',
+    phaseState: 'idle', // Wait for all players to be ready
     currentQuestionIndex: 0,
     scores,
     startedAt: Date.now(),
+    // Phase 1 specific state
+    phase1Answers: {},
+    phase1BlockedTeams: [],
+    phase1TriedWrongOptions: [],
+    phase1LastWrongTeam: null,
+    roundWinner: null,
+    isTimeout: false,
   });
+
+  // Reset readiness for all players (used by Phase1Intro to track who's ready)
+  await db.ref(`${basePath}/state/playersReady`).remove();
 
   console.log(`[startGame] Initialized game state for ${roomId}, ${questionCount} questions`);
 }
@@ -132,7 +144,7 @@ function shufflePhase1Options(questions: Phase1Question[]): Phase1Question[] {
 export const startGame = onCall(
   {
     memory: '1GiB',
-    timeoutSeconds: 120,
+    timeoutSeconds: 300, // 5 minutes - AI generation with dialogue system can take 2-3 min
     minInstances: 1,
     secrets: [geminiApiKey, googleCseEngineId],
     consumeAppCheckToken: true,

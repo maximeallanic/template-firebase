@@ -241,8 +241,16 @@ export const overwriteGameQuestions = async (
     // For Phase 2, the AI returns a single set object, but our system supports array of sets.
     // We will wrap it in an array if phase is phase2.
     let contentStore: Question[] | SimplePhase2Set[] | Phase3Menu[] | Phase4Question[] | Phase5Data | unknown[] | Record<string, unknown> = data as Question[] | SimplePhase2Set[] | Phase3Menu[] | Phase4Question[] | Phase5Data | unknown[] | Record<string, unknown>;
-    if (phase === 'phase2' && !Array.isArray(data)) {
-        contentStore = [data as SimplePhase2Set]; // AI generates one set, we store as first item
+    if (phase === 'phase2') {
+        console.log('[overwriteGameQuestions] Phase 2 data format check:', {
+            isArray: Array.isArray(data),
+            hasItems: !!(data as SimplePhase2Set)?.items,
+            itemsLength: (data as SimplePhase2Set)?.items?.length
+        });
+        if (!Array.isArray(data)) {
+            console.log('[overwriteGameQuestions] Wrapping Phase 2 single set in array');
+            contentStore = [data as SimplePhase2Set]; // AI generates one set, we store as first item
+        }
     }
 
     const { set } = await import('firebase/database');

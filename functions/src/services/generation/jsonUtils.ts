@@ -6,6 +6,15 @@
 import type { Phase4Question } from './types';
 
 /**
+ * Remove trailing commas from JSON string (common LLM mistake)
+ * Handles: {"key": "value",} and ["item",]
+ */
+function removeTrailingCommas(jsonString: string): string {
+    // Remove trailing commas before } or ] (with optional whitespace/newlines)
+    return jsonString.replace(/,(\s*[}\]])/g, '$1');
+}
+
+/**
  * Helper to find a balanced JSON structure (handles nested objects/arrays)
  * @param text - The text to search for JSON
  * @param preferArray - If true, searches for '[' before '{' to prioritize array extraction
@@ -46,10 +55,13 @@ export function findBalancedJson(text: string, preferArray: boolean = false): st
  */
 export function parseJsonFromText(text: string): unknown {
     // Clean markdown artifacts
-    const cleanText = text
+    let cleanText = text
         .replace(/```json\s*/gi, '')
         .replace(/```\s*/g, '')
         .trim();
+
+    // Remove trailing commas (common LLM mistake)
+    cleanText = removeTrailingCommas(cleanText);
 
     // Try direct parse first (fastest path)
     try {
@@ -64,7 +76,8 @@ export function parseJsonFromText(text: string): unknown {
         throw new Error('No valid JSON found in response');
     }
 
-    return JSON.parse(jsonMatch);
+    // Also clean trailing commas from extracted JSON
+    return JSON.parse(removeTrailingCommas(jsonMatch));
 }
 
 /**
@@ -74,10 +87,13 @@ export function parseJsonFromText(text: string): unknown {
  */
 export function parseJsonArrayFromText<T>(text: string): T[] {
     // Clean markdown artifacts
-    const cleanText = text
+    let cleanText = text
         .replace(/```json\s*/gi, '')
         .replace(/```\s*/g, '')
         .trim();
+
+    // Remove trailing commas (common LLM mistake)
+    cleanText = removeTrailingCommas(cleanText);
 
     // Try direct parse first (fastest path)
     try {
@@ -93,7 +109,8 @@ export function parseJsonArrayFromText<T>(text: string): T[] {
         throw new Error('No valid JSON array found in response');
     }
 
-    const result = JSON.parse(jsonMatch);
+    // Also clean trailing commas from extracted JSON
+    const result = JSON.parse(removeTrailingCommas(jsonMatch));
     return Array.isArray(result) ? result : [result];
 }
 

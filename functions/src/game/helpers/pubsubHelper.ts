@@ -19,6 +19,9 @@ const pubsub = new PubSub();
 // Topic names
 export const GENERATE_PHASE_QUESTIONS_TOPIC = 'generate-phase-questions';
 
+// Detect if running in emulator (Pub/Sub not supported)
+const isEmulator = process.env.FUNCTIONS_EMULATOR === 'true';
+
 /**
  * Publish a message to generate all remaining phases (P2-P5) in background.
  * Called by startGame after generating P1 synchronously.
@@ -51,6 +54,12 @@ export async function publishGenerateAllPhases(
     });
     console.log(`[Pub/Sub] Published generateAllPhases message ${messageId} for room ${roomId}`);
   } catch (error) {
+    // In emulator mode, Pub/Sub is not supported - log warning but don't fail
+    // P2-P5 will be generated on-demand when needed
+    if (isEmulator) {
+      console.warn('[Pub/Sub] Emulator mode: Pub/Sub not available. P2-P5 will be generated on-demand.');
+      return;
+    }
     console.error('[Pub/Sub] Failed to publish generateAllPhases message:', error);
     throw error;
   }
@@ -90,6 +99,11 @@ export async function publishGeneratePhase(
     });
     console.log(`[Pub/Sub] Published generatePhase message ${messageId} for ${phase} in room ${roomId}`);
   } catch (error) {
+    // In emulator mode, Pub/Sub is not supported - log warning but don't fail
+    if (isEmulator) {
+      console.warn(`[Pub/Sub] Emulator mode: Pub/Sub not available. ${phase} will be generated on-demand.`);
+      return;
+    }
     console.error(`[Pub/Sub] Failed to publish generatePhase message for ${phase}:`, error);
     throw error;
   }

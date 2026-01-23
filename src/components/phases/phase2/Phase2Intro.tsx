@@ -27,21 +27,45 @@ export function Phase2Intro({ room, isHost }: Phase2IntroProps) {
         ? Boolean(room.state.playersReady?.['phase2']?.[user.uid])
         : false;
 
+    console.log('[Phase2Intro] render', {
+        isHost,
+        userId: user?.uid,
+        isPlayerReady,
+        readiness,
+        playersReady: room.state.playersReady,
+        phaseState: room.state.phaseState
+    });
+
     const handleReady = useCallback(async () => {
+        console.log('[Phase2Intro] handleReady called', {
+            userId: user?.uid,
+            isMarking,
+            roomCode: room.code,
+            currentPlayersReady: room.state.playersReady
+        });
         if (!user?.uid || isMarking) return;
         setIsMarking(true);
         try {
             audioService.playClick();
             await markPlayerReady(room.code, user.uid, 'phase2');
+            console.log('[Phase2Intro] markPlayerReady completed');
+        } catch (error) {
+            console.error('[Phase2Intro] markPlayerReady failed:', error);
         } finally {
             setIsMarking(false);
         }
-    }, [room.code, user?.uid, isMarking]);
+    }, [room.code, user?.uid, isMarking, room.state.playersReady]);
 
     const handleStart = async () => {
+        console.log('[Phase2Intro] handleStart called', {
+            roomCode: room.code,
+            phase2Data: room.customQuestions?.phase2,
+            currentPhase2Set: room.state.currentPhase2Set
+        });
         audioService.playClick();
         // Start Phase 2 with first item
         await nextPhase2Item(room.code);
+        console.log('[Phase2Intro] nextPhase2Item completed');
     };
 
     const steps = [
@@ -131,7 +155,19 @@ export function Phase2Intro({ room, isHost }: Phase2IntroProps) {
                         </span>
                     </div>
 
-                    {isHost ? (
+                    {isHost && !isPlayerReady ? (
+                        // Host must also mark ready first
+                        <motion.button
+                            whileHover={{ scale: 1.05, boxShadow: "0 0 30px rgba(34,197,94,0.4)" }}
+                            whileTap={{ scale: 0.95 }}
+                            onClick={handleReady}
+                            disabled={isMarking}
+                            className="bg-gradient-to-r from-green-600 to-green-500 text-white px-12 py-5 rounded-2xl text-2xl font-black shadow-2xl uppercase tracking-wider"
+                        >
+                            {t('player.iUnderstood')}
+                        </motion.button>
+                    ) : isHost && isPlayerReady ? (
+                        // Host is ready, show Start button
                         <motion.button
                             whileHover={readiness.allReady ? { scale: 1.05, boxShadow: "0 0 30px rgba(236,72,153,0.4)" } : {}}
                             whileTap={readiness.allReady ? { scale: 0.95 } : {}}

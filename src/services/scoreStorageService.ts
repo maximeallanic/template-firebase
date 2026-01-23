@@ -27,19 +27,22 @@ interface StoredScores {
 /**
  * Save final scores when game reaches victory state.
  * Called when victory screen is displayed.
+ * @param teamScoresOverride - Optional CF-calculated team scores (authoritative source #72)
  */
 export function saveFinalScores(
     roomCode: string,
     players: Record<string, Player>,
-    winnerTeam: Team | 'tie'
+    winnerTeam: Team | 'tie',
+    teamScoresOverride?: { spicy: number; sweet: number }
 ): void {
     const playersList = Object.values(players);
 
-    const spicyScore = playersList
+    // Use CF team scores if provided, otherwise calculate from player scores
+    const spicyScore = teamScoresOverride?.spicy ?? playersList
         .filter(p => p.team === 'spicy')
         .reduce((sum, p) => sum + (p.score || 0), 0);
 
-    const sweetScore = playersList
+    const sweetScore = teamScoresOverride?.sweet ?? playersList
         .filter(p => p.team === 'sweet')
         .reduce((sum, p) => sum + (p.score || 0), 0);
 
@@ -96,6 +99,20 @@ export function getStoredScores(roomCode: string): StoredScores | null {
  */
 export function clearStoredScores(): void {
     safeStorage.removeItem(SCORES_STORAGE_KEY);
+}
+
+/**
+ * Get stored team scores for a room (without player details).
+ * Useful for fallback when CF teamScores isn't loaded yet.
+ */
+export function getStoredTeamScores(roomCode: string): { spicy: number; sweet: number } | null {
+    const storedScores = getStoredScores(roomCode);
+    if (!storedScores) return null;
+
+    return {
+        spicy: storedScores.spicyScore,
+        sweet: storedScores.sweetScore,
+    };
 }
 
 /**

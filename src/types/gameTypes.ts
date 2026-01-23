@@ -107,6 +107,8 @@ export interface GameState {
     phase5Results?: Phase5Results;
     // Victory
     winnerTeam?: Team | 'tie';
+    // Team scores - calculated by nextPhase CF (#72)
+    teamScores?: { spicy: number; sweet: number };
     // Player readiness tracking (per phase)
     playersReady?: Record<string, Record<string, boolean>>; // phase -> playerId -> ready
 }

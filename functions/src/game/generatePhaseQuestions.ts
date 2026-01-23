@@ -208,13 +208,16 @@ export const generatePhaseQuestions = onMessagePublished(
           failedCount === phases.length ? 'error' : 'partial';
 
       // Update generation status
+      // Note: Only include errors if there are any (Firebase RTDB doesn't accept undefined)
       const finalGenerationStatus: GenerationStatus = {
         status: finalStatus,
         startedAt: generationStatus.startedAt,
         completedAt: Date.now(),
         phases: phaseResults,
-        errors: errors.length > 0 ? errors : undefined,
       };
+      if (errors.length > 0) {
+        finalGenerationStatus.errors = errors;
+      }
       await db.ref(`${basePath}/generationStatus`).set(finalGenerationStatus);
 
       if (failedCount > 0) {

@@ -40,14 +40,36 @@ export const submitPhase4Answer = async (
     // Get current question index
     const currentIdx = room.state.currentPhase4QuestionIndex ?? 0;
 
+    // Debug logging for validation tracking
+    console.log('[Phase4] submitPhase4Answer called:', {
+        roomId,
+        playerId,
+        answerIndex,
+        currentIdx,
+        phase4State: room.state.phase4State,
+        questionText: room.customQuestions?.phase4?.[currentIdx]?.text?.substring(0, 50),
+    });
+
     // Call server-side validation
     let isCorrect = false;
+    let correctAnswer: number | undefined;
     try {
+        console.log('[Phase4] Calling submitAnswerCF with questionIndex:', currentIdx);
         const response = await submitAnswerCF(roomId, 'phase4', currentIdx, answerIndex, timestamp);
         isCorrect = response.isCorrect;
+        correctAnswer = typeof response.correctAnswer === 'number' ? response.correctAnswer : undefined;
+        console.log('[Phase4] submitAnswerCF response:', { isCorrect, correctAnswer });
     } catch (error) {
         console.error('[Phase4] Error calling submitAnswer CF:', error);
         return;
+    }
+
+    // Store revealed answer for result display (fixes visual bug #72)
+    if (correctAnswer !== undefined) {
+        await update(ref(rtdb), {
+            [`rooms/${roomId}/revealedAnswers/phase4/${currentIdx}/correctIndex`]: correctAnswer
+        });
+        console.log('[Phase4] Stored revealed answer:', { currentIdx, correctAnswer });
     }
 
     // Use transaction for atomic answer submission (for display purposes)
@@ -99,6 +121,7 @@ export const submitPhase4Answer = async (
             if (firstCorrectPlayer === playerId) {
                 return {
                     ...currentState,
+                    phaseState: 'result',  // Global phaseState for consistency
                     phase4State: 'result',
                     phase4Winner: {
                         playerId,
@@ -149,6 +172,7 @@ export const submitPhase4Answer = async (
 
                 return {
                     ...currentState,
+                    phaseState: 'result',  // Global phaseState for consistency
                     phase4State: 'result',
                     phase4Winner: null
                 };
@@ -173,6 +197,7 @@ export const handlePhase4Timeout = async (roomCode: string): Promise<void> => {
         // Time's up - no winner
         return {
             ...currentState,
+            phaseState: 'result',  // Global phaseState for consistency
             phase4State: 'result',
             phase4Winner: null,
             isTimeout: true
@@ -183,6 +208,8 @@ export const handlePhase4Timeout = async (roomCode: string): Promise<void> => {
 /**
  * Move to the next question.
  * Resets answers and timer.
+ * When called from idle state (via Phase4Intro), starts at question 0
+ * When called after a result, advances to next question
  */
 export const nextPhase4Question = async (roomCode: string): Promise<void> => {
     const roomId = roomCode.toUpperCase();
@@ -191,10 +218,22 @@ export const nextPhase4Question = async (roomCode: string): Promise<void> => {
     if (!roomSnapshot.exists()) return;
     const room = validateRoom(roomSnapshot.val());
 
-    const nextIndex = (room.state.currentPhase4QuestionIndex || 0) + 1;
+    const phaseState = room.state.phaseState;
+    const currentIndex = room.state.currentPhase4QuestionIndex ?? 0;
+
+    // Guard: only allow transition from 'idle' (starting phase) or 'result' (after a question)
+    if (phaseState !== 'idle' && phaseState !== 'result') {
+        return;
+    }
+
+    // Calculate next index based on current state
+    // From 'idle': start at 0 (first question)
+    // From 'result': advance to next question
+    const nextIndex = phaseState === 'idle' ? 0 : currentIndex + 1;
 
     const updates: Record<string, unknown> = {
         [`rooms/${roomId}/state/currentPhase4QuestionIndex`]: nextIndex,
+        [`rooms/${roomId}/state/phaseState`]: 'questioning',  // Global phaseState - needed for PhaseRouter to switch from Intro to Player
         [`rooms/${roomId}/state/phase4State`]: 'questioning',
         [`rooms/${roomId}/state/phase4Answers`]: {},
         [`rooms/${roomId}/state/phase4QuestionStartTime`]: Date.now(),

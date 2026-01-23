@@ -18,13 +18,15 @@ export const EMBEDDING_DIMENSIONS = 768;
 const embedder = googleAI.embedder(EMBEDDING_MODEL);
 
 /**
- * Similarity threshold (0.85 = very similar, likely duplicate)
+ * Similarity threshold (0.82 = very similar, likely duplicate)
  * - 0.95+ : Nearly identical questions
- * - 0.85-0.95 : Same topic, different wording → REJECT
- * - 0.70-0.85 : Similar theme but distinct questions
+ * - 0.82-0.95 : Same topic, different wording → REJECT
+ * - 0.70-0.82 : Similar theme but distinct questions
  * - <0.70 : Different questions
+ *
+ * Lowered from 0.85 to 0.82 for stricter duplicate detection
  */
-export const SIMILARITY_THRESHOLD = 0.85;
+export const SIMILARITY_THRESHOLD = 0.82;
 
 /**
  * Generate embedding for a single text
@@ -392,4 +394,94 @@ export async function storeQuestionsWithEmbeddings(
     } catch (err) {
         console.error(`❌ Failed to store embeddings:`, err);
     }
+}
+
+/**
+ * Result type for filterDuplicatesAgainstExisting
+ */
+export interface FilterDuplicatesResult<T> {
+    /** Items that are unique (not duplicates of existing items) */
+    uniqueItems: T[];
+    /** Indices of items that were filtered out as duplicates */
+    filteredIndices: number[];
+    /** Embeddings for the unique items (preserves order) */
+    uniqueEmbeddings: number[][];
+}
+
+/**
+ * Filter out new items that are semantic duplicates of existing items.
+ * Uses pre-computed embeddings for existing items to avoid regenerating them.
+ *
+ * This is useful after merging good items with newly generated items to ensure
+ * the new items don't duplicate the existing good items.
+ *
+ * @param newItems - Array of new items to check
+ * @param existingItems - Array of existing items (already validated as good)
+ * @param existingEmbeddings - Pre-computed embeddings for existing items
+ * @param threshold - Optional custom similarity threshold (defaults to SIMILARITY_THRESHOLD)
+ * @returns Object containing unique items, filtered indices, and embeddings for unique items
+ */
+export async function filterDuplicatesAgainstExisting<T extends { text: string }>(
+    newItems: T[],
+    existingItems: Array<{ text: string }>,
+    existingEmbeddings: number[][],
+    threshold: number = SIMILARITY_THRESHOLD
+): Promise<FilterDuplicatesResult<T>> {
+    if (newItems.length === 0) {
+        return { uniqueItems: [], filteredIndices: [], uniqueEmbeddings: [] };
+    }
+
+    if (existingItems.length === 0 || existingEmbeddings.length === 0) {
+        // No existing items to compare against - all new items are unique
+        const newEmbeddings = await generateEmbeddings(newItems.map(item => item.text));
+        return { uniqueItems: [...newItems], filteredIndices: [], uniqueEmbeddings: newEmbeddings };
+    }
+
+    // Generate embeddings for new items
+    const newEmbeddings = await generateEmbeddings(newItems.map(item => item.text));
+
+    const uniqueItems: T[] = [];
+    const filteredIndices: number[] = [];
+    const uniqueEmbeddings: number[][] = [];
+
+    // Check each new item against all existing items
+    for (let i = 0; i < newItems.length; i++) {
+        const newEmbedding = newEmbeddings[i];
+        if (!newEmbedding || newEmbedding.length === 0) {
+            console.warn(`⚠️ Failed to generate embedding for new item ${i}: "${newItems[i].text.slice(0, 50)}..."`);
+            // Keep items with failed embeddings (safer than silently dropping them)
+            uniqueItems.push(newItems[i]);
+            uniqueEmbeddings.push(newEmbedding);
+            continue;
+        }
+
+        let isDuplicate = false;
+        let duplicateOf = '';
+
+        for (let j = 0; j < existingEmbeddings.length; j++) {
+            const existingEmbedding = existingEmbeddings[j];
+            if (!existingEmbedding || existingEmbedding.length === 0) continue;
+
+            const similarity = cosineSimilarity(newEmbedding, existingEmbedding);
+            if (similarity >= threshold) {
+                isDuplicate = true;
+                duplicateOf = existingItems[j]?.text || '(unknown)';
+                break;
+            }
+        }
+
+        if (isDuplicate) {
+            filteredIndices.push(i);
+            console.log(`🔄 Filtered duplicate: "${newItems[i].text.slice(0, 40)}..." ≈ "${duplicateOf.slice(0, 30)}..."`);
+        } else {
+            uniqueItems.push(newItems[i]);
+            uniqueEmbeddings.push(newEmbedding);
+        }
+    }
+
+    if (filteredIndices.length > 0) {
+        console.log(`✅ Filtered ${filteredIndices.length} duplicate items from merge`);
+    }
+
+    return { uniqueItems, filteredIndices, uniqueEmbeddings };
 }

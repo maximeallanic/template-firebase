@@ -279,8 +279,10 @@ export function Phase1Player({ room, playerId, isHost, mode = 'multiplayer', sol
 
         // Check if answer is wrong BEFORE submitting (for immediate visual feedback)
         // Use displayedQuestion (what user sees) not currentQuestion (which may have changed)
-        // In multiplayer mode (#72), correctIndex is stripped - only show immediate feedback in solo mode
-        const isWrongAnswer = isSolo && displayedQuestion && index !== (displayedQuestion as typeof displayedQuestion & { correctIndex?: number }).correctIndex;
+        // NOTE (#72): correctIndex is now stripped from public questions for security.
+        // In both solo and multiplayer, we rely on CF validation - no immediate wrong feedback.
+        // The CF response will set revealedAnswers which determines correct/wrong display.
+        const isWrongAnswer = false; // Disabled - CF is source of truth
 
         // Start the network submission immediately (optimistic UI)
         const submitPromise = (async () => {
@@ -453,10 +455,9 @@ export function Phase1Player({ room, playerId, isHost, mode = 'multiplayer', sol
     // Result reveal animation sequence: first shake wrong answer, then reveal correct
     useEffect(() => {
         if (isResult && myAnswer !== null) {
-            // In multiplayer (#72), use server-validated phase1Answers. In solo, use local correctIndex
-            const isWrongAnswer = isSolo
-                ? (displayedQuestion && myAnswer !== (displayedQuestion as typeof displayedQuestion & { correctIndex?: number }).correctIndex)
-                : (phase1Answers?.[playerId] === false);
+            // Use revealedAnswers from CF validation for both modes (#72 - server is source of truth)
+            const revealedCorrect = room.revealedAnswers?.phase1?.[displayedQuestionIndex ?? 0]?.correctIndex;
+            const isWrongAnswer = revealedCorrect !== undefined && myAnswer !== revealedCorrect;
 
             // Only show shake animation if we haven't already shown it via wrongFeedbackIndex
             if (isWrongAnswer && !prefersReducedMotion && !hasShownWrongFeedback) {
@@ -484,7 +485,7 @@ export function Phase1Player({ room, playerId, isHost, mode = 'multiplayer', sol
         } else if (!isResult) {
             setResultRevealPhase('idle');
         }
-    }, [isResult, myAnswer, displayedQuestion, prefersReducedMotion, hasShownWrongFeedback, isSolo, phase1Answers, playerId]);
+    }, [isResult, myAnswer, displayedQuestionIndex, prefersReducedMotion, hasShownWrongFeedback, room.revealedAnswers]);
 
     // Determining feedback if result is shown
     let resultMessage = t('common:labels.waiting');
@@ -739,11 +740,9 @@ export function Phase1Player({ room, playerId, isHost, mode = 'multiplayer', sol
                             const isFaded = myAnswer !== null && !isSelected;
 
                             // Check if this is the correct answer during result phase
-                            // In multiplayer (#72), use revealedAnswers from CF validation. In solo, use local correctIndex
+                            // Use revealedAnswers from CF validation for both multiplayer and solo (#72)
                             const revealedCorrectIndex = room.revealedAnswers?.phase1?.[displayedQuestionIndex ?? 0]?.correctIndex;
-                            const isCorrectAnswer = isSolo
-                                ? (displayedQuestion && idx === (displayedQuestion as typeof displayedQuestion & { correctIndex?: number }).correctIndex)
-                                : (revealedCorrectIndex !== undefined && idx === revealedCorrectIndex);
+                            const isCorrectAnswer = revealedCorrectIndex !== undefined && idx === revealedCorrectIndex;
                             // Only transform to result card after the shake animation is done
                             const shouldTransformToResult = isResult && isCorrectAnswer && resultRevealPhase === 'revealing';
 
