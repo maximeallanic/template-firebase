@@ -125,24 +125,20 @@ jobs:
 
           # Build number will be set by Fastlane
 
-      - name: Build and upload to App Store
+      - name: Build iOS IPA
         working-directory: ios/App
         env:
-          # App Store Connect API Key
           APP_STORE_CONNECT_API_KEY_ID: ${{ secrets.APP_STORE_CONNECT_API_KEY_ID }}
           APP_STORE_CONNECT_API_KEY_ISSUER_ID: ${{ secrets.APP_STORE_CONNECT_API_KEY_ISSUER_ID }}
           APP_STORE_CONNECT_API_KEY_CONTENT: ${{ secrets.APP_STORE_CONNECT_API_KEY_CONTENT }}
-          # Apple Developer Account
           APPLE_ID: ${{ secrets.APPLE_ID }}
           APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
           ITC_TEAM_ID: ${{ secrets.ITC_TEAM_ID }}
-          # Match (certificate management)
           MATCH_GIT_URL: ${{ secrets.MATCH_GIT_URL }}
           MATCH_GIT_BASIC_AUTHORIZATION: ${{ secrets.MATCH_GIT_BASIC_AUTHORIZATION }}
           MATCH_PASSWORD: ${{ secrets.MATCH_PASSWORD }}
-          # Build number
           BUILD_NUMBER: ${{ github.run_number }}
-        run: bundle exec fastlane ${{ steps.track.outputs.ios_lane }}
+        run: bundle exec fastlane build_release
 
       - name: Upload iOS artifacts
         uses: actions/upload-artifact@v4
@@ -150,6 +146,33 @@ jobs:
           name: ios-ipa
           path: ios/App/build/*.ipa
           retention-days: 30
+
+      - name: Upload to TestFlight
+        if: steps.track.outputs.ios_lane == 'beta'
+        working-directory: ios/App
+        env:
+          APP_STORE_CONNECT_API_KEY_ID: ${{ secrets.APP_STORE_CONNECT_API_KEY_ID }}
+          APP_STORE_CONNECT_API_KEY_ISSUER_ID: ${{ secrets.APP_STORE_CONNECT_API_KEY_ISSUER_ID }}
+          APP_STORE_CONNECT_API_KEY_CONTENT: ${{ secrets.APP_STORE_CONNECT_API_KEY_CONTENT }}
+        run: |
+          bundle exec fastlane pilot upload \
+            --ipa build/SpicyVsSweet.ipa \
+            --skip_waiting_for_build_processing
+
+      - name: Upload to App Store
+        if: steps.track.outputs.ios_lane == 'release'
+        working-directory: ios/App
+        env:
+          APP_STORE_CONNECT_API_KEY_ID: ${{ secrets.APP_STORE_CONNECT_API_KEY_ID }}
+          APP_STORE_CONNECT_API_KEY_ISSUER_ID: ${{ secrets.APP_STORE_CONNECT_API_KEY_ISSUER_ID }}
+          APP_STORE_CONNECT_API_KEY_CONTENT: ${{ secrets.APP_STORE_CONNECT_API_KEY_CONTENT }}
+        run: |
+          bundle exec fastlane deliver \
+            --ipa build/SpicyVsSweet.ipa \
+            --skip_metadata \
+            --skip_screenshots \
+            --submit_for_review \
+            --automatic_release
 
       - name: iOS deployment summary
         run: |
@@ -271,19 +294,15 @@ jobs:
         run: |
           echo "${{ secrets.ANDROID_KEYSTORE_BASE64 }}" | base64 -d > android/app/release.keystore
 
-      - name: Build and upload to Play Store
+      - name: Build Android AAB
         working-directory: android
         env:
-          # Signing configuration
           KEYSTORE_PATH: ${{ github.workspace }}/android/app/release.keystore
           KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
           KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
           KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
-          # Play Store credentials (reuses Firebase service account)
-          PLAY_STORE_CREDENTIALS: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
-          # Build number
           BUILD_NUMBER: ${{ github.run_number }}
-        run: bundle exec fastlane ${{ steps.track.outputs.android_lane }}
+        run: bundle exec fastlane build_release
 
       - name: Upload Android artifacts
         uses: actions/upload-artifact@v4
@@ -291,6 +310,20 @@ jobs:
           name: android-aab
           path: android/app/build/outputs/bundle/release/*.aab
           retention-days: 30
+
+      - name: Upload to Play Store
+        working-directory: android
+        env:
+          PLAY_STORE_CREDENTIALS: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+        run: |
+          bundle exec fastlane supply \
+            --aab app/build/outputs/bundle/release/app-release.aab \
+            --track ${{ steps.track.outputs.track }} \
+            --package_name com.spicyvssweet.app \
+            --json_key_data "$PLAY_STORE_CREDENTIALS" \
+            --skip_upload_metadata \
+            --skip_upload_images \
+            --skip_upload_screenshots
 
       - name: Clean up keystore
         if: always()
