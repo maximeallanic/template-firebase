@@ -2,7 +2,7 @@
   "name": "firebase-react-saas-template",
   "description": "Production-ready Firebase + React SaaS template with Stripe, i18n, and AI analysis",
   "private": true,
-  "version": "1.0.0",
+  "version": "1.0.1",
   "type": "module",
   "engines": {
     "node": ">=20.19.0"
