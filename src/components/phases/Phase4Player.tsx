@@ -99,15 +99,6 @@ export function Phase4Player({ room, playerId, isHost, mode = 'multiplayer', sol
             // Use server-validated isCorrect flag (from submitAnswer CF) (#72)
             const isWrongAnswer = myAnswer.isCorrect === false;
 
-            // Debug logging for result phase transition
-            console.log('[Phase4Player] Result phase transition:', {
-                myAnswerIndex: myAnswer.answer,
-                myAnswerIsCorrect: myAnswer.isCorrect,
-                isWrongAnswer,
-                prefersReducedMotion,
-                willShowShaking: isWrongAnswer && !prefersReducedMotion,
-            });
-
             if (isWrongAnswer && !prefersReducedMotion) {
                 // Step 1: Show shake animation on wrong answer
                 setResultRevealPhase('shaking');
@@ -125,7 +116,6 @@ export function Phase4Player({ room, playerId, isHost, mode = 'multiplayer', sol
             }
         } else if (phase4State === 'result' && myAnswer === undefined) {
             // Player didn't answer - go directly to revealing
-            console.log('[Phase4Player] Result phase: player did not answer');
             setResultRevealPhase('revealing');
         } else if (phase4State !== 'result') {
             setResultRevealPhase('idle');
@@ -224,16 +214,6 @@ export function Phase4Player({ room, playerId, isHost, mode = 'multiplayer', sol
         if (isSubmitting || hasAnswered || phase4State !== 'questioning' || wrongFeedbackIndex !== null) return;
         // In multiplayer, need team. In solo, always allowed
         if (!isSolo && !team) return;
-
-        // Debug logging for validation tracking
-        console.log('[Phase4Player] handleAnswerClick:', {
-            answerIndex,
-            currentQuestionIdx,
-            questionText: currentQuestion?.text?.substring(0, 50),
-            selectedOption: currentQuestion?.options?.[answerIndex],
-            isSolo,
-            playerId,
-        });
 
         // Lock immediately to prevent double-clicks (fixes race condition)
         setIsSubmitting(true);

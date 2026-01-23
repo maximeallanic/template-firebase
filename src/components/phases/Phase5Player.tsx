@@ -44,19 +44,6 @@ export function Phase5Player({ room, isHost, currentPlayerId }: Phase5PlayerProp
         return repId === currentPlayerId;
     }, [room.state.phase5Representatives, currentPlayerTeam, currentPlayerId]);
 
-    // Debug logging
-    console.log('[Phase5Player] Render:', {
-        phase5State,
-        phaseState: room.state.phaseState,
-        status: room.state.status,
-        isRepresentative,
-        currentPlayerTeam,
-        phase5Answers: {
-            spicy: room.state.phase5Answers?.spicy?.length || 0,
-            sweet: room.state.phase5Answers?.sweet?.length || 0,
-        },
-    });
-
     // Loading state if player not found
     if (!currentPlayer || !currentPlayerTeam) {
         return (
