@@ -42,6 +42,16 @@ platform :ios do
   lane :build_release do
     certificates
 
+    # Configure code signing settings
+    update_code_signing_settings(
+      use_automatic_signing: false,
+      path: "App.xcodeproj",
+      team_id: ENV["APPLE_TEAM_ID"],
+      bundle_identifier: "com.spicyvssweet.app",
+      profile_name: "match AppStore com.spicyvssweet.app",
+      code_sign_identity: "iPhone Distribution"
+    )
+
     increment_build_number(
       build_number: ENV["BUILD_NUMBER"] || latest_testflight_build_number + 1,
       xcodeproj: "App.xcodeproj"
@@ -55,7 +65,8 @@ platform :ios do
       export_options: {
         provisioningProfiles: {
           "com.spicyvssweet.app" => "match AppStore com.spicyvssweet.app"
-        }
+        },
+        teamID: ENV["APPLE_TEAM_ID"]
       },
       output_directory: "./build",
       output_name: "SpicyVsSweet.ipa"
