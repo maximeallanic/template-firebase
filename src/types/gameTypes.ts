@@ -33,6 +33,9 @@ export const PHASE_NAMES: Record<PhaseStatus, PhaseInfo> = {
     victory: { name: 'Victoire', subtitle: 'Le gagnant est...', shortName: 'Victoire' },
 };
 
+// Phase logo types (for PhaseLogo component)
+export type PhaseLogoType = 'nuggets' | 'saltpepper' | 'sweetysalty' | 'menus' | 'addition' | 'burger';
+
 // === DIFFICULTY ===
 
 export type Difficulty = 'easy' | 'normal' | 'hard' | 'wtf';
