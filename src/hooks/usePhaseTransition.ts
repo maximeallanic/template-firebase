@@ -44,9 +44,9 @@ interface UsePhaseTransitionReturn {
     /**
      * Advance to the next game phase.
      * Handles premium phase gating automatically.
-     * @param targetPhase - The phase to transition to
+     * Note: The CF determines the actual next phase based on current state
      */
-    advanceToNextPhase: (targetPhase: PhaseStatus) => Promise<void>;
+    advanceToNextPhase: () => Promise<void>;
 
     /**
      * End the game and show the victory screen.
@@ -146,9 +146,9 @@ export function usePhaseTransition({
     /**
      * Advance to the next game phase.
      * Uses nextPhase CF to calculate scores and transition (#72)
+     * Note: targetPhase parameter is kept for API compatibility but the CF determines the actual next phase
      */
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    const advanceToNextPhaseFn = useCallback(async (_targetPhase: PhaseStatus) => {
+    const advanceToNextPhaseFn = useCallback(async () => {
         // Only host can transition to next phase (not solo)
         if (!room || !isHost) return;
 

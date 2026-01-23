@@ -65,8 +65,8 @@
           ".write": "auth != null && !data.exists()"
         },
         "customQuestions": {
-          // SECURITY: Questions are written by Cloud Functions only (via Admin SDK)
-          // This ensures answers are never included in client-visible data
+          // SECURITY: Questions are written by Cloud Functions only using the Admin SDK
+          // Note: Realtime Database rules do not apply to Admin SDK operations, so clients cannot write here
           ".write": false
         },
         "revealedAnswers": {
@@ -84,8 +84,9 @@
       }
     },
     "gameData": {
-      // SECURITY: Private answer data - completely inaccessible to clients
-      // Only Cloud Functions (via Admin SDK) can read/write
+      // SECURITY: Private answer data - completely inaccessible to clients via client SDKs
+      // NOTE: Firebase Realtime Database security rules do NOT apply to the Admin SDK.
+      // Cloud Functions use the Admin SDK to read/write this path and therefore bypass these rules.
       ".read": false,
       ".write": false
     },

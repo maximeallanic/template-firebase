@@ -813,6 +813,15 @@ export function SoloGameProvider({
 
         } catch (error) {
             console.error('[SOLO] Game start failed:', error);
+
+            // Cleanup orphaned session entry if startGameCF failed (#72 Copilot review)
+            try {
+                const sessionRef = ref(rtdb, `soloSessions/${playerId}`);
+                await set(sessionRef, null);
+            } catch (cleanupError) {
+                console.error('[SOLO] Failed to cleanup session:', cleanupError);
+            }
+
             dispatch({
                 type: 'GENERATION_ERROR',
                 error: error instanceof Error ? error.message : 'Impossible de démarrer la partie. Veuillez réessayer.',

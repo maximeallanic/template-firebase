@@ -54,7 +54,8 @@ export function Phase4Player({ room, playerId, isHost, mode = 'multiplayer', sol
 
     const currentQuestionIdx = currentPhase4QuestionIndex ?? 0;
     const currentQuestion = questionsList[currentQuestionIdx];
-    const isFinished = !currentQuestion;
+    const isFinished = totalQuestions > 0 && !currentQuestion;
+    const isLoading = totalQuestions === 0;
 
     // Timer state
     const [timeRemaining, setTimeRemaining] = useState(QUESTION_TIMER);
@@ -233,6 +234,17 @@ export function Phase4Player({ room, playerId, isHost, mode = 'multiplayer', sol
             }
         }
     }, [isSubmitting, hasAnswered, phase4State, team, room.code, playerId, isSolo, soloHandlers, wrongFeedbackIndex, haptic, currentQuestionIdx, currentQuestion]);
+
+    // --- LOADING VIEW ---
+    // Show loading when questions are not yet available
+    if (isLoading) {
+        return (
+            <div className="flex flex-col items-center justify-center p-8 space-y-6 min-h-[50vh] w-full text-white">
+                <FoodLoader size="lg" />
+                <p className="text-xl text-gray-300">{t('common:loading')}</p>
+            </div>
+        );
+    }
 
     // --- FINISHED VIEW ---
     // En mode solo, on ne montre pas cette vue car le rideau gère la transition vers results
