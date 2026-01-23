@@ -1,0 +1,9 @@
+# App package name
+package_name("com.spicyvssweet.app")
+
+# Path to the service account JSON key
+# This is set via environment variable in CI
+json_key_data(ENV["PLAY_STORE_CREDENTIALS"])
+
+# For more information about the Appfile, see:
+# https://docs.fastlane.tools/advanced/#appfile

@@ -1,0 +1,123 @@
+# Fastlane configuration for iOS
+# https://docs.fastlane.tools
+
+default_platform(:ios)
+
+platform :ios do
+  # ==========================================
+  # Before All
+  # ==========================================
+  before_all do
+    setup_ci if ENV['CI']
+  end
+
+  # ==========================================
+  # Certificates & Provisioning
+  # ==========================================
+  desc "Fetch certificates and provisioning profiles"
+  lane :certificates do
+    app_store_connect_api_key(
+      key_id: ENV["APP_STORE_CONNECT_API_KEY_ID"],
+      issuer_id: ENV["APP_STORE_CONNECT_API_KEY_ISSUER_ID"],
+      key_content: ENV["APP_STORE_CONNECT_API_KEY_CONTENT"],
+      is_key_content_base64: true
+    )
+
+    match(
+      type: "appstore",
+      readonly: is_ci,
+      app_identifier: "com.spicyvssweet.app"
+    )
+  end
+
+  # ==========================================
+  # Build
+  # ==========================================
+  desc "Build the iOS app for release"
+  lane :build_release do
+    certificates
+
+    increment_build_number(
+      build_number: ENV["BUILD_NUMBER"] || latest_testflight_build_number + 1,
+      xcodeproj: "App.xcodeproj"
+    )
+
+    build_app(
+      workspace: "App.xcworkspace",
+      scheme: "App",
+      configuration: "Release",
+      export_method: "app-store",
+      export_options: {
+        provisioningProfiles: {
+          "com.spicyvssweet.app" => "match AppStore com.spicyvssweet.app"
+        }
+      },
+      output_directory: "./build",
+      output_name: "SpicyVsSweet.ipa"
+    )
+  end
+
+  # ==========================================
+  # TestFlight (Beta)
+  # ==========================================
+  desc "Build and upload to TestFlight"
+  lane :beta do
+    build_release
+
+    upload_to_testflight(
+      skip_waiting_for_build_processing: true,
+      distribute_external: false
+    )
+
+    UI.success("✅ Successfully uploaded to TestFlight!")
+  end
+
+  # ==========================================
+  # App Store (Production)
+  # ==========================================
+  desc "Build and submit to App Store"
+  lane :release do
+    build_release
+
+    upload_to_app_store(
+      force: true,
+      skip_metadata: false,
+      skip_screenshots: true,
+      submit_for_review: true,
+      automatic_release: true,
+      submission_information: {
+        add_id_info_uses_idfa: false
+      },
+      precheck_include_in_app_purchases: false
+    )
+
+    UI.success("✅ Successfully submitted to App Store!")
+  end
+
+  # ==========================================
+  # Metadata Management
+  # ==========================================
+  desc "Download metadata from App Store Connect"
+  lane :download_metadata do
+    app_store_connect_api_key(
+      key_id: ENV["APP_STORE_CONNECT_API_KEY_ID"],
+      issuer_id: ENV["APP_STORE_CONNECT_API_KEY_ISSUER_ID"],
+      key_content: ENV["APP_STORE_CONNECT_API_KEY_CONTENT"],
+      is_key_content_base64: true
+    )
+
+    deliver(
+      app_identifier: "com.spicyvssweet.app",
+      skip_binary_upload: true,
+      skip_screenshots: true
+    )
+  end
+
+  # ==========================================
+  # Error handling
+  # ==========================================
+  error do |lane, exception|
+    UI.error("❌ Fastlane failed on lane: #{lane}")
+    UI.error("Error: #{exception.message}")
+  end
+end

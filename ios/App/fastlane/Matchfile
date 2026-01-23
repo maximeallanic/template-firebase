@@ -1,0 +1,26 @@
+# Fastlane Match configuration
+# https://docs.fastlane.tools/actions/match/
+
+# Git repository containing certificates and profiles
+git_url(ENV["MATCH_GIT_URL"])
+
+# Storage mode
+storage_mode("git")
+
+# App identifier
+app_identifier(["com.spicyvssweet.app"])
+
+# Apple ID
+username(ENV["APPLE_ID"])
+
+# Team ID
+team_id(ENV["APPLE_TEAM_ID"])
+
+# Certificate types to sync
+type("appstore")
+
+# Clone using https with a personal access token
+git_basic_authorization(ENV["MATCH_GIT_BASIC_AUTHORIZATION"])
+
+# Read-only mode in CI
+readonly(is_ci)

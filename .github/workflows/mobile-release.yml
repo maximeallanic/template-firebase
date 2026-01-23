@@ -1,4 +1,4 @@
-name: Mobile Release
+name: Mobile Store Release
 
 on:
   push:
@@ -7,7 +7,7 @@ on:
   workflow_dispatch:
     inputs:
       platform:
-        description: 'Platform to build'
+        description: 'Platform to build and deploy'
         required: true
         default: 'both'
         type: choice
@@ -15,12 +15,24 @@ on:
           - ios
           - android
           - both
+      track:
+        description: 'Release track'
+        required: true
+        default: 'internal'
+        type: choice
+        options:
+          - internal    # TestFlight / Play Store Internal
+          - beta        # External TestFlight / Play Store Beta
+          - production  # App Store / Play Store Production
 
 env:
   NODE_VERSION: '22'
+  RUBY_VERSION: '3.2'
 
 jobs:
-  # Build web assets (shared by both platforms)
+  # ============================================
+  # Build Web Assets (shared by both platforms)
+  # ============================================
   build-web:
     name: Build Web Assets
     runs-on: ubuntu-latest
@@ -72,12 +84,17 @@ jobs:
             android/
           retention-days: 1
 
-  # iOS Build and Deploy
+  # ============================================
+  # iOS Build and Deploy to App Store
+  # ============================================
   deploy-ios:
-    name: Build and Deploy iOS
+    name: Deploy iOS to App Store
     needs: build-web
     runs-on: macos-latest
-    if: github.event.inputs.platform == 'ios' || github.event.inputs.platform == 'both' || github.event.inputs.platform == ''
+    if: |
+      github.event.inputs.platform == 'ios' ||
+      github.event.inputs.platform == 'both' ||
+      github.event.inputs.platform == ''
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -90,7 +107,7 @@ jobs:
       - name: Setup Ruby
         uses: ruby/setup-ruby@v1
         with:
-          ruby-version: '3.2'
+          ruby-version: ${{ env.RUBY_VERSION }}
           bundler-cache: true
           working-directory: ios/App
 
@@ -98,50 +115,99 @@ jobs:
         working-directory: ios/App
         run: pod install
 
-      # Note: Fastlane configuration required for production deployment
-      # Uncomment and configure when Apple Developer account is set up
-      #
-      # - name: Setup certificates (Fastlane Match)
-      #   env:
-      #     MATCH_PASSWORD: ${{ secrets.MATCH_PASSWORD }}
-      #     MATCH_GIT_BASIC_AUTHORIZATION: ${{ secrets.MATCH_GIT_TOKEN }}
-      #   working-directory: ios/App
-      #   run: bundle exec fastlane match appstore --readonly
-      #
-      # - name: Build and upload to TestFlight
-      #   env:
-      #     APP_STORE_CONNECT_API_KEY_ID: ${{ secrets.APP_STORE_CONNECT_API_KEY_ID }}
-      #     APP_STORE_CONNECT_API_KEY_ISSUER_ID: ${{ secrets.APP_STORE_CONNECT_API_KEY_ISSUER_ID }}
-      #     APP_STORE_CONNECT_API_KEY_CONTENT: ${{ secrets.APP_STORE_CONNECT_API_KEY_CONTENT }}
-      #   working-directory: ios/App
-      #   run: bundle exec fastlane beta
+      - name: Determine release track
+        id: track
+        run: |
+          if [ "${{ github.event_name }}" == "push" ]; then
+            # Tag push defaults to internal/testflight
+            echo "track=beta" >> $GITHUB_OUTPUT
+            echo "ios_lane=beta" >> $GITHUB_OUTPUT
+          else
+            # Manual dispatch uses selected track
+            TRACK="${{ github.event.inputs.track }}"
+            case "$TRACK" in
+              "internal"|"beta")
+                echo "track=beta" >> $GITHUB_OUTPUT
+                echo "ios_lane=beta" >> $GITHUB_OUTPUT
+                ;;
+              "production")
+                echo "track=production" >> $GITHUB_OUTPUT
+                echo "ios_lane=release" >> $GITHUB_OUTPUT
+                ;;
+            esac
+          fi
 
-      - name: Build iOS (Debug for now)
+      - name: Extract version from tag
+        id: version
+        run: |
+          if [[ "${{ github.ref_type }}" == "tag" ]]; then
+            VERSION="${{ github.ref_name }}"
+            VERSION="${VERSION#v}"  # Remove 'v' prefix
+            echo "version=$VERSION" >> $GITHUB_OUTPUT
+          else
+            VERSION=$(node -p "require('./package.json').version")
+            echo "version=$VERSION" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Update iOS version
         working-directory: ios/App
         run: |
-          xcodebuild -workspace App.xcworkspace \
-            -scheme App \
-            -configuration Debug \
-            -destination 'generic/platform=iOS Simulator' \
-            -archivePath build/App.xcarchive \
-            clean build \
-            CODE_SIGN_IDENTITY="" \
-            CODE_SIGNING_REQUIRED=NO \
-            CODE_SIGNING_ALLOWED=NO
+          # Update marketing version
+          /usr/libexec/PlistBuddy -c "Set :CFBundleShortVersionString ${{ steps.version.outputs.version }}" App/Info.plist
 
-      - name: Upload iOS build artifact
+          # Build number will be set by Fastlane
+
+      - name: Build and upload to App Store
+        working-directory: ios/App
+        env:
+          # App Store Connect API Key
+          APP_STORE_CONNECT_API_KEY_ID: ${{ secrets.APP_STORE_CONNECT_API_KEY_ID }}
+          APP_STORE_CONNECT_API_KEY_ISSUER_ID: ${{ secrets.APP_STORE_CONNECT_API_KEY_ISSUER_ID }}
+          APP_STORE_CONNECT_API_KEY_CONTENT: ${{ secrets.APP_STORE_CONNECT_API_KEY_CONTENT }}
+          # Apple Developer Account
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+          ITC_TEAM_ID: ${{ secrets.ITC_TEAM_ID }}
+          # Match (certificate management)
+          MATCH_GIT_URL: ${{ secrets.MATCH_GIT_URL }}
+          MATCH_GIT_BASIC_AUTHORIZATION: ${{ secrets.MATCH_GIT_BASIC_AUTHORIZATION }}
+          MATCH_PASSWORD: ${{ secrets.MATCH_PASSWORD }}
+          # Build number
+          BUILD_NUMBER: ${{ github.run_number }}
+        run: bundle exec fastlane ${{ steps.track.outputs.ios_lane }}
+
+      - name: Upload iOS artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: ios-build
-          path: ios/App/build/
-          retention-days: 7
+          name: ios-ipa
+          path: ios/App/build/*.ipa
+          retention-days: 30
 
-  # Android Build and Deploy
+      - name: iOS deployment summary
+        run: |
+          echo "## iOS Deployment Successful! :apple:" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Version:** ${{ steps.version.outputs.version }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Build:** ${{ github.run_number }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Track:** ${{ steps.track.outputs.track }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          if [ "${{ steps.track.outputs.track }}" == "beta" ]; then
+            echo "The build is now processing on TestFlight." >> $GITHUB_STEP_SUMMARY
+          else
+            echo "The build has been submitted for App Store review." >> $GITHUB_STEP_SUMMARY
+          fi
+
+  # ============================================
+  # Android Build and Deploy to Play Store
+  # ============================================
   deploy-android:
-    name: Build and Deploy Android
+    name: Deploy Android to Play Store
     needs: build-web
     runs-on: ubuntu-latest
-    if: github.event.inputs.platform == 'android' || github.event.inputs.platform == 'both' || github.event.inputs.platform == ''
+    if: |
+      github.event.inputs.platform == 'android' ||
+      github.event.inputs.platform == 'both' ||
+      github.event.inputs.platform == ''
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -157,42 +223,144 @@ jobs:
           distribution: 'temurin'
           java-version: '21'
 
+      - name: Setup Ruby
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: ${{ env.RUBY_VERSION }}
+          bundler-cache: true
+          working-directory: android
+
       - name: Setup Gradle
         uses: gradle/actions/setup-gradle@v3
 
-      # For unsigned release build (testing)
-      - name: Build Android Release (unsigned)
-        working-directory: android
-        run: ./gradlew assembleRelease
+      - name: Determine release track
+        id: track
+        run: |
+          if [ "${{ github.event_name }}" == "push" ]; then
+            # Tag push defaults to internal
+            echo "track=internal" >> $GITHUB_OUTPUT
+            echo "android_lane=internal" >> $GITHUB_OUTPUT
+          else
+            # Manual dispatch uses selected track
+            TRACK="${{ github.event.inputs.track }}"
+            case "$TRACK" in
+              "internal")
+                echo "track=internal" >> $GITHUB_OUTPUT
+                echo "android_lane=internal" >> $GITHUB_OUTPUT
+                ;;
+              "beta")
+                echo "track=beta" >> $GITHUB_OUTPUT
+                echo "android_lane=beta" >> $GITHUB_OUTPUT
+                ;;
+              "production")
+                echo "track=production" >> $GITHUB_OUTPUT
+                echo "android_lane=release" >> $GITHUB_OUTPUT
+                ;;
+            esac
+          fi
 
-      - name: Upload Android APK
+      - name: Extract version from tag
+        id: version
+        run: |
+          if [[ "${{ github.ref_type }}" == "tag" ]]; then
+            VERSION="${{ github.ref_name }}"
+            VERSION="${VERSION#v}"  # Remove 'v' prefix
+            echo "version=$VERSION" >> $GITHUB_OUTPUT
+          else
+            VERSION=$(node -p "require('./package.json').version")
+            echo "version=$VERSION" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Update Android version
+        working-directory: android
+        run: |
+          # Update versionName in build.gradle
+          sed -i "s/versionName \".*\"/versionName \"${{ steps.version.outputs.version }}\"/" app/build.gradle
+
+      - name: Decode keystore
+        run: |
+          echo "${{ secrets.ANDROID_KEYSTORE_BASE64 }}" | base64 -d > android/app/release.keystore
+
+      - name: Build and upload to Play Store
+        working-directory: android
+        env:
+          # Signing configuration
+          KEYSTORE_PATH: ${{ github.workspace }}/android/app/release.keystore
+          KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+          # Play Store credentials (reuses Firebase service account)
+          PLAY_STORE_CREDENTIALS: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+          # Build number
+          BUILD_NUMBER: ${{ github.run_number }}
+        run: bundle exec fastlane ${{ steps.track.outputs.android_lane }}
+
+      - name: Upload Android artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: android-apk-release
-          path: android/app/build/outputs/apk/release/app-release-unsigned.apk
-          retention-days: 7
+          name: android-aab
+          path: android/app/build/outputs/bundle/release/*.aab
+          retention-days: 30
 
-      # Note: Signing and Play Store upload configuration required for production
-      # Uncomment and configure when Google Play Console is set up
-      #
-      # - name: Decode keystore
-      #   env:
-      #     KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
-      #   run: echo $KEYSTORE_BASE64 | base64 -d > android/app/release.keystore
-      #
-      # - name: Build signed AAB
-      #   working-directory: android
-      #   env:
-      #     KEYSTORE_PATH: ${{ github.workspace }}/android/app/release.keystore
-      #     KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
-      #     KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
-      #     KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
-      #   run: ./gradlew bundleRelease
-      #
-      # - name: Upload to Play Store (Internal)
-      #   uses: r0adkll/upload-google-play@v1
-      #   with:
-      #     serviceAccountJsonPlainText: ${{ secrets.PLAY_STORE_CREDENTIALS }}
-      #     packageName: com.spicyvssweet.app
-      #     releaseFiles: android/app/build/outputs/bundle/release/app-release.aab
-      #     track: internal
+      - name: Clean up keystore
+        if: always()
+        run: rm -f android/app/release.keystore
+
+      - name: Android deployment summary
+        run: |
+          echo "## Android Deployment Successful! :robot:" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Version:** ${{ steps.version.outputs.version }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Build:** ${{ github.run_number }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Track:** ${{ steps.track.outputs.track }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          case "${{ steps.track.outputs.track }}" in
+            "internal")
+              echo "The build is available on the Internal testing track." >> $GITHUB_STEP_SUMMARY
+              ;;
+            "beta")
+              echo "The build is available on the Open testing track." >> $GITHUB_STEP_SUMMARY
+              ;;
+            "production")
+              echo "The build has been submitted for Production release." >> $GITHUB_STEP_SUMMARY
+              ;;
+          esac
+
+  # ============================================
+  # Create GitHub Release Assets
+  # ============================================
+  upload-release-assets:
+    name: Upload Release Assets
+    needs: [deploy-ios, deploy-android]
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
+    steps:
+      - name: Download iOS artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: ios-ipa
+          path: artifacts/ios
+        continue-on-error: true
+
+      - name: Download Android artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: android-aab
+          path: artifacts/android
+        continue-on-error: true
+
+      - name: Upload to GitHub Release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          TAG="${{ github.ref_name }}"
+
+          # Upload iOS IPA if exists
+          if [ -f artifacts/ios/*.ipa ]; then
+            gh release upload "$TAG" artifacts/ios/*.ipa --clobber || true
+          fi
+
+          # Upload Android AAB if exists
+          if [ -f artifacts/android/*.aab ]; then
+            gh release upload "$TAG" artifacts/android/*.aab --clobber || true
+          fi

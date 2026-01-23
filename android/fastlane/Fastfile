@@ -1,0 +1,152 @@
+# Fastlane configuration for Android
+# https://docs.fastlane.tools
+
+default_platform(:android)
+
+platform :android do
+  # ==========================================
+  # Before All
+  # ==========================================
+  before_all do
+    # Ensure we're in the right directory
+    ENV["GRADLE_PROJECT_DIR"] = File.expand_path("..", Dir.pwd)
+  end
+
+  # ==========================================
+  # Build
+  # ==========================================
+  desc "Build a signed release AAB"
+  lane :build_release do
+    # Increment version code based on Play Store or provided value
+    version_code = ENV["BUILD_NUMBER"]
+
+    if version_code.nil? || version_code.empty?
+      # Get latest version code from Play Store and increment
+      begin
+        version_codes = google_play_track_version_codes(
+          package_name: "com.spicyvssweet.app",
+          track: "internal",
+          json_key_data: ENV["PLAY_STORE_CREDENTIALS"]
+        )
+        version_code = (version_codes.max || 0) + 1
+      rescue => e
+        UI.important("Could not fetch version codes from Play Store: #{e.message}")
+        version_code = Time.now.to_i / 60 # Fallback: minutes since epoch
+      end
+    end
+
+    UI.message("Building with version code: #{version_code}")
+
+    gradle(
+      task: "bundle",
+      build_type: "Release",
+      properties: {
+        "android.injected.signing.store.file" => ENV["KEYSTORE_PATH"],
+        "android.injected.signing.store.password" => ENV["KEYSTORE_PASSWORD"],
+        "android.injected.signing.key.alias" => ENV["KEY_ALIAS"],
+        "android.injected.signing.key.password" => ENV["KEY_PASSWORD"],
+        "android.injected.version.code" => version_code.to_s
+      }
+    )
+  end
+
+  # ==========================================
+  # Internal Track (Testing)
+  # ==========================================
+  desc "Build and upload to Play Store Internal Track"
+  lane :internal do
+    build_release
+
+    upload_to_play_store(
+      package_name: "com.spicyvssweet.app",
+      track: "internal",
+      aab: "../app/build/outputs/bundle/release/app-release.aab",
+      json_key_data: ENV["PLAY_STORE_CREDENTIALS"],
+      skip_upload_metadata: true,
+      skip_upload_images: true,
+      skip_upload_screenshots: true
+    )
+
+    UI.success("✅ Successfully uploaded to Play Store Internal Track!")
+  end
+
+  # ==========================================
+  # Beta Track (Open Testing)
+  # ==========================================
+  desc "Build and upload to Play Store Beta Track"
+  lane :beta do
+    build_release
+
+    upload_to_play_store(
+      package_name: "com.spicyvssweet.app",
+      track: "beta",
+      aab: "../app/build/outputs/bundle/release/app-release.aab",
+      json_key_data: ENV["PLAY_STORE_CREDENTIALS"],
+      skip_upload_metadata: true,
+      skip_upload_images: true,
+      skip_upload_screenshots: true
+    )
+
+    UI.success("✅ Successfully uploaded to Play Store Beta Track!")
+  end
+
+  # ==========================================
+  # Production Track
+  # ==========================================
+  desc "Build and submit to Play Store Production"
+  lane :release do
+    build_release
+
+    upload_to_play_store(
+      package_name: "com.spicyvssweet.app",
+      track: "production",
+      aab: "../app/build/outputs/bundle/release/app-release.aab",
+      json_key_data: ENV["PLAY_STORE_CREDENTIALS"],
+      skip_upload_metadata: true,
+      skip_upload_images: true,
+      skip_upload_screenshots: true,
+      # Rollout percentage (start with 10%, then gradually increase)
+      rollout: "1.0"
+    )
+
+    UI.success("✅ Successfully submitted to Play Store Production!")
+  end
+
+  # ==========================================
+  # Promote Internal to Production
+  # ==========================================
+  desc "Promote Internal track to Production"
+  lane :promote_to_production do
+    upload_to_play_store(
+      package_name: "com.spicyvssweet.app",
+      track: "internal",
+      track_promote_to: "production",
+      json_key_data: ENV["PLAY_STORE_CREDENTIALS"],
+      skip_upload_aab: true,
+      skip_upload_metadata: true,
+      skip_upload_images: true,
+      skip_upload_screenshots: true
+    )
+
+    UI.success("✅ Successfully promoted to Production!")
+  end
+
+  # ==========================================
+  # Metadata Management
+  # ==========================================
+  desc "Download metadata from Play Store"
+  lane :download_metadata do
+    download_from_play_store(
+      package_name: "com.spicyvssweet.app",
+      json_key_data: ENV["PLAY_STORE_CREDENTIALS"]
+    )
+  end
+
+  # ==========================================
+  # Error handling
+  # ==========================================
+  error do |lane, exception|
+    UI.error("❌ Fastlane failed on lane: #{lane}")
+    UI.error("Error: #{exception.message}")
+  end
+end

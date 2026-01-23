@@ -691,3 +691,52 @@ Before deploying to production:
 | `IOS_PROVISIONING_PROFILE_BASE64` | Ad-Hoc provisioning profile in base64 |
 | `IOS_CODE_SIGN_IDENTITY` | e.g., "Apple Distribution: Your Name (TEAMID)" |
 | `IOS_TEAM_ID` | Apple Developer Team ID |
+
+### Mobile Store Release (`.github/workflows/mobile-release.yml`)
+**Triggers:**
+- Push of version tags (`v*`) - automatically triggered after "Create Release"
+- Manual workflow dispatch
+
+**Automatic Deployment:** When you create a release using "Create Release" workflow, mobile apps are automatically:
+- Built with the new version
+- Signed with release certificates
+- Uploaded to TestFlight (iOS) and Play Store Internal Track (Android)
+
+**Manual Workflow Inputs:**
+| Input | Description | Options |
+|-------|-------------|---------|
+| `platform` | Platform to build | `ios`, `android`, `both` |
+| `track` | Release track | `internal`, `beta`, `production` |
+
+**Track Mapping:**
+| Track | iOS | Android |
+|-------|-----|---------|
+| `internal` | TestFlight | Internal Testing |
+| `beta` | External TestFlight | Open Testing |
+| `production` | App Store Review | Production |
+
+**Required Secrets for App Store (iOS):**
+
+| Secret | Description |
+|--------|-------------|
+| `APP_STORE_CONNECT_API_KEY_ID` | App Store Connect API Key ID |
+| `APP_STORE_CONNECT_API_KEY_ISSUER_ID` | App Store Connect Issuer ID |
+| `APP_STORE_CONNECT_API_KEY_CONTENT` | API Key content (base64-encoded .p8 file) |
+| `APPLE_ID` | Apple Developer account email |
+| `APPLE_TEAM_ID` | Apple Developer Team ID |
+| `ITC_TEAM_ID` | App Store Connect Team ID |
+| `MATCH_GIT_URL` | Git repo URL for certificates (Fastlane Match) |
+| `MATCH_GIT_BASIC_AUTHORIZATION` | Base64-encoded `username:token` for Git repo |
+| `MATCH_PASSWORD` | Encryption password for Match certificates |
+
+**Required Secrets for Play Store (Android):**
+
+| Secret | Description |
+|--------|-------------|
+| `ANDROID_KEYSTORE_BASE64` | Base64-encoded release keystore file |
+| `ANDROID_KEYSTORE_PASSWORD` | Keystore password |
+| `ANDROID_KEY_ALIAS` | Signing key alias |
+| `ANDROID_KEY_PASSWORD` | Signing key password |
+| `FIREBASE_SERVICE_ACCOUNT` | Reuses existing Firebase service account (must have Play Console permissions) |
+
+**Setup Guide:** See `docs/MOBILE_DEPLOYMENT_SETUP.md` for detailed setup instructions
