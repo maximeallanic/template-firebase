@@ -184,6 +184,9 @@ FINAL REMINDERS:
 - FUN and SURPRISING anecdotes (15-20 words, unusual facts or surprising numbers)
 - 12 items EXACTLY
 - No encyclopedic or professorial tone
+- ⚠️ AVOID POLYSEMY: If a word has MULTIPLE MEANINGS that could match DIFFERENT categories, DO NOT USE IT!
+  Forbidden example: "The stars" with Sea/See (stars = celestial OR celebrities → ambiguous)
+  OK example: "The tides" with Sea/See (only one relevant meaning → the Sea)
 
 No markdown in the JSON.`;
 
@@ -264,6 +267,9 @@ Verify each item:
 2. No ambiguity (clearly A, B or Both)?
 3. Counter-intuitive answer (not too obvious)?
 4. Max 4 words?
+5. ⚠️ DANGEROUS POLYSEMY: Does the word have MULTIPLE MEANINGS that could match DIFFERENT categories?
+   Example: "The stars" with Sea/See → REJECTED because stars = celestial (See the sky) OR celebrities (See a show)
+   Example: "The tides" with Sea/See → OK because only one relevant meaning (tides → the Sea)
 
 Expected distribution: 5 A + 5 B + 2 Both
 
@@ -271,7 +277,7 @@ JSON:
 {
   "setValid": true|false,
   "setReason": "Reason if invalid",
-  "itemReviews": [{"index":0,"text":"...","answer":"A","status":"approved"|"rejected","reason":"..."|null,"issue":"answer_wrong"|"ambiguous"|"too_easy"|null}],
+  "itemReviews": [{"index":0,"text":"...","answer":"A","status":"approved"|"rejected","reason":"..."|null,"issue":"answer_wrong"|"ambiguous"|"too_easy"|"polysemy"|null}],
   "summary": {"approved":10,"rejected":2,"rejectedIndices":[4,9]}
 }`;
 

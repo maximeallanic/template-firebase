@@ -33,6 +33,9 @@ export const PHASE_NAMES: Record<PhaseStatus, PhaseInfo> = {
     victory: { name: 'Victoire', subtitle: 'Le gagnant est...', shortName: 'Victoire' },
 };
 
+// Phase logo types (for PhaseLogo component)
+export type PhaseLogoType = 'nuggets' | 'saltpepper' | 'sweetysalty' | 'menus' | 'addition' | 'burger';
+
 // === DIFFICULTY ===
 
 export type Difficulty = 'easy' | 'normal' | 'hard' | 'wtf';
@@ -40,6 +43,14 @@ export type Difficulty = 'easy' | 'normal' | 'hard' | 'wtf';
 export const DIFFICULTY_LIST: Difficulty[] = ['easy', 'normal', 'hard', 'wtf'];
 
 export const DEFAULT_DIFFICULTY: Difficulty = 'normal';
+
+// Difficulty multipliers for score calculation
+export const DIFFICULTY_MULTIPLIERS: Record<Difficulty, number> = {
+    easy: 1,
+    normal: 2,
+    hard: 3,
+    wtf: 4,
+};
 
 // === TEAMS & PLAYERS ===
 
@@ -107,6 +118,10 @@ export interface GameState {
     phase5Results?: Phase5Results;
     // Victory
     winnerTeam?: Team | 'tie';
+    // Team scores - calculated by nextPhase CF (#72)
+    teamScores?: { spicy: number; sweet: number };
+    // Player readiness tracking (per phase)
+    playersReady?: Record<string, Record<string, boolean>>; // phase -> playerId -> ready
 }
 
 export type PhaseState = GameState['phaseState'];
@@ -174,9 +189,14 @@ export interface Phase5Representatives {
 }
 
 // Réponses en temps réel des représentants
+// After #72: answers are stored as { answer, isCorrect } objects
+export interface Phase5AnswerItem {
+    answer: string;
+    isCorrect?: boolean;  // Server-validated correctness (#72)
+}
 export interface Phase5Answers {
-    spicy: string[];
-    sweet: string[];
+    spicy: (string | Phase5AnswerItem)[];  // Supports both old string format and new object format
+    sweet: (string | Phase5AnswerItem)[];
 }
 
 // Index de progression des réponses
@@ -255,6 +275,7 @@ export interface Phase4Question {
 export interface Phase4Answer {
     answer: number;         // Index de la réponse choisie (0-3)
     timestamp: number;      // Timestamp pour déterminer le premier
+    isCorrect?: boolean;    // Server-validated correctness (#72)
 }
 
 // Phase 4 - Winner info
@@ -301,6 +322,22 @@ export interface Room {
         phase3?: Phase3Theme[];
         phase4?: Phase4Question[];
         phase5?: Phase5Data;
+    };
+    /** Revealed answers from CF validation (correct answers shown after submission) */
+    revealedAnswers?: {
+        phase1?: Record<number, { correctIndex: number; winnerId?: string; winnerName?: string; winnerTeam?: Team; revealedAt: number }>;
+        phase2?: Record<string, { answer: 'A' | 'B' | 'Both'; teamAnswers: Record<Team, { playerId: string; playerName: string; answer: 'A' | 'B' | 'Both'; isCorrect: boolean; answeredAt: number }>; revealedAt: number }>;
+        phase3?: Record<Team, Record<number, { expectedAnswer: string; playerId: string; playerAnswer: string; isCorrect: boolean; explanation?: string; revealedAt: number }>>;
+        phase4?: Record<number, { correctIndex: number; winnerId?: string; winnerName?: string; winnerTeam?: Team; revealedAt: number }>;
+        phase5?: Record<Team, Record<number, { expectedAnswer: string; team: Team; representativeId: string; givenAnswer: string; isCorrect: boolean; explanation?: string; revealedAt: number }>>;
+    };
+    /** Status of background question generation (Pub/Sub) */
+    generationStatus?: {
+        status: 'idle' | 'generating' | 'ready' | 'partial' | 'error';
+        startedAt?: number;
+        completedAt?: number;
+        phases?: { phase: string; generated?: boolean; skipped?: boolean; count?: number; error?: string }[];
+        errors?: string[];
     };
 }
 

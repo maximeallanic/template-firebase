@@ -28,6 +28,9 @@ if (isNative()) {
   // Hide splash screen after app is ready
   SplashScreen.hide().catch((err) => {
     console.warn('SplashScreen.hide failed:', err);
+  });
+}
+
 // Register service worker for PWA
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {

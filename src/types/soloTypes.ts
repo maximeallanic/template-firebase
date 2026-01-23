@@ -105,6 +105,14 @@ export interface SoloGameState {
     };
     pendingPhase?: 'phase2' | 'phase4'; // Phase waiting for questions
 
+    // Revealed answers from CF validation (#72 - server-side orchestration)
+    // Mirrors the structure in Room type for compatibility with PhaseX components
+    revealedAnswers: {
+        phase1: Record<number, { correctIndex: number; revealedAt: number }>;
+        phase2: Record<string, { answer: 'A' | 'B' | 'Both'; revealedAt: number }>; // Key format: "setIndex_itemIndex"
+        phase4: Record<number, { correctIndex: number; revealedAt: number }>;
+    };
+
     // Timestamps
     startedAt: number | null;
     endedAt: number | null;
@@ -142,21 +150,21 @@ export const SOLO_MAX_SCORE =
 // Interface for callbacks passed to PhaseX components in solo mode
 
 export interface SoloPhaseHandlers {
-    // Phase 1 (Tenders)
-    submitPhase1Answer: (answerIndex: number) => void;
+    // Phase 1 (Tenders) - async for CF validation (#83)
+    submitPhase1Answer: (answerIndex: number) => void | Promise<void>;
     nextPhase1Question: () => void;
 
-    // Phase 2 (Sucré Salé)
-    submitPhase2Answer: (answer: 'A' | 'B' | 'Both') => void;
+    // Phase 2 (Sucré Salé) - async for CF validation (#83)
+    submitPhase2Answer: (answer: 'A' | 'B' | 'Both') => void | Promise<void>;
     nextPhase2Item: () => void;
 
     // Phase 3 (La Carte) - Optional, not used in solo mode but kept for compatibility
     selectPhase3Theme?: (themeIndex: number) => void;
-    submitPhase3Answer?: (answer: string) => void;
+    submitPhase3Answer?: (answer: string) => void | Promise<void>;
     nextPhase3Question?: () => void;
 
-    // Phase 4 (La Note)
-    submitPhase4Answer: (answerIndex: number) => void;
+    // Phase 4 (La Note) - async for CF validation (#83)
+    submitPhase4Answer: (answerIndex: number) => void | Promise<void>;
     nextPhase4Question: () => void;
     handlePhase4Timeout: () => void;
 
@@ -236,6 +244,11 @@ export function createInitialSoloState(
         },
         backgroundErrors: {},
         pendingPhase: undefined,
+        revealedAnswers: {
+            phase1: {},
+            phase2: {},
+            phase4: {},
+        },
         startedAt: null,
         endedAt: null,
     };
@@ -290,13 +303,14 @@ export function mapSoloStateToGameState(state: SoloGameState): import('./gameTyp
         baseState.phaseState = currentAnswered ? 'result' : 'answering';
 
         // Set roundWinner if player answered correctly (for result display)
-        if (currentAnswered && state.customQuestions.phase1) {
-            const question = state.customQuestions.phase1[currentIdx];
+        // Use revealedAnswers from CF validation - correctIndex is stripped from public questions (#72)
+        if (currentAnswered) {
             const playerAnswer = state.phase1State.answers[currentIdx];
+            const revealedCorrect = state.revealedAnswers.phase1[currentIdx]?.correctIndex;
             if (playerAnswer === null) {
                 // Timeout occurred - set isTimeout flag
                 baseState.isTimeout = true;
-            } else if (question && playerAnswer === question.correctIndex) {
+            } else if (revealedCorrect !== undefined && playerAnswer === revealedCorrect) {
                 baseState.roundWinner = {
                     playerId: state.playerId,
                     name: state.playerName,
@@ -338,9 +352,10 @@ export function mapSoloStateToGameState(state: SoloGameState): import('./gameTyp
             }
 
             // Set phase4Winner if answer was correct
-            if (answerValue !== null && state.customQuestions.phase4) {
-                const question = state.customQuestions.phase4[currentIndex];
-                if (question && answerValue === question.correctIndex) {
+            // Use revealedAnswers from CF validation - correctIndex is stripped from public questions (#72)
+            if (answerValue !== null) {
+                const revealedCorrect = state.revealedAnswers.phase4[currentIndex]?.correctIndex;
+                if (revealedCorrect !== undefined && answerValue === revealedCorrect) {
                     baseState.phase4Winner = {
                         playerId: state.playerId,
                         name: state.playerName,

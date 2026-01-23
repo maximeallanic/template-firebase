@@ -1,7 +1,6 @@
 import { ref, get, update } from 'firebase/database';
 import { doc, getDoc } from 'firebase/firestore';
 import { rtdb, db } from './firebase';
-import type { Question } from '../data/questions';
 
 // Re-export all types from centralized types file
 export type {
@@ -35,7 +34,7 @@ export { AVATAR_LIST, PHASE_NAMES, DIFFICULTY_LIST, DEFAULT_DIFFICULTY } from '.
 // Import types for internal use
 import type {
     Player, GameState, SimplePhase2Set, Phase3Menu,
-    Phase4Question, Phase5Data, PhaseStatus
+    Phase4Question, Phase5Data, PhaseStatus, Question
 } from '../types/gameTypes';
 
 // ============================================================================
@@ -55,6 +54,10 @@ export {
     updatePlayerProfile,
     updateRoomDifficulty,
     getRoomDifficulty,
+    // Player readiness
+    markPlayerReady,
+    clearPlayersReady,
+    getReadinessStatus,
 } from './game/roomService';
 
 // Shared utilities
@@ -238,8 +241,16 @@ export const overwriteGameQuestions = async (
     // For Phase 2, the AI returns a single set object, but our system supports array of sets.
     // We will wrap it in an array if phase is phase2.
     let contentStore: Question[] | SimplePhase2Set[] | Phase3Menu[] | Phase4Question[] | Phase5Data | unknown[] | Record<string, unknown> = data as Question[] | SimplePhase2Set[] | Phase3Menu[] | Phase4Question[] | Phase5Data | unknown[] | Record<string, unknown>;
-    if (phase === 'phase2' && !Array.isArray(data)) {
-        contentStore = [data as SimplePhase2Set]; // AI generates one set, we store as first item
+    if (phase === 'phase2') {
+        console.log('[overwriteGameQuestions] Phase 2 data format check:', {
+            isArray: Array.isArray(data),
+            hasItems: !!(data as SimplePhase2Set)?.items,
+            itemsLength: (data as SimplePhase2Set)?.items?.length
+        });
+        if (!Array.isArray(data)) {
+            console.log('[overwriteGameQuestions] Wrapping Phase 2 single set in array');
+            contentStore = [data as SimplePhase2Set]; // AI generates one set, we store as first item
+        }
     }
 
     const { set } = await import('firebase/database');
@@ -412,6 +423,7 @@ export const restartGame = async (roomCode: string): Promise<void> => {
         [`rooms/${roomId}/state/status`]: 'lobby',
         ...phaseUpdates,
         [`rooms/${roomId}/state/winnerTeam`]: null,
+        [`rooms/${roomId}/state/teamScores`]: null,
         [`rooms/${roomId}/state/isGenerating`]: null,
         [`rooms/${roomId}/customQuestions`]: null,
         [`rooms/${roomId}/generationStatus`]: null

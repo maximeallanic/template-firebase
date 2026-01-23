@@ -19,9 +19,11 @@ interface WinnerInfo {
 interface Phase4ResultProps {
     question: Phase4Question;
     winner: WinnerInfo | null;
-    myAnswer: { answer: number; timestamp: number } | undefined;
+    myAnswer: { answer: number; timestamp: number; isCorrect?: boolean } | undefined;
     isSolo?: boolean;
     isTimeout?: boolean;  // True when round ended due to timer expiring
+    /** Revealed correct answer index from CF validation (#72) */
+    revealedCorrectIndex?: number;
 }
 
 export function Phase4Result({
@@ -29,16 +31,36 @@ export function Phase4Result({
     winner,
     myAnswer,
     isSolo = false,
-    isTimeout = false
+    isTimeout = false,
+    revealedCorrectIndex
 }: Phase4ResultProps) {
     const { t } = useTranslation(['game-ui']);
     const { tRandom } = useRandomTranslation();
     const prefersReducedMotion = useReducedMotion();
     const hasPlayedAudioRef = useRef(false);
 
-    const correctIndex = question.correctIndex;
-    const correctOption = question.options[correctIndex];
-    const myAnswerCorrect = myAnswer?.answer === correctIndex;
+    // Use revealedCorrectIndex from CF validation - correctIndex is stripped from questions (#72)
+    // IMPORTANT: Don't default to 0 as it would show wrong answer as correct!
+    const correctIndex = revealedCorrectIndex;
+    const correctOption = correctIndex !== undefined ? question.options[correctIndex] : null;
+    // Use server-validated isCorrect flag - comparing indices is wrong because
+    // multiple players can answer the same option but only the first one wins
+    const myAnswerCorrect = myAnswer?.isCorrect ?? false;
+
+    // Debug logging for result display
+    console.log('[Phase4Result] Rendering:', {
+        questionText: question.text?.substring(0, 50),
+        revealedCorrectIndex,
+        correctIndex,
+        correctOption,
+        myAnswer: myAnswer ? {
+            answer: myAnswer.answer,
+            isCorrect: myAnswer.isCorrect,
+            selectedOption: question.options[myAnswer.answer],
+        } : null,
+        myAnswerCorrect,
+        winner: winner?.name,
+    });
 
     // Play audio feedback once when result is shown
     useEffect(() => {
@@ -145,21 +167,23 @@ export function Phase4Result({
                 )}
             </AnimatePresence>
 
-            {/* Correct Answer Card */}
-            <motion.div
-                initial={prefersReducedMotion ? { opacity: 0 } : { opacity: 0, y: 20 }}
-                animate={prefersReducedMotion ? { opacity: 1 } : { opacity: 1, y: 0 }}
-                transition={{ delay: 0.5, duration: durations.normal }}
-                className="bg-slate-800/80 p-6 rounded-2xl w-full max-w-lg text-center border border-green-500/50"
-            >
-                <div className="text-gray-400 text-sm uppercase tracking-wider mb-2">
-                    {t('phase4.correctAnswerWas')}
-                </div>
-                <div className="text-2xl font-bold text-green-400 flex items-center justify-center gap-2">
-                    <Check className="w-6 h-6" aria-hidden="true" />
-                    {correctOption}
-                </div>
-            </motion.div>
+            {/* Correct Answer Card - only show if we have the correct answer */}
+            {correctOption !== null && (
+                <motion.div
+                    initial={prefersReducedMotion ? { opacity: 0 } : { opacity: 0, y: 20 }}
+                    animate={prefersReducedMotion ? { opacity: 1 } : { opacity: 1, y: 0 }}
+                    transition={{ delay: 0.5, duration: durations.normal }}
+                    className="bg-slate-800/80 p-6 rounded-2xl w-full max-w-lg text-center border border-green-500/50"
+                >
+                    <div className="text-gray-400 text-sm uppercase tracking-wider mb-2">
+                        {t('phase4.correctAnswerWas')}
+                    </div>
+                    <div className="text-2xl font-bold text-green-400 flex items-center justify-center gap-2">
+                        <Check className="w-6 h-6" aria-hidden="true" />
+                        {correctOption}
+                    </div>
+                </motion.div>
+            )}
 
             {/* Anecdote (if available) */}
             {question.anecdote && (

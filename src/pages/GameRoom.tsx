@@ -1,7 +1,8 @@
 import { useEffect, useLayoutEffect, useState, useRef, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { type Player, type Difficulty, type PhaseStatus, setGameStatus, restartGame, updatePlayerTeam, updateRoomDifficulty, getRoomDifficulty, PREMIUM_PHASES, leaveRoom } from '../services/gameService';
+import { type Player, type Difficulty, type PhaseStatus, restartGame, updatePlayerTeam, updateRoomDifficulty, getRoomDifficulty, PREMIUM_PHASES, leaveRoom } from '../services/gameService';
+import { nextPhase as nextPhaseCF } from '../services/firebase';
 import { getRoomLanguageInfo, updateRoomForcedLanguage } from '../services/game/roomService';
 import type { GameLanguage } from '../types/languageTypes';
 import { useGameRoom } from '../hooks/useGameRoom';
@@ -37,7 +38,7 @@ import { RoomLanguageSelector } from '../components/ui/RoomLanguageSelector';
 import { TEAM_CONFETTI_COLORS } from '../components/ui/confettiColors';
 import { PlayerLeaderboard } from '../components/game/victory/PlayerLeaderboard';
 import { hasSeenIntro, markIntroSeen } from '../services/onboardingService';
-import { saveFinalScores, getPlayersWithFallbackScores, clearStoredScores } from '../services/scoreStorageService';
+import { saveFinalScores, getPlayersWithFallbackScores, getStoredTeamScores, clearStoredScores } from '../services/scoreStorageService';
 
 type GameStatus = 'lobby' | 'phase1' | 'phase2' | 'phase3' | 'phase4' | 'phase5' | 'victory';
 
@@ -133,9 +134,12 @@ export default function GameRoom() {
                     setTransitionPhase(roomStatus as GameStatus);
                     setShowTransition(true);
                     // DON'T update displayStatus yet - keep showing old phase
+                } else {
+                    // Returning to lobby from a phase or victory (e.g., "La revanche !")
+                    setDisplayStatus('lobby');
                 }
             } else {
-                // First render or returning to lobby: update displayStatus immediately
+                // First render: update displayStatus immediately
                 setDisplayStatus(roomStatus as GameStatus);
             }
             isFirstRender.current = false;
@@ -221,9 +225,11 @@ export default function GameRoom() {
     }, [room?.code, myId, navigate]);
 
     // Handler for PhaseResults "Continue" button - transitions to next phase
+    // Uses nextPhase CF to calculate scores and transition (#72)
     const handlePhaseResultsContinue = useCallback(async () => {
         if (!room) return;
 
+        // Determine next phase for premium check
         const nextPhaseMap: Record<string, 'phase2' | 'phase3' | 'phase4' | 'phase5'> = {
             phase1: 'phase2',
             phase2: 'phase3',
@@ -231,17 +237,22 @@ export default function GameRoom() {
             phase4: 'phase5',
         };
 
-        const nextPhase = nextPhaseMap[room.state.status];
-        if (!nextPhase) return;
+        const nextPhaseTarget = nextPhaseMap[room.state.status];
+        if (!nextPhaseTarget) return;
 
         // Check if next phase is premium and host doesn't have subscription
-        if (PREMIUM_PHASES.includes(nextPhase) && !hostIsPremium) {
+        if (PREMIUM_PHASES.includes(nextPhaseTarget) && !hostIsPremium) {
             setShowUpgradeModal(true);
             return;
         }
 
+        // Get current phase as PhaseId type
+        const currentPhase = room.state.status as 'phase1' | 'phase2' | 'phase3' | 'phase4' | 'phase5';
+        if (!['phase1', 'phase2', 'phase3', 'phase4', 'phase5'].includes(currentPhase)) return;
+
         try {
-            await setGameStatus(room.code, nextPhase);
+            // Call nextPhase CF to calculate scores and transition to next phase (#72)
+            await nextPhaseCF(room.code, currentPhase);
         } catch (error) {
             // Handle PREMIUM_REQUIRED error from service layer
             if (error instanceof Error && error.message === 'PREMIUM_REQUIRED') {
@@ -852,20 +863,46 @@ function VictoryScreen({ room, isHost }: { room: NonNullable<ReturnType<typeof u
     const { t } = useTranslation(['game-ui', 'common']);
     const hasSavedScores = useRef(false);
 
-    // Use fallback scores from localStorage if Firebase scores are all 0 (refresh scenario)
+    // Use team scores from nextPhase CF as authoritative source (#72)
+    // Fall back to localStorage if not available (refresh scenario)
+    const cfTeamScores = room.state.teamScores;
     const playersWithScores = getPlayersWithFallbackScores(room.code, room.players);
     const players = Object.values(playersWithScores);
-    const spicyScore = players.filter(p => p.team === 'spicy').reduce((sum, p) => sum + (p.score || 0), 0);
-    const sweetScore = players.filter(p => p.team === 'sweet').reduce((sum, p) => sum + (p.score || 0), 0);
+
+    // Priority: CF teamScores > localStorage team scores > calculated from players
+    let spicyScore: number;
+    let sweetScore: number;
+
+    if (cfTeamScores && (cfTeamScores.spicy > 0 || cfTeamScores.sweet > 0)) {
+        // Use CF-calculated team scores (most accurate)
+        spicyScore = cfTeamScores.spicy;
+        sweetScore = cfTeamScores.sweet;
+        console.log('[VictoryScreen] Using CF teamScores:', cfTeamScores);
+    } else {
+        // Try localStorage team scores (for page refresh scenarios)
+        const storedTeamScores = getStoredTeamScores(room.code);
+        if (storedTeamScores && (storedTeamScores.spicy > 0 || storedTeamScores.sweet > 0)) {
+            spicyScore = storedTeamScores.spicy;
+            sweetScore = storedTeamScores.sweet;
+            console.log('[VictoryScreen] Using localStorage teamScores:', storedTeamScores);
+        } else {
+            // Final fallback to calculated from players (backward compatibility)
+            spicyScore = players.filter(p => p.team === 'spicy').reduce((sum, p) => sum + (p.score || 0), 0);
+            sweetScore = players.filter(p => p.team === 'sweet').reduce((sum, p) => sum + (p.score || 0), 0);
+            console.log('[VictoryScreen] Using calculated scores from players:', { spicyScore, sweetScore });
+        }
+    }
+
     const winnerTeam = room.state.winnerTeam;
 
     // Save scores to localStorage on first render (for refresh persistence)
     useEffect(() => {
         if (!hasSavedScores.current && winnerTeam) {
-            saveFinalScores(room.code, playersWithScores, winnerTeam);
+            // Pass CF team scores if available for accurate persistence
+            saveFinalScores(room.code, playersWithScores, winnerTeam, cfTeamScores);
             hasSavedScores.current = true;
         }
-    }, [room.code, playersWithScores, winnerTeam]);
+    }, [room.code, playersWithScores, winnerTeam, cfTeamScores]);
 
     // Play applause sound on mount
     useEffect(() => {

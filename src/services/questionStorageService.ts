@@ -1,6 +1,6 @@
 import { collection, query, where, getDocs, orderBy, limit, Timestamp, updateDoc, doc, increment } from 'firebase/firestore';
 import { db } from './firebase';
-import type { Question } from '../data/questions';
+import type { Question } from '../types/gameTypes';
 import { generateQuestionHash } from '../utils/hash';
 import { createQuestionCache, createQuestionByIdCache, generateQuestionCacheKey } from '../utils/questionCache';
 

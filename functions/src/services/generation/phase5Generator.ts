@@ -302,7 +302,12 @@ ${factCheckResult.failed.length} questions incorrectes. Régénère avec des FAI
             let finalEmbeddings: number[][] = [];
 
             try {
-                const dedupResult = await findSemanticDuplicatesWithEmbeddings(questionsAsItems, 'phase5');
+                // checkAllPhases: true to detect cross-phase duplicates (P1↔P5, P2↔P5, etc.)
+                const dedupResult = await findSemanticDuplicatesWithEmbeddings(
+                    questionsAsItems,
+                    'phase5',
+                    { checkAllPhases: true }
+                );
                 semanticDuplicates = dedupResult.duplicates;
                 finalEmbeddings = dedupResult.embeddings;
                 internalDuplicates = findInternalDuplicates(finalEmbeddings, questionsAsItems);
@@ -310,17 +315,35 @@ ${factCheckResult.failed.length} questions incorrectes. Régénère avec des FAI
                 console.warn('⚠️ Phase 5 duplicate check failed, skipping:', err);
             }
 
-            // Log duplicates if found
+            // Filter out duplicates if found
             if (semanticDuplicates.length > 0 || internalDuplicates.length > 0) {
-                console.warn(`⚠️ Phase 5: Found ${semanticDuplicates.length} semantic + ${internalDuplicates.length} internal duplicates`);
-                for (const dup of [...semanticDuplicates, ...internalDuplicates]) {
+                const allDuplicates = [...semanticDuplicates, ...internalDuplicates];
+                const duplicateIndices = new Set(allDuplicates.map(d => d.index));
+
+                console.error(`❌ Phase 5: Found ${semanticDuplicates.length} semantic + ${internalDuplicates.length} internal duplicates - FILTERING`);
+                for (const dup of allDuplicates) {
                     console.log(`   - "${questionsAsItems[dup.index]?.text?.slice(0, 40)}..." ≈ "${dup.similarTo.slice(0, 30)}..." (${(dup.score * 100).toFixed(0)}%)`);
+                }
+
+                // Filter out duplicate questions
+                const uniqueQuestions = lastQuestions.filter((_, idx) => !duplicateIndices.has(idx));
+                const uniqueEmbeddings = finalEmbeddings.filter((_, idx) => !duplicateIndices.has(idx));
+
+                // If too many duplicates, we still return what we have (better than nothing)
+                if (uniqueQuestions.length < 4) {
+                    console.warn(`⚠️ Phase 5: Too many duplicates (${uniqueQuestions.length} unique), using fallback`);
+                } else {
+                    console.log(`✅ Phase 5: Filtered duplicates, keeping ${uniqueQuestions.length}/${lastQuestions.length} unique questions`);
+                    lastQuestions = uniqueQuestions;
+                    finalEmbeddings = uniqueEmbeddings;
                 }
             }
 
+            // Store only unique questions
+            const finalQuestionsAsItems = lastQuestions.map(q => ({ text: q.question }));
             if (finalEmbeddings.length > 0) {
                 await storeQuestionsWithEmbeddings(
-                    questionsAsItems,
+                    finalQuestionsAsItems,
                     finalEmbeddings,
                     'phase5'
                 );
@@ -383,26 +406,46 @@ ${review.suggestions.map((s, idx) => `${idx + 1}. ${s}`).join('\n')}
 
         // Run deduplication and generate embeddings
         let finalEmbeddings: number[][] = [];
+        let finalQuestions = fallbackQuestions;
         try {
-            const dedupResult = await findSemanticDuplicatesWithEmbeddings(questionsAsItems, 'phase5');
+            // checkAllPhases: true to detect cross-phase duplicates
+            const dedupResult = await findSemanticDuplicatesWithEmbeddings(
+                questionsAsItems,
+                'phase5',
+                { checkAllPhases: true }
+            );
             finalEmbeddings = dedupResult.embeddings;
+            const internalDuplicates = findInternalDuplicates(finalEmbeddings, questionsAsItems);
 
-            if (dedupResult.duplicates.length > 0) {
-                console.warn(`⚠️ Phase 5 fallback: Found ${dedupResult.duplicates.length} duplicates`);
+            // Filter out duplicates if found
+            const allDuplicates = [...dedupResult.duplicates, ...internalDuplicates];
+            if (allDuplicates.length > 0) {
+                const duplicateIndices = new Set(allDuplicates.map(d => d.index));
+                console.warn(`⚠️ Phase 5 fallback: Found ${dedupResult.duplicates.length} semantic + ${internalDuplicates.length} internal duplicates - FILTERING`);
+                for (const dup of allDuplicates) {
+                    console.log(`   - "${questionsAsItems[dup.index]?.text?.slice(0, 40)}..." ≈ "${dup.similarTo.slice(0, 30)}..." (${(dup.score * 100).toFixed(0)}%)`);
+                }
+
+                // Filter out duplicate questions
+                finalQuestions = fallbackQuestions.filter((_, idx) => !duplicateIndices.has(idx));
+                finalEmbeddings = finalEmbeddings.filter((_, idx) => !duplicateIndices.has(idx));
+                console.log(`✅ Phase 5 fallback: Filtered to ${finalQuestions.length}/${fallbackQuestions.length} unique questions`);
             }
         } catch (err) {
             console.warn('⚠️ Phase 5 fallback dedup failed:', err);
         }
 
+        // Store only unique questions
+        const finalQuestionsAsItems = finalQuestions.map(q => ({ text: q.question }));
         if (finalEmbeddings.length > 0) {
             await storeQuestionsWithEmbeddings(
-                questionsAsItems,
+                finalQuestionsAsItems,
                 finalEmbeddings,
                 'phase5'
             );
         }
 
-        return { questions: fallbackQuestions, embeddings: finalEmbeddings };
+        return { questions: finalQuestions, embeddings: finalEmbeddings };
     }
 
     throw new Error('Failed to generate Phase 5 sequence after all iterations');

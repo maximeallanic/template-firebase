@@ -892,3 +892,194 @@ export async function deleteAccount() {
     throw new Error(message);
   }
 }
+
+// ============================================================================
+// GAME ORCHESTRATION FUNCTIONS (#72)
+// ============================================================================
+
+// Types for startGame (#88)
+interface StartGameRequest {
+  roomId: string;
+  mode: 'multi' | 'solo';
+  difficulty?: 'easy' | 'normal' | 'hard' | 'wtf';
+  language?: string;
+}
+
+interface StartGameResponse {
+  success: boolean;
+  phase: 'phase1';
+  error?: string;
+}
+
+const startGameFunction = httpsCallable<StartGameRequest, StartGameResponse>(
+  functions,
+  'startGame',
+  { timeout: 300000 } // 5 minutes - AI generation with dialogue can take 2-3 min
+);
+
+/**
+ * Start a game - generates Phase 1 and triggers background generation for P2-P5
+ * @param roomId - Room code (multi) or session ID (solo)
+ * @param mode - 'multi' for multiplayer, 'solo' for single player
+ * @param difficulty - Game difficulty level
+ * @param language - Language for question generation
+ */
+export async function startGame(
+  roomId: string,
+  mode: 'multi' | 'solo',
+  difficulty?: 'easy' | 'normal' | 'hard' | 'wtf',
+  language?: string
+): Promise<StartGameResponse> {
+  try {
+    const result = await startGameFunction({ roomId, mode, difficulty, language });
+    return result.data;
+  } catch (error: unknown) {
+    console.error('Error starting game:', error);
+    const message = error instanceof Error ? error.message : 'Failed to start game';
+    throw new Error(message);
+  }
+}
+
+// Types for submitAnswer (#81)
+type PhaseId = 'phase1' | 'phase2' | 'phase3' | 'phase4' | 'phase5';
+
+interface SubmitAnswerRequest {
+  roomId: string;
+  phase: PhaseId;
+  questionIndex: number;
+  answer: number | string; // number for P1/P2/P4, string for P3/P5
+  clientTimestamp: number;
+}
+
+interface SubmitAnswerResponse {
+  success: boolean;
+  isCorrect: boolean;
+  correctAnswer?: number | string;
+  explanation?: string;
+  error?: string;
+}
+
+const submitAnswerFunction = httpsCallable<SubmitAnswerRequest, SubmitAnswerResponse>(
+  functions,
+  'submitAnswer'
+);
+
+/**
+ * Submit an answer for validation
+ * @param roomId - Room code (multi) or session ID (solo)
+ * @param phase - Current game phase
+ * @param questionIndex - Index of the question being answered
+ * @param answer - The player's answer (number for MCQ, string for open questions)
+ * @param clientTimestamp - Client timestamp for fairness in speed rounds
+ */
+export async function submitAnswer(
+  roomId: string,
+  phase: PhaseId,
+  questionIndex: number,
+  answer: number | string,
+  clientTimestamp?: number
+): Promise<SubmitAnswerResponse> {
+  try {
+    const result = await submitAnswerFunction({
+      roomId,
+      phase,
+      questionIndex,
+      answer,
+      clientTimestamp: clientTimestamp || Date.now(),
+    });
+    return result.data;
+  } catch (error: unknown) {
+    console.error('Error submitting answer:', error);
+    const message = error instanceof Error ? error.message : 'Failed to submit answer';
+    throw new Error(message);
+  }
+}
+
+// Types for nextPhase (#89)
+interface TeamScores {
+  spicy: number;
+  sweet: number;
+}
+
+interface NextPhaseRequest {
+  roomId: string;
+  currentPhase: PhaseId;
+}
+
+interface NextPhaseResponse {
+  success: boolean;
+  nextPhase: PhaseId | 'victory';
+  scores: TeamScores;
+  error?: string;
+}
+
+const nextPhaseFunction = httpsCallable<NextPhaseRequest, NextPhaseResponse>(
+  functions,
+  'nextPhase'
+);
+
+/**
+ * Advance to the next game phase
+ * Calculates scores from submitted answers and transitions game state
+ * @param roomId - Room code (multi) or session ID (solo)
+ * @param currentPhase - The current phase being completed
+ */
+export async function nextPhase(
+  roomId: string,
+  currentPhase: PhaseId
+): Promise<NextPhaseResponse> {
+  try {
+    const result = await nextPhaseFunction({ roomId, currentPhase });
+    return result.data;
+  } catch (error: unknown) {
+    console.error('Error advancing to next phase:', error);
+    const message = error instanceof Error ? error.message : 'Failed to advance to next phase';
+    throw new Error(message);
+  }
+}
+
+// Types for revealTimeoutAnswer
+interface RevealTimeoutRequest {
+  roomId: string;
+  phase: 'phase1' | 'phase2' | 'phase4';
+  questionIndex: number;
+  setIndex?: number; // For Phase 2 only
+  mode?: 'multi' | 'solo';
+}
+
+interface RevealTimeoutResponse {
+  success: boolean;
+  correctIndex?: number; // For Phase 1 and Phase 4
+  correctAnswer?: 'A' | 'B' | 'Both'; // For Phase 2
+}
+
+const revealTimeoutAnswerFunction = httpsCallable<RevealTimeoutRequest, RevealTimeoutResponse>(
+  functions,
+  'revealTimeoutAnswer'
+);
+
+/**
+ * Reveal the correct answer on timeout (when no player answered correctly)
+ * Used for Phase 1, Phase 2, and Phase 4 when the timer expires
+ * @param roomId - Room code (multi) or session ID (solo)
+ * @param phase - Current phase (phase1, phase2, or phase4)
+ * @param questionIndex - Index of the question
+ * @param mode - 'multi' for multiplayer, 'solo' for single player
+ * @param setIndex - For Phase 2 only, which set of questions
+ */
+export async function revealTimeoutAnswer(
+  roomId: string,
+  phase: 'phase1' | 'phase2' | 'phase4',
+  questionIndex: number,
+  mode: 'multi' | 'solo' = 'multi',
+  setIndex?: number
+): Promise<RevealTimeoutResponse> {
+  try {
+    const result = await revealTimeoutAnswerFunction({ roomId, phase, questionIndex, mode, setIndex });
+    return result.data;
+  } catch (error: unknown) {
+    console.error('Error revealing timeout answer:', error);
+    const message = error instanceof Error ? error.message : 'Failed to reveal answer';
+    throw new Error(message);
+  }
+}

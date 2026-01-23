@@ -9,6 +9,8 @@ import {
     findSemanticDuplicatesWithEmbeddings,
     findInternalDuplicates,
     storeQuestionsWithEmbeddings,
+    filterDuplicatesAgainstExisting,
+    generateEmbeddings,
     type SemanticDuplicate
 } from '../../utils/embeddingService';
 import { callGemini, callGeminiForReview } from './geminiBridge';
@@ -281,6 +283,18 @@ Tu dois changer COMPLÈTEMENT de jeu de mots pour avoir un B CONCRET.
                         anecdote?: string;
                     }>(regenText);
 
+                    // Generate embeddings for good items to deduplicate new items against them
+                    const goodItemsAsText = goodItems.map(item => ({ text: item.text }));
+                    const goodEmbeddings = await generateEmbeddings(goodItemsAsText.map(i => i.text));
+
+                    // Filter out new items that are duplicates of good items
+                    const newItemsWithText = newItems.map(item => ({ ...item, text: item.text }));
+                    const { uniqueItems: uniqueNewItems } = await filterDuplicatesAgainstExisting(
+                        newItemsWithText,
+                        goodItemsAsText,
+                        goodEmbeddings
+                    );
+
                     const mergedItems = [
                         ...goodItems.map(item => ({
                             text: item.text,
@@ -289,7 +303,7 @@ Tu dois changer COMPLÈTEMENT de jeu de mots pour avoir un B CONCRET.
                             justification: item.justification,
                             anecdote: item.anecdote
                         })),
-                        ...newItems
+                        ...uniqueNewItems
                     ];
 
                     lastSet = {
@@ -301,7 +315,7 @@ Tu dois changer COMPLÈTEMENT de jeu de mots pour avoir un B CONCRET.
                         items: mergedItems.slice(0, 12)
                     };
 
-                    console.log(`✅ Trap quality targeted regen: merged ${goodItems.length} good + ${newItems.length} new items`);
+                    console.log(`✅ Trap quality targeted regen: merged ${goodItems.length} good + ${uniqueNewItems.length} unique new items (filtered ${newItems.length - uniqueNewItems.length} duplicates)`);
                     // Set flag to skip generator and re-validate directly
                     revalidateOnly = true;
                     previousFeedback = '';  // Clear feedback since we're re-validating, not regenerating
@@ -407,6 +421,18 @@ Tu dois REMPLACER au moins 4-5 items par des PIÈGES contre-intuitifs.
                                 anecdote?: string;
                             }>(regenText);
 
+                            // Generate embeddings for good items to deduplicate new items against them
+                            const goodItemsAsText = goodItems.map(item => ({ text: item.text }));
+                            const goodEmbeddings = await generateEmbeddings(goodItemsAsText.map(i => i.text));
+
+                            // Filter out new items that are duplicates of good items
+                            const newItemsWithText = newItems.map(item => ({ ...item, text: item.text }));
+                            const { uniqueItems: uniqueNewItems } = await filterDuplicatesAgainstExisting(
+                                newItemsWithText,
+                                goodItemsAsText,
+                                goodEmbeddings
+                            );
+
                             const mergedItems = [
                                 ...goodItems.map(item => ({
                                     text: item.text,
@@ -415,7 +441,7 @@ Tu dois REMPLACER au moins 4-5 items par des PIÈGES contre-intuitifs.
                                     justification: item.justification,
                                     anecdote: item.anecdote
                                 })),
-                                ...newItems
+                                ...uniqueNewItems
                             ];
 
                             lastSet = {
@@ -423,7 +449,7 @@ Tu dois REMPLACER au moins 4-5 items par des PIÈGES contre-intuitifs.
                                 items: mergedItems.slice(0, 12)
                             };
 
-                            console.log(`✅ Phase 2 fact-check targeted regen: merged ${goodItems.length} good + ${newItems.length} new items`);
+                            console.log(`✅ Phase 2 fact-check targeted regen: merged ${goodItems.length} good + ${uniqueNewItems.length} unique new items (filtered ${newItems.length - uniqueNewItems.length} duplicates)`);
                             // Set flag to skip generator and re-validate directly
                             revalidateOnly = true;
                             previousFeedback = '';  // Clear feedback since we're re-validating, not regenerating
@@ -503,8 +529,95 @@ Vérifie que chaque item appartient VRAIMENT à la catégorie assignée (A, B, o
                 if (uniqueItems.length < 6) {
                     console.warn(`⚠️ Only ${uniqueItems.length} unique items remaining - need full regeneration`);
                     // Don't return, let the loop continue for regeneration
+                } else if (uniqueItems.length < 12) {
+                    // Partial set (6-11 items) - try to complete it by generating more items
+                    const neededCount = 12 - uniqueItems.length;
+                    console.log(`📦 Attempting to complete partial set: ${uniqueItems.length} items, need ${neededCount} more`);
+
+                    // Calculate distribution needed for completion items
+                    const currentA = uniqueItems.filter(item => item.answer === 'A').length;
+                    const currentB = uniqueItems.filter(item => item.answer === 'B').length;
+                    const currentBoth = uniqueItems.filter(item => item.answer === 'Both').length;
+                    const neededA = Math.max(0, 5 - currentA);
+                    const neededB = Math.max(0, 5 - currentB);
+                    const neededBoth = Math.max(0, 2 - currentBoth);
+
+                    const uniqueItemsText = uniqueItems.map((item, idx) =>
+                        `${idx + 1}. "${item.text}" → ${item.answer}`
+                    ).join('\n');
+
+                    const completionPrompt = prompts.PHASE2_TARGETED_REGENERATION_PROMPT
+                        .replace('{OPTION_A}', lastSet.optionA)
+                        .replace('{OPTION_B}', lastSet.optionB)
+                        .replace('{GOOD_ITEMS}', uniqueItemsText)
+                        .replace('{BAD_INDICES}', '')
+                        .replace('{BAD_ITEMS}', '(aucun - complétion pour atteindre 12 items)')
+                        .replace('{REJECTION_REASONS}', 'Items retirés pour cause de doublons sémantiques. Génère des items COMPLÈTEMENT DIFFÉRENTS.')
+                        .replace(/{COUNT}/g, String(neededCount))
+                        .replace('{NEEDED_A}', String(neededA))
+                        .replace('{NEEDED_B}', String(neededB))
+                        .replace('{NEEDED_BOTH}', String(neededBoth))
+                        + languageInstruction;
+
+                    try {
+                        const completionText = await callGemini(completionPrompt, 'creative');
+                        const completionItems = parseJsonArrayFromText<{
+                            text: string;
+                            answer: 'A' | 'B' | 'Both';
+                            acceptedAnswers?: ('A' | 'B' | 'Both')[];
+                            justification: string;
+                            anecdote?: string;
+                        }>(completionText);
+
+                        // Filter completion items against unique items to avoid new duplicates
+                        const uniqueItemsAsText = uniqueItems.map(item => ({ text: item.text }));
+                        const completionItemsWithText = completionItems.map(item => ({ ...item, text: item.text }));
+                        const { uniqueItems: uniqueCompletionItems, uniqueEmbeddings: completionEmbeddings } = await filterDuplicatesAgainstExisting(
+                            completionItemsWithText,
+                            uniqueItemsAsText,
+                            uniqueEmbeddings
+                        );
+
+                        // Merge unique items with completion items
+                        const completedItems = [
+                            ...uniqueItems,
+                            ...uniqueCompletionItems.slice(0, neededCount) // Take only what we need
+                        ];
+                        const completedEmbeddings = [
+                            ...uniqueEmbeddings,
+                            ...completionEmbeddings.slice(0, neededCount)
+                        ];
+
+                        console.log(`✅ Completed partial set: ${uniqueItems.length} → ${completedItems.length} items`);
+
+                        // Store completed items
+                        const completedItemsAsQuestions = completedItems.map(item => ({ text: item.text }));
+                        if (completedEmbeddings.length > 0) {
+                            await storeQuestionsWithEmbeddings(
+                                completedItemsAsQuestions,
+                                completedEmbeddings,
+                                'phase2'
+                            );
+                        }
+                        return { set: { ...lastSet, items: completedItems }, embeddings: completedEmbeddings };
+                    } catch (err) {
+                        console.warn('⚠️ Completion regeneration failed, returning partial set:', err);
+                        // Fall through to return partial set
+                    }
+
+                    // Return partial set if completion failed
+                    console.log(`📦 Storing ${uniqueItems.length} unique items (filtered ${duplicateIndices.size} duplicates)`);
+                    const uniqueItemsAsQuestions = uniqueItems.map(item => ({ text: item.text }));
+                    if (uniqueEmbeddings.length > 0) {
+                        await storeQuestionsWithEmbeddings(
+                            uniqueItemsAsQuestions,
+                            uniqueEmbeddings,
+                            'phase2'
+                        );
+                    }
+                    return { set: { ...lastSet, items: uniqueItems }, embeddings: uniqueEmbeddings };
                 } else {
-                    // Store only unique items and return partial set
+                    // Full 12 items - store and return
                     console.log(`📦 Storing ${uniqueItems.length} unique items (filtered ${duplicateIndices.size} duplicates)`);
                     const uniqueItemsAsQuestions = uniqueItems.map(item => ({ text: item.text }));
                     if (uniqueEmbeddings.length > 0) {
@@ -592,7 +705,19 @@ Vérifie que chaque item appartient VRAIMENT à la catégorie assignée (A, B, o
                     anecdote?: string;
                 }>(regenText);
 
-                // Merge: keep good items + add new items (preserve all fields)
+                // Generate embeddings for good items to deduplicate new items against them
+                const goodItemsAsText = goodItems.map(item => ({ text: item.text }));
+                const goodEmbeddings = await generateEmbeddings(goodItemsAsText.map(i => i.text));
+
+                // Filter out new items that are duplicates of good items
+                const newItemsWithText = newItems.map(item => ({ ...item, text: item.text }));
+                const { uniqueItems: uniqueNewItems } = await filterDuplicatesAgainstExisting(
+                    newItemsWithText,
+                    goodItemsAsText,
+                    goodEmbeddings
+                );
+
+                // Merge: keep good items + add unique new items (preserve all fields)
                 const mergedItems = [
                     ...goodItems.map(item => ({
                         text: item.text,
@@ -601,7 +726,7 @@ Vérifie que chaque item appartient VRAIMENT à la catégorie assignée (A, B, o
                         justification: item.justification,
                         anecdote: item.anecdote
                     })),
-                    ...newItems.map(item => ({
+                    ...uniqueNewItems.map(item => ({
                         text: item.text,
                         answer: item.answer,
                         acceptedAnswers: item.acceptedAnswers,
@@ -620,7 +745,7 @@ Vérifie que chaque item appartient VRAIMENT à la catégorie assignée (A, B, o
                     items: mergedItems.slice(0, 12) // Ensure max 12 items
                 };
 
-                console.log(`✅ Targeted regen: merged ${goodItems.length} good + ${newItems.length} new items`);
+                console.log(`✅ Targeted regen: merged ${goodItems.length} good + ${uniqueNewItems.length} unique new items (filtered ${newItems.length - uniqueNewItems.length} duplicates)`);
 
                 // Set flag to skip generator and re-validate directly
                 revalidateOnly = true;

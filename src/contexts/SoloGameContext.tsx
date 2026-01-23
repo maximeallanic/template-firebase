@@ -6,10 +6,10 @@
 
 import { createContext, useContext, useReducer, useCallback, useRef, useEffect, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
-import { ref, child, get } from 'firebase/database';
+import { ref, child, get, set, onValue, off } from 'firebase/database';
 import type { Avatar, SimplePhase2Set, Difficulty } from '../types/gameTypes';
 import { toGameLanguage } from '../types/languageTypes';
-import { hasEnoughQuestions, MINIMUM_QUESTION_COUNTS } from '../types/gameTypes';
+import { hasEnoughQuestions, MINIMUM_QUESTION_COUNTS, DIFFICULTY_MULTIPLIERS } from '../types/gameTypes';
 import {
     type SoloGameState,
     type SoloPhaseStatus,
@@ -20,7 +20,11 @@ import {
     SOLO_SCORING,
 } from '../types/soloTypes';
 import { generateWithRetry } from '../services/aiClient';
-import { rtdb } from '../services/firebase';
+import {
+    rtdb,
+    startGame as startGameCF,
+    submitAnswer as submitAnswerCF,
+} from '../services/firebase';
 import { getRandomQuestionSet } from '../services/questionStorageService';
 
 // === ACTION TYPES ===
@@ -38,11 +42,11 @@ type SoloGameAction =
     | { type: 'BACKGROUND_GEN_ERROR'; phase: 'phase2' | 'phase4'; error: string }
     | { type: 'EXIT_WAITING' } // Transition from waiting_for_phase to actual phase
     | { type: 'START_PHASE'; phase: SoloPhaseStatus }
-    | { type: 'SUBMIT_PHASE1_ANSWER'; answerIndex: number; isCorrect: boolean }
+    | { type: 'SUBMIT_PHASE1_ANSWER'; answerIndex: number; isCorrect: boolean; correctIndex: number }
     | { type: 'NEXT_PHASE1_QUESTION' }
-    | { type: 'SUBMIT_PHASE2_ANSWER'; answer: 'A' | 'B' | 'Both'; isCorrect: boolean }
+    | { type: 'SUBMIT_PHASE2_ANSWER'; answer: 'A' | 'B' | 'Both'; isCorrect: boolean; correctAnswer: 'A' | 'B' | 'Both' }
     | { type: 'NEXT_PHASE2_ITEM' }
-    | { type: 'SUBMIT_PHASE4_ANSWER'; answerIndex: number; isCorrect: boolean; timeMs: number }
+    | { type: 'SUBMIT_PHASE4_ANSWER'; answerIndex: number; isCorrect: boolean; timeMs: number; correctIndex: number }
     | { type: 'NEXT_PHASE4_QUESTION' }
     | { type: 'PHASE4_TIMEOUT' }
     | { type: 'ADVANCE_TO_NEXT_PHASE' }
@@ -246,7 +250,10 @@ function soloGameReducer(state: SoloGameState, action: SoloGameAction): SoloGame
 
             const newCorrectCount = state.phase1State.correctCount + (action.isCorrect ? 1 : 0);
             const newAnswers = [...state.phase1State.answers, action.answerIndex];
-            const scoreIncrease = action.isCorrect ? SOLO_SCORING.phase1.correctAnswer : 0;
+            const baseScore = action.isCorrect ? SOLO_SCORING.phase1.correctAnswer : 0;
+            const multiplier = DIFFICULTY_MULTIPLIERS[state.difficulty] || 1;
+            const scoreIncrease = baseScore * multiplier;
+            const questionIndex = state.phase1State.currentQuestionIndex;
 
             return {
                 ...state,
@@ -262,6 +269,17 @@ function soloGameReducer(state: SoloGameState, action: SoloGameAction): SoloGame
                 },
                 correctAnswers: state.correctAnswers + (action.isCorrect ? 1 : 0),
                 totalQuestions: state.totalQuestions + 1,
+                // Store revealed answer for Phase1Player to display correct answer (#72)
+                revealedAnswers: {
+                    ...state.revealedAnswers,
+                    phase1: {
+                        ...state.revealedAnswers.phase1,
+                        [questionIndex]: {
+                            correctIndex: action.correctIndex,
+                            revealedAt: Date.now(),
+                        },
+                    },
+                },
             };
         }
 
@@ -294,7 +312,10 @@ function soloGameReducer(state: SoloGameState, action: SoloGameAction): SoloGame
 
             const newCorrectCount = state.phase2State.correctCount + (action.isCorrect ? 1 : 0);
             const newAnswers = [...state.phase2State.answers, action.answer];
-            const scoreIncrease = action.isCorrect ? SOLO_SCORING.phase2.correctAnswer : 0;
+            const baseScore = action.isCorrect ? SOLO_SCORING.phase2.correctAnswer : 0;
+            const multiplier = DIFFICULTY_MULTIPLIERS[state.difficulty] || 1;
+            const scoreIncrease = baseScore * multiplier;
+            const itemIndex = state.phase2State.currentItemIndex;
 
             return {
                 ...state,
@@ -310,6 +331,18 @@ function soloGameReducer(state: SoloGameState, action: SoloGameAction): SoloGame
                 },
                 correctAnswers: state.correctAnswers + (action.isCorrect ? 1 : 0),
                 totalQuestions: state.totalQuestions + 1,
+                // Store revealed answer for Phase2Player (#72)
+                // Key format: "setIndex_itemIndex" - solo mode always uses setIndex 0
+                revealedAnswers: {
+                    ...state.revealedAnswers,
+                    phase2: {
+                        ...state.revealedAnswers.phase2,
+                        [`0_${itemIndex}`]: {
+                            answer: action.correctAnswer,
+                            revealedAt: Date.now(),
+                        },
+                    },
+                },
             };
         }
 
@@ -328,9 +361,12 @@ function soloGameReducer(state: SoloGameState, action: SoloGameAction): SoloGame
         case 'SUBMIT_PHASE4_ANSWER': {
             if (!state.phase4State) return state;
 
-            const pointsEarned = action.isCorrect ? calculatePhase4Score(action.timeMs) : 0;
+            const basePoints = action.isCorrect ? calculatePhase4Score(action.timeMs) : 0;
+            const multiplier = DIFFICULTY_MULTIPLIERS[state.difficulty] || 1;
+            const pointsEarned = basePoints * multiplier;
             const newAnswers = [...state.phase4State.answers, action.answerIndex];
             const newTimeTaken = [...state.phase4State.timeTaken, action.timeMs];
+            const questionIndex = state.phase4State.currentQuestionIndex;
 
             return {
                 ...state,
@@ -347,6 +383,17 @@ function soloGameReducer(state: SoloGameState, action: SoloGameAction): SoloGame
                 },
                 correctAnswers: state.correctAnswers + (action.isCorrect ? 1 : 0),
                 totalQuestions: state.totalQuestions + 1,
+                // Store revealed answer for Phase4Player (#72)
+                revealedAnswers: {
+                    ...state.revealedAnswers,
+                    phase4: {
+                        ...state.revealedAnswers.phase4,
+                        [questionIndex]: {
+                            correctIndex: action.correctIndex,
+                            revealedAt: Date.now(),
+                        },
+                    },
+                },
             };
         }
 
@@ -402,14 +449,6 @@ function soloGameReducer(state: SoloGameState, action: SoloGameAction): SoloGame
 
             if (!questionsReady && (nextPhase === 'phase2' || nextPhase === 'phase4')) {
                 // Questions not ready (missing or insufficient) - enter waiting state
-                console.log('[SOLO] Insufficient questions for', nextPhase, {
-                    currentCount: state.customQuestions[nextPhase]
-                        ? (nextPhase === 'phase2'
-                            ? (state.customQuestions.phase2 as SimplePhase2Set)?.items?.length
-                            : (state.customQuestions[nextPhase] as unknown[])?.length)
-                        : 0,
-                    required: MINIMUM_QUESTION_COUNTS[nextPhase]
-                });
                 return {
                     ...state,
                     status: 'waiting_for_phase',
@@ -470,14 +509,14 @@ interface SoloGameContextValue {
     // Game flow
     startGame: () => Promise<void>;
     resetGame: () => void;
-    // Phase 1 actions
-    submitPhase1Answer: (answerIndex: number) => void;
+    // Phase 1 actions - now async for CF validation (#83)
+    submitPhase1Answer: (answerIndex: number) => Promise<void>;
     nextPhase1Question: () => void;
-    // Phase 2 actions
-    submitPhase2Answer: (answer: 'A' | 'B' | 'Both') => void;
+    // Phase 2 actions - now async for CF validation (#83)
+    submitPhase2Answer: (answer: 'A' | 'B' | 'Both') => Promise<void>;
     nextPhase2Item: () => void;
-    // Phase 4 actions
-    submitPhase4Answer: (answerIndex: number) => void;
+    // Phase 4 actions - now async for CF validation (#83)
+    submitPhase4Answer: (answerIndex: number) => Promise<void>;
     nextPhase4Question: () => void;
     handlePhase4Timeout: () => void;
     // Phase transitions
@@ -520,6 +559,8 @@ export function SoloGameProvider({
     const seenIdsRef = useRef<Set<string>>(new Set());
     // Ref to store current language for AI generation
     const languageRef = useRef(toGameLanguage(i18n.language));
+    // Ref for solo session Firebase listener (#83)
+    const soloSessionRef = useRef<ReturnType<typeof ref> | null>(null);
 
     // Keep language ref updated
     useEffect(() => {
@@ -546,17 +587,13 @@ export function SoloGameProvider({
                 if (language === 'fr') {
                     const storedSet = await getRandomQuestionSet(phase, seenIds);
                     if (storedSet) {
-                        console.log(`[SOLO] ✅ Using Firestore questions for ${phase} (French cache)`);
                         return phase === 'phase2'
                             ? storedSet.questions as unknown as SimplePhase2Set
                             : storedSet.questions;
                     }
-                } else {
-                    console.log(`[SOLO] 🌍 Skipping Firestore cache for ${phase} (language: ${language})`);
                 }
 
                 // Fall back to AI generation with difficulty and language
-                console.log(`[SOLO] 🤖 AI generation for ${phase} (difficulty: ${difficulty}, language: ${language}, seenIds: ${seenIds.size}, attempt ${attempt}/${maxRetries})`);
                 const result = await generateWithRetry({ phase, soloMode: true, difficulty, language });
 
                 // Filter generated questions by seenIds (client-side safety filter)
@@ -565,14 +602,12 @@ export function SoloGameProvider({
 
                 if (phase === 'phase1' && Array.isArray(filteredData)) {
                     filteredData = await filterUnseenQuestions(filteredData as { text: string }[], (q: { text: string }) => q.text);
-                    console.log(`[SOLO] Filtered phase1 questions: ${(result.data as unknown[]).length} -> ${(filteredData as unknown[]).length}`);
 
                     // Check if we need completion after filtering
                     const minRequired = MINIMUM_QUESTION_COUNTS.phase1;
                     const currentCount = (filteredData as unknown[]).length;
                     if (currentCount < minRequired) {
                         const missingCount = minRequired - currentCount;
-                        console.log(`[SOLO] ⚠️ Phase1 needs completion: ${currentCount}/${minRequired} (missing: ${missingCount})`);
                         const completionResult = await generateWithRetry({
                             phase: 'phase1',
                             soloMode: true,
@@ -587,21 +622,18 @@ export function SoloGameProvider({
                                 (q: { text: string }) => q.text
                             );
                             filteredData = [...(filteredData as unknown[]), ...completionFiltered];
-                            console.log(`[SOLO] ✅ Phase1 completed: ${(filteredData as unknown[]).length} questions`);
                         }
                     }
                 } else if (phase === 'phase2' && (filteredData as { items?: unknown[] })?.items) {
                     const setData = filteredData as { items: { text: string }[] };
                     const filteredItems = await filterUnseenQuestions(setData.items, (item: { text: string }) => item.text);
                     filteredData = { ...setData, items: filteredItems };
-                    console.log(`[SOLO] Filtered phase2 items: ${setData.items.length} -> ${filteredItems.length}`);
 
                     // Check if we need completion after filtering
                     const minRequired = MINIMUM_QUESTION_COUNTS.phase2;
                     const currentCount = filteredItems.length;
                     if (currentCount < minRequired) {
                         const missingCount = minRequired - currentCount;
-                        console.log(`[SOLO] ⚠️ Phase2 needs completion: ${currentCount}/${minRequired} (missing: ${missingCount})`);
                         const completionResult = await generateWithRetry({
                             phase: 'phase2',
                             soloMode: true,
@@ -614,25 +646,21 @@ export function SoloGameProvider({
                             const completionItems = (completionResult.data as { items: { text: string }[] }).items;
                             const completionFiltered = await filterUnseenQuestions(completionItems, (item: { text: string }) => item.text);
                             filteredData = { ...setData, items: [...filteredItems, ...completionFiltered] };
-                            console.log(`[SOLO] ✅ Phase2 completed: ${(filteredData as { items: unknown[] }).items.length} items`);
                         }
                     }
                     // Ensure we don't exceed the expected count
                     const phase2Items = (filteredData as { items: unknown[] }).items;
                     if (phase2Items.length > minRequired) {
                         filteredData = { ...filteredData as object, items: phase2Items.slice(0, minRequired) };
-                        console.log(`[SOLO] 📏 Phase2 trimmed to ${minRequired} items`);
                     }
                 } else if (phase === 'phase4' && Array.isArray(filteredData)) {
                     filteredData = await filterUnseenQuestions(filteredData as { text: string }[], (q: { text: string }) => q.text);
-                    console.log(`[SOLO] Filtered phase4 questions: ${(result.data as unknown[]).length} -> ${(filteredData as unknown[]).length}`);
 
                     // Check if we need completion after filtering
                     const minRequired = MINIMUM_QUESTION_COUNTS.phase4;
                     const currentCount = (filteredData as unknown[]).length;
                     if (currentCount < minRequired) {
                         const missingCount = minRequired - currentCount;
-                        console.log(`[SOLO] ⚠️ Phase4 needs completion: ${currentCount}/${minRequired} (missing: ${missingCount})`);
                         const completionResult = await generateWithRetry({
                             phase: 'phase4',
                             soloMode: true,
@@ -647,7 +675,6 @@ export function SoloGameProvider({
                                 (q: { text: string }) => q.text
                             );
                             filteredData = [...(filteredData as unknown[]), ...completionFiltered];
-                            console.log(`[SOLO] ✅ Phase4 completed: ${(filteredData as unknown[]).length} questions`);
                         }
                     }
                 }
@@ -655,7 +682,6 @@ export function SoloGameProvider({
                 return filteredData;
             } catch (error) {
                 lastError = error as Error;
-                console.warn(`[SOLO] ${phase}: Attempt ${attempt} failed:`, error);
 
                 if (attempt < maxRetries && !signal.aborted) {
                     await new Promise(r => setTimeout(r, 1000 * attempt)); // Exponential backoff
@@ -673,90 +699,135 @@ export function SoloGameProvider({
             const historySnap = await get(child(ref(rtdb), `userHistory/${playerId}`));
             if (historySnap.exists()) {
                 Object.keys(historySnap.val()).forEach(id => seenIds.add(id));
-                console.log('[SOLO] Loaded player history:', seenIds.size, 'seen questions');
             }
-        } catch (e) {
-            console.warn('[SOLO] Failed to get player history:', e);
+        } catch {
+            // Ignore history fetch errors - player may not have history yet
         }
         return seenIds;
     }, []);
 
-    // Start background generation for Phase 2 and Phase 4 (non-blocking, fire-and-forget)
-    const startBackgroundGeneration = useCallback((seenIds: Set<string>, difficulty: Difficulty) => {
-        const abort = new AbortController();
-        backgroundAbortRef.current = abort;
-
-        // Phase 2 (fire-and-forget)
-        dispatch({ type: 'BACKGROUND_GEN_START', phase: 'phase2' });
-        generatePhaseWithRetries('phase2', seenIds, abort.signal, difficulty, 3)
-            .then(questions => {
-                if (!abort.signal.aborted) {
-                    console.log('[SOLO] ✅ Background phase2 ready');
-                    dispatch({ type: 'BACKGROUND_GEN_DONE', phase: 'phase2', questions });
-                }
-            })
-            .catch(error => {
-                if (!abort.signal.aborted) {
-                    console.error('[SOLO] ❌ Background phase2 failed:', error);
-                    dispatch({ type: 'BACKGROUND_GEN_ERROR', phase: 'phase2', error: (error as Error).message });
-                }
-            });
-
-        // Phase 4 (fire-and-forget, runs in parallel with Phase 2)
-        dispatch({ type: 'BACKGROUND_GEN_START', phase: 'phase4' });
-        generatePhaseWithRetries('phase4', seenIds, abort.signal, difficulty, 3)
-            .then(questions => {
-                if (!abort.signal.aborted) {
-                    console.log('[SOLO] ✅ Background phase4 ready');
-                    dispatch({ type: 'BACKGROUND_GEN_DONE', phase: 'phase4', questions });
-                }
-            })
-            .catch(error => {
-                if (!abort.signal.aborted) {
-                    console.error('[SOLO] ❌ Background phase4 failed:', error);
-                    dispatch({ type: 'BACKGROUND_GEN_ERROR', phase: 'phase4', error: (error as Error).message });
-                }
-            });
-    }, [generatePhaseWithRetries]);
+    // NOTE: Background generation for P2/P4 is now handled by CF via Pub/Sub (#83)
+    // The startGame CF triggers generatePhaseQuestions which generates all phases server-side
 
     // Player setup
     const setPlayerInfo = useCallback((playerId: string, playerName: string, playerAvatar: Avatar) => {
         dispatch({ type: 'SET_PLAYER_INFO', playerId, playerName, playerAvatar });
     }, []);
 
-    // Start game: Generate Phase 1 (blocking), then start background generation for Phase 2 & 4
+    // Start game: Create solo session and call startGame CF (#83)
+    // The CF handles question generation and stores them in soloSessions/{playerId}/
     const startGame = useCallback(async () => {
         dispatch({ type: 'START_GENERATION' });
 
+        const playerId = state.playerId;
+        const difficulty = state.difficulty;
+        const language = languageRef.current;
+
         try {
-            // Load player history
-            const seenIds = await loadPlayerHistory(state.playerId);
+            // Load player history for local deduplication hints
+            const seenIds = await loadPlayerHistory(playerId);
             seenIdsRef.current = seenIds;
 
-            const difficulty = state.difficulty;
-            console.log(`[SOLO] Starting game with difficulty: ${difficulty}`);
 
-            // Phase 1 only (blocking) - game starts as soon as this is ready
+            // 1. Create solo session entry in RTDB (required for CF to verify ownership)
+            const sessionRef = ref(rtdb, `soloSessions/${playerId}`);
+            await set(sessionRef, {
+                playerId,
+                playerName: state.playerName,
+                playerAvatar: state.playerAvatar,
+                difficulty,
+                language,
+                createdAt: Date.now(),
+                hostId: playerId, // For CF compatibility (verifyHost checks hostId)
+                players: {
+                    [playerId]: {
+                        id: playerId,
+                        name: state.playerName,
+                        avatar: state.playerAvatar,
+                        team: 'spicy', // Solo player is always spicy team
+                        isHost: true,
+                        score: 0,
+                        joinedAt: Date.now(),
+                        isOnline: true,
+                    }
+                }
+            });
+
+
+            // 2. Call startGame CF - this generates P1 and triggers P2-P5 background generation
             dispatch({ type: 'SET_GENERATION_PROGRESS', phase: 'phase1', status: 'generating' });
-            const phase1Questions = await generatePhaseWithRetries('phase1', seenIds, new AbortController().signal, difficulty, 3);
-            dispatch({ type: 'SET_GENERATION_PROGRESS', phase: 'phase1', status: 'done' });
-            dispatch({ type: 'SET_QUESTIONS', phase: 'phase1', questions: phase1Questions });
 
-            console.log('[SOLO] Phase 1 ready - starting game immediately');
+            const result = await startGameCF(playerId, 'solo', difficulty, language);
 
-            // Start the game immediately with Phase 1
+            if (!result.success) {
+                throw new Error(result.error || 'Failed to start game');
+            }
+
+
+            // 3. Subscribe to solo session state for real-time updates
+            const stateRef = ref(rtdb, `soloSessions/${playerId}`);
+            onValue(stateRef, (snapshot) => {
+                if (!snapshot.exists()) return;
+
+                const sessionData = snapshot.val();
+
+                // Update questions from CF-generated data
+                if (sessionData.customQuestions) {
+                    if (sessionData.customQuestions.phase1) {
+                        dispatch({ type: 'SET_QUESTIONS', phase: 'phase1', questions: sessionData.customQuestions.phase1 });
+                        dispatch({ type: 'SET_GENERATION_PROGRESS', phase: 'phase1', status: 'done' });
+                    }
+                    if (sessionData.customQuestions.phase2) {
+                        dispatch({ type: 'BACKGROUND_GEN_DONE', phase: 'phase2', questions: sessionData.customQuestions.phase2 });
+                    }
+                    if (sessionData.customQuestions.phase4) {
+                        dispatch({ type: 'BACKGROUND_GEN_DONE', phase: 'phase4', questions: sessionData.customQuestions.phase4 });
+                    }
+                }
+
+                // Update generation status from CF
+                if (sessionData.generationStatus) {
+                    const status = sessionData.generationStatus;
+                    if (status.phases) {
+                        for (const phaseStatus of status.phases) {
+                            if (phaseStatus.phase === 'phase2' && phaseStatus.generated) {
+                                dispatch({ type: 'SET_GENERATION_PROGRESS', phase: 'phase2', status: 'done' });
+                            }
+                            if (phaseStatus.phase === 'phase4' && phaseStatus.generated) {
+                                dispatch({ type: 'SET_GENERATION_PROGRESS', phase: 'phase4', status: 'done' });
+                            }
+                        }
+                    }
+                }
+            });
+
+            // Store the session ref for cleanup
+            soloSessionRef.current = stateRef;
+
+            // 4. Start the game immediately with Phase 1 (CF has generated it)
             dispatch({ type: 'PHASE1_READY' });
 
-            // Start background generation for Phase 2 & 4 (non-blocking)
-            startBackgroundGeneration(seenIds, difficulty);
+            // Mark P2/P4 as generating (they'll be updated when CF completes them)
+            dispatch({ type: 'BACKGROUND_GEN_START', phase: 'phase2' });
+            dispatch({ type: 'BACKGROUND_GEN_START', phase: 'phase4' });
+
         } catch (error) {
-            console.error('[SOLO] Phase 1 generation failed:', error);
+            console.error('[SOLO] Game start failed:', error);
+
+            // Cleanup orphaned session entry if startGameCF failed (#72 Copilot review)
+            try {
+                const sessionRef = ref(rtdb, `soloSessions/${playerId}`);
+                await set(sessionRef, null);
+            } catch (cleanupError) {
+                console.error('[SOLO] Failed to cleanup session:', cleanupError);
+            }
+
             dispatch({
                 type: 'GENERATION_ERROR',
-                error: 'Impossible de charger les questions. Veuillez réessayer.',
+                error: error instanceof Error ? error.message : 'Impossible de démarrer la partie. Veuillez réessayer.',
             });
         }
-    }, [state.playerId, state.difficulty, loadPlayerHistory, generatePhaseWithRetries, startBackgroundGeneration]);
+    }, [state.playerId, state.playerName, state.playerAvatar, state.difficulty, loadPlayerHistory]);
 
     // Retry background generation for a specific phase (used when waiting_for_phase with error)
     const retryBackgroundGeneration = useCallback(async (phase: 'phase2' | 'phase4') => {
@@ -776,18 +847,22 @@ export function SoloGameProvider({
         if (state.status === 'waiting_for_phase' && state.pendingPhase) {
             const questionsReady = hasEnoughQuestions(state.customQuestions, state.pendingPhase);
             if (questionsReady) {
-                console.log(`[SOLO] Enough questions ready for ${state.pendingPhase} - transitioning`);
                 dispatch({ type: 'EXIT_WAITING' });
             }
         }
     }, [state.status, state.pendingPhase, state.customQuestions]);
 
-    // Effect: Cleanup background generation on unmount
+    // Effect: Cleanup background generation and Firebase listener on unmount
     useEffect(() => {
         return () => {
             if (backgroundAbortRef.current) {
                 backgroundAbortRef.current.abort();
                 backgroundAbortRef.current = null;
+            }
+            // Cleanup Firebase listener (#83)
+            if (soloSessionRef.current) {
+                off(soloSessionRef.current);
+                soloSessionRef.current = null;
             }
         };
     }, []);
@@ -797,54 +872,107 @@ export function SoloGameProvider({
         dispatch({ type: 'RESET_GAME' });
     }, []);
 
-    // Phase 1 actions
-    const submitPhase1Answer = useCallback((answerIndex: number) => {
-        const questions = state.customQuestions.phase1;
-        if (!questions || !state.phase1State) return;
+    // Phase 1 actions - Uses submitAnswer CF for server-side validation (#83)
+    const submitPhase1Answer = useCallback(async (answerIndex: number) => {
+        if (!state.phase1State) return;
 
-        const currentQuestion = questions[state.phase1State.currentQuestionIndex];
-        if (!currentQuestion) return;
+        const playerId = state.playerId;
+        const questionIndex = state.phase1State.currentQuestionIndex;
 
-        const isCorrect = answerIndex === currentQuestion.correctIndex;
-        dispatch({ type: 'SUBMIT_PHASE1_ANSWER', answerIndex, isCorrect });
-    }, [state.customQuestions.phase1, state.phase1State]);
+        console.log(`[SOLO] submitPhase1Answer called: playerId=${playerId}, qIdx=${questionIndex}, answer=${answerIndex}`);
+
+        try {
+            // Call CF for server-side validation
+            const result = await submitAnswerCF(
+                playerId,
+                'phase1',
+                questionIndex,
+                answerIndex,
+                Date.now()
+            );
+
+            console.log(`[SOLO] CF result:`, result);
+
+            const isCorrect = result.isCorrect;
+            // CF returns correctAnswer for revealed answers (#72)
+            const correctIndex = typeof result.correctAnswer === 'number' ? result.correctAnswer : answerIndex;
+            console.log(`[SOLO] Dispatching: isCorrect=${isCorrect}, correctIndex=${correctIndex}`);
+            dispatch({ type: 'SUBMIT_PHASE1_ANSWER', answerIndex, isCorrect, correctIndex });
+
+        } catch (error) {
+            console.error('[SOLO] submitPhase1Answer CF error:', error);
+            // Fallback: mark as incorrect, use player's answer as dummy correctIndex
+            dispatch({ type: 'SUBMIT_PHASE1_ANSWER', answerIndex, isCorrect: false, correctIndex: -1 });
+        }
+    }, [state.playerId, state.phase1State]);
 
     const nextPhase1Question = useCallback(() => {
         dispatch({ type: 'NEXT_PHASE1_QUESTION' });
     }, []);
 
-    // Phase 2 actions
-    const submitPhase2Answer = useCallback((answer: 'A' | 'B' | 'Both') => {
-        const setData = state.customQuestions.phase2;
-        if (!setData || !state.phase2State) return;
+    // Phase 2 actions - Uses submitAnswer CF for server-side validation (#83)
+    const submitPhase2Answer = useCallback(async (answer: 'A' | 'B' | 'Both') => {
+        if (!state.phase2State) return;
 
-        const currentItem = setData.items[state.phase2State.currentItemIndex];
-        if (!currentItem) return;
+        const playerId = state.playerId;
+        const questionIndex = state.phase2State.currentItemIndex;
 
-        // Check if answer is correct (including accepted alternatives)
-        const isCorrect = answer === currentItem.answer ||
-            (currentItem.acceptedAnswers?.includes(answer) ?? false);
+        try {
+            // Call CF for server-side validation
+            const result = await submitAnswerCF(
+                playerId,
+                'phase2',
+                questionIndex,
+                answer,
+                Date.now()
+            );
 
-        dispatch({ type: 'SUBMIT_PHASE2_ANSWER', answer, isCorrect });
-    }, [state.customQuestions.phase2, state.phase2State]);
+            const isCorrect = result.isCorrect;
+            // CF returns correctAnswer for revealed answers (#72)
+            const correctAnswer = (result.correctAnswer as 'A' | 'B' | 'Both') || answer;
+            dispatch({ type: 'SUBMIT_PHASE2_ANSWER', answer, isCorrect, correctAnswer });
+
+        } catch (error) {
+            console.error('[SOLO] submitPhase2Answer CF error:', error);
+            // Fallback: mark as incorrect, use player's answer as dummy correctAnswer
+            dispatch({ type: 'SUBMIT_PHASE2_ANSWER', answer, isCorrect: false, correctAnswer: answer });
+        }
+    }, [state.playerId, state.phase2State]);
 
     const nextPhase2Item = useCallback(() => {
         dispatch({ type: 'NEXT_PHASE2_ITEM' });
     }, []);
 
-    // Phase 4 actions
-    const submitPhase4Answer = useCallback((answerIndex: number) => {
-        const questions = state.customQuestions.phase4;
-        if (!questions || !state.phase4State) return;
+    // Phase 4 actions - Uses submitAnswer CF for server-side validation (#83)
+    const submitPhase4Answer = useCallback(async (answerIndex: number) => {
+        if (!state.phase4State) return;
 
-        const currentQuestion = questions[state.phase4State.currentQuestionIndex];
-        if (!currentQuestion) return;
-
-        const isCorrect = answerIndex === currentQuestion.correctIndex;
+        const playerId = state.playerId;
+        const questionIndex = state.phase4State.currentQuestionIndex;
         const timeMs = Date.now() - (state.phase4State.questionStartTime || Date.now());
+        const clientTimestamp = Date.now();
 
-        dispatch({ type: 'SUBMIT_PHASE4_ANSWER', answerIndex, isCorrect, timeMs });
-    }, [state.customQuestions.phase4, state.phase4State]);
+        try {
+            // Call CF for server-side validation
+            const result = await submitAnswerCF(
+                playerId,
+                'phase4',
+                questionIndex,
+                answerIndex,
+                clientTimestamp
+            );
+
+            const isCorrect = result.isCorrect;
+            // CF returns correctAnswer for revealed answers (#72)
+            const correctIndex = typeof result.correctAnswer === 'number' ? result.correctAnswer : answerIndex;
+            dispatch({ type: 'SUBMIT_PHASE4_ANSWER', answerIndex, isCorrect, timeMs, correctIndex });
+
+        } catch (error) {
+            console.error('[SOLO] submitPhase4Answer CF error:', error);
+            // Fallback: mark as incorrect, use -1 as dummy correctIndex
+            dispatch({ type: 'SUBMIT_PHASE4_ANSWER', answerIndex, isCorrect: false, timeMs, correctIndex: -1 });
+        }
+    }, [state.playerId, state.phase4State]);
 
     const nextPhase4Question = useCallback(() => {
         dispatch({ type: 'NEXT_PHASE4_QUESTION' });

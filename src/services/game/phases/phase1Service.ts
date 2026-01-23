@@ -1,10 +1,13 @@
 /**
  * Phase 1 (Tenders) - Speed MCQ service
  * First correct answer wins the point for their team
+ *
+ * Server-side validation via submitAnswer CF (#72)
+ * Scoring handled by nextPhase CF
  */
 
-import { ref, get, update, runTransaction, increment } from 'firebase/database';
-import { rtdb } from '../../firebase';
+import { ref, get, update, runTransaction } from 'firebase/database';
+import { rtdb, submitAnswer as submitAnswerCF, revealTimeoutAnswer as revealTimeoutCF } from '../../firebase';
 import { validateRoom } from '../roomService';
 import type { Team, GameState } from '../../../types/gameTypes';
 
@@ -32,14 +35,29 @@ export const startNextQuestion = async (code: string, nextIndex: number): Promis
     // Safety check: prevent out of bounds
     if (nextIndex >= questionsList.length) return;
 
-    // Guard against duplicate calls: only advance if in 'result' state
-    // and the current question index is actually the previous one
+    // Guard against duplicate calls: only advance from valid states
     const currentIndex = room.state.currentQuestionIndex ?? -1;
-    if (room.state.phaseState !== 'result' && room.state.phaseState !== 'idle') {
+    const phaseState = room.state.phaseState;
+
+    // Allow transition from:
+    // 1. 'idle' state (first question start from readiness screen)
+    // 2. 'result' state (advancing to next question)
+    if (phaseState !== 'result' && phaseState !== 'idle') {
         return;
     }
-    if (currentIndex !== nextIndex - 1) {
-        return;
+
+    // For 'idle' state: allow starting first question (nextIndex 0) when currentIndex is 0
+    // For 'result' state: require currentIndex to be exactly nextIndex - 1
+    if (phaseState === 'idle') {
+        // Starting from readiness screen - only allow index 0
+        if (nextIndex !== 0) {
+            return;
+        }
+    } else {
+        // Advancing from result - must be sequential
+        if (currentIndex !== nextIndex - 1) {
+            return;
+        }
     }
 
     const updates: Record<string, unknown> = {};
@@ -62,7 +80,7 @@ export const startNextQuestion = async (code: string, nextIndex: number): Promis
 
 /**
  * Handle Phase 1 timeout (timer expired with no correct answer)
- * Sets phaseState to 'result' with no winner, allowing normal flow to continue
+ * Calls Cloud Function to reveal correct answer and transition to result state
  * @param code - Room code
  */
 export const handlePhase1Timeout = async (code: string): Promise<void> => {
@@ -77,24 +95,34 @@ export const handlePhase1Timeout = async (code: string): Promise<void> => {
         return;
     }
 
-    // Transition to 'result' with no winner (timeout)
-    await update(ref(rtdb, `rooms/${roomId}/state`), {
-        phaseState: 'result',
-        roundWinner: null,
-        isTimeout: true
-    });
+    const questionIndex = state.currentQuestionIndex ?? 0;
+
+    // Call CF to reveal correct answer and transition to result state
+    try {
+        await revealTimeoutCF(roomId, 'phase1', questionIndex, 'multi');
+    } catch (error) {
+        console.error('[Phase1] Error revealing timeout answer:', error);
+        // Fallback: just transition to result state without revealing answer
+        await update(ref(rtdb, `rooms/${roomId}/state`), {
+            phaseState: 'result',
+            roundWinner: null,
+            isTimeout: true
+        });
+    }
 };
 
 /**
  * Submit an answer for Phase 1
  * First correct answer from a team wins the round
  * Implements "rebond" logic: wrong answer blocks team, other team gets a chance
+ *
+ * Uses server-side validation via submitAnswer CF (#72)
+ * Scoring is handled by nextPhase CF
  */
 export const submitAnswer = async (code: string, playerId: string, answerIndex: number): Promise<void> => {
     const roomId = code.toUpperCase();
-    const stateRef = ref(rtdb, `rooms/${roomId}/state`);
 
-    // First, get room data to access questions and player info (read-only)
+    // First, get room data to access player info (read-only)
     const roomSnapshot = await get(ref(rtdb, `rooms/${roomId}`));
     if (!roomSnapshot.exists()) return;
 
@@ -108,10 +136,32 @@ export const submitAnswer = async (code: string, playerId: string, answerIndex: 
         return;
     }
 
-    const questionsList = room.customQuestions?.phase1 || [];
+    const qIndex = room.state.currentQuestionIndex ?? -1;
+
+    // Pre-checks before calling CF (to save latency on obvious rejections)
+    if (room.state.phaseState !== 'answering' || qIndex === -1) {
+        return;
+    }
+
+    // Check if player's team is blocked
+    const blockedTeams = room.state.phase1BlockedTeams || [];
+    if (blockedTeams.includes(player.team)) {
+        return;
+    }
+
+    // Check if player already answered
+    const existingAnswers = room.state.phase1Answers || {};
+    if (playerId in existingAnswers) {
+        return;
+    }
+
+    // Check if this option was already tried and failed
+    const triedWrongOptions = room.state.phase1TriedWrongOptions || [];
+    if (triedWrongOptions.includes(answerIndex)) {
+        return;
+    }
 
     // Determine which teams have real (non-mock) online players
-    // This allows solo play/debug mode to work when only one team is active
     const teamsWithRealPlayers = new Set<Team>();
     Object.values(room.players).forEach(p => {
         if (p.team && p.isOnline && !p.id.startsWith('mock_')) {
@@ -120,47 +170,46 @@ export const submitAnswer = async (code: string, playerId: string, answerIndex: 
     });
     const activeTeams = Array.from(teamsWithRealPlayers);
 
-    // Use transaction for atomic state updates to prevent race conditions
+    // Call server-side validation
+    let isCorrect = false;
+    try {
+        const response = await submitAnswerCF(roomId, 'phase1', qIndex, answerIndex, Date.now());
+        isCorrect = response.isCorrect;
+    } catch (error) {
+        console.error('[Phase1] Error calling submitAnswer CF:', error);
+        return;
+    }
+
+    // Use transaction to update local state for display (rebond logic)
+    const stateRef = ref(rtdb, `rooms/${roomId}/state`);
     const result = await runTransaction(stateRef, (currentState: GameState | null) => {
         if (!currentState) return currentState;
 
-        const qIndex = currentState.currentQuestionIndex ?? -1;
-
-        // Validate state
-        if (currentState.phaseState !== 'answering' || qIndex === -1) {
-            return; // Abort transaction
+        // Re-validate state (might have changed during CF call)
+        if (currentState.phaseState !== 'answering') {
+            return; // Someone else already won
         }
 
-        // Check if player's team is blocked
-        const blockedTeams = currentState.phase1BlockedTeams || [];
-        if (player.team && blockedTeams.includes(player.team)) {
-            return; // Abort - team already blocked
+        // Re-check if player already answered (race condition protection)
+        const currentAnswers = currentState.phase1Answers || {};
+        if (playerId in currentAnswers) {
+            return;
         }
 
-        // Check if player already answered
-        const existingAnswers = currentState.phase1Answers || {};
-        if (playerId in existingAnswers) {
-            return; // Abort - already answered
+        // Re-check team blocking
+        const currentBlockedTeams = currentState.phase1BlockedTeams || [];
+        if (player.team && currentBlockedTeams.includes(player.team)) {
+            return;
         }
-
-        // REBOND: Check if this option was already tried and failed
-        const triedWrongOptions = currentState.phase1TriedWrongOptions || [];
-        if (triedWrongOptions.includes(answerIndex)) {
-            return; // Abort - option already eliminated
-        }
-
-        // Get current question
-        const currentQuestion = questionsList[qIndex];
-        if (!currentQuestion) return;
-
-        const isCorrect = answerIndex === currentQuestion.correctIndex;
 
         // Build new state
         const newState = { ...currentState };
-        newState.phase1Answers = { ...existingAnswers, [playerId]: isCorrect };
+        newState.phase1Answers = { ...currentAnswers, [playerId]: isCorrect };
 
         if (isCorrect) {
-            // TEAM WINS! First correct answer wins the round
+            // Check revealedAnswers to see if we're the winner
+            // The CF atomically stores winner info in revealedAnswers/phase1/{qIndex}
+            // We set roundWinner here for display, but authoritative winner is in revealedAnswers
             newState.roundWinner = {
                 playerId: playerId,
                 name: player.name,
@@ -171,12 +220,12 @@ export const submitAnswer = async (code: string, playerId: string, answerIndex: 
             // WRONG ANSWER: Implement rebond logic
 
             // 1. Record this option as tried-wrong
-            const newTriedWrongOptions = [...triedWrongOptions, answerIndex];
+            const currentTriedWrongOptions = currentState.phase1TriedWrongOptions || [];
+            const newTriedWrongOptions = [...currentTriedWrongOptions, answerIndex];
             newState.phase1TriedWrongOptions = newTriedWrongOptions;
             newState.phase1LastWrongTeam = player.team;
 
             // 2. Check if only 1 option remains (3 wrong options tried = only correct answer left)
-            // In this case, no team gets a point (the answer is obvious)
             if (newTriedWrongOptions.length >= 3) {
                 newState.roundWinner = null;
                 newState.phaseState = 'result';
@@ -190,30 +239,45 @@ export const submitAnswer = async (code: string, playerId: string, answerIndex: 
             if (activeTeams.length === 1) {
                 // SOLO MODE: Don't block, let them keep trying with fewer options
                 newState.phase1BlockedTeams = [];
-            } else if (blockedTeams.includes(otherTeam) && otherTeamHasPlayers) {
+            } else if (currentBlockedTeams.includes(otherTeam) && otherTeamHasPlayers) {
                 // REBOND: Other team was blocked, now unblock them and block current team
                 newState.phase1BlockedTeams = [player.team];
-
-                // Clear all answers on rebond so the unblocked team can answer again
-                // The blocked team can't answer anyway (blocked), and the unblocked team gets a fresh start
+                // Clear all answers on rebond
                 newState.phase1Answers = {};
             } else {
                 // First wrong answer: just block current team
-                newState.phase1BlockedTeams = [...blockedTeams, player.team];
+                newState.phase1BlockedTeams = [...currentBlockedTeams, player.team];
             }
         }
 
         return newState;
     });
 
-    // If transaction committed and player won, update their score atomically
+    // Update player score if they won the round (real-time feedback)
+    // Only award points if transaction committed AND this player is the winner
     if (result.committed) {
-        const newState = result.snapshot.val() as GameState;
-        if (newState?.roundWinner?.playerId === playerId) {
-            // Use increment() for atomic score update (prevents race conditions)
-            await update(ref(rtdb), {
-                [`rooms/${roomId}/players/${playerId}/score`]: increment(1)
+        const finalState = result.snapshot.val() as GameState | null;
+        if (finalState?.roundWinner?.playerId === playerId && finalState?.phaseState === 'result') {
+            const playerScoreRef = ref(rtdb, `rooms/${roomId}/players/${playerId}/score`);
+            const currentScoreSnap = await get(playerScoreRef);
+            const currentScore = currentScoreSnap.val() || 0;
+            await update(ref(rtdb, `rooms/${roomId}/players/${playerId}`), {
+                score: currentScore + 1 // Phase 1 gives 1 point per correct answer
             });
+        }
+
+        // If all options exhausted (3 wrong answers tried) without a winner,
+        // reveal the correct answer so the UI can display it
+        // Note: Check !roundWinner because Firebase RTDB converts null to undefined (key deletion)
+        const allOptionsExhausted = (finalState?.phase1TriedWrongOptions?.length ?? 0) >= 3;
+        if (finalState?.phaseState === 'result' &&
+            !finalState?.roundWinner &&
+            allOptionsExhausted) {
+            try {
+                await revealTimeoutCF(roomId, 'phase1', qIndex, 'multi');
+            } catch (error) {
+                console.error('[Phase1] Error revealing answer after all options exhausted:', error);
+            }
         }
     }
 };

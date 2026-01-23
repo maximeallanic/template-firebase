@@ -1,14 +1,13 @@
 import { useCallback } from 'react';
 import {
     showPhaseResults,
-    setGameStatus,
-    endGameWithVictory,
     startNextQuestion,
     nextPhase2Item,
     nextPhase4Question,
     type Room,
     type PhaseStatus,
 } from '../services/gameService';
+import { nextPhase as nextPhaseCF } from '../services/firebase';
 
 interface UsePhaseTransitionOptions {
     /**
@@ -45,9 +44,9 @@ interface UsePhaseTransitionReturn {
     /**
      * Advance to the next game phase.
      * Handles premium phase gating automatically.
-     * @param targetPhase - The phase to transition to
+     * Note: The CF determines the actual next phase based on current state
      */
-    advanceToNextPhase: (targetPhase: PhaseStatus) => Promise<void>;
+    advanceToNextPhase: () => Promise<void>;
 
     /**
      * End the game and show the victory screen.
@@ -130,7 +129,8 @@ export function usePhaseTransition({
             // Phase 5 transitions are handled within its sub-components (Phase5Memorizing, etc.)
 
             default:
-                console.warn(`advanceToNextQuestion called in unsupported phase: ${currentPhase}`);
+                // Unsupported phase for this function
+                break;
         }
     }, [room, canTransition]);
 
@@ -145,22 +145,39 @@ export function usePhaseTransition({
 
     /**
      * Advance to the next game phase.
+     * Uses nextPhase CF to calculate scores and transition (#72)
+     * Note: targetPhase parameter is kept for API compatibility but the CF determines the actual next phase
      */
-    const advanceToNextPhaseFn = useCallback(async (targetPhase: PhaseStatus) => {
+    const advanceToNextPhaseFn = useCallback(async () => {
         // Only host can transition to next phase (not solo)
         if (!room || !isHost) return;
 
-        await setGameStatus(room.code, targetPhase);
+        // Get the current phase to pass to nextPhase CF
+        const currentPhase = room.state.status;
+        if (currentPhase === 'lobby' || currentPhase === 'victory') return;
+
+        try {
+            // nextPhase CF will calculate scores and transition to next phase
+            await nextPhaseCF(room.code, currentPhase);
+        } catch (error) {
+            console.error('[usePhaseTransition] Error calling nextPhase CF:', error);
+        }
     }, [room, isHost]);
 
     /**
      * End the game and show victory screen.
+     * Uses nextPhase CF with phase5 to calculate final scores and transition to victory (#72)
      */
     const endGameFn = useCallback(async () => {
         // Only host can end the game (not solo - solo uses different flow)
         if (!room || !isHost) return;
 
-        await endGameWithVictory(room.code);
+        try {
+            // nextPhase CF from phase5 will calculate scores and transition to victory
+            await nextPhaseCF(room.code, 'phase5');
+        } catch (error) {
+            console.error('[usePhaseTransition] Error ending game:', error);
+        }
     }, [room, isHost]);
 
     return {

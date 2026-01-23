@@ -1,5 +1,5 @@
-// Audio Service with custom sound files
-// Uses HTMLAudioElement for better Capacitor compatibility
+// Audio Service with Web Audio API
+// Uses Web Audio API to prevent sounds from appearing in system media controls
 
 export type SoundId =
   | 'background'
@@ -140,12 +140,20 @@ const PRELOAD_SOUNDS: SoundId[] = [
   'background',
 ];
 
+interface ActiveSound {
+  source: AudioBufferSourceNode;
+  gainNode: GainNode;
+}
+
 class AudioService {
   private enabled = false;
   private masterVolume = 1.0;
-  private audioCache: Map<SoundId, HTMLAudioElement> = new Map();
-  private activeSounds: Map<SoundId, HTMLAudioElement> = new Map();
+  private audioContext: AudioContext | null = null;
+  private masterGainNode: GainNode | null = null;
+  private bufferCache: Map<SoundId, AudioBuffer> = new Map();
+  private activeSounds: Map<SoundId, ActiveSound> = new Map();
   private initialized = false;
+  private loadingPromises: Map<SoundId, Promise<AudioBuffer | null>> = new Map();
 
   constructor() {
     if (typeof window !== 'undefined') {
@@ -154,46 +162,92 @@ class AudioService {
     }
   }
 
+  private getAudioContext(): AudioContext | null {
+    if (this.audioContext && this.audioContext.state !== 'closed') {
+      // Resume if suspended (browsers suspend AudioContext until user interaction)
+      if (this.audioContext.state === 'suspended') {
+        this.audioContext.resume().catch(() => {
+          // Ignore resume errors
+        });
+      }
+      return this.audioContext;
+    }
+
+    const AudioContextClass =
+      window.AudioContext ||
+      (window as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
+    if (!AudioContextClass) return null;
+
+    try {
+      this.audioContext = new AudioContextClass();
+      this.masterGainNode = this.audioContext.createGain();
+      this.masterGainNode.connect(this.audioContext.destination);
+      this.masterGainNode.gain.value = this.masterVolume;
+      return this.audioContext;
+    } catch {
+      return null;
+    }
+  }
+
   private async init(): Promise<void> {
     if (this.initialized) return;
     this.initialized = true;
+
+    // Initialize AudioContext on user interaction
+    this.getAudioContext();
+
     // Preload critical sounds
     await this.preloadSounds(PRELOAD_SOUNDS);
   }
 
-  private createAudio(soundId: SoundId): HTMLAudioElement {
-    const config = SOUND_CONFIG[soundId];
-    const audio = new Audio(config.file);
-    audio.preload = 'auto';
-    audio.loop = config.loop;
-    audio.volume = config.defaultVolume * this.masterVolume;
-    return audio;
+  private async loadAudioBuffer(soundId: SoundId): Promise<AudioBuffer | null> {
+    // Return cached buffer if available
+    const cached = this.bufferCache.get(soundId);
+    if (cached) return cached;
+
+    // Return existing loading promise if in progress
+    const existingPromise = this.loadingPromises.get(soundId);
+    if (existingPromise) return existingPromise;
+
+    // Start loading
+    const loadPromise = this.doLoadAudioBuffer(soundId);
+    this.loadingPromises.set(soundId, loadPromise);
+
+    try {
+      const buffer = await loadPromise;
+      return buffer;
+    } finally {
+      this.loadingPromises.delete(soundId);
+    }
   }
 
-  private getOrCreateAudio(soundId: SoundId): HTMLAudioElement {
-    let audio = this.audioCache.get(soundId);
-    if (!audio) {
-      audio = this.createAudio(soundId);
-      this.audioCache.set(soundId, audio);
+  private async doLoadAudioBuffer(soundId: SoundId): Promise<AudioBuffer | null> {
+    const ctx = this.getAudioContext();
+    if (!ctx) return null;
+
+    const config = SOUND_CONFIG[soundId];
+    const absolutePath = config.file.startsWith('/') ? config.file : `/${config.file}`;
+
+    try {
+      const response = await fetch(absolutePath);
+      if (!response.ok) {
+        console.warn(`Failed to fetch sound ${soundId}: ${response.status}`);
+        return null;
+      }
+
+      const arrayBuffer = await response.arrayBuffer();
+      const audioBuffer = await ctx.decodeAudioData(arrayBuffer);
+
+      this.bufferCache.set(soundId, audioBuffer);
+      return audioBuffer;
+    } catch (e) {
+      console.warn(`Failed to load audio buffer for ${soundId}:`, e);
+      return null;
     }
-    return audio;
   }
 
   public async preloadSounds(soundIds: SoundId[]): Promise<void> {
-    await Promise.all(
-      soundIds.map(id => {
-        return new Promise<void>((resolve) => {
-          const audio = this.getOrCreateAudio(id);
-          if (audio.readyState >= 2) {
-            resolve();
-          } else {
-            audio.addEventListener('canplaythrough', () => resolve(), { once: true });
-            audio.addEventListener('error', () => resolve(), { once: true });
-            audio.load();
-          }
-        });
-      })
-    );
+    await Promise.all(soundIds.map((id) => this.loadAudioBuffer(id)));
   }
 
   public async preloadAll(): Promise<void> {
@@ -215,11 +269,13 @@ class AudioService {
   public setMasterVolume(volume: number): void {
     this.masterVolume = Math.max(0, Math.min(1, volume));
 
-    // Update volume on all cached sounds
-    this.audioCache.forEach((audio, soundId) => {
-      const config = SOUND_CONFIG[soundId];
-      audio.volume = config.defaultVolume * this.masterVolume;
-    });
+    // Update master gain node
+    if (this.masterGainNode && this.audioContext) {
+      this.masterGainNode.gain.setValueAtTime(
+        this.masterVolume,
+        this.audioContext.currentTime
+      );
+    }
   }
 
   public getMasterVolume(): number {
@@ -234,32 +290,45 @@ class AudioService {
 
     await this.init();
 
+    const ctx = this.getAudioContext();
+    if (!ctx || !this.masterGainNode) return;
+
     // Stop any currently playing instance of this sound
     this.stop(soundId, 0);
 
+    const buffer = await this.loadAudioBuffer(soundId);
+    if (!buffer) return;
+
     const config = SOUND_CONFIG[soundId];
 
-    // Create a new audio instance for playing (allows overlapping sounds)
-    const audio = this.createAudio(soundId);
-
-    if (options?.loop !== undefined) {
-      audio.loop = options.loop;
-    }
-
-    const volume = (options?.volume ?? config.defaultVolume) * this.masterVolume;
-    audio.volume = volume;
-
-    this.activeSounds.set(soundId, audio);
-
-    audio.onended = () => {
-      const current = this.activeSounds.get(soundId);
-      if (current === audio) {
-        this.activeSounds.delete(soundId);
-      }
-    };
-
     try {
-      await audio.play();
+      // Create source node
+      const source = ctx.createBufferSource();
+      source.buffer = buffer;
+      source.loop = options?.loop ?? config.loop;
+
+      // Create gain node for this sound
+      const gainNode = ctx.createGain();
+      const volume = options?.volume ?? config.defaultVolume;
+      gainNode.gain.setValueAtTime(volume, ctx.currentTime);
+
+      // Connect: source -> gainNode -> masterGain -> destination
+      source.connect(gainNode);
+      gainNode.connect(this.masterGainNode);
+
+      // Track active sound
+      this.activeSounds.set(soundId, { source, gainNode });
+
+      // Clean up when sound ends naturally
+      source.onended = () => {
+        const current = this.activeSounds.get(soundId);
+        if (current?.source === source) {
+          this.activeSounds.delete(soundId);
+        }
+      };
+
+      // Start playback
+      source.start(0);
     } catch (e) {
       console.warn(`Failed to play sound ${soundId}:`, e);
       this.activeSounds.delete(soundId);
@@ -267,43 +336,58 @@ class AudioService {
   }
 
   public stop(soundId: SoundId, fadeOutMs?: number): void {
-    const audio = this.activeSounds.get(soundId);
-    if (!audio) return;
+    const active = this.activeSounds.get(soundId);
+    if (!active) return;
+
+    const ctx = this.getAudioContext();
+    if (!ctx) {
+      // No context, just clean up
+      this.activeSounds.delete(soundId);
+      return;
+    }
 
     const config = SOUND_CONFIG[soundId];
     const fadeDuration = fadeOutMs ?? config.fadeOutMs;
 
     if (fadeDuration > 0) {
-      // Fade out
-      const startVolume = audio.volume;
-      const steps = 20;
-      const stepDuration = fadeDuration / steps;
-      const volumeStep = startVolume / steps;
-      let currentStep = 0;
+      // Smooth fade-out using Web Audio API
+      const fadeEndTime = ctx.currentTime + fadeDuration / 1000;
 
-      const fadeInterval = setInterval(() => {
-        currentStep++;
-        audio.volume = Math.max(0, startVolume - volumeStep * currentStep);
+      // Get current gain value
+      const currentGain = active.gainNode.gain.value;
 
-        if (currentStep >= steps) {
-          clearInterval(fadeInterval);
-          audio.pause();
-          audio.currentTime = 0;
-          this.activeSounds.delete(soundId);
-        }
-      }, stepDuration);
+      // Cancel any scheduled changes and set current value
+      active.gainNode.gain.cancelScheduledValues(ctx.currentTime);
+      active.gainNode.gain.setValueAtTime(currentGain, ctx.currentTime);
+
+      // Ramp to near-zero (can't ramp to exactly 0)
+      active.gainNode.gain.linearRampToValueAtTime(0.001, fadeEndTime);
+
+      // Stop source after fade completes
+      try {
+        active.source.stop(fadeEndTime);
+      } catch {
+        // Source may have already stopped
+      }
+
+      this.activeSounds.delete(soundId);
     } else {
       // Stop immediately
-      audio.pause();
-      audio.currentTime = 0;
+      try {
+        active.source.stop();
+      } catch {
+        // Source may have already stopped
+      }
       this.activeSounds.delete(soundId);
     }
   }
 
   public stopAll(fadeOutMs = 500): void {
-    this.activeSounds.forEach((_, soundId) => {
+    // Create a copy of keys to avoid mutation during iteration
+    const soundIds = Array.from(this.activeSounds.keys());
+    for (const soundId of soundIds) {
       this.stop(soundId, fadeOutMs);
-    });
+    }
   }
 
   public isPlaying(soundId: SoundId): boolean {
@@ -342,28 +426,25 @@ class AudioService {
     // For timer ticks, we use a simple synthesized beep via AudioContext
     if (!this.enabled) return;
 
-    try {
-      const AudioContextClass = window.AudioContext || (window as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
-      if (!AudioContextClass) return;
+    const ctx = this.getAudioContext();
+    if (!ctx || !this.masterGainNode) return;
 
-      const ctx = new AudioContextClass();
+    try {
       const osc = ctx.createOscillator();
       const gain = ctx.createGain();
 
       osc.type = 'square';
       osc.frequency.setValueAtTime(800, ctx.currentTime);
 
-      gain.gain.setValueAtTime(0.05 * this.masterVolume, ctx.currentTime);
+      gain.gain.setValueAtTime(0.05, ctx.currentTime);
       gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.05);
 
+      // Connect through master gain for volume control
       osc.connect(gain);
-      gain.connect(ctx.destination);
+      gain.connect(this.masterGainNode);
 
       osc.start(ctx.currentTime);
       osc.stop(ctx.currentTime + 0.05);
-
-      // Clean up after sound finishes
-      setTimeout(() => ctx.close(), 100);
     } catch {
       // Ignore errors for timer tick
     }

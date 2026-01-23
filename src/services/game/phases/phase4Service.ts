@@ -1,18 +1,22 @@
 /**
  * Phase 4 (La Note) - Speed MCQ race service
  * First correct answer wins 2 points
+ *
+ * Server-side validation via submitAnswer CF (#72)
+ * Scoring handled by nextPhase CF
  */
 
-import { ref, get, update, runTransaction, increment } from 'firebase/database';
-import { rtdb } from '../../firebase';
+import { ref, get, update, runTransaction } from 'firebase/database';
+import { rtdb, submitAnswer as submitAnswerCF } from '../../firebase';
 import { validateRoom } from '../roomService';
-import { PHASE4_QUESTIONS } from '../../../data/phase4';
 import type { Phase4Answer, Phase4Winner } from '../../../types/gameTypes';
 
 /**
  * Submit an answer for Phase 4.
- * Uses a transaction to handle race conditions.
+ * Uses server-side validation via submitAnswer CF (#72).
  * First player to answer correctly wins 2 points.
+ *
+ * Scoring handled by nextPhase CF
  */
 export const submitPhase4Answer = async (
     roomCode: string,
@@ -33,15 +37,42 @@ export const submitPhase4Answer = async (
     const player = room.players[playerId];
     if (!player || !player.team) return;
 
-    // Get current question
-    const questionsList = room.customQuestions?.phase4 || PHASE4_QUESTIONS;
+    // Get current question index
     const currentIdx = room.state.currentPhase4QuestionIndex ?? 0;
-    const currentQuestion = questionsList[currentIdx];
-    if (!currentQuestion) return;
 
-    const isCorrect = answerIndex === currentQuestion.correctIndex;
+    // Debug logging for validation tracking
+    console.log('[Phase4] submitPhase4Answer called:', {
+        roomId,
+        playerId,
+        answerIndex,
+        currentIdx,
+        phase4State: room.state.phase4State,
+        questionText: room.customQuestions?.phase4?.[currentIdx]?.text?.substring(0, 50),
+    });
 
-    // Use transaction for atomic answer submission
+    // Call server-side validation
+    let isCorrect = false;
+    let correctAnswer: number | undefined;
+    try {
+        console.log('[Phase4] Calling submitAnswerCF with questionIndex:', currentIdx);
+        const response = await submitAnswerCF(roomId, 'phase4', currentIdx, answerIndex, timestamp);
+        isCorrect = response.isCorrect;
+        correctAnswer = typeof response.correctAnswer === 'number' ? response.correctAnswer : undefined;
+        console.log('[Phase4] submitAnswerCF response:', { isCorrect, correctAnswer });
+    } catch (error) {
+        console.error('[Phase4] Error calling submitAnswer CF:', error);
+        return;
+    }
+
+    // Store revealed answer for result display (fixes visual bug #72)
+    if (correctAnswer !== undefined) {
+        await update(ref(rtdb), {
+            [`rooms/${roomId}/revealedAnswers/phase4/${currentIdx}/correctIndex`]: correctAnswer
+        });
+        console.log('[Phase4] Stored revealed answer:', { currentIdx, correctAnswer });
+    }
+
+    // Use transaction for atomic answer submission (for display purposes)
     const answersRef = ref(rtdb, `rooms/${roomId}/state/phase4Answers`);
 
     const result = await runTransaction(answersRef, (currentAnswers) => {
@@ -50,10 +81,10 @@ export const submitPhase4Answer = async (
         // If already answered, abort
         if (playerId in answers) return;
 
-        // Add this player's answer with timestamp
+        // Add this player's answer with timestamp and correctness
         return {
             ...answers,
-            [playerId]: { answer: answerIndex, timestamp }
+            [playerId]: { answer: answerIndex, timestamp, isCorrect }
         };
     });
 
@@ -77,7 +108,8 @@ export const submitPhase4Answer = async (
 
             for (const [pid, data] of Object.entries(allAnswers)) {
                 const answerData = data as Phase4Answer;
-                if (answerData.answer === currentQuestion.correctIndex) {
+                // Use isCorrect flag from CF validation
+                if (answerData.isCorrect === true) {
                     if (answerData.timestamp < firstCorrectTime) {
                         firstCorrectTime = answerData.timestamp;
                         firstCorrectPlayer = pid;
@@ -89,6 +121,7 @@ export const submitPhase4Answer = async (
             if (firstCorrectPlayer === playerId) {
                 return {
                     ...currentState,
+                    phaseState: 'result',  // Global phaseState for consistency
                     phase4State: 'result',
                     phase4Winner: {
                         playerId,
@@ -101,13 +134,7 @@ export const submitPhase4Answer = async (
             return currentState;
         });
 
-        // Award points if this player won
-        const updatedState = (await get(ref(rtdb, `rooms/${roomId}/state`))).val();
-        if (updatedState?.phase4Winner?.playerId === playerId) {
-            await update(ref(rtdb), {
-                [`rooms/${roomId}/players/${playerId}/score`]: increment(2)
-            });
-        }
+        // Note: Scoring removed - nextPhase CF will calculate scores from revealedAnswers
     }
 
     // Check if all real players have answered (handles "all wrong" case)
@@ -130,9 +157,9 @@ export const submitPhase4Answer = async (
 
     // If all real players have answered
     if (realAnswerCount >= realPlayers.length && realPlayers.length > 0) {
-        // Check if any answer is correct
+        // Check if any answer is correct (using isCorrect flag from CF)
         const hasCorrectAnswer = Object.values(allAnswers).some(
-            (a) => (a as Phase4Answer).answer === currentQuestion.correctIndex
+            (a) => (a as Phase4Answer).isCorrect === true
         );
 
         // If no correct answer, transition to result with no winner
@@ -145,6 +172,7 @@ export const submitPhase4Answer = async (
 
                 return {
                     ...currentState,
+                    phaseState: 'result',  // Global phaseState for consistency
                     phase4State: 'result',
                     phase4Winner: null
                 };
@@ -169,6 +197,7 @@ export const handlePhase4Timeout = async (roomCode: string): Promise<void> => {
         // Time's up - no winner
         return {
             ...currentState,
+            phaseState: 'result',  // Global phaseState for consistency
             phase4State: 'result',
             phase4Winner: null,
             isTimeout: true
@@ -179,6 +208,8 @@ export const handlePhase4Timeout = async (roomCode: string): Promise<void> => {
 /**
  * Move to the next question.
  * Resets answers and timer.
+ * When called from idle state (via Phase4Intro), starts at question 0
+ * When called after a result, advances to next question
  */
 export const nextPhase4Question = async (roomCode: string): Promise<void> => {
     const roomId = roomCode.toUpperCase();
@@ -187,10 +218,22 @@ export const nextPhase4Question = async (roomCode: string): Promise<void> => {
     if (!roomSnapshot.exists()) return;
     const room = validateRoom(roomSnapshot.val());
 
-    const nextIndex = (room.state.currentPhase4QuestionIndex || 0) + 1;
+    const phaseState = room.state.phaseState;
+    const currentIndex = room.state.currentPhase4QuestionIndex ?? 0;
+
+    // Guard: only allow transition from 'idle' (starting phase) or 'result' (after a question)
+    if (phaseState !== 'idle' && phaseState !== 'result') {
+        return;
+    }
+
+    // Calculate next index based on current state
+    // From 'idle': start at 0 (first question)
+    // From 'result': advance to next question
+    const nextIndex = phaseState === 'idle' ? 0 : currentIndex + 1;
 
     const updates: Record<string, unknown> = {
         [`rooms/${roomId}/state/currentPhase4QuestionIndex`]: nextIndex,
+        [`rooms/${roomId}/state/phaseState`]: 'questioning',  // Global phaseState - needed for PhaseRouter to switch from Intro to Player
         [`rooms/${roomId}/state/phase4State`]: 'questioning',
         [`rooms/${roomId}/state/phase4Answers`]: {},
         [`rooms/${roomId}/state/phase4QuestionStartTime`]: Date.now(),

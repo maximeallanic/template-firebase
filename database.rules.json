@@ -1,7 +1,7 @@
 {
   "rules": {
     "rooms": {
-      "$roomId": {
+      "$roomCode": {
         // Authenticated users can read rooms they're part of, or any room (to join)
         ".read": "auth != null",
         // Write allowed if: creating new room OR user is host OR user is a player in the room
@@ -30,8 +30,9 @@
               ".write": "auth != null && data.parent().parent().parent().child('hostId').val() == auth.uid"
             },
             "score": {
-              // SECURITY: Only host can modify scores - prevents cheating
-              ".write": "auth != null && data.parent().parent().parent().child('hostId').val() == auth.uid"
+              // SECURITY: Only Cloud Functions can modify scores (via Admin SDK)
+              // Players and host cannot modify scores directly
+              ".write": false
             },
             "id": {
               ".write": "auth != null && $playerId == auth.uid"
@@ -48,13 +49,53 @@
         },
         "state": {
           ".validate": "newData.hasChild('status') && newData.hasChild('phaseState')",
-          // Only host can modify game state
-          ".write": "auth != null && data.parent().child('hostId').val() == auth.uid"
+          // Host can modify most game state fields
+          ".write": "auth != null && data.parent().child('hostId').val() == auth.uid",
+          "scores": {
+            // SECURITY: Team scores only modifiable by Cloud Functions (via Admin SDK)
+            ".write": false
+          },
+          "playersReady": {
+            // Players can mark themselves as ready
+            ".write": "auth != null && data.parent().parent().child('players').child(auth.uid).exists()"
+          }
         },
         "hostId": {
           // Host ID can only be set on room creation, cannot be changed
           ".write": "auth != null && !data.exists()"
+        },
+        "customQuestions": {
+          // SECURITY: Questions are written by Cloud Functions only using the Admin SDK
+          // Note: Realtime Database rules do not apply to Admin SDK operations, so clients cannot write here
+          ".write": false
+        },
+        "revealedAnswers": {
+          // SECURITY: Revealed answers are written by Cloud Functions only (via Admin SDK)
+          // Answers are revealed after player submission is validated
+          ".read": "auth != null",
+          ".write": false
+        },
+        "generationStatus": {
+          // Status of background question generation (Pub/Sub)
+          // Readable by all players, writable only by Cloud Functions
+          ".read": "auth != null",
+          ".write": false
         }
+      }
+    },
+    "gameData": {
+      // SECURITY: Private answer data - completely inaccessible to clients via client SDKs
+      // NOTE: Firebase Realtime Database security rules do NOT apply to the Admin SDK.
+      // Cloud Functions use the Admin SDK to read/write this path and therefore bypass these rules.
+      ".read": false,
+      ".write": false
+    },
+    "soloSessions": {
+      "$userId": {
+        // Solo sessions - only the owner can read/write their own session
+        // Solo mode is local-only (no multiplayer cheating concerns)
+        ".read": "auth != null && auth.uid == $userId",
+        ".write": "auth != null && auth.uid == $userId"
       }
     },
     "userHistory": {

@@ -28,37 +28,65 @@ export function Phase5Answering({ room, currentPlayerId, currentPlayerTeam }: Ph
     const currentAnswerIndex = myTeamAnswers.length;
     const isFinished = currentAnswerIndex >= TOTAL_QUESTIONS;
 
+    // Debug logging
+    console.log('[Phase5Answering] Render:', {
+        currentPlayerTeam,
+        myTeamAnswersCount: myTeamAnswers.length,
+        currentAnswerIndex,
+        isFinished,
+        phase5State: room.state.phase5State,
+        phaseState: room.state.phaseState,
+    });
+
     // Focus input on mount and after each submission
     useEffect(() => {
-        if (!isFinished && inputRef.current) {
-            inputRef.current.focus();
+        if (!isFinished) {
+            // Delay to wait for the AnimatePresence entry animation to complete (durations.fast = 200ms)
+            const timeoutId = setTimeout(() => {
+                inputRef.current?.focus();
+            }, 250);
+            return () => clearTimeout(timeoutId);
         }
     }, [currentAnswerIndex, isFinished]);
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
+        console.log('[Phase5Answering] handleSubmit called:', {
+            currentAnswer: currentAnswer.substring(0, 20),
+            isSubmitting,
+            isFinished,
+            currentAnswerIndex,
+        });
 
-        if (!currentAnswer.trim() || isSubmitting || isFinished) return;
+        if (!currentAnswer.trim() || isSubmitting || isFinished) {
+            console.log('[Phase5Answering] Early return - conditions not met');
+            return;
+        }
 
         setIsSubmitting(true);
         audioService.playClick();
         haptic.tap();
 
         try {
-            await submitPhase5Answer(room.code, currentPlayerId, currentAnswer.trim(), currentPlayerTeam);
+            console.log('[Phase5Answering] Calling submitPhase5Answer...');
+            const result = await submitPhase5Answer(room.code, currentPlayerId, currentAnswer.trim(), currentPlayerTeam);
+            console.log('[Phase5Answering] submitPhase5Answer returned:', result);
             setCurrentAnswer('');
 
             // Check if both teams are done
+            console.log('[Phase5Answering] Calling checkPhase5AnswerCompletion...');
             await checkPhase5AnswerCompletion(room.code);
+            console.log('[Phase5Answering] checkPhase5AnswerCompletion done');
 
             audioService.playSuccess();
             haptic.success();
         } catch (error) {
-            console.error('Failed to submit answer:', error);
+            console.error('[Phase5Answering] Failed to submit answer:', error);
             audioService.playError();
             haptic.error();
         } finally {
             setIsSubmitting(false);
+            console.log('[Phase5Answering] Submission complete, isSubmitting set to false');
         }
     };
 
@@ -158,7 +186,7 @@ export function Phase5Answering({ room, currentPlayerId, currentPlayerTeam }: Ph
                         <div className="bg-slate-800/60 backdrop-blur-sm rounded-2xl p-8 border border-white/10">
                             <div className="text-center mb-6">
                                 <span className="text-yellow-500 text-sm uppercase tracking-wider font-bold">
-                                    {t('phase5.answerNumber', { number: currentAnswerIndex + 1 })}
+                                    {t('phase5.answerNumber', { number: currentAnswerIndex + 1, total: TOTAL_QUESTIONS })}
                                 </span>
                                 <h2 className="text-2xl font-bold mt-2">
                                     {t('phase5.whatWasAnswerQuestion', { number: currentAnswerIndex + 1 })}
@@ -192,16 +220,18 @@ export function Phase5Answering({ room, currentPlayerId, currentPlayerTeam }: Ph
                                     className={`
                                         w-full py-4 rounded-xl font-bold text-xl flex items-center justify-center gap-3
                                         transition-all duration-200
-                                        ${currentAnswer.trim()
-                                            ? 'bg-yellow-500 text-black hover:bg-yellow-400'
-                                            : 'bg-slate-700 text-slate-500 cursor-not-allowed'
+                                        ${isSubmitting
+                                            ? 'bg-slate-700 text-white cursor-wait'
+                                            : currentAnswer.trim()
+                                                ? 'bg-yellow-500 text-black hover:bg-yellow-400'
+                                                : 'bg-slate-700 text-slate-500 cursor-not-allowed'
                                         }
                                     `}
                                 >
                                     {isSubmitting ? (
                                         <>
                                             <FoodLoader size="md" />
-                                            {t('common:loading')}
+                                            {t('phase5.sending')}
                                         </>
                                     ) : (
                                         <>
@@ -226,15 +256,19 @@ export function Phase5Answering({ room, currentPlayerId, currentPlayerTeam }: Ph
                             {t('phase5.previousAnswers')}
                         </div>
                         <div className="flex flex-wrap justify-center gap-2">
-                            {myTeamAnswers.map((answer, idx) => (
-                                <div
-                                    key={idx}
-                                    className="bg-slate-800/40 px-3 py-1 rounded-lg text-sm text-slate-400"
-                                >
-                                    <span className="text-slate-600 mr-1">{idx + 1}.</span>
-                                    {answer}
-                                </div>
-                            ))}
+                            {myTeamAnswers.map((answerData, idx) => {
+                                // Handle both old string format and new { answer, isCorrect } format
+                                const answerText = typeof answerData === 'string' ? answerData : answerData?.answer;
+                                return (
+                                    <div
+                                        key={idx}
+                                        className="bg-slate-800/40 px-3 py-1 rounded-lg text-sm text-slate-400"
+                                    >
+                                        <span className="text-slate-600 mr-1">{idx + 1}.</span>
+                                        {answerText}
+                                    </div>
+                                );
+                            })}
                         </div>
                     </motion.div>
                 )}

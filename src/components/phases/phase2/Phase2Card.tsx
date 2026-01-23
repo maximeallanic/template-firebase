@@ -37,6 +37,8 @@ interface Phase2CardProps {
     myTeamAnswer?: Phase2TeamAnswer;
     isSolo?: boolean;
     bothTeamsCorrect?: boolean;
+    /** Revealed correct answer from CF validation (#72) - used in multiplayer when correctAnswer is stripped */
+    revealedAnswer?: Phase2Answer;
 }
 
 export function Phase2Card({
@@ -52,8 +54,11 @@ export function Phase2Card({
     roundWinner,
     myTeamAnswer,
     isSolo = false,
-    bothTeamsCorrect = false
+    bothTeamsCorrect = false,
+    revealedAnswer
 }: Phase2CardProps) {
+    // Use revealedAnswer from CF validation in multiplayer, fallback to item.answer for solo (#72)
+    const correctAnswer = revealedAnswer ?? item.answer;
     const { t } = useTranslation(['game-ui']);
     const { tRandom } = useRandomTranslation();
     const prefersReducedMotion = useReducedMotion();
@@ -162,8 +167,10 @@ export function Phase2Card({
 
     // Get ring color based on result
     const getRingClass = () => {
-        if (!isRoundOver || !hasAnswered) return '';
-        // Both teams correct = green ring (positive)
+        if (!isRoundOver) return '';
+        // No one answered = amber ring
+        if (!hasAnswered) return 'ring-4 ring-amber-500 shadow-amber-500/30';
+        // Both teams correct = purple ring (positive)
         if (bothTeamsCorrect) return 'ring-4 ring-purple-500 shadow-purple-500/30';
         return didWin
             ? 'ring-4 ring-green-500 shadow-green-500/30'
@@ -177,6 +184,10 @@ export function Phase2Card({
         }
         if (isRoundOver && hasAnswered && !didWin && !bothTeamsCorrect) {
             return 'bg-gradient-to-r from-red-400 via-rose-400 to-red-400';
+        }
+        // Timeout - no one answered
+        if (isRoundOver && !hasAnswered) {
+            return 'bg-gradient-to-r from-amber-400 via-yellow-400 to-amber-400';
         }
         return 'bg-gradient-to-r from-red-400 via-purple-400 to-pink-400';
     };
@@ -293,8 +304,8 @@ export function Phase2Card({
                         animate={prefersReducedMotion ? { opacity: 1 } : { opacity: 1, y: 0 }}
                         transition={{ delay: durations.quick, duration: durations.quick, ease: organicEase }}
                         className={`absolute -top-3 left-1/2 -translate-x-1/2 px-3 py-1 rounded-full text-xs font-bold text-white ${
-                            item.answer === 'A' ? 'bg-red-500' :
-                            item.answer === 'B' ? 'bg-pink-500' :
+                            correctAnswer === 'A' ? 'bg-red-500' :
+                            correctAnswer === 'B' ? 'bg-pink-500' :
                             'bg-purple-500'
                         }`}
                         aria-hidden="true"
@@ -335,7 +346,8 @@ export function Phase2Card({
             </div>
 
             {/* Adjacent Result Message - rendered via Portal to avoid transform issues */}
-            {isRoundOver && hasAnswered && createPortal(
+            {/* Show on timeout too (when no one answered) */}
+            {isRoundOver && createPortal(
                 <motion.div
                     initial={prefersReducedMotion ? { opacity: 0 } : { opacity: 0, scale: 0.9 }}
                     animate={prefersReducedMotion ? { opacity: 1 } : { opacity: 1, scale: 1 }}
@@ -420,7 +432,7 @@ export function Phase2Card({
                                         font-bold
                                         ${getAccentColor() === 'red' ? 'text-red-400' : 'text-amber-400'}
                                     `}>
-                                        {getAnswerText(item.answer)}
+                                        {getAnswerText(correctAnswer)}
                                     </span>
                                 </div>
                             )}

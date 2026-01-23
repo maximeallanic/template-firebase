@@ -152,7 +152,9 @@ export function Phase5Spectator({ room, currentPlayerTeam, phase5State }: Phase5
 
                         <div className="grid grid-cols-2 gap-3">
                             {Array.from({ length: TOTAL_QUESTIONS }).map((_, idx) => {
-                                const answer = myTeamAnswers[idx];
+                                const answerData = myTeamAnswers[idx];
+                                // Handle both old string format and new { answer, isCorrect } format (#72)
+                                const answer = typeof answerData === 'string' ? answerData : answerData?.answer;
                                 const isCurrent = idx === currentAnswerIndex;
                                 const isAnswered = idx < currentAnswerIndex;
 

@@ -1,10 +1,83 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { Flame, Candy } from 'lucide-react';
 import { UserBar } from '../auth/UserBar';
 import { ProfileEditModal } from '../auth/ProfileEditModal';
 import { QuickSettings } from '../pwa/QuickSettings';
 import { useAppInstall } from '../../hooks/useAppInstall';
-import type { Player, Avatar } from '../../services/gameService';
+import type { Player, Avatar, Room, Team } from '../../services/gameService';
+
+// Points per correct answer in each phase
+const PHASE_POINTS: Record<string, number> = {
+    phase1: 10,
+    phase2: 10,
+    phase3: 15,
+    phase4: 15,
+    phase5: 20,
+};
+
+/**
+ * Calculate running phase scores from revealedAnswers.
+ * This provides real-time score updates during a phase before nextPhase CF is called.
+ */
+function calculateRunningPhaseScores(room: Room): { spicy: number; sweet: number } {
+    const scores = { spicy: 0, sweet: 0 };
+    const revealed = room.revealedAnswers;
+    if (!revealed) return scores;
+
+    // Phase 1: First correct answer wins
+    if (revealed.phase1) {
+        for (const answer of Object.values(revealed.phase1)) {
+            if (answer.winnerTeam) {
+                scores[answer.winnerTeam] += PHASE_POINTS.phase1;
+            }
+        }
+    }
+
+    // Phase 2: Each correct team answer gets points
+    if (revealed.phase2) {
+        for (const answer of Object.values(revealed.phase2)) {
+            if (answer.teamAnswers?.spicy?.isCorrect) {
+                scores.spicy += PHASE_POINTS.phase2;
+            }
+            if (answer.teamAnswers?.sweet?.isCorrect) {
+                scores.sweet += PHASE_POINTS.phase2;
+            }
+        }
+    }
+
+    // Phase 3: Correct answers by team members get points
+    if (revealed.phase3) {
+        for (const [team, teamAnswers] of Object.entries(revealed.phase3)) {
+            for (const answer of Object.values(teamAnswers)) {
+                if (answer.isCorrect) {
+                    scores[team as Team] += PHASE_POINTS.phase3;
+                }
+            }
+        }
+    }
+
+    // Phase 4: First correct answer wins
+    if (revealed.phase4) {
+        for (const answer of Object.values(revealed.phase4)) {
+            if (answer.winnerTeam) {
+                scores[answer.winnerTeam] += PHASE_POINTS.phase4;
+            }
+        }
+    }
+
+    // Phase 5: Correct answers by team representatives get points
+    if (revealed.phase5) {
+        for (const teamAnswers of Object.values(revealed.phase5)) {
+            for (const answer of Object.values(teamAnswers)) {
+                if (answer.isCorrect && answer.team) {
+                    scores[answer.team] += PHASE_POINTS.phase5;
+                }
+            }
+        }
+    }
+
+    return scores;
+}
 
 interface GameHeaderProps {
     players: Record<string, Player>;
@@ -12,6 +85,7 @@ interface GameHeaderProps {
     roomCode: string;
     playerId?: string;
     onProfileUpdate: (name: string, avatar: Avatar) => void;
+    room?: Room;
 }
 
 export function GameHeader({
@@ -20,18 +94,30 @@ export function GameHeader({
     roomCode,
     playerId,
     onProfileUpdate,
+    room,
 }: GameHeaderProps) {
     const { isInstalled } = useAppInstall();
     const [showProfileEdit, setShowProfileEdit] = useState(false);
     const playersList = Object.values(players);
 
-    const spicyScore = playersList
+    // Calculate running phase scores from revealedAnswers (real-time during phase)
+    const runningPhaseScores = useMemo(() => {
+        if (!room) return { spicy: 0, sweet: 0 };
+        return calculateRunningPhaseScores(room);
+    }, [room]);
+
+    // Fallback: calculate from player scores if room not provided
+    const playerBasedSpicy = playersList
         .filter(p => p.team === 'spicy')
         .reduce((sum, p) => sum + p.score, 0);
-
-    const sweetScore = playersList
+    const playerBasedSweet = playersList
         .filter(p => p.team === 'sweet')
         .reduce((sum, p) => sum + p.score, 0);
+
+    // Use running phase scores if room available, otherwise fallback to player scores
+    // Note: With #72 architecture, revealedAnswers provides real-time scores during phases
+    const spicyScore = room ? runningPhaseScores.spicy : playerBasedSpicy;
+    const sweetScore = room ? runningPhaseScores.sweet : playerBasedSweet;
 
     // Determine if current player is on spicy or sweet team
     const playerTeam = currentPlayer?.team;
