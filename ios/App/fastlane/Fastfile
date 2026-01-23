@@ -23,10 +23,15 @@ platform :ios do
       is_key_content_base64: true
     )
 
+    # Use environment variable for git URL (allows HTTPS override in CI)
+    git_url = ENV["MATCH_GIT_URL"] || "git@github.com:maximeallanic/spicyvssweet-certificates.git"
+
     match(
       type: "appstore",
       readonly: is_ci,
-      app_identifier: "com.spicyvssweet.app"
+      app_identifier: "com.spicyvssweet.app",
+      git_url: git_url,
+      git_basic_authorization: ENV["MATCH_GIT_BASIC_AUTHORIZATION"]
     )
   end
 
