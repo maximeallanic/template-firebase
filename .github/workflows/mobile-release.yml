@@ -274,6 +274,9 @@ jobs:
             VERSION=$(node -p "require('./package.json').version")
             echo "version=$VERSION" >> $GITHUB_OUTPUT
           fi
+          # Calculate build number: base 10000 + run_number to ensure > 10001
+          BUILD_NUM=$((10000 + ${{ github.run_number }}))
+          echo "build_number=$BUILD_NUM" >> $GITHUB_OUTPUT
 
       - name: Update Android version
         working-directory: android
@@ -292,7 +295,7 @@ jobs:
           KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
           KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
           KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
-          BUILD_NUMBER: ${{ github.run_number }}
+          BUILD_NUMBER: ${{ steps.version.outputs.build_number }}
         run: bundle exec fastlane build_release
 
       - name: Upload Android artifacts
