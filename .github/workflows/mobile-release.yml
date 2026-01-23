@@ -281,8 +281,12 @@ jobs:
       - name: Update Android version
         working-directory: android
         run: |
+          # Update versionCode in build.gradle
+          sed -i "s/versionCode [0-9]*/versionCode ${{ steps.version.outputs.build_number }}/" app/build.gradle
           # Update versionName in build.gradle
           sed -i "s/versionName \".*\"/versionName \"${{ steps.version.outputs.version }}\"/" app/build.gradle
+          echo "Updated build.gradle with versionCode=${{ steps.version.outputs.build_number }} versionName=${{ steps.version.outputs.version }}"
+          grep -E "versionCode|versionName" app/build.gradle
 
       - name: Decode keystore
         run: |
