@@ -4,14 +4,26 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ---
 
-## TEMPLATE SETUP - Use `/setup` Command
+## TEMPLATE SETUP - Use `/setup` Command (BMad Method)
 
 > **IMPORTANT**: This is a template repository. To configure it for a new project, run the `/setup` command.
-> This will launch an automated workflow that:
-> 1. Asks questions to define your project
-> 2. Searches for available domain names
-> 3. Creates all cloud resources (GCloud, Firebase, GitHub, Stripe)
-> 4. Implements your custom features via sequential agents
+>
+> The setup uses the **BMad methodology** (Breakthrough Method for Agile AI-Driven Development) for professional project definition with structured documents and specialized agents.
+
+### BMad Workflow Overview
+
+| Phase | Agent | Output |
+|-------|-------|--------|
+| 1. Product Brief | PM | Problem, users, MVP scope |
+| 2. PRD | PM | Full requirements, user stories |
+| 3. Architecture | Architect | Tech design, data model |
+| 4. Domain Search | - | Available domains |
+| 5. Resources | - | GCloud, Firebase, GitHub, Stripe |
+| 6. Configuration | - | Placeholders, env files |
+| 7. Epics & Stories | PM + Architect | Implementable units |
+| 8. Sprint Planning | Scrum Master | Organized sprints |
+| 9. Implementation | Developer | Code per story |
+| 10. Deployment | - | Production deploy |
 
 ### Prerequisites
 
@@ -37,23 +49,41 @@ stripe login  # if using payments
 
 ### Running Setup
 
-Simply type `/setup` in Claude Code. The workflow will:
+Simply type `/setup` in Claude Code. The BMad workflow will:
 
-1. **Define Project** - Ask about your app name, description, target users, business model, and features
-2. **Find Domain** - Generate domain variations and check availability via MCP
-3. **Create Resources** - Automatically create GCloud project, Firebase app, GitHub repo, and Stripe products
-4. **Configure Template** - Replace all placeholders and set up environment files
-5. **Implement Features** - Launch agents to build each custom feature you specified
-6. **Deploy** - Build and deploy to Firebase Hosting
+1. **Product Brief** - Define problem, target users, value proposition, MVP scope
+2. **PRD** - Document full requirements, user stories, acceptance criteria
+3. **Architecture** - Design data model, API endpoints, security strategy
+4. **Find Domain** - Generate variations and check availability
+5. **Create Resources** - GCloud project, Firebase app, GitHub repo, Stripe products
+6. **Configure Template** - Replace placeholders and set up environment files
+7. **Create Epics & Stories** - Break down features into implementable units
+8. **Sprint Planning** - Organize stories into prioritized sprints
+9. **Implement** - Execute story-by-story development cycle
+10. **Deploy** - Validate and deploy to Firebase Hosting
 
 Progress is saved to `.setup-checkpoint.json` - if interrupted, resume by running `/setup` again.
+
+### BMad Output Structure
+
+After setup, you'll have professional documentation in `_bmad-output/`:
+
+```
+_bmad-output/
+├── product-brief.md      # Problem, users, MVP scope
+├── PRD.md                 # Full requirements
+├── architecture.md        # Technical design
+├── epics/                 # Feature groupings
+├── stories/               # Implementable tasks
+└── sprint-status.yaml     # Progress tracking
+```
 
 ### Post-Setup
 
 After setup completes, Claude will:
 1. Delete this TEMPLATE SETUP section
-2. Update Project Overview with your project info
-3. Document implemented features
+2. Update Project Overview with info from product-brief.md
+3. Document implemented features from PRD
 4. Commit changes
 
 ---
