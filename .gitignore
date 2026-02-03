@@ -62,10 +62,11 @@ android/.gradle/
 *.xcuserstate
 *.xcuserdatad/
 DerivedData/
-# Claude Folder
-.claude
+# Claude Folder (ignore local settings, keep commands)
+.claude/*
+!.claude/commands/
 
 tmpclaude-*
 functions/tmpclaude-*
-spicyvssweet-release.keystore
+release.keystore
 AuthKey_*.p8
